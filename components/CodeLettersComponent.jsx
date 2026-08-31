@@ -24,11 +24,12 @@ import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -227,7 +228,7 @@ const CodeLettersComponent = ({
           .filter(
             (program) =>
               (!selectedDivision || program.divisionId === selectedDivision) &&
-              (!selectedProgram || program._id === selectedProgram) &&
+              (!selectedProgram || selectedProgram === "all" || program._id === selectedProgram) &&
               (status === "both" ||
                 (status === "assigned" &&
                   program.participants?.some(
@@ -527,32 +528,58 @@ const CodeLettersComponent = ({
     <div className="space-y-4">
       {/* Controls */}
       <div className="no-print">
-        <div className="flex flex-col sm:flex-row flex-wrap lg:flex-nowrap items-center w-full gap-2">
-          {/* Top row on mobile: Filter icon, Stage, Division */}
-          <div className="flex items-center w-full sm:w-auto gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 sm:hidden">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => setStatus('both')} className={status === 'both' ? 'font-bold' : ''}>
-                  Both
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatus('assigned')} className={status === 'assigned' ? 'font-bold' : ''}>
-                  Assigned
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatus('not-assigned')} className={status === 'not-assigned' ? 'font-bold' : ''}>
-                  Not Assigned
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        <div className="flex flex-col sm:flex-row items-center w-full gap-2">
+          
+          {/* Row 1 on Mobile / Left Group on Desktop */}
+          <div className="flex flex-row items-center w-full sm:w-auto gap-2">
+            {/* Mobile Filter Popup */}
+            <div className="sm:hidden shrink-0">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-xl">
+                  <DialogHeader>
+                    <DialogTitle>Filters</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-4 py-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Status</label>
+                      <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="both">Both</SelectItem>
+                          <SelectItem value="assigned">Assigned</SelectItem>
+                          <SelectItem value="not-assigned">Not Assigned</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Category</label>
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="both">Both</SelectItem>
+                          <SelectItem value="Stage">Stage</SelectItem>
+                          <SelectItem value="Off-Stage">Off-Stage</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
 
             {/* Desktop Status Select */}
-            <div className="hidden sm:block">
+            <div className="hidden sm:block shrink-0">
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="w-auto min-w-[120px]">
+                <SelectTrigger className="w-auto min-w-max">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -563,117 +590,190 @@ const CodeLettersComponent = ({
               </Select>
             </div>
 
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="flex-1 sm:flex-none sm:w-auto sm:min-w-[120px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={"both"}>Both</SelectItem>
-                <SelectItem value={"Stage"}>Stage</SelectItem>
-                <SelectItem value={"Off-Stage"}>Off-Stage</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Desktop Category Select */}
+            <div className="hidden sm:block shrink-0">
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="w-auto min-w-max">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={"both"}>Both</SelectItem>
+                  <SelectItem value={"Stage"}>Stage</SelectItem>
+                  <SelectItem value={"Off-Stage"}>Off-Stage</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select
-              value={selectedDivision || "all"}
-              onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="flex-1 sm:flex-none sm:w-auto sm:min-w-[140px]">
-                <SelectValue placeholder="All Divisions" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Divisions</SelectItem>
-                {divisions.map((division) => (
-                  <SelectItem key={division._id} value={division._id}>
-                    {division.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Division Select */}
+            <div className="flex-1 sm:flex-none sm:w-auto min-w-0">
+              <Select
+                value={selectedDivision || "all"}
+                onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
+              >
+                <SelectTrigger className="w-full sm:w-auto sm:min-w-max">
+                  <SelectValue placeholder="All Divisions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Divisions</SelectItem>
+                  {divisions.map((division) => (
+                    <SelectItem key={division._id} value={division._id}>
+                      {division.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Delete and Print Buttons (Mobile Only) */}
+            <div className="flex sm:hidden items-center gap-1 shrink-0">
+              {filteredPrograms.some((p) => !p.hasEvaluatedParticipants) && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      disabled={deletingAll}
+                      className="h-9 w-9 p-0"
+                    >
+                      {deletingAll ? (
+                        <Loader className="animate-spin h-4 w-4" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent ref={deleteAllPopupRef} data-html2canvas-popup="true" className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
+                    <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                      <button 
+                        type="button"
+                        className="p-2 rounded-lg bg-destructive/10 shrink-0 hover:bg-destructive/20 transition-colors focus:outline-none cursor-pointer"
+                        onClick={handleDeleteAllDownload}
+                        title="Download Image"
+                        data-html2canvas-ignore="true"
+                      >
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                      </button>
+                      <div className="flex-1 text-left space-y-0.5">
+                        <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
+                          Delete Code Letters?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                          <div className="text-sm text-muted-foreground m-0">
+                            This will delete code letters for the selected (non-evaluated) programs. This action cannot be undone.
+                          </div>
+                        </AlertDialogDescription>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-2" data-html2canvas-ignore="true">
+                        <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
+                          <X className="h-5 w-5" />
+                        </AlertDialogCancel>
+                      </div>
+                    </AlertDialogHeader>
+                    <div className="p-5 flex flex-col gap-4">
+                      <AlertDialogFooter className="flex justify-between gap-4 mt-2 sm:justify-between w-full">
+                        <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground flex-1">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </div>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              <Button
+                variant="default"
+                onClick={handlePrint}
+                disabled={filteredPrograms.length === 0}
+                className="h-9 w-9 p-0"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
-          {/* Bottom row on mobile / Right side on desktop: Program select + Delete All / Print All */}
-          <div className="flex items-center gap-2 w-full sm:w-auto flex-[2] sm:min-w-[160px]">
+          {/* Row 2 on Mobile / Right Group on Desktop */}
+          <div className="flex flex-row items-center w-full sm:w-auto flex-[2] gap-2 min-w-0">
+            {/* Programs MultiSelect */}
             <MultiSelect
-              options={formatOptions(programsData)}
+              options={[{ label: "All Programs", value: "all" }, ...formatOptions(programsData)]}
               value={selectedProgram}
               onValueChange={setSelectedProgram}
               placeholder="All Programs"
               multiSelect={false}
-              className="flex-1"
+              className="flex-1 min-w-0"
             />
+            {/* Clear Filters */}
             {(selectedDivision || selectedProgram) && (
-              <Button variant="outline" size="icon" onClick={clearFilter}>
+              <Button variant="outline" size="icon" onClick={clearFilter} className="shrink-0 h-9 w-9 sm:h-10 sm:w-10">
                 <X className="h-4 w-4" />
               </Button>
             )}
-            {/* Delete All */}
-            {filteredPrograms.some((p) => !p.hasEvaluatedParticipants) && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={deletingAll}
-                    className="whitespace-nowrap"
-                  >
-                    {deletingAll ? (
-                      <Loader className="animate-spin h-4 w-4 sm:mr-1" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 sm:mr-1" />
-                    )}
-                    <span className="hidden sm:inline">Delete All</span>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent ref={deleteAllPopupRef} data-html2canvas-popup="true" className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
-                  <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                    <button 
-                      type="button"
-                      className="p-2 rounded-lg bg-destructive/10 shrink-0 hover:bg-destructive/20 transition-colors focus:outline-none cursor-pointer"
-                      onClick={handleDeleteAllDownload}
-                      title="Download Image"
-                      data-html2canvas-ignore="true"
+
+            {/* Delete and Print Buttons (Desktop Only) */}
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
+              {filteredPrograms.some((p) => !p.hasEvaluatedParticipants) && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      disabled={deletingAll}
+                      className="whitespace-nowrap h-10 px-4"
                     >
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
-                    </button>
-                    <div className="flex-1 text-left space-y-0.5">
-                      <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
-                        Delete All Code Letters?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription asChild>
-                        <div className="text-sm text-muted-foreground m-0">
-                          This will delete code letters for all non-evaluated programs currently shown. This action cannot be undone.
-                        </div>
-                      </AlertDialogDescription>
+                      {deletingAll ? (
+                        <Loader className="animate-spin h-4 w-4 mr-1" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      )}
+                      <span>Delete</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent ref={deleteAllPopupRef} data-html2canvas-popup="true" className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
+                    <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                      <button 
+                        type="button"
+                        className="p-2 rounded-lg bg-destructive/10 shrink-0 hover:bg-destructive/20 transition-colors focus:outline-none cursor-pointer"
+                        onClick={handleDeleteAllDownload}
+                        title="Download Image"
+                        data-html2canvas-ignore="true"
+                      >
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                      </button>
+                      <div className="flex-1 text-left space-y-0.5">
+                        <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
+                          Delete Code Letters?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                          <div className="text-sm text-muted-foreground m-0">
+                            This will delete code letters for the selected (non-evaluated) programs. This action cannot be undone.
+                          </div>
+                        </AlertDialogDescription>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-2" data-html2canvas-ignore="true">
+                        <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
+                          <X className="h-5 w-5" />
+                        </AlertDialogCancel>
+                      </div>
+                    </AlertDialogHeader>
+                    <div className="p-5 flex flex-col gap-4">
+                      <AlertDialogFooter className="flex justify-between gap-4 mt-2 sm:justify-between w-full">
+                        <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground flex-1">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
                     </div>
-                    <div className="flex items-center gap-1 sm:gap-2" data-html2canvas-ignore="true">
-                      <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
-                        <X className="h-5 w-5" />
-                      </AlertDialogCancel>
-                    </div>
-                  </AlertDialogHeader>
-                  <div className="p-5 flex flex-col gap-4">
-                    <AlertDialogFooter className="flex justify-between gap-4 mt-2 sm:justify-between w-full">
-                      <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground flex-1">
-                        Delete All
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </div>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            {/* Print All */}
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handlePrint}
-              disabled={filteredPrograms.length === 0}
-              className="whitespace-nowrap"
-            >
-              <Printer className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Print All</span>
-            </Button>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              <Button
+                variant="default"
+                onClick={handlePrint}
+                disabled={filteredPrograms.length === 0}
+                className="whitespace-nowrap h-10 px-4"
+              >
+                <Printer className="h-4 w-4 mr-1" />
+                <span>Print</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -695,63 +795,6 @@ const CodeLettersComponent = ({
                 {({ programPrintRef, handleProgramPrint }) => (
                   <div className="program-section">
                     {(() => {
-                      const deleteButton = !program?.hasEvaluatedParticipants ? (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              disabled={deleteCodeLetter.isPending}
-                            >
-                              {deleteCodeLetter.isPending ? (
-                                <Loader className="animate-spin h-4 w-4" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent ref={(el) => { if (el) deleteProgramPopupRef.current = el; }} data-html2canvas-popup="true" className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
-                            <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                              <button 
-                                type="button"
-                                className="p-2 rounded-lg bg-destructive/10 shrink-0 hover:bg-destructive/20 transition-colors focus:outline-none cursor-pointer"
-                                onClick={handleDeleteProgramDownload}
-                                title="Download Image"
-                                data-html2canvas-ignore="true"
-                              >
-                                <AlertTriangle className="h-5 w-5 text-destructive" />
-                              </button>
-                              <div className="flex-1 text-left space-y-0.5">
-                                <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
-                                  Delete code letters for &quot;{program.programName}&quot;?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription asChild>
-                                  <div className="text-sm text-muted-foreground m-0">
-                                    This action cannot be undone.
-                                  </div>
-                                </AlertDialogDescription>
-                              </div>
-                              <div className="flex items-center gap-1 sm:gap-2" data-html2canvas-ignore="true">
-                                <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
-                                  <X className="h-5 w-5" />
-                                </AlertDialogCancel>
-                              </div>
-                            </AlertDialogHeader>
-                            <div className="p-5 flex flex-col gap-4">
-                              <AlertDialogFooter className="flex justify-between gap-4 mt-2 sm:justify-between w-full">
-                                <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(program.programId)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground flex-1"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </div>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      ) : null;
-
                       return (
                         <>
                           {/* Program heading + table: all inside programPrintRef so PrintHeader is captured per-program */}
@@ -763,16 +806,9 @@ const CodeLettersComponent = ({
                               title="CALL LIST"
                             />
                             {/* Program info + action buttons */}
-                            <div className="grid grid-cols-[auto_1fr_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-2 bg-muted/60 border border-border rounded-t-lg px-3 py-2 print:bg-gray-200 print:border-black print:rounded-none">
-                              {/* Left: Mobile Delete Button */}
-                              <div className="col-start-1 flex items-center justify-start no-print shrink-0">
-                                <div className="sm:hidden">
-                                  {deleteButton}
-                                </div>
-                              </div>
-
+                            <div className="grid grid-cols-[1fr] items-center gap-2 bg-muted/60 border border-border rounded-t-lg px-3 py-2 print:bg-gray-200 print:border-black print:rounded-none">
                               {/* Center: 4 line text on mobile, pipe-separated inline on desktop */}
-                              <div className="col-start-2 flex flex-col sm:flex-row items-center justify-center gap-0 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs text-center">
+                              <div className="flex flex-col sm:flex-row items-center justify-center gap-0 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs text-center">
                                 {/* Mobile: each on its own line */}
                                 <span className="block sm:hidden capitalize">
                                   <strong>Program:</strong> {program.programName}
@@ -803,20 +839,6 @@ const CodeLettersComponent = ({
                                   <span className="capitalize whitespace-nowrap pl-2">
                                     <strong>Category:</strong> {program.programCategory}
                                   </span>
-                                </div>
-                              </div>
-
-                              {/* Right: Print button (mobile + desktop), Delete button (desktop only) */}
-                              <div className="col-start-3 flex items-center justify-end gap-1 sm:gap-2 no-print shrink-0">
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={handleProgramPrint}
-                                >
-                                  <Printer className="h-4 w-4" />
-                                </Button>
-                                <div className="hidden sm:block">
-                                  {deleteButton}
                                 </div>
                               </div>
                             </div>
