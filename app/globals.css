@@ -181,9 +181,6 @@
 @media print {
   /* Absolute global print reset to guarantee text visibility on ALL mobile devices */
   * {
-    color: black !important;
-    background: transparent !important;
-    background-color: transparent !important;
     box-shadow: none !important;
     text-shadow: none !important;
   }

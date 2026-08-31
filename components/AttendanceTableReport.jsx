@@ -133,7 +133,6 @@ export default function AttendanceTableReport({ classes }) {
                     /* Universal Print Reset */
                     html, body { 
                         background: white !important; 
-                        color: black !important; 
                         overflow: visible !important; 
                         height: auto !important; 
                         margin: 0 !important;
@@ -168,12 +167,10 @@ export default function AttendanceTableReport({ classes }) {
                     
                     th, td { 
                         border: 1px solid #000 !important; 
-                        background: white !important; 
                         padding: 4px !important; 
                         position: static !important;
                         visibility: visible !important;
                         opacity: 1 !important;
-                        color: black !important;
                         height: auto !important;
                     }
                     
@@ -187,9 +184,7 @@ export default function AttendanceTableReport({ classes }) {
                         white-space: nowrap !important;
                         visibility: visible !important;
                         opacity: 1 !important;
-                        color: black !important;
                         position: static !important;
-                        background: white !important;
                         border: 1px solid #000 !important;
                         text-align: center !important;
                     }
@@ -199,7 +194,6 @@ export default function AttendanceTableReport({ classes }) {
                         display: inline-block !important;
                         visibility: visible !important;
                         opacity: 1 !important;
-                        color: black !important;
                         text-align: center !important;
                         width: auto !important;
                     }
@@ -207,7 +201,7 @@ export default function AttendanceTableReport({ classes }) {
                     .sticky { position: static !important; }
                     .friday-row td { background-color: #fee2e2 !important; }
                     .no-period-cell { background-color: #f3f4f6 !important; }
-                    * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
                 }
             `}</style>
 
@@ -319,7 +313,7 @@ export default function AttendanceTableReport({ classes }) {
                                         <TableHead
                                             key={idx}
                                             className={`h-16 bg-[#f8fafc] font-bold border text-center ${idx === 0 ? 'sticky left-0 z-[100] bg-[#f8fafc] date-column whitespace-nowrap px-4' : 'z-[90]'
-                                                } sticky top-0 p-0 print:static print:z-0 print:bg-white print:text-black`}
+                                                } sticky top-0 p-0 print:static print:z-0`}
                                         >
                                             {idx === 0 ? (
                                                 <div className="text-[11px] font-bold p-0 min-w-max px-2 text-black text-center print:text-xs print:uppercase">{col.Header}</div>
@@ -352,7 +346,7 @@ export default function AttendanceTableReport({ classes }) {
                             <TableBody>
                                 {tableData.map((row, rowIdx) => (
                                     <TableRow key={rowIdx} className={`group hover:bg-muted/5 transition-colors ${row.dayName === 'Friday' ? 'bg-red-100/60 dark:bg-red-900/20 print:bg-[#fee2e2] friday-row' : row.isNonWorkingDay ? 'bg-orange-50/50 print:bg-orange-50 non-working-row' : ''}`}>
-                                        <TableCell className={`sticky left-0 ${row.dayName === 'Friday' ? 'bg-[#fee2e2]' : row.isNonWorkingDay ? 'bg-orange-50' : 'bg-white'} font-bold border z-30 p-0 h-10 date-column print:static print:bg-white print:text-black print:z-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:shadow-none`}>
+                                        <TableCell className={`sticky left-0 ${row.dayName === 'Friday' ? 'bg-[#fee2e2]' : row.isNonWorkingDay ? 'bg-orange-50' : 'bg-white'} font-bold border z-30 p-0 h-10 date-column print:static print:z-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:shadow-none`}>
                                             <div className="flex items-center justify-center h-full px-4 text-xs whitespace-nowrap text-black print:text-center print:w-full">
                                                 {row.displayDate}
                                             </div>
