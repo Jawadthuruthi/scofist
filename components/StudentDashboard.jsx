@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, Newspaper, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle, Share2 } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, Newspaper, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle, Share2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import UpdateCard from "@/components/UpdateCard";
@@ -48,6 +48,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
@@ -1923,11 +1925,24 @@ export default function StudentDashboard({
 
               {/* Standard Fund Details Modal */}
               <Dialog open={isStandardModalOpen} onOpenChange={setIsStandardModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>{selectedStandardFund?.label} Details</DialogTitle>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto [&>button.absolute]:hidden p-0 gap-0">
+                  <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background sticky top-0 z-20">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <IndianRupee className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 text-left space-y-0.5">
+                      <DialogTitle className="text-xl font-bold m-0">
+                        {selectedStandardFund?.label} Details
+                      </DialogTitle>
+                      <DialogDescription className="m-0">
+                        Fund collection breakdown and transaction history
+                      </DialogDescription>
+                    </div>
+                    <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                      <X className="h-5 w-5" />
+                    </DialogClose>
                   </DialogHeader>
-                  <div className="mt-4 space-y-8">
+                  <div className="p-5 space-y-8">
                     {/* Collection Breakdown */}
                     <div>
                       <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
@@ -1990,7 +2005,14 @@ export default function StudentDashboard({
                                       </div>
                                     </TableCell>
                                     <TableCell className={`py-2 text-xs text-right font-bold ${t.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
-                                      {t.type === 'Withdrawal' ? '-' : '+'}{(t.amount || 0).toFixed(2)}
+                                      <div className="flex flex-col items-end gap-0.5">
+                                        <span>{t.type === 'Withdrawal' ? '-' : '+'}{(t.amount || 0).toFixed(2)}</span>
+                                        {t.note && (
+                                          <span className="text-[10px] font-normal text-muted-foreground italic leading-tight max-w-[140px] text-right">
+                                            {t.note}
+                                          </span>
+                                        )}
+                                      </div>
                                     </TableCell>
                                     <TableCell className={`py-2 text-xs text-right font-bold ${t.calculatedBalance < 0 ? 'text-red-600' : 'text-green-600'}`}>
                                       {t.calculatedBalance?.toFixed(2) || "0.00"}
@@ -2014,11 +2036,24 @@ export default function StudentDashboard({
 
               {/* Coupon Details Modal */}
               <Dialog open={isCouponModalOpen} onOpenChange={setIsCouponModalOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Coupon Fund Details</DialogTitle>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto [&>button.absolute]:hidden p-0 gap-0">
+                  <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background sticky top-0 z-20">
+                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                      <Wallet className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div className="flex-1 text-left space-y-0.5">
+                      <DialogTitle className="text-xl font-bold m-0">
+                        Coupon Fund Details
+                      </DialogTitle>
+                      <DialogDescription className="m-0">
+                        Coupon payment history and outstanding balances
+                      </DialogDescription>
+                    </div>
+                    <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                      <X className="h-5 w-5" />
+                    </DialogClose>
                   </DialogHeader>
-                  <div className="mt-4">
+                  <div className="p-4">
                     <Table>
                       <TableHeader className="bg-muted/50">
                         <TableRow>

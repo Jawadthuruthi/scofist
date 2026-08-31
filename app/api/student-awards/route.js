@@ -37,6 +37,11 @@ export async function GET(req) {
         const STAR_CUTOFF_YEAR = 2026;
         const STAR_CUTOFF_MONTH = 6; // July (0-based)
 
+        // Attendance & Best Reader cutoff: academic year starts June 2025
+        // (month index 5 = June, 0-based)
+        const ATTENDANCE_CUTOFF_YEAR = 2025;
+        const ATTENDANCE_CUTOFF_MONTH = 5; // June (0-based)
+
         const now = new Date();
         // "Current month" is the ongoing month — not yet complete, so exclude it.
         // We only show fully-completed months: month < now's month (if same year) or year < now's year.
@@ -50,18 +55,30 @@ export async function GET(req) {
             });
         };
 
-        // Build list of completed months from July 2026 up to (but not including) current month
-        const monthsToIterate = [];
+        // Build list of completed months for attendance & best reader
+        // from June 2025 up to (but not including) the current month
+        const attendanceMonthsToIterate = [];
         {
-            // Start from July 2026
-            let iterDate = new Date(STAR_CUTOFF_YEAR, STAR_CUTOFF_MONTH, 1);
+            let iterDate = new Date(ATTENDANCE_CUTOFF_YEAR, ATTENDANCE_CUTOFF_MONTH, 1);
             while (iterDate < currentMonthStart) {
-                monthsToIterate.push(new Date(iterDate));
+                attendanceMonthsToIterate.push(new Date(iterDate));
                 iterDate.setMonth(iterDate.getMonth() + 1);
             }
         }
 
-        for (const date of monthsToIterate) {
+        // Build list of completed months for Star of the Month
+        // from July 2026 up to (but not including) the current month
+        const starMonthsToIterate = [];
+        {
+            let iterDate = new Date(STAR_CUTOFF_YEAR, STAR_CUTOFF_MONTH, 1);
+            while (iterDate < currentMonthStart) {
+                starMonthsToIterate.push(new Date(iterDate));
+                iterDate.setMonth(iterDate.getMonth() + 1);
+            }
+        }
+
+        // Attendance Toppers & Best Reader — iterate from academic year start (June 2025)
+        for (const date of attendanceMonthsToIterate) {
             const month = date.getMonth();
             const year = date.getFullYear();
 
@@ -85,9 +102,13 @@ export async function GET(req) {
                     .then(data => ({ data, type: 'attendance', capturedDate: new Date(date) }))
                     .catch(() => null)
             );
+        }
 
-            // Star of the Month — only for completed months from July 2026 onwards
-            // (already guaranteed by monthsToIterate range above)
+        // Star of the Month — only for completed months from July 2026 onwards
+        for (const date of starMonthsToIterate) {
+            const month = date.getMonth();
+            const year = date.getFullYear();
+
             starPromises.push(
                 getStar(createMockReq(`/api/performance/star?classId=all&month=${month + 1}&year=${year}`))
                     .then(res => res.json())

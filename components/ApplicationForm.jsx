@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Upload, ChevronsUpDown, Check, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Loader2, Upload, ChevronsUpDown, Check, CheckCircle2, X, ClipboardList } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -289,25 +290,49 @@ export default function ApplicationForm({ trigger }) {
       if (!val) setSubmitted(false);
     }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className={cn("max-h-[90vh] overflow-y-auto", submitted ? "max-w-md" : "max-w-4xl")}>
+      <DialogContent className={cn(
+        "[&>button.absolute]:hidden p-0 gap-0",
+        submitted ? "max-w-md" : "max-w-4xl"
+      )}>
         {submitted ? (
-          <div className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
-            <div className="rounded-full bg-emerald-100 p-4 animate-in zoom-in duration-300">
-              <CheckCircle2 className="h-16 w-16 text-emerald-600" />
+          <>
+            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div className="flex-1 text-left space-y-0.5">
+                <DialogTitle className="text-xl font-bold m-0 text-emerald-900 dark:text-emerald-400">Application Submitted!</DialogTitle>
+              </div>
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center py-10 px-6 space-y-4 text-center flex-1">
+              <div className="rounded-full bg-emerald-100 p-4 animate-in zoom-in duration-300">
+                <CheckCircle2 className="h-16 w-16 text-emerald-600" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-muted-foreground">
+                  Your application has been received successfully. We will review your details and contact you soon.
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <DialogTitle className="text-2xl font-bold text-emerald-900">Application Submitted!</DialogTitle>
-              <p className="text-muted-foreground">
-                Your application has been received successfully. We will review your details and contact you soon.
-              </p>
-            </div>
-          </div>
+          </>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle>New Student Application</DialogTitle>
+            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ClipboardList className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left space-y-0.5">
+                <DialogTitle className="text-xl font-bold m-0">New Student Application</DialogTitle>
+              </div>
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </DialogClose>
             </DialogHeader>
 
+            <div className="p-6">
             <Form {...form}>
               <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Personal Details */}
@@ -869,6 +894,7 @@ export default function ApplicationForm({ trigger }) {
             </div>
           </form>
         </Form>
+        </div>
         </>
         )}
       </DialogContent>

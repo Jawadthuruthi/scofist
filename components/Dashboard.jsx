@@ -502,18 +502,23 @@ const ClassCard = memo(
                   const displayId = std.studentId?._id || std.studentId || "";
                   return (
                     <div key={index} className="flex justify-between items-center py-0.5 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
-                      <div className="flex flex-col">
-                        <div className="font-semibold text-slate-700 dark:text-slate-200">
-                          {index + 1}. {std.studentName} {admissionNumber ? `(${admissionNumber})` : ""}
+                      <div className="flex items-start gap-1.5 min-w-0">
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 shrink-0">
+                          {index + 1}.
+                        </span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-slate-700 dark:text-slate-200">
+                            {std.studentName} {admissionNumber ? `(${admissionNumber})` : ""}
+                          </span>
+                          {leaveReason && (
+                            <span className="text-xs text-red-600 dark:text-red-400 mt-0.5 font-medium">
+                              {leaveReason}
+                            </span>
+                          )}
                         </div>
-                        {leaveReason && (
-                          <div className="text-xs text-red-600 dark:text-red-400 mt-0.5 font-medium">
-                            {leaveReason}
-                          </div>
-                        )}
                       </div>
                       {displayId && (
-                        <div className="text-xs text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
+                        <div className="text-xs text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit shrink-0 ml-2">
                           {displayId}
                         </div>
                       )}
@@ -863,17 +868,22 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
                         key={student.id || index}
                         className="flex items-center justify-between py-1 px-3 rounded-md hover:bg-muted/50"
                       >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">
-                            {index + 1}. {student.name} {student.admissionNumber ? `(${student.admissionNumber})` : ""}
+                        <div className="flex items-start gap-1.5 min-w-0">
+                          <span className="text-sm font-medium shrink-0">
+                            {index + 1}.
                           </span>
-                          {student.leaveReason && (
-                            <span className="text-xs text-red-600 dark:text-red-400 mt-0.5 font-medium">
-                              {student.leaveReason}
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-medium">
+                              {student.name} {student.admissionNumber ? `(${student.admissionNumber})` : ""}
                             </span>
-                          )}
+                            {student.leaveReason && (
+                              <span className="text-xs text-red-600 dark:text-red-400 mt-0.5 font-medium">
+                                {student.leaveReason}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
+                        <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
                           {student.id && (
                             <span className="text-xs text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
                               {student.id}
