@@ -1729,134 +1729,242 @@ const DataTableComponent = ({
       {/* Detail View Modal for drill-down */}
       <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
         <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className={`flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${detailView?.colHeader === "Present" ? "bg-green-50 dark:bg-green-950/20" : detailView?.colHeader === "Absent" ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
-            <button 
-              type="button"
-              className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer ${detailView?.colHeader === "Present" ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : detailView?.colHeader === "Absent" ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
-              onClick={handleDownload}
-              title="Download Image"
-              data-html2canvas-ignore="true"
-            >
-              {detailView?.colHeader === "Present" ? (
-                <UserCheck className="h-5 w-5 text-green-600 dark:text-green-500" />
-              ) : detailView?.colHeader === "Absent" ? (
-                <UserX className="h-5 w-5 text-red-500" />
-              ) : (
-                <FileSpreadsheet className="h-5 w-5 text-primary" />
-              )}
-            </button>
-            <div className="flex-1 text-left space-y-0.5">
-              <DialogTitle className={`text-xl font-bold m-0 ${detailView?.colHeader === "Present" ? "text-green-600 dark:text-green-400" : detailView?.colHeader === "Absent" ? "text-red-600 dark:text-red-400" : ""}`}>
-                {detailView?.colHeader} Records
-              </DialogTitle>
-              <div className="m-0 flex flex-wrap items-center gap-2">
-                <DialogDescription className="font-medium text-foreground m-0">
-                  {detailView?.student?.name} {detailView?.student?._id && `(${detailView.student._id})`}
-                </DialogDescription>
-                <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-bold">
-                  {detailedRecords.length} {detailedRecords.length === 1 ? 'Record' : 'Records'}
-                </Badge>
-              </div>
-            </div>
-            {detailView?.viewType === "allRecords" && (
-              <button
+          <DialogHeader className={`flex flex-col gap-0 mx-0 px-4 sm:px-5 pt-4 pb-3 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${detailView?.colHeader === "Present" ? "bg-green-50 dark:bg-green-950/20" : detailView?.colHeader === "Absent" ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
+            {/* Top row: icon + title/meta + print + close */}
+            <div className="flex items-start gap-3">
+              <button 
                 type="button"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
-                onClick={() => {
-                  const name = detailView?.student?.name || '';
-                  const id = detailView?.student?._id || '';
-                  const totalCount = detailedRecords.length;
-                  const presentCount = detailedRecords.filter(r => r.present === true).length;
-                  const absentCount = detailedRecords.filter(r => r.present === false).length;
-                  const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
-                  const yearLabel = filterYear || '';
-                  const isTeacher = resource === 'teacherAttendances';
-                  const tableRows = detailedRecords.map(rec => {
-                    const isPresent = rec.present === true;
-                    const isAbsent = rec.present === false;
-                    const rowBg = isPresent ? 'background:#f0fdf4;' : isAbsent ? 'background:#fef2f2;' : '';
-                    const dateStr = rec.date ? new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-                    const dayStr = rec.date ? new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' }) : '';
-                    const subject = rec.prayer || rec.subjectName || '—';
-                    const period = rec.periodNumber ? `Period ${rec.periodNumber}` : '';
-                    const classTeacher = isTeacher ? (rec.className || '—') : (rec.teacherName || '—');
-                    const statusBg = isPresent ? 'background:#dcfce7;color:#15803d;' : isAbsent ? 'background:#fee2e2;color:#b91c1c;' : '';
-                    const statusText = isPresent ? 'Present' : isAbsent ? 'Absent' : '—';
-                    return `<tr style="${rowBg}">
-                      <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
-                      <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${subject}</div>${period ? `<div style="font-size:10px;color:#6b7280;">${period}</div>` : ''}</td>
-                      <td style="font-size:13px;color:#374151;">${classTeacher}</td>
-                      <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span></td>
-                    </tr>`;
-                  }).join('');
-                  const html = `<!DOCTYPE html><html><head><title>Attendance Records – ${name}</title>
-                  <link rel="preconnect" href="https://fonts.googleapis.com" />
-                  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-                  <style>
-                    *{box-sizing:border-box;margin:0;padding:0;}
-                    body{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px;color:#111;}
-                    .header{text-align:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;}
-                    .header h1{font-size:15px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:6px;}
-                    .header h2{font-size:20px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
-                    .header .meta{font-size:12px;color:#6b7280;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
-                    .header .meta span{font-weight:600;}
-                    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
-                    .stat{text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
-                    .stat .num{font-size:20px;font-weight:800;display:block;}
-                    .stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-top:2px;color:#6b7280;}
-                    .stat.total{background:#f9fafb;}
-                    .stat.present{background:#f0fdf4;border-color:#bbf7d0;}.stat.present .num{color:#16a34a;}.stat.present .lbl{color:#15803d;}
-                    .stat.absent{background:#fef2f2;border-color:#fecaca;}.stat.absent .num{color:#dc2626;}.stat.absent .lbl{color:#b91c1c;}
-                    table{border-collapse:collapse;width:100%;margin-top:4px;}
-                    th{background:#f3f4f6;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border:1px solid #d1d5db;text-align:left;font-family:'Montserrat',sans-serif;}
-                    td{border:1px solid #e5e7eb;padding:7px 10px;vertical-align:middle;font-family:'Montserrat',sans-serif;}
-                    tr:nth-child(even) td{background:#fafafa;}
-                    @media print{body{padding:10px;}@page{margin:10mm;}}
-                  </style></head>
-                  <body>
-                    <div class="header">
-                      <h1>Total Class Records</h1>
-                      <h2>${name}</h2>
-                      <div class="meta">
-                        <span>📅 ${monthLabel} ${yearLabel}</span>
-                      </div>
-                    </div>
-                    <div class="stats">
-                      <div class="stat total"><span class="num">${totalCount}</span><span class="lbl">Total</span></div>
-                      <div class="stat present"><span class="num">${presentCount}</span><span class="lbl">Present</span></div>
-                      <div class="stat absent"><span class="num">${absentCount}</span><span class="lbl">Absent</span></div>
-                    </div>
-                    <table>
-                      <thead><tr>
-                        <th style="width:110px;">Date &amp; Day</th>
-                        <th style="min-width:180px;">Subject</th>
-                        <th style="min-width:140px;">${isTeacher ? 'Class' : 'Teacher'}</th>
-                        <th style="width:90px;text-align:center;">Status</th>
-                      </tr></thead>
-                      <tbody>${tableRows}</tbody>
-                    </table>
-                  </body></html>`;
-                  const iframe = document.createElement('iframe');
-                  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;visibility:hidden;';
-                  document.body.appendChild(iframe);
-                  iframe.contentDocument.open();
-                  iframe.contentDocument.write(html);
-                  iframe.contentDocument.close();
-                  setTimeout(() => {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    setTimeout(() => document.body.removeChild(iframe), 500);
-                  }, 400);
-                }}
-                title="Print Records"
+                className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer shrink-0 mt-0.5 ${detailView?.colHeader === "Present" ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : detailView?.colHeader === "Absent" ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
+                onClick={handleDownload}
+                title="Download Image"
+                data-html2canvas-ignore="true"
               >
-                <Printer className="h-4 w-4 text-primary" />
-                <span className="hidden sm:inline text-sm font-semibold text-primary">Print</span>
+                {detailView?.colHeader === "Present" ? (
+                  <UserCheck className="h-5 w-5 text-green-600 dark:text-green-500" />
+                ) : detailView?.colHeader === "Absent" ? (
+                  <UserX className="h-5 w-5 text-red-500" />
+                ) : (
+                  <FileSpreadsheet className="h-5 w-5 text-primary" />
+                )}
               </button>
+              <div className="flex-1 text-left min-w-0">
+                <DialogTitle className={`text-xl font-bold m-0 leading-tight ${detailView?.colHeader === "Present" ? "text-green-600 dark:text-green-400" : detailView?.colHeader === "Absent" ? "text-red-600 dark:text-red-400" : ""}`}>
+                  {detailView?.colHeader} Records
+                  <span className="ml-1.5 text-base font-semibold text-muted-foreground">
+                    ({detailedRecords.length})
+                  </span>
+                </DialogTitle>
+                <div className="m-0 flex flex-col mt-0.5">
+                  <DialogDescription className="font-medium text-foreground m-0 text-sm leading-tight">
+                    {detailView?.student?.name} {detailView?.viewType !== "allRecords" && detailView?.student?._id && `(${detailView.student._id})`}
+                  </DialogDescription>
+                  {detailView?.viewType === "allRecords" && filterMonth && filterYear && (
+                    <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                      {new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} {filterYear}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {/* Print button — desktop inline, mobile below close */}
+              {detailView?.viewType === "allRecords" && (
+                <button
+                  type="button"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80 transition-colors focus:outline-none cursor-pointer shrink-0"
+                  onClick={() => {
+                    const name = detailView?.student?.name || '';
+                    const id = detailView?.student?._id || '';
+                    const totalCount = detailedRecords.length;
+                    const presentCount = detailedRecords.filter(r => r.present === true).length;
+                    const absentCount = detailedRecords.filter(r => r.present === false).length;
+                    const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
+                    const yearLabel = filterYear || '';
+                    const isTeacher = resource === 'teacherAttendances';
+                    const tableRows = detailedRecords.map(rec => {
+                      const isPresent = rec.present === true;
+                      const isAbsent = rec.present === false;
+                      const rowBg = isPresent ? 'background:#f0fdf4;' : isAbsent ? 'background:#fef2f2;' : '';
+                      const dateStr = rec.date ? new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                      const dayStr = rec.date ? new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' }) : '';
+                      const subject = rec.prayer || rec.subjectName || '—';
+                      const period = rec.periodNumber ? `Period ${rec.periodNumber}` : '';
+                      const classTeacher = isTeacher ? (rec.className || '—') : (rec.teacherName || '—');
+                      const statusBg = isPresent ? 'background:#dcfce7;color:#15803d;' : isAbsent ? 'background:#fee2e2;color:#b91c1c;' : '';
+                      const statusText = isPresent ? 'Present' : isAbsent ? 'Absent' : '—';
+                      return `<tr style="${rowBg}">
+                        <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
+                        <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${subject}</div>${period ? `<div style="font-size:10px;color:#6b7280;">${period}</div>` : ''}</td>
+                        <td style="font-size:13px;color:#374151;">${classTeacher}</td>
+                        <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span></td>
+                      </tr>`;
+                    }).join('');
+                    const html = `<!DOCTYPE html><html><head><title>Attendance Records – ${name}</title>
+                    <link rel="preconnect" href="https://fonts.googleapis.com" />
+                    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+                    <style>
+                      *{box-sizing:border-box;margin:0;padding:0;}
+                      body{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px;color:#111;}
+                      .header{text-align:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;}
+                      .header h1{font-size:15px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:6px;}
+                      .header h2{font-size:20px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
+                      .header .meta{font-size:12px;color:#6b7280;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
+                      .header .meta span{font-weight:600;}
+                      .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+                      .stat{text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
+                      .stat .num{font-size:20px;font-weight:800;display:block;}
+                      .stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-top:2px;color:#6b7280;}
+                      .stat.total{background:#f9fafb;}
+                      .stat.present{background:#f0fdf4;border-color:#bbf7d0;}.stat.present .num{color:#16a34a;}.stat.present .lbl{color:#15803d;}
+                      .stat.absent{background:#fef2f2;border-color:#fecaca;}.stat.absent .num{color:#dc2626;}.stat.absent .lbl{color:#b91c1c;}
+                      table{border-collapse:collapse;width:100%;margin-top:4px;}
+                      th{background:#f3f4f6;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border:1px solid #d1d5db;text-align:left;font-family:'Montserrat',sans-serif;}
+                      td{border:1px solid #e5e7eb;padding:7px 10px;vertical-align:middle;font-family:'Montserrat',sans-serif;}
+                      tr:nth-child(even) td{background:#fafafa;}
+                      @media print{body{padding:10px;}@page{margin:10mm;}}
+                    </style></head>
+                    <body>
+                      <div class="header">
+                        <h1>Total Class Records</h1>
+                        <h2>${name}</h2>
+                        <div class="meta">
+                          <span>📅 ${monthLabel} ${yearLabel}</span>
+                        </div>
+                      </div>
+                      <div class="stats">
+                        <div class="stat total"><span class="num">${totalCount}</span><span class="lbl">Total</span></div>
+                        <div class="stat present"><span class="num">${presentCount}</span><span class="lbl">Present</span></div>
+                        <div class="stat absent"><span class="num">${absentCount}</span><span class="lbl">Absent</span></div>
+                      </div>
+                      <table>
+                        <thead><tr>
+                          <th style="width:110px;">Date &amp; Day</th>
+                          <th style="min-width:180px;">Subject</th>
+                          <th style="min-width:140px;">${isTeacher ? 'Class' : 'Teacher'}</th>
+                          <th style="width:90px;text-align:center;">Status</th>
+                        </tr></thead>
+                        <tbody>${tableRows}</tbody>
+                      </table>
+                    </body></html>`;
+                    const iframe = document.createElement('iframe');
+                    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;visibility:hidden;';
+                    document.body.appendChild(iframe);
+                    iframe.contentDocument.open();
+                    iframe.contentDocument.write(html);
+                    iframe.contentDocument.close();
+                    setTimeout(() => {
+                      iframe.contentWindow.focus();
+                      iframe.contentWindow.print();
+                      setTimeout(() => document.body.removeChild(iframe), 500);
+                    }, 400);
+                  }}
+                  title="Print Records"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Print</span>
+                </button>
+              )}
+              <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0" onClick={() => setDetailView(null)} data-html2canvas-ignore="true">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </div>
+            {/* Mobile-only: print button row below */}
+            {detailView?.viewType === "allRecords" && (
+              <div className="sm:hidden mt-2 flex justify-end">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80 transition-colors focus:outline-none cursor-pointer text-sm font-semibold"
+                  onClick={() => {
+                    const name = detailView?.student?.name || '';
+                    const id = detailView?.student?._id || '';
+                    const totalCount = detailedRecords.length;
+                    const presentCount = detailedRecords.filter(r => r.present === true).length;
+                    const absentCount = detailedRecords.filter(r => r.present === false).length;
+                    const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
+                    const yearLabel = filterYear || '';
+                    const isTeacher = resource === 'teacherAttendances';
+                    const tableRows = detailedRecords.map(rec => {
+                      const isPresent = rec.present === true;
+                      const isAbsent = rec.present === false;
+                      const rowBg = isPresent ? 'background:#f0fdf4;' : isAbsent ? 'background:#fef2f2;' : '';
+                      const dateStr = rec.date ? new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                      const dayStr = rec.date ? new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' }) : '';
+                      const subject = rec.prayer || rec.subjectName || '—';
+                      const period = rec.periodNumber ? `Period ${rec.periodNumber}` : '';
+                      const classTeacher = isTeacher ? (rec.className || '—') : (rec.teacherName || '—');
+                      const statusBg = isPresent ? 'background:#dcfce7;color:#15803d;' : isAbsent ? 'background:#fee2e2;color:#b91c1c;' : '';
+                      const statusText = isPresent ? 'Present' : isAbsent ? 'Absent' : '—';
+                      return `<tr style="${rowBg}">
+                        <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
+                        <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${subject}</div>${period ? `<div style="font-size:10px;color:#6b7280;">${period}</div>` : ''}</td>
+                        <td style="font-size:13px;color:#374151;">${classTeacher}</td>
+                        <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span></td>
+                      </tr>`;
+                    }).join('');
+                    const html = `<!DOCTYPE html><html><head><title>Attendance Records – ${name}</title>
+                    <link rel="preconnect" href="https://fonts.googleapis.com" />
+                    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+                    <style>
+                      *{box-sizing:border-box;margin:0;padding:0;}
+                      body{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px;color:#111;}
+                      .header{text-align:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;}
+                      .header h1{font-size:15px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:6px;}
+                      .header h2{font-size:20px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
+                      .header .meta{font-size:12px;color:#6b7280;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
+                      .header .meta span{font-weight:600;}
+                      .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+                      .stat{text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
+                      .stat .num{font-size:20px;font-weight:800;display:block;}
+                      .stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-top:2px;color:#6b7280;}
+                      .stat.total{background:#f9fafb;}
+                      .stat.present{background:#f0fdf4;border-color:#bbf7d0;}.stat.present .num{color:#16a34a;}.stat.present .lbl{color:#15803d;}
+                      .stat.absent{background:#fef2f2;border-color:#fecaca;}.stat.absent .num{color:#dc2626;}.stat.absent .lbl{color:#b91c1c;}
+                      table{border-collapse:collapse;width:100%;margin-top:4px;}
+                      th{background:#f3f4f6;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border:1px solid #d1d5db;text-align:left;font-family:'Montserrat',sans-serif;}
+                      td{border:1px solid #e5e7eb;padding:7px 10px;vertical-align:middle;font-family:'Montserrat',sans-serif;}
+                      tr:nth-child(even) td{background:#fafafa;}
+                      @media print{body{padding:10px;}@page{margin:10mm;}}
+                    </style></head>
+                    <body>
+                      <div class="header">
+                        <h1>Total Class Records</h1>
+                        <h2>${name}</h2>
+                        <div class="meta">
+                          <span>📅 ${monthLabel} ${yearLabel}</span>
+                        </div>
+                      </div>
+                      <div class="stats">
+                        <div class="stat total"><span class="num">${totalCount}</span><span class="lbl">Total</span></div>
+                        <div class="stat present"><span class="num">${presentCount}</span><span class="lbl">Present</span></div>
+                        <div class="stat absent"><span class="num">${absentCount}</span><span class="lbl">Absent</span></div>
+                      </div>
+                      <table>
+                        <thead><tr>
+                          <th style="width:110px;">Date &amp; Day</th>
+                          <th style="min-width:180px;">Subject</th>
+                          <th style="min-width:140px;">${isTeacher ? 'Class' : 'Teacher'}</th>
+                          <th style="width:90px;text-align:center;">Status</th>
+                        </tr></thead>
+                        <tbody>${tableRows}</tbody>
+                      </table>
+                    </body></html>`;
+                    const iframe = document.createElement('iframe');
+                    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;visibility:hidden;';
+                    document.body.appendChild(iframe);
+                    iframe.contentDocument.open();
+                    iframe.contentDocument.write(html);
+                    iframe.contentDocument.close();
+                    setTimeout(() => {
+                      iframe.contentWindow.focus();
+                      iframe.contentWindow.print();
+                      setTimeout(() => document.body.removeChild(iframe), 500);
+                    }, 400);
+                  }}
+                  title="Print Records"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Print</span>
+                </button>
+              </div>
             )}
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => setDetailView(null)} data-html2canvas-ignore="true">
-              <X className="h-5 w-5" />
-            </DialogClose>
           </DialogHeader>
 
           <div className="py-5 px-2 sm:p-5" ref={detailView?.viewType === "allRecords" ? detailPrintRef : null}>
