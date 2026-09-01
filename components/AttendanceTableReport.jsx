@@ -55,8 +55,17 @@ export default function AttendanceTableReport({ classes }) {
                 `/api/attendance-table?classId=${selectedClass}&month=${selectedMonth}&year=${selectedYear}`
             );
             const data = await response.json();
-            setTableData(data.tableData || []);
-            setColumns(data.columns || []);
+            const rawTableData = data.tableData || [];
+            const rawColumns = data.columns || [];
+
+            // Filter out subject columns where ALL rows have NO_PERIOD (no periods in this month)
+            const filteredColumns = rawColumns.filter((col, idx) => {
+                if (idx === 0) return true; // always keep the date column
+                return rawTableData.some(row => row[col.accessor]?.status !== 'NO_PERIOD');
+            });
+
+            setTableData(rawTableData);
+            setColumns(filteredColumns);
         } catch (error) {
             console.error('Error fetching attendance table:', error);
         } finally {
