@@ -207,6 +207,7 @@ const DataTableComponent = ({
   const searchInputRef = useRef(null);
 
   const popupRef = useRef(null);
+  const detailPrintRef = useRef(null);
   const { handleDownload } = useDownloadPopup(popupRef, `Detailed_Records.jpeg`);
 
   const tableRef = useRef(null);
@@ -678,9 +679,16 @@ const DataTableComponent = ({
     }
 
     const arrayKey = col.valueKey || col.totalKey;
-    const records = row[arrayKey]?.filter(
-      (item) => !col.filterKey || item?.[col.accessorKey || col.filterKey] === col.filterValue
-    ) || [];
+
+    // For "allRecords" viewType (Total Class), show ALL records with no filter
+    let records;
+    if (col.viewType === "allRecords") {
+      records = row[arrayKey] || [];
+    } else {
+      records = row[arrayKey]?.filter(
+        (item) => !col.filterKey || item?.[col.accessorKey || col.filterKey] === col.filterValue
+      ) || [];
+    }
 
     setDetailView({
       student: row,
@@ -1750,12 +1758,130 @@ const DataTableComponent = ({
                 </Badge>
               </div>
             </div>
+            {detailView?.viewType === "allRecords" && (
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+                onClick={() => {
+                  const name = detailView?.student?.name || '';
+                  const id = detailView?.student?._id || '';
+                  const totalCount = detailedRecords.length;
+                  const presentCount = detailedRecords.filter(r => r.present === true).length;
+                  const absentCount = detailedRecords.filter(r => r.present === false).length;
+                  const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
+                  const yearLabel = filterYear || '';
+                  const isTeacher = resource === 'teacherAttendances';
+                  const tableRows = detailedRecords.map(rec => {
+                    const isPresent = rec.present === true;
+                    const isAbsent = rec.present === false;
+                    const rowBg = isPresent ? 'background:#f0fdf4;' : isAbsent ? 'background:#fef2f2;' : '';
+                    const dateStr = rec.date ? new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                    const dayStr = rec.date ? new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' }) : '';
+                    const subject = rec.prayer || rec.subjectName || '—';
+                    const period = rec.periodNumber ? `Period ${rec.periodNumber}` : '';
+                    const classTeacher = isTeacher ? (rec.className || '—') : (rec.teacherName || '—');
+                    const statusBg = isPresent ? 'background:#dcfce7;color:#15803d;' : isAbsent ? 'background:#fee2e2;color:#b91c1c;' : '';
+                    const statusText = isPresent ? 'Present' : isAbsent ? 'Absent' : '—';
+                    return `<tr style="${rowBg}">
+                      <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
+                      <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${subject}</div>${period ? `<div style="font-size:10px;color:#6b7280;">${period}</div>` : ''}</td>
+                      <td style="font-size:13px;color:#374151;">${classTeacher}</td>
+                      <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span></td>
+                    </tr>`;
+                  }).join('');
+                  const html = `<!DOCTYPE html><html><head><title>Attendance Records – ${name}</title>
+                  <link rel="preconnect" href="https://fonts.googleapis.com" />
+                  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+                  <style>
+                    *{box-sizing:border-box;margin:0;padding:0;}
+                    body{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px;color:#111;}
+                    .header{text-align:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;}
+                    .header h1{font-size:15px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:6px;}
+                    .header h2{font-size:20px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
+                    .header .meta{font-size:12px;color:#6b7280;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
+                    .header .meta span{font-weight:600;}
+                    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+                    .stat{text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
+                    .stat .num{font-size:20px;font-weight:800;display:block;}
+                    .stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-top:2px;color:#6b7280;}
+                    .stat.total{background:#f9fafb;}
+                    .stat.present{background:#f0fdf4;border-color:#bbf7d0;}.stat.present .num{color:#16a34a;}.stat.present .lbl{color:#15803d;}
+                    .stat.absent{background:#fef2f2;border-color:#fecaca;}.stat.absent .num{color:#dc2626;}.stat.absent .lbl{color:#b91c1c;}
+                    table{border-collapse:collapse;width:100%;margin-top:4px;}
+                    th{background:#f3f4f6;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border:1px solid #d1d5db;text-align:left;font-family:'Montserrat',sans-serif;}
+                    td{border:1px solid #e5e7eb;padding:7px 10px;vertical-align:middle;font-family:'Montserrat',sans-serif;}
+                    tr:nth-child(even) td{background:#fafafa;}
+                    @media print{body{padding:10px;}@page{margin:10mm;}}
+                  </style></head>
+                  <body>
+                    <div class="header">
+                      <h1>Total Class Records</h1>
+                      <h2>${name}</h2>
+                      <div class="meta">
+                        <span>📅 ${monthLabel} ${yearLabel}</span>
+                      </div>
+                    </div>
+                    <div class="stats">
+                      <div class="stat total"><span class="num">${totalCount}</span><span class="lbl">Total</span></div>
+                      <div class="stat present"><span class="num">${presentCount}</span><span class="lbl">Present</span></div>
+                      <div class="stat absent"><span class="num">${absentCount}</span><span class="lbl">Absent</span></div>
+                    </div>
+                    <table>
+                      <thead><tr>
+                        <th style="width:110px;">Date &amp; Day</th>
+                        <th style="min-width:180px;">Subject</th>
+                        <th style="min-width:140px;">${isTeacher ? 'Class' : 'Teacher'}</th>
+                        <th style="width:90px;text-align:center;">Status</th>
+                      </tr></thead>
+                      <tbody>${tableRows}</tbody>
+                    </table>
+                  </body></html>`;
+                  const iframe = document.createElement('iframe');
+                  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;visibility:hidden;';
+                  document.body.appendChild(iframe);
+                  iframe.contentDocument.open();
+                  iframe.contentDocument.write(html);
+                  iframe.contentDocument.close();
+                  setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    setTimeout(() => document.body.removeChild(iframe), 500);
+                  }, 400);
+                }}
+                title="Print Records"
+              >
+                <Printer className="h-4 w-4 text-primary" />
+                <span className="hidden sm:inline text-sm font-semibold text-primary">Print</span>
+              </button>
+            )}
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => setDetailView(null)} data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
 
-          <div className="py-5 px-2 sm:p-5">
+          <div className="py-5 px-2 sm:p-5" ref={detailView?.viewType === "allRecords" ? detailPrintRef : null}>
+            {/* Summary stats for Total Class popup */}
+            {detailView?.viewType === "allRecords" && detailedRecords.length > 0 && (() => {
+              const totalCount = detailedRecords.length;
+              const presentCount = detailedRecords.filter(r => r.present === true).length;
+              const absentCount = detailedRecords.filter(r => r.present === false).length;
+              return (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="flex flex-col items-center justify-center rounded-lg border p-2 bg-muted/30">
+                    <span className="text-xl font-extrabold text-foreground">{totalCount}</span>
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground mt-0.5 tracking-wide">Total</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center rounded-lg border p-2 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                    <span className="text-xl font-extrabold text-green-600 dark:text-green-400">{presentCount}</span>
+                    <span className="text-[10px] font-semibold uppercase text-green-600/70 dark:text-green-400/70 mt-0.5 tracking-wide">Present</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center rounded-lg border p-2 bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
+                    <span className="text-xl font-extrabold text-red-600 dark:text-red-400">{absentCount}</span>
+                    <span className="text-[10px] font-semibold uppercase text-red-600/70 dark:text-red-400/70 mt-0.5 tracking-wide">Absent</span>
+                  </div>
+                </div>
+              );
+            })()}
             {detailsLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary opacity-70" />
@@ -1797,14 +1923,17 @@ const DataTableComponent = ({
                         </>
                       ) : (
                         <>
-                          <TableHead className="w-[100px] font-bold">Date & Day</TableHead>
-                          <TableHead className="w-[110px] font-bold">
+                          <TableHead className="w-[100px] font-bold whitespace-nowrap">Date & Day</TableHead>
+                          <TableHead className="min-w-[180px] sm:min-w-[220px] font-bold whitespace-nowrap">
                             {resource === "studentMasjidAttendances" ? "Prayer / Session" : "Subject"}
                           </TableHead>
                           {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                            <TableHead className="font-bold min-w-[140px]">
+                            <TableHead className="hidden sm:table-cell font-bold min-w-[140px]">
                               {resource === "teacherAttendances" ? "Class" : "Teacher"}
                             </TableHead>
+                          )}
+                          {detailView?.viewType === "allRecords" && (
+                            <TableHead className="font-bold text-center w-[60px] sm:w-[100px]">Status</TableHead>
                           )}
                         </>
                       )}
@@ -1866,14 +1995,21 @@ const DataTableComponent = ({
                                   </span>
                                 </div>
                               </TableCell>
-                              <TableCell className="py-3">
+                              <TableCell className="py-3 min-w-[180px] sm:min-w-[220px]">
                                 <div className="flex flex-col">
-                                  <span className="font-semibold text-sm">
+                                  <span className="font-semibold text-sm whitespace-nowrap">
                                     {rec.prayer || rec.subjectName || "—"}
                                   </span>
                                   {rec.periodNumber && (
                                     <span className="text-[10px] text-muted-foreground font-medium">
-                                      PERIOD {rec.periodNumber}
+                                      <span className="sm:hidden">#{rec.periodNumber}</span>
+                                      <span className="hidden sm:inline">PERIOD {rec.periodNumber}</span>
+                                    </span>
+                                  )}
+                                  {/* On mobile: show class/teacher under subject name */}
+                                  {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                                    <span className="sm:hidden text-[10px] text-muted-foreground font-medium mt-0.5">
+                                      {resource === "teacherAttendances" ? (rec.className || "") : (rec.teacherName || "")}
                                     </span>
                                   )}
                                   {rec.status === "LEAVE" && (
@@ -1884,7 +2020,7 @@ const DataTableComponent = ({
                                 </div>
                               </TableCell>
                               {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                                <TableCell className="text-muted-foreground text-sm py-3">
+                                <TableCell className="hidden sm:table-cell text-muted-foreground text-sm py-3">
                                   {resource === "teacherAttendances" ? (
                                     <div className="flex flex-col gap-0.5">
                                       <span className="whitespace-normal md:whitespace-nowrap font-medium">{rec.className || "—"}</span>
@@ -1903,6 +2039,31 @@ const DataTableComponent = ({
                                         </span>
                                       )}
                                     </div>
+                                  )}
+                                </TableCell>
+                              )}
+                              {detailView?.viewType === "allRecords" && (
+                                <TableCell className="text-center py-3">
+                                  {rec.present === true ? (
+                                    <>
+                                      <span className="sm:hidden inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-extrabold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                        P
+                                      </span>
+                                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                        <UserCheck className="h-3 w-3" /> Present
+                                      </span>
+                                    </>
+                                  ) : rec.present === false ? (
+                                    <>
+                                      <span className="sm:hidden inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-extrabold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                        A
+                                      </span>
+                                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                        <UserX className="h-3 w-3" /> Absent
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs">—</span>
                                   )}
                                 </TableCell>
                               )}

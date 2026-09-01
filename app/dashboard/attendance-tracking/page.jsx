@@ -102,6 +102,8 @@ const AttendanceTrackingPage = async () => {
             accessorKey: "totalClass",
             valueKey: "attendanceRecords",
             type: ["length"],
+            clickable: true,
+            viewType: "allRecords",
           },
           {
             header: "Present",
@@ -209,6 +211,8 @@ const AttendanceTrackingPage = async () => {
             accessorKey: "totalClass",
             valueKey: "attendanceRecords",
             type: ["length"],
+            clickable: true,
+            viewType: "allRecords",
           },
           {
             header: "Present",
@@ -309,6 +313,8 @@ const AttendanceTrackingPage = async () => {
             accessorKey: "totalClass",
             valueKey: "attendanceRecords",
             type: ["length"],
+            clickable: true,
+            viewType: "allRecords",
           },
           {
             header: "Present",
