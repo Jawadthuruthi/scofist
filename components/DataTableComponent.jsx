@@ -2030,12 +2030,12 @@ const DataTableComponent = ({
                         </>
                       ) : (
                         <>
-                          <TableHead className="w-[100px] font-bold whitespace-nowrap">Date & Day</TableHead>
-                          <TableHead className="min-w-[180px] sm:min-w-[220px] font-bold whitespace-nowrap">
+                          <TableHead className="w-[85px] sm:w-[100px] px-2 sm:px-4 font-bold whitespace-nowrap">Date & Day</TableHead>
+                          <TableHead className="min-w-[130px] sm:min-w-[220px] px-2 sm:px-4 font-bold whitespace-nowrap">
                             {resource === "studentMasjidAttendances" ? "Prayer / Session" : "Subject"}
                           </TableHead>
                           {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                            <TableHead className="font-bold min-w-[140px]">
+                            <TableHead className="min-w-[110px] sm:min-w-[140px] px-2 sm:px-4 font-bold">
                               {resource === "teacherAttendances" ? "Class & Status" : "Teacher & Status"}
                             </TableHead>
                           )}
@@ -2092,7 +2092,7 @@ const DataTableComponent = ({
                             </>
                           ) : (
                             <>
-                              <TableCell className="font-medium whitespace-nowrap py-3">
+                              <TableCell className="font-medium whitespace-nowrap py-3 px-2 sm:px-4">
                                 <div className="flex flex-col">
                                   <span className="text-sm font-medium">
                                     {new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -2102,7 +2102,7 @@ const DataTableComponent = ({
                                   </span>
                                 </div>
                               </TableCell>
-                              <TableCell className="py-3 min-w-[180px] sm:min-w-[220px]">
+                              <TableCell className="py-3 px-2 sm:px-4 min-w-[130px] sm:min-w-[220px]">
                                 <div className="flex flex-col">
                                   <span className="font-semibold text-sm whitespace-nowrap">
                                     {rec.prayer || rec.subjectName || "—"}
@@ -2120,7 +2120,7 @@ const DataTableComponent = ({
                                 </div>
                               </TableCell>
                               {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                                <TableCell className="text-muted-foreground text-sm py-3">
+                                <TableCell className="text-muted-foreground text-sm py-3 px-2 sm:px-4">
                                   {resource === "teacherAttendances" ? (
                                     <div className="flex flex-col items-start gap-1.5">
                                       <span className="whitespace-normal md:whitespace-nowrap font-medium text-foreground">{rec.className || "—"}</span>
