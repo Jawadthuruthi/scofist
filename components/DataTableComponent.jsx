@@ -1728,7 +1728,7 @@ const DataTableComponent = ({
       </div>
       {/* Detail View Modal for drill-down */}
       <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
-        <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className={`flex flex-col gap-0 mx-0 px-4 sm:px-5 pt-4 pb-3 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${detailView?.colHeader === "Present" ? "bg-green-50 dark:bg-green-950/20" : detailView?.colHeader === "Absent" ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
             {/* Top row: icon + title/meta + print + close */}
             <div className="flex items-start gap-3">
@@ -2035,12 +2035,12 @@ const DataTableComponent = ({
                             {resource === "studentMasjidAttendances" ? "Prayer / Session" : "Subject"}
                           </TableHead>
                           {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                            <TableHead className="hidden sm:table-cell font-bold min-w-[140px]">
-                              {resource === "teacherAttendances" ? "Class" : "Teacher"}
+                            <TableHead className="font-bold min-w-[140px]">
+                              {resource === "teacherAttendances" ? "Class & Status" : "Teacher & Status"}
                             </TableHead>
                           )}
-                          {detailView?.viewType === "allRecords" && (
-                            <TableHead className="font-bold text-center w-[60px] sm:w-[100px]">Status</TableHead>
+                          {detailView?.viewType === "allRecords" && resource === "studentMasjidAttendances" && (
+                            <TableHead className="font-bold text-center w-[100px]">Status</TableHead>
                           )}
                         </>
                       )}
@@ -2108,15 +2108,8 @@ const DataTableComponent = ({
                                     {rec.prayer || rec.subjectName || "—"}
                                   </span>
                                   {rec.periodNumber && (
-                                    <span className="text-[10px] text-muted-foreground font-medium">
-                                      <span className="sm:hidden">#{rec.periodNumber}</span>
-                                      <span className="hidden sm:inline">PERIOD {rec.periodNumber}</span>
-                                    </span>
-                                  )}
-                                  {/* On mobile: show class/teacher under subject name */}
-                                  {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                                    <span className="sm:hidden text-[10px] text-muted-foreground font-medium mt-0.5">
-                                      {resource === "teacherAttendances" ? (rec.className || "") : (rec.teacherName || "")}
+                                    <span className="text-[10px] text-muted-foreground font-medium uppercase mt-0.5">
+                                      PERIOD {rec.periodNumber}
                                     </span>
                                   )}
                                   {rec.status === "LEAVE" && (
@@ -2127,48 +2120,64 @@ const DataTableComponent = ({
                                 </div>
                               </TableCell>
                               {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                                <TableCell className="hidden sm:table-cell text-muted-foreground text-sm py-3">
+                                <TableCell className="text-muted-foreground text-sm py-3">
                                   {resource === "teacherAttendances" ? (
-                                    <div className="flex flex-col gap-0.5">
-                                      <span className="whitespace-normal md:whitespace-nowrap font-medium">{rec.className || "—"}</span>
+                                    <div className="flex flex-col items-start gap-1.5">
+                                      <span className="whitespace-normal md:whitespace-nowrap font-medium text-foreground">{rec.className || "—"}</span>
                                       {rec.leaveReason && (
                                         <span className="text-[10px] text-orange-500 font-medium leading-tight">
                                           {rec.leaveReason}
                                         </span>
                                       )}
+                                      {detailView?.viewType === "allRecords" && (
+                                        rec.present === true ? (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                            <UserCheck className="h-3 w-3" /> Present
+                                          </span>
+                                        ) : rec.present === false ? (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                            <UserX className="h-3 w-3" /> Absent
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground text-xs">—</span>
+                                        )
+                                      )}
                                     </div>
                                   ) : (
-                                    <div className="flex flex-col gap-0.5">
-                                      <span className="font-bold text-sm">{rec.teacherName || "—"}</span>
+                                    <div className="flex flex-col items-start gap-1.5">
+                                      <span className="font-bold text-sm text-foreground">{rec.teacherName || "—"}</span>
                                       {rec.leaveReason && (
-                                        <span className="text-[10px] text-orange-500 font-medium leading-tight mt-0.5">
+                                        <span className="text-[10px] text-orange-500 font-medium leading-tight">
                                           {rec.leaveReason}
                                         </span>
+                                      )}
+                                      {detailView?.viewType === "allRecords" && (
+                                        rec.present === true ? (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                            <UserCheck className="h-3 w-3" /> Present
+                                          </span>
+                                        ) : rec.present === false ? (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                            <UserX className="h-3 w-3" /> Absent
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground text-xs">—</span>
+                                        )
                                       )}
                                     </div>
                                   )}
                                 </TableCell>
                               )}
-                              {detailView?.viewType === "allRecords" && (
+                              {detailView?.viewType === "allRecords" && resource === "studentMasjidAttendances" && (
                                 <TableCell className="text-center py-3">
                                   {rec.present === true ? (
-                                    <>
-                                      <span className="sm:hidden inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-extrabold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                        P
-                                      </span>
-                                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                        <UserCheck className="h-3 w-3" /> Present
-                                      </span>
-                                    </>
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                      <UserCheck className="h-3 w-3" /> Present
+                                    </span>
                                   ) : rec.present === false ? (
-                                    <>
-                                      <span className="sm:hidden inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-extrabold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                        A
-                                      </span>
-                                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                        <UserX className="h-3 w-3" /> Absent
-                                      </span>
-                                    </>
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                      <UserX className="h-3 w-3" /> Absent
+                                    </span>
                                   ) : (
                                     <span className="text-muted-foreground text-xs">—</span>
                                   )}
