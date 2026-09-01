@@ -2123,7 +2123,7 @@ const DataTableComponent = ({
                                 <TableCell className="text-muted-foreground text-sm py-3 px-2 sm:px-4">
                                   {resource === "teacherAttendances" ? (
                                     <div className="flex flex-col items-start gap-1.5">
-                                      <span className="whitespace-normal md:whitespace-nowrap font-medium text-foreground">{rec.className || "—"}</span>
+                                      <span className="whitespace-normal md:whitespace-nowrap text-xs text-foreground">{rec.className || "—"}</span>
                                       {rec.leaveReason && (
                                         <span className="text-[10px] text-orange-500 font-medium leading-tight">
                                           {rec.leaveReason}
@@ -2145,7 +2145,7 @@ const DataTableComponent = ({
                                     </div>
                                   ) : (
                                     <div className="flex flex-col items-start gap-1.5">
-                                      <span className="font-bold text-sm text-foreground">{rec.teacherName || "—"}</span>
+                                      <span className="text-xs text-foreground">{rec.teacherName || "—"}</span>
                                       {rec.leaveReason && (
                                         <span className="text-[10px] text-orange-500 font-medium leading-tight">
                                           {rec.leaveReason}
