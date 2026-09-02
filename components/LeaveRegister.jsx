@@ -166,7 +166,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (isInitialized && role === "Teacher" && classes.length > 0 && !selectedClass) {
+    if (isInitialized && role === "Teacher" && classes.length === 1 && !selectedClass) {
       setSelectedClass(classes[0]._id);
     }
   }, [classes, role, selectedClass, isInitialized]);
@@ -216,7 +216,11 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
         <div className="w-full max-w-[200px] sm:max-w-xs">
           <Select value={selectedClass} onValueChange={setSelectedClass}>
             <SelectTrigger className="w-full h-9 sm:h-10">
-              <SelectValue placeholder="Select Class" />
+              <SelectValue placeholder="Select Class">
+                {selectedClass
+                  ? (classes.find((c) => c._id === selectedClass)?.name ?? "Select Class")
+                  : "Select Class"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {classes?.map((cls) => (
