@@ -21,21 +21,22 @@ export default async function LeaveHistoryPage() {
         // If the active role is Teacher, find only the class they are assigned to.
         // Otherwise, fetch all classes.
         let classesData;
-        let teacherClassId = null;
+        let teacherClassIds = null; // array of class IDs for teacher, null for admin
 
         if (isTeacher && user?._id) {
-            const teacherClass = await Class.findOne({ teacherId: user._id }).select("_id name").lean();
-            classesData = teacherClass ? [teacherClass] : [];
-            teacherClassId = teacherClass?._id || null;
+            // Fetch ALL classes assigned to this teacher (a teacher can be assigned to multiple classes)
+            const teacherClasses = await Class.find({ teacherId: user._id }).select("_id name").lean();
+            classesData = teacherClasses;
+            teacherClassIds = teacherClasses.map(c => String(c._id));
         } else {
             classesData = await Class.find({}).select("_id name").lean();
             classesData.sort((a, b) => sortClasses(a, b));
         }
 
-        // If teacher, only fetch students in their class. Otherwise, fetch all active students.
+        // If teacher, only fetch students in their assigned classes. Otherwise, fetch all active students.
         const studentQuery = { "studentSpecificField.status": "Active", roles: "Student" };
-        if (isTeacher && teacherClassId) {
-            studentQuery["studentSpecificField.classId"] = teacherClassId;
+        if (isTeacher && teacherClassIds?.length) {
+            studentQuery["studentSpecificField.classId"] = { $in: teacherClassIds };
         }
 
         const studentsData = await User.find(studentQuery)
@@ -52,7 +53,7 @@ export default async function LeaveHistoryPage() {
                 role={activeRole}
                 classes={classes}
                 students={students}
-                teacherClassId={teacherClassId}
+                teacherClassIds={teacherClassIds}
             />
         );
     } catch (error) {

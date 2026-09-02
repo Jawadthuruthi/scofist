@@ -225,7 +225,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 roles: "Student",
                 status: "Active",
             },
-            className: "md:col-span-2",
+            className: "col-span-3 md:col-span-2",
         },
         {
             name: "comments",
@@ -238,7 +238,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 minLength: 3,
                 minLengthMessage: "Comment must be at least 3 characters long"
             },
-            className: "md:col-span-2",
+            className: "col-span-3 md:col-span-2",
         },
         {
             name: "teacherId",
@@ -261,6 +261,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             required: true,
             placeholder: "Select or type status",
             defaultValue: "good",
+            className: "col-span-2 md:col-span-1",
         },
     ];
 
@@ -284,6 +285,17 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             <Header
                 title="REMARKS"
                 subTitle="Manage Student Remarks"
+                rightAction={
+                    isTeacher ? (
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsMyRecordsOpen(true)}
+                            className="bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white border-0 h-9 px-2 text-[11px] sm:text-sm sm:px-3"
+                        >
+                            MY RECORDS
+                        </Button>
+                    ) : null
+                }
             />
             <DataTableComponent
                 resource="remarks"
@@ -307,17 +319,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 desktopSearchPlaceholder="Search student or number..."
                 extraSearchFields={["studentId", "admissionNumber"]}
                 tableHeight="calc(100vh - 250px)"
-                additionalProps={{
-                    customActions: isTeacher ? (
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setIsMyRecordsOpen(true)}
-                            className="bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white border-0"
-                        >
-                            MY RECORDS
-                        </Button>
-                    ) : null
-                }}
+                additionalProps={{}}
             />
 
             <Dialog open={isMyRecordsOpen} onOpenChange={setIsMyRecordsOpen}>

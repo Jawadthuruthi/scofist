@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import { formatOptions, sortClasses } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
-export default function LeaveHistory({ classes, students, apiKey, role, teacherClassId }) {
+export default function LeaveHistory({ classes, students, apiKey, role, teacherClassIds }) {
     const sortedClasses = useMemo(() => {
         return [...classes].sort((a, b) => sortClasses(a, b));
     }, [classes]);
@@ -18,17 +18,26 @@ export default function LeaveHistory({ classes, students, apiKey, role, teacherC
         }));
     }, [students]);
 
-    // If this teacher has an assigned class, lock all filters/forms to it
-    const isTeacherLocked = Boolean(teacherClassId);
-    const lockedClass = isTeacherLocked ? classes.find(c => c._id === teacherClassId) : null;
+    // Lock (disable) the class dropdown only if the teacher is assigned to exactly one class.
+    // If they have multiple classes, show all of them in the dropdown but keep it enabled.
+    const isTeacherLocked = Array.isArray(teacherClassIds) && teacherClassIds.length === 1;
+    const singleTeacherClassId = isTeacherLocked ? teacherClassIds[0] : null;
+    const lockedClass = isTeacherLocked ? classes.find(c => c._id === singleTeacherClassId) : null;
+    const isTeacher = Array.isArray(teacherClassIds); // true for any teacher (single or multi-class)
 
-    // apiFilters: always scope records to teacher's class when locked
+    // apiFilters: for teachers, always scope records to only their assigned classes
     const apiFilters = useMemo(() => {
-        if (isTeacherLocked && teacherClassId) {
-            return { classId: teacherClassId };
+        if (isTeacherLocked && singleTeacherClassId) {
+            // Single class teacher — scope to that one class
+            return { classId: singleTeacherClassId };
+        }
+        if (isTeacher && Array.isArray(teacherClassIds) && teacherClassIds.length > 1) {
+            // Multi-class teacher — let the dropdown drive the classId filter;
+            // pass the allowed class IDs so the API won't return other classes
+            return { classIds: teacherClassIds.join(",") };
         }
         return {};
-    }, [isTeacherLocked, teacherClassId]);
+    }, [isTeacherLocked, singleTeacherClassId, isTeacher, teacherClassIds]);
 
     const columnsConfig = [
         {
@@ -103,8 +112,7 @@ export default function LeaveHistory({ classes, students, apiKey, role, teacherC
             label: "Class",
             inputType: "select",
             options: formatOptions(sortedClasses),
-            // For class teachers: don't add defaultValue here (it triggers client-side filter
-            // that conflicts with the apiFilters server-side scoping). Just disable the dropdown.
+            // Lock the dropdown only when teacher has exactly one class
             ...(isTeacherLocked ? { disabled: true } : {}),
         },
         {
@@ -138,8 +146,8 @@ export default function LeaveHistory({ classes, students, apiKey, role, teacherC
             options: formatOptions(sortedClasses),
             required: true,
             placeholder: "Select Class",
-            // For class teachers, lock the class field to their class
-            ...(isTeacherLocked ? { defaultValue: teacherClassId, disabled: true } : {}),
+            // Lock to their single class only if teacher has exactly one class
+            ...(isTeacherLocked ? { defaultValue: singleTeacherClassId, disabled: true } : {}),
         },
         {
             name: "studentId",

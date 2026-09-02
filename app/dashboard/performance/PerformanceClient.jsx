@@ -231,7 +231,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
                 roles: "Student",
                 status: "Active",
             },
-            className: "md:col-span-2",
+            className: "col-span-3 md:col-span-2",
         },
         {
             name: "comments",
@@ -244,7 +244,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
                 minLength: 3,
                 minLengthMessage: "Comment must be at least 3 characters long"
             },
-            className: "md:col-span-2",
+            className: "col-span-3 md:col-span-2",
         },
         {
             name: "teacherId",
@@ -267,6 +267,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
             required: true,
             placeholder: "Select or type status",
             defaultValue: "good",
+            className: "col-span-2 md:col-span-1",
         },
     ];
 
@@ -290,6 +291,17 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
             <Header
                 title="PERFORMANCE"
                 subTitle="Manage Student Performance"
+                rightAction={
+                    isTeacher ? (
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsMyRecordsOpen(true)}
+                            className="bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white border-0 h-9 px-2 text-[11px] sm:text-sm sm:px-3"
+                        >
+                            MY RECORDS
+                        </Button>
+                    ) : null
+                }
             />
             <DataTableComponent
                 activeRole={activeRole}
@@ -314,17 +326,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
                 desktopSearchPlaceholder="Search student or number..."
                 extraSearchFields={["studentId", "admissionNumber"]}
                 tableHeight="calc(100vh - 250px)"
-                additionalProps={{
-                    customActions: isTeacher ? (
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setIsMyRecordsOpen(true)}
-                            className="bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white border-0 h-9 px-2 text-[11px] sm:text-sm sm:px-3"
-                        >
-                            MY RECORDS
-                        </Button>
-                    ) : null
-                }}
+                additionalProps={{}}
             />
 
             <Dialog open={isMyRecordsOpen} onOpenChange={setIsMyRecordsOpen}>

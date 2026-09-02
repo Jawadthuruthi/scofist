@@ -305,7 +305,7 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
       control={form.control}
       name={fieldToRender.name}
       render={({ field: formField }) => (
-        <FormItem className={cn("min-w-0", fieldToRender.className || "col-span-2 md:col-span-1")}>
+        <FormItem className={cn("min-w-0", fieldToRender.className || "col-span-3 md:col-span-1")}>
           {fieldToRender.label && !fieldToRender.hideLabel && (
             <FormLabel htmlFor={fieldToRender.name}>
               {fieldToRender.label}
@@ -594,10 +594,10 @@ const FormContent = ({
           {sectionOrder.map((section, index) => (
             <div
               key={section}
-              className={`grid grid-cols-2 gap-4 ${activeSectionIndex === index ? "grid" : "hidden"}`}
+              className={`grid grid-cols-3 md:grid-cols-2 gap-4 ${activeSectionIndex === index ? "grid" : "hidden"}`}
             >
               {section !== "undefined" && (
-                <h2 className="text-lg font-bold col-span-2">{section}</h2>
+                <h2 className="text-lg font-bold col-span-3 md:col-span-2">{section}</h2>
               )}
               <FormFields
                 form={form}
@@ -607,12 +607,12 @@ const FormContent = ({
                 capitalizeInputs={capitalizeInputs}
               />
               {/* Navigation buttons inline with last input */}
-              <div className={`flex items-end gap-2 pb-1 ${buttonContainerClass || "col-span-2"}`}>
+              <div className={`flex items-end gap-2 ${buttonContainerClass || "col-span-1 md:col-span-1"}`}>
                 {activeSectionIndex > 0 && (
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 h-10"
                     onClick={() => setActiveSectionIndex((prev) => prev - 1)}
                   >
                     Previous
@@ -620,15 +620,18 @@ const FormContent = ({
                 )}
                 {activeSectionIndex === totalSections - 1 ? (
                   <Button
-                    className={submitButtonClass || "flex-1"}
+                    className={submitButtonClass || "flex-1 h-10"}
                     type="submit"
                     disabled={loading}
                   >
-                    {loading ? (
-                      <Loader className="animate-spin mr-2" />
-                    ) : (
-                      "Save changes"
-                    )}
+                      {loading ? (
+                        <Loader className="animate-spin mr-2" />
+                      ) : (
+                        <>
+                          <span>Save</span>
+                          <span className="hidden sm:inline"> changes</span>
+                        </>
+                      )}
                   </Button>
                 ) : (
                   <Button
