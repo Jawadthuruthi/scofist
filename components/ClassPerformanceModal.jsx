@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -24,12 +25,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Loader2, TrendingUp, CheckCircle2, X } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import ConfirmationPopup from "./ConfirmationPopup";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 const performanceOptions = [
   "advanced",
@@ -73,6 +75,12 @@ export default function ClassPerformanceModal({
   const [successMessage, setSuccessMessage] = useState("");
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const popupRef = useRef(null);
+  const { handleDownload } = useDownloadPopup(
+    popupRef,
+    `Class_Performance_${(slot?.subjectId?.name || "Subject").replace(/\s+/g, "_")}.jpeg`
+  );
 
   const today = attendanceRecord?.date 
     ? new Date(attendanceRecord.date).toISOString().split('T')[0] 
@@ -255,100 +263,125 @@ export default function ClassPerformanceModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-indigo-700">
+      <DialogContent 
+        ref={popupRef} 
+        data-html2canvas-popup="true" 
+        className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-2xl max-h-[85vh] sm:max-h-[85vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+      >
+        <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+          <button 
+            type="button"
+            className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/40 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors focus:outline-none cursor-pointer text-indigo-600 dark:text-indigo-400 shrink-0"
+            onClick={handleDownload}
+            title="Download Image"
+            data-html2canvas-ignore="true"
+          >
             <TrendingUp className="h-5 w-5" />
-            {title}
-            {isFetchingPerformance && (
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-2" />
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            {subtitle || `Select performance status for students in ${slot?.subjectId?.name || "this subject"}.`}
-          </DialogDescription>
+          </button>
+          <div className="flex-1 text-left space-y-0.5">
+            <DialogTitle className="text-xl font-bold m-0 text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+              {title}
+              {isFetchingPerformance && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-1" />
+              )}
+            </DialogTitle>
+            <DialogDescription className="m-0 text-xs text-muted-foreground">
+              {subtitle || `${slot?.subjectId?.name || "Subject"} • ${slot?.classId?.name || "Class"} (${students.length} students)`}
+            </DialogDescription>
+          </div>
+          <DialogClose 
+            className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+            onClick={() => onOpenChange(false)}
+            data-html2canvas-ignore="true"
+          >
+            <X className="h-5 w-5" />
+          </DialogClose>
         </DialogHeader>
 
-        <div className="overflow-y-auto max-h-[60vh] -mx-6 px-6 py-2">
+        <div className="overflow-y-auto max-h-[58vh] flex-1 bg-muted/5 p-4 sm:p-5">
           {students.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground text-sm">
               No students found for this class.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Sl No.</TableHead>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead className="w-[140px]">Performance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((student, index) => {
-                  const sId = typeof student.studentId === "object" ? student.studentId?._id : student.studentId;
-                  return (
-                    <TableRow key={sId}>
-                      <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                      <TableCell className="font-medium">
-                        {student.studentName || "Unknown Student"}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={studentStatuses[sId] || ""}
-                          onValueChange={(val) => handleStatusChange(sId, val)}
-                          disabled={isFetchingPerformance}
-                        >
-                          <SelectTrigger 
-                            className="w-[130px]"
-                            style={studentStatuses[sId] && studentStatuses[sId] !== "none" ? getStatusColor(studentStatuses[sId]) : {}}
+            <div className="border rounded-xl overflow-hidden bg-card shadow-xs">
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow>
+                    <TableHead className="w-16">Sl No.</TableHead>
+                    <TableHead>Student Name</TableHead>
+                    <TableHead className="w-[140px]">Performance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student, index) => {
+                    const sId = typeof student.studentId === "object" ? student.studentId?._id : student.studentId;
+                    return (
+                      <TableRow key={sId} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="text-muted-foreground font-medium text-xs">{index + 1}</TableCell>
+                        <TableCell className="font-medium text-sm">
+                          {student.studentName || "Unknown Student"}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={studentStatuses[sId] || ""}
+                            onValueChange={(val) => handleStatusChange(sId, val)}
+                            disabled={isFetchingPerformance}
                           >
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none" className="text-muted-foreground italic">
-                              None (Clear)
-                            </SelectItem>
-                            {performanceOptions.map((opt) => (
-                              <SelectItem 
-                                key={opt} 
-                                value={opt}
-                                className="my-1 focus:text-white data-[highlighted]:text-white"
-                                style={getStatusColor(opt)}
-                              >
-                                {opt}
+                            <SelectTrigger 
+                              className="w-[130px] rounded-lg"
+                              style={studentStatuses[sId] && studentStatuses[sId] !== "none" ? getStatusColor(studentStatuses[sId]) : {}}
+                            >
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              <SelectItem value="none" className="text-muted-foreground italic">
+                                None (Clear)
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                              {performanceOptions.map((opt) => (
+                                <SelectItem 
+                                  key={opt} 
+                                  value={opt}
+                                  className="my-1 focus:text-white data-[highlighted]:text-white rounded-md"
+                                  style={getStatusColor(opt)}
+                                >
+                                  {opt}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t mt-auto">
+        <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-t bg-muted/50 dark:bg-muted/20 backdrop-blur-md sticky bottom-0 z-20" data-html2canvas-ignore="true">
           <ConfirmationPopup
             action="clear all"
             title="Clear All Performance Records"
             icon="Clear All"
-            triggerClass="mr-auto bg-transparent border border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+            triggerClass="bg-transparent border border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg text-xs font-medium"
             onClick={handleClearAll}
             disabled={loading || students.length === 0}
           />
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={loading || students.length === 0}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Save Performance
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="rounded-lg text-xs" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={loading || students.length === 0}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs text-xs font-medium"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Performance
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

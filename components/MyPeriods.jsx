@@ -95,6 +95,12 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [hifzLoadingRecords, setHifzLoadingRecords] = useState(false);
   const [whatsappLoadingId, setWhatsappLoadingId] = useState(null);
   const [whatsappModalData, setWhatsappModalData] = useState(null);
+
+  const whatsappPopupRef = useRef(null);
+  const { handleDownload: handleWhatsappDownload } = useDownloadPopup(
+    whatsappPopupRef,
+    `Absent_Students_${(whatsappModalData?.subjectName || "Period").replace(/\s+/g, "_")}.jpeg`
+  );
   const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
   const [performanceSlot, setPerformanceSlot] = useState(null);
   const [performanceAttendanceRecord, setPerformanceAttendanceRecord] = useState(null);
@@ -1703,58 +1709,101 @@ Teacher: ${teacherName || "Teacher"}`;
 
         {/* ── WhatsApp Absent Students Dialog ── */}
         <Dialog open={!!whatsappModalData} onOpenChange={(open) => !open && setWhatsappModalData(null)}>
-          <DialogContent className="max-w-md max-h-[80vh] flex flex-col overflow-hidden">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                Absent Students
-              </DialogTitle>
-              <DialogDescription>
-                Message the parents of students who are absent for {whatsappModalData?.subjectName}.
-              </DialogDescription>
+          <DialogContent 
+            ref={whatsappPopupRef} 
+            data-html2canvas-popup="true" 
+            className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+          >
+            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+              <button 
+                type="button"
+                className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors focus:outline-none cursor-pointer text-emerald-600 dark:text-emerald-400 shrink-0"
+                onClick={handleWhatsappDownload}
+                title="Download Image"
+                data-html2canvas-ignore="true"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+              </button>
+              <div className="flex-1 text-left space-y-0.5">
+                <DialogTitle className="text-xl font-bold m-0 text-emerald-600 dark:text-emerald-400">
+                  Absent Students
+                </DialogTitle>
+                <DialogDescription className="m-0 text-xs text-muted-foreground">
+                  {whatsappModalData?.subjectName ? `Absent for ${whatsappModalData.subjectName} (${whatsappModalData?.students?.length || 0} students)` : "Message parents of absent students"}
+                </DialogDescription>
+              </div>
+              <DialogClose 
+                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" 
+                onClick={() => setWhatsappModalData(null)}
+                data-html2canvas-ignore="true"
+              >
+                <X className="h-5 w-5" />
+              </DialogClose>
             </DialogHeader>
-            <div className="overflow-y-auto max-h-[60vh] -mx-6 px-6 pb-2">
+
+            <div className="p-4 space-y-2 bg-muted/5 flex-1 overflow-y-auto max-h-[60vh]">
               {whatsappModalData?.loading ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
-                  <Loader className="h-8 w-8 animate-spin text-green-500" />
+                  <Loader className="h-8 w-8 animate-spin text-emerald-500" />
                   <p className="text-sm font-medium">Fetching absent students...</p>
                 </div>
+              ) : whatsappModalData?.students?.length > 0 ? (
+                whatsappModalData.students.map((student, idx) => {
+                  const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${student.leaveReason}`;
+                  const url = `https://wa.me/${student.contactNumber}?text=${encodeURIComponent(msg)}`;
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className="flex justify-between items-center py-2.5 px-3.5 border bg-card hover:bg-muted/40 rounded-xl transition-all shadow-xs gap-3"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <span className="font-semibold text-xs text-muted-foreground mt-0.5 shrink-0">
+                          {idx + 1}.
+                        </span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="font-semibold text-sm text-foreground break-words">
+                            {student.name}
+                          </span>
+                          {student.leaveReason && student.leaveReason !== "No Reason" && (
+                            <span className="text-xs text-red-500 font-medium mt-0.5 break-words">
+                              {student.leaveReason}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {student.contactNumber}
+                        </span>
+                        <Button 
+                          size="sm" 
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center gap-1.5 shrink-0 transition-transform active:scale-95"
+                          onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.target = '_blank';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                          </svg>
+                          Message
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
-                <Table>
-                  <TableBody>
-                    {whatsappModalData?.students?.map((student, idx) => {
-                      const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${student.leaveReason}`;
-                      const url = `https://wa.me/${student.contactNumber}?text=${encodeURIComponent(msg)}`;
-                      
-                      return (
-                        <TableRow key={idx}>
-                          <TableCell>
-                            <p className="font-medium text-sm">{student.name}</p>
-                            <p className="text-xs text-muted-foreground">{student.contactNumber}</p>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="flex items-center gap-2 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
-                              onClick={() => {
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.target = '_blank';
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                              }}
-                            >
-                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                              Message
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="text-muted-foreground text-center py-8 text-sm">
+                  No absent students found.
+                </div>
               )}
             </div>
           </DialogContent>
