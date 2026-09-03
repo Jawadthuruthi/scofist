@@ -469,10 +469,10 @@ export async function GET(req, res) {
             r.subjectName = (r.subjectId && r.subjectId !== "undefined" && r.subjectId !== "null" && r.subjectId !== "") ? r.subjectId : "N/A";
           }
         }
-        // Join leaveReason from TeachersLeaveRecord
+        // Join leaveReason from TeachersLeaveRecord only if they are absent
         const dateKey = getDS(r.date);
         const leaveKey = `${toStr(teacher._id)}_${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;
-        if (!r.leaveReason && leaveReasonMap[leaveKey]) {
+        if (!r.leaveReason && !r.present && leaveReasonMap[leaveKey]) {
           r.leaveReason = leaveReasonMap[leaveKey];
         }
         if (r.leaveReason) {

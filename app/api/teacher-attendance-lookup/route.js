@@ -202,7 +202,10 @@ export async function GET(req) {
         records.forEach(r => {
             const dateKey = getDS(r.date);
             const key = `${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;
-            if (!r.leaveReason && leaveMap[key]) {
+            // Only apply leave reason if the teacher was absent
+            if (!r.leaveReason && r.present === false && leaveMap[key]) {
+                r.leaveReason = leaveMap[key];
+            } else if (!r.leaveReason && r.present !== true && leaveMap[key]) {
                 r.leaveReason = leaveMap[key];
                 r.present = false;
             }

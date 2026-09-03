@@ -1779,6 +1779,7 @@ const DataTableComponent = ({
                     const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
                     const yearLabel = filterYear || '';
                     const isTeacher = resource === 'teacherAttendances';
+                    const percentage = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) : 0;
                     const tableRows = detailedRecords.map(rec => {
                       const isPresent = rec.present === true;
                       const isAbsent = rec.present === false;
@@ -1786,15 +1787,16 @@ const DataTableComponent = ({
                       const dateStr = rec.date ? new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
                       const dayStr = rec.date ? new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' }) : '';
                       const subject = rec.prayer || rec.subjectName || '—';
-                      const period = rec.periodNumber ? `Period ${rec.periodNumber}` : '';
+                      const period = rec.periodNumber ? `#${rec.periodNumber} - ` : '';
                       const classTeacher = isTeacher ? (rec.className || '—') : (rec.teacherName || '—');
                       const statusBg = isPresent ? 'background:#dcfce7;color:#15803d;' : isAbsent ? 'background:#fee2e2;color:#b91c1c;' : '';
                       const statusText = isPresent ? 'Present' : isAbsent ? 'Absent' : '—';
+                      const leaveReasonHtml = (isAbsent && rec.leaveReason) ? `<div style="font-size:10px;color:#ea580c;margin-top:4px;font-weight:600;line-height:1.2;">${rec.leaveReason}</div>` : '';
                       return `<tr style="${rowBg}">
                         <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
-                        <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${subject}</div>${period ? `<div style="font-size:10px;color:#6b7280;">${period}</div>` : ''}</td>
+                        <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${period}${subject}</div></td>
                         <td style="font-size:13px;color:#374151;">${classTeacher}</td>
-                        <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span></td>
+                        <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span>${leaveReasonHtml}</td>
                       </tr>`;
                     }).join('');
                     const html = `<!DOCTYPE html><html><head><title>Attendance Records – ${name}</title>
@@ -1833,6 +1835,7 @@ const DataTableComponent = ({
                         <div class="stat total"><span class="num">${totalCount}</span><span class="lbl">Total</span></div>
                         <div class="stat present"><span class="num">${presentCount}</span><span class="lbl">Present</span></div>
                         <div class="stat absent"><span class="num">${absentCount}</span><span class="lbl">Absent</span></div>
+                        <div class="stat percent"><span class="num">${percentage}</span><span class="lbl">Percent</span></div>
                       </div>
                       <table>
                         <thead><tr>
@@ -1880,6 +1883,7 @@ const DataTableComponent = ({
                       const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
                       const yearLabel = filterYear || '';
                       const isTeacher = resource === 'teacherAttendances';
+                      const percentage = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) : 0;
                       const tableRows = detailedRecords.map(rec => {
                         const isPresent = rec.present === true;
                         const isAbsent = rec.present === false;
@@ -1887,15 +1891,16 @@ const DataTableComponent = ({
                         const dateStr = rec.date ? new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
                         const dayStr = rec.date ? new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' }) : '';
                         const subject = rec.prayer || rec.subjectName || '—';
-                        const period = rec.periodNumber ? `Period ${rec.periodNumber}` : '';
+                        const period = rec.periodNumber ? `#${rec.periodNumber} - ` : '';
                         const classTeacher = isTeacher ? (rec.className || '—') : (rec.teacherName || '—');
                         const statusBg = isPresent ? 'background:#dcfce7;color:#15803d;' : isAbsent ? 'background:#fee2e2;color:#b91c1c;' : '';
                         const statusText = isPresent ? 'Present' : isAbsent ? 'Absent' : '—';
+                        const leaveReasonHtml = (isAbsent && rec.leaveReason) ? `<div style="font-size:10px;color:#ea580c;margin-top:4px;font-weight:600;line-height:1.2;">${rec.leaveReason}</div>` : '';
                         return `<tr style="${rowBg}">
                           <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
-                          <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${subject}</div>${period ? `<div style="font-size:10px;color:#6b7280;">${period}</div>` : ''}</td>
+                          <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${period}${subject}</div></td>
                           <td style="font-size:13px;color:#374151;">${classTeacher}</td>
-                          <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span></td>
+                          <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span>${leaveReasonHtml}</td>
                         </tr>`;
                       }).join('');
                       const html = `<!DOCTYPE html><html><head><title>Attendance Records – ${name}</title>
@@ -1909,13 +1914,14 @@ const DataTableComponent = ({
                         .header h2{font-size:20px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
                         .header .meta{font-size:12px;color:#6b7280;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
                         .header .meta span{font-weight:600;}
-                        .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+                        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
                         .stat{text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
                         .stat .num{font-size:20px;font-weight:800;display:block;}
                         .stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-top:2px;color:#6b7280;}
                         .stat.total{background:#f9fafb;}
                         .stat.present{background:#f0fdf4;border-color:#bbf7d0;}.stat.present .num{color:#16a34a;}.stat.present .lbl{color:#15803d;}
                         .stat.absent{background:#fef2f2;border-color:#fecaca;}.stat.absent .num{color:#dc2626;}.stat.absent .lbl{color:#b91c1c;}
+                        .stat.percent{background:#eff6ff;border-color:#bfdbfe;}.stat.percent .num{color:#2563eb;}.stat.percent .lbl{color:#1d4ed8;}
                         table{border-collapse:collapse;width:100%;margin-top:4px;}
                         th{background:#f3f4f6;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border:1px solid #d1d5db;text-align:left;font-family:'Montserrat',sans-serif;}
                         td{border:1px solid #e5e7eb;padding:7px 10px;vertical-align:middle;font-family:'Montserrat',sans-serif;}
@@ -1934,6 +1940,7 @@ const DataTableComponent = ({
                           <div class="stat total"><span class="num">${totalCount}</span><span class="lbl">Total</span></div>
                           <div class="stat present"><span class="num">${presentCount}</span><span class="lbl">Present</span></div>
                           <div class="stat absent"><span class="num">${absentCount}</span><span class="lbl">Absent</span></div>
+                          <div class="stat percent"><span class="num">${percentage}</span><span class="lbl">Percent</span></div>
                         </div>
                         <table>
                           <thead><tr>
@@ -1973,7 +1980,7 @@ const DataTableComponent = ({
               const presentCount = detailedRecords.filter(r => r.present === true).length;
               const absentCount = detailedRecords.filter(r => r.present === false).length;
               return (
-                <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="grid grid-cols-4 gap-2 mb-4">
                   <div className="flex flex-col items-center justify-center rounded-lg border p-2 bg-muted/30">
                     <span className="text-xl font-extrabold text-foreground">{totalCount}</span>
                     <span className="text-[10px] font-semibold uppercase text-muted-foreground mt-0.5 tracking-wide">Total</span>
@@ -1985,6 +1992,12 @@ const DataTableComponent = ({
                   <div className="flex flex-col items-center justify-center rounded-lg border p-2 bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
                     <span className="text-xl font-extrabold text-red-600 dark:text-red-400">{absentCount}</span>
                     <span className="text-[10px] font-semibold uppercase text-red-600/70 dark:text-red-400/70 mt-0.5 tracking-wide">Absent</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center rounded-lg border p-2 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                    <span className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
+                      {totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) : 0}
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase text-blue-600/70 dark:text-blue-400/70 mt-0.5 tracking-wide">Percent</span>
                   </div>
                 </div>
               );
@@ -2036,7 +2049,7 @@ const DataTableComponent = ({
                           </TableHead>
                           {(resource === "studentAttendances" || resource === "teacherAttendances") && (
                             <TableHead className="min-w-[110px] sm:min-w-[140px] px-2 sm:px-4 font-bold">
-                              {resource === "teacherAttendances" ? "Class & Status" : "Teacher & Status"}
+                              Status
                             </TableHead>
                           )}
                           {detailView?.viewType === "allRecords" && resource === "studentMasjidAttendances" && (
@@ -2105,11 +2118,12 @@ const DataTableComponent = ({
                               <TableCell className="py-3 px-2 sm:px-4 min-w-[130px] sm:min-w-[220px]">
                                 <div className="flex flex-col">
                                   <span className="font-semibold text-sm whitespace-nowrap">
+                                    {rec.periodNumber ? `#${rec.periodNumber} - ` : ""}
                                     {rec.prayer || rec.subjectName || "—"}
                                   </span>
-                                  {rec.periodNumber && (
-                                    <span className="text-[10px] text-muted-foreground font-medium uppercase mt-0.5">
-                                      PERIOD {rec.periodNumber}
+                                  {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                                    <span className="text-xs text-muted-foreground mt-0.5 whitespace-normal md:whitespace-nowrap">
+                                      {resource === "teacherAttendances" ? (rec.className || "—") : (rec.teacherName || "—")}
                                     </span>
                                   )}
                                   {rec.status === "LEAVE" && (
@@ -2123,21 +2137,22 @@ const DataTableComponent = ({
                                 <TableCell className="text-muted-foreground text-sm py-3 px-2 sm:px-4">
                                   {resource === "teacherAttendances" ? (
                                     <div className="flex flex-col items-start gap-1.5">
-                                      <span className="whitespace-normal md:whitespace-nowrap text-xs text-foreground">{rec.className || "—"}</span>
-                                      {rec.leaveReason && (
-                                        <span className="text-[10px] text-orange-500 font-medium leading-tight">
-                                          {rec.leaveReason}
-                                        </span>
-                                      )}
                                       {detailView?.viewType === "allRecords" && (
                                         rec.present === true ? (
                                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                                             <UserCheck className="h-3 w-3" /> Present
                                           </span>
                                         ) : rec.present === false ? (
-                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                            <UserX className="h-3 w-3" /> Absent
-                                          </span>
+                                          <div className="flex flex-col gap-1 items-start">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                              <UserX className="h-3 w-3" /> Absent
+                                            </span>
+                                            {rec.leaveReason && (
+                                              <span className="text-[10px] text-orange-500 font-semibold leading-tight bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-100 dark:border-orange-900/50">
+                                                {rec.leaveReason}
+                                              </span>
+                                            )}
+                                          </div>
                                         ) : (
                                           <span className="text-muted-foreground text-xs">—</span>
                                         )
@@ -2145,21 +2160,22 @@ const DataTableComponent = ({
                                     </div>
                                   ) : (
                                     <div className="flex flex-col items-start gap-1.5">
-                                      <span className="text-xs text-foreground">{rec.teacherName || "—"}</span>
-                                      {rec.leaveReason && (
-                                        <span className="text-[10px] text-orange-500 font-medium leading-tight">
-                                          {rec.leaveReason}
-                                        </span>
-                                      )}
                                       {detailView?.viewType === "allRecords" && (
                                         rec.present === true ? (
                                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                                             <UserCheck className="h-3 w-3" /> Present
                                           </span>
                                         ) : rec.present === false ? (
-                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                            <UserX className="h-3 w-3" /> Absent
-                                          </span>
+                                          <div className="flex flex-col gap-1 items-start">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                              <UserX className="h-3 w-3" /> Absent
+                                            </span>
+                                            {rec.leaveReason && (
+                                              <span className="text-[10px] text-orange-500 font-semibold leading-tight bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-100 dark:border-orange-900/50">
+                                                {rec.leaveReason}
+                                              </span>
+                                            )}
+                                          </div>
                                         ) : (
                                           <span className="text-muted-foreground text-xs">—</span>
                                         )
@@ -2175,9 +2191,16 @@ const DataTableComponent = ({
                                       <UserCheck className="h-3 w-3" /> Present
                                     </span>
                                   ) : rec.present === false ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                      <UserX className="h-3 w-3" /> Absent
-                                    </span>
+                                    <div className="flex flex-col gap-1 items-center">
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                        <UserX className="h-3 w-3" /> Absent
+                                      </span>
+                                      {rec.leaveReason && (
+                                        <span className="text-[10px] text-orange-500 font-semibold leading-tight bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-100 dark:border-orange-900/50">
+                                          {rec.leaveReason}
+                                        </span>
+                                      )}
+                                    </div>
                                   ) : (
                                     <span className="text-muted-foreground text-xs">—</span>
                                   )}
