@@ -212,7 +212,7 @@ export default function ParticipantCardSettings({ festivalSettings, apiKey }) {
             <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Programs</span>
           </div>
           <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center z-10">
-            <QRCodeSVG value="https://example.com/results" size={45} />
+            <QRCodeSVG value="https://example.com/results/2025" size={45} />
             <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Results</span>
           </div>
         </div>

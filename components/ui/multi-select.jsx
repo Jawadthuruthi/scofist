@@ -35,6 +35,7 @@ const multiSelectVariants = (variant) => {
     inverted: "inverted",
     freeSolo:
       "border-dashed border-primary/50 bg-primary/5 text-primary hover:bg-primary/10",
+    plain: "border-transparent bg-transparent text-inherit hover:bg-transparent shadow-none",
   };
 
   return cn(baseClasses, variantClasses[variant || "default"]);
@@ -65,6 +66,7 @@ export const MultiSelect = React.forwardRef(
       caseSensitive = false,
       readOnly = false,
       onOptionDelete = null,
+      noBadge = false,
       ...props
     },
     ref
@@ -436,6 +438,24 @@ export const MultiSelect = React.forwardRef(
                       );
                       const IconComponent = option?.icon;
                       const badgeVariant = getBadgeVariant(selectedValues);
+
+                      if (noBadge || variant === "plain") {
+                        return (
+                          <div className="flex items-center min-w-0 max-w-full px-2 py-0.5">
+                            {IconComponent && (
+                              <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />
+                            )}
+                            <span className="truncate text-left text-sm font-medium">
+                              {option?.label ||
+                                (typeof selectedValues === "object"
+                                  ? selectedValues?.label ||
+                                    selectedValues?.name ||
+                                    JSON.stringify(selectedValues)
+                                  : selectedValues)}
+                            </span>
+                          </div>
+                        );
+                      }
 
                       return (
                         <Badge

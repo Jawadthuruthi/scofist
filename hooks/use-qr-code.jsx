@@ -14,6 +14,8 @@ export function useQRCodeConfig(activeYear) {
       if (activeYear) {
         const year = activeYear.split(" ")[0];
         url += `/${year}`;
+      } else {
+        url += `/2025`;
       }
       setResultsUrl(url);
     }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Instagram, MessageCircle, Youtube } from "lucide-react";
 
-export default function Footer({ settings, institutionName }) {
+export default function Footer({ settings, institutionName, year }) {
   const ensureAbsoluteUrl = (url) => {
     if (!url) return "";
     const trimmed = url.trim();
@@ -16,6 +16,15 @@ export default function Footer({ settings, institutionName }) {
     }
     return `https://${trimmed}`;
   };
+
+  const rawYear =
+    year ||
+    settings?.festival?.festivalInfo?.year ||
+    settings?.festival?.festival_year ||
+    settings?.festival?.year ||
+    settings?.activeYear ||
+    "2026";
+  const festivalYear = rawYear.toString().trim().split(" ")[0] || "2026";
 
   return (
     <footer className="bg-gray-900 text-gray-300 py-12 px-6 mt-auto">
@@ -36,10 +45,10 @@ export default function Footer({ settings, institutionName }) {
             )}
             <p className="text-sm opacity-80 leading-relaxed pr-4">
               <span className="font-semibold text-white/90">
-                {settings?.festival?.festival_name || "Esperanza"} {settings?.festival?.festival_year || "2026"}, 11th Edition.
+                {settings?.festival?.festival_name || "Esperanza"} {festivalYear || settings?.festival?.festival_year || "2026"}, 11th Edition.
               </span>
               <br />
-              2026 September 17-20
+              {festivalYear} September 17-20
             </p>
           </div>
 
@@ -73,22 +82,22 @@ export default function Footer({ settings, institutionName }) {
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/results" className="hover:text-white transition">
+                  <Link href={`/results/${festivalYear}`} className="hover:text-white transition">
                     Results
                   </Link>
                 </li>
                 <li>
-                  <Link href="/team-points" className="hover:text-white transition">
+                  <Link href={`/team-points/${festivalYear}`} className="hover:text-white transition">
                     Team Points
                   </Link>
                 </li>
                 <li>
-                  <Link href="/schedule" className="hover:text-white transition">
+                  <Link href={`/schedule/${festivalYear}`} className="hover:text-white transition">
                     Schedule
                   </Link>
                 </li>
                 <li>
-                  <Link href="/gallery" className="hover:text-white transition">
+                  <Link href={`/gallery/${festivalYear}`} className="hover:text-white transition">
                     Gallery
                   </Link>
                 </li>
@@ -132,7 +141,7 @@ export default function Footer({ settings, institutionName }) {
         </div>
       </div>
       <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-gray-700 text-sm text-center opacity-70">
-        © {settings?.festival?.festival_year || "2026"} {institutionName || "Sa-adiya College of Integrated Studies"}. All rights reserved.
+        © {festivalYear || settings?.festival?.festival_year || "2026"} {institutionName || "Sa-adiya College of Integrated Studies"}. All rights reserved.
       </div>
     </footer>
   );

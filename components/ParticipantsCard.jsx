@@ -568,7 +568,7 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
 
               {/* Bottom Right QR Code: Results Page */}
               <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center">
-                <QRCodeSVG value={`${baseUrl}/results`} size={45} />
+                <QRCodeSVG value={`${baseUrl}/results/2025`} size={45} />
                 <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Results</span>
               </div>
             </div>
@@ -950,7 +950,7 @@ const PrintableParticipantCard = ({
 
             {/* Bottom Right QR Code: Results Page */}
             <div className="absolute bottom-3 right-3 bg-white force-print-bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
-              <QRCodeSVG value={`${baseUrl}/results`} size={45} />
+              <QRCodeSVG value={`${baseUrl}/results/2025`} size={45} />
               <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Results</span>
             </div>
           </div>
