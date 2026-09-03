@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import TableComponent from "@/components/TableComponent";
-import { Pencil, Phone, Users, Loader2 } from "lucide-react";
+import { Pencil, Phone, Users, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -73,18 +73,25 @@ function EditContactDialog({ open, onOpenChange, student, onSaved }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Pencil className="w-4 h-4 text-blue-500" />
-            Edit Contact Numbers
-          </DialogTitle>
-          {student?.name && (
-            <p className="text-sm text-muted-foreground pt-1">{student.name}</p>
-          )}
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl">
+        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Pencil className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left space-y-0.5">
+            <DialogTitle className="text-xl font-bold m-0">
+              Edit Contact Numbers
+            </DialogTitle>
+            {student?.name && (
+              <p className="text-sm text-muted-foreground pt-1">{student.name}</p>
+            )}
+          </div>
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <X className="h-5 w-5" />
+          </DialogClose>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 px-4 sm:px-5 pb-2 pt-2">
           {/* ── Student ── */}
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <Phone className="w-3.5 h-3.5" /> Student
@@ -143,13 +150,8 @@ function EditContactDialog({ open, onOpenChange, student, onSaved }) {
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <DialogClose asChild>
-            <Button variant="outline" disabled={saving}>
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button onClick={handleSave} disabled={saving}>
+        <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40">
+          <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
             {saving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -52,7 +52,9 @@ const StudentsContactsPage = async () => {
           title="STUDENTS CONTACTS"
           subTitle="Browse The List Of Students Contacts By Class"
         />
-        <StudentsContactsTable data={activeClasses} apiKey={process.env.API_KEY} />
+        <div className="-mt-3 md:-mt-5">
+          <StudentsContactsTable data={activeClasses} apiKey={process.env.API_KEY} />
+        </div>
       </>
     );
   } catch (error) {
