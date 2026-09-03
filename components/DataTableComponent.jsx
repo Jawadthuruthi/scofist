@@ -1774,6 +1774,7 @@ const DataTableComponent = ({
                     const name = detailView?.student?.name || '';
                     const id = detailView?.student?._id || '';
                     const totalCount = detailedRecords.length;
+                    const className = detailedRecords?.[0]?.className || '';
                     const presentCount = detailedRecords.filter(r => r.present === true).length;
                     const absentCount = detailedRecords.filter(r => r.present === false).length;
                     const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
@@ -1810,13 +1811,14 @@ const DataTableComponent = ({
                       .header h2{font-size:20px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
                       .header .meta{font-size:12px;color:#6b7280;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
                       .header .meta span{font-weight:600;}
-                      .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
-                      .stat{text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
+                      .stats{display:flex;justify-content:space-between;gap:10px;margin-bottom:16px;width:100%;}
+                      .stat{flex:1;text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
                       .stat .num{font-size:20px;font-weight:800;display:block;}
                       .stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-top:2px;color:#6b7280;}
                       .stat.total{background:#f9fafb;}
                       .stat.present{background:#f0fdf4;border-color:#bbf7d0;}.stat.present .num{color:#16a34a;}.stat.present .lbl{color:#15803d;}
                       .stat.absent{background:#fef2f2;border-color:#fecaca;}.stat.absent .num{color:#dc2626;}.stat.absent .lbl{color:#b91c1c;}
+                      .stat.percent{background:#eff6ff;border-color:#bfdbfe;}.stat.percent .num{color:#2563eb;}.stat.percent .lbl{color:#1d4ed8;}
                       table{border-collapse:collapse;width:100%;margin-top:4px;}
                       th{background:#f3f4f6;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border:1px solid #d1d5db;text-align:left;font-family:'Montserrat',sans-serif;}
                       td{border:1px solid #e5e7eb;padding:7px 10px;vertical-align:middle;font-family:'Montserrat',sans-serif;}
@@ -1825,10 +1827,13 @@ const DataTableComponent = ({
                     </style></head>
                     <body>
                       <div class="header">
-                        <h1>Total Class Records</h1>
-                        <h2>${name}</h2>
-                        <div class="meta">
-                          <span>📅 ${monthLabel} ${yearLabel}</span>
+                        <h1 style="color:#111;font-size:18px;letter-spacing:0.05em;margin-bottom:8px;">TOTAL CLASS RECORDS</h1>
+                        <div class="meta" style="margin-bottom:12px;">
+                          <span style="font-size:14px;color:#111;">📅 ${monthLabel} ${yearLabel}</span>
+                        </div>
+                        <div style="font-size:14px;font-weight:700;text-transform:uppercase;color:#374151;line-height:1.5;">
+                          <div>${id} - ${name}</div>
+                          ${!isTeacher && className ? `<div>${className}</div>` : ''}
                         </div>
                       </div>
                       <div class="stats">
@@ -1878,6 +1883,7 @@ const DataTableComponent = ({
                       const name = detailView?.student?.name || '';
                       const id = detailView?.student?._id || '';
                       const totalCount = detailedRecords.length;
+                      const className = detailedRecords?.[0]?.className || '';
                       const presentCount = detailedRecords.filter(r => r.present === true).length;
                       const absentCount = detailedRecords.filter(r => r.present === false).length;
                       const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
@@ -1914,8 +1920,8 @@ const DataTableComponent = ({
                         .header h2{font-size:20px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
                         .header .meta{font-size:12px;color:#6b7280;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
                         .header .meta span{font-weight:600;}
-                        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
-                        .stat{text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
+                        .stats{display:flex;justify-content:space-between;gap:10px;margin-bottom:16px;width:100%;}
+                        .stat{flex:1;text-align:center;border-radius:8px;border:1px solid #e5e7eb;padding:8px 4px;}
                         .stat .num{font-size:20px;font-weight:800;display:block;}
                         .stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-top:2px;color:#6b7280;}
                         .stat.total{background:#f9fafb;}
@@ -1930,10 +1936,13 @@ const DataTableComponent = ({
                       </style></head>
                       <body>
                         <div class="header">
-                          <h1>Total Class Records</h1>
-                          <h2>${name}</h2>
-                          <div class="meta">
-                            <span>📅 ${monthLabel} ${yearLabel}</span>
+                          <h1 style="color:#111;font-size:18px;letter-spacing:0.05em;margin-bottom:8px;">TOTAL CLASS RECORDS</h1>
+                          <div class="meta" style="margin-bottom:12px;">
+                            <span style="font-size:14px;color:#111;">📅 ${monthLabel} ${yearLabel}</span>
+                          </div>
+                          <div style="font-size:14px;font-weight:700;text-transform:uppercase;color:#374151;line-height:1.5;">
+                            <div>${id} - ${name}</div>
+                            ${!isTeacher && className ? `<div>${className}</div>` : ''}
                           </div>
                         </div>
                         <div class="stats">

@@ -44,7 +44,14 @@ export async function GET(req, res) {
       teacherQuery.name = { $regex: filterParams.name, $options: "i" };
     }
 
-    const allTeachers = await User.find(teacherQuery, "_id name").lean();
+    const allTeachers = await User.find(teacherQuery, "_id name dateOfBirth").lean();
+
+    // Sort by seniority (Date of Birth) - oldest first
+    allTeachers.sort((a, b) => {
+      const d1 = a.dateOfBirth ? new Date(a.dateOfBirth).getTime() : Infinity;
+      const d2 = b.dateOfBirth ? new Date(b.dateOfBirth).getTime() : Infinity;
+      return d1 - d2;
+    });
 
     // 4. Determine Date Range (Strict UTC) - Moved up to support holiday query
     let startDateParam = filterParams.startDate || filterParams.date;

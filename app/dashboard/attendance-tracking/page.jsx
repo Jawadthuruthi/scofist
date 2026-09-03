@@ -187,7 +187,6 @@ const AttendanceTrackingPage = async () => {
         trailingToolbar: <StudentAttendanceLookup students={formattedStudents} classes={formatOptions(formattedClasses)} />,
         limit: 1000,
         tableHeight: "calc(100vh - 250px)",
-        defaultSorting: [{ id: "absent", desc: true }, { id: "present", desc: true }],
       },
       {
         label: "Teachers",

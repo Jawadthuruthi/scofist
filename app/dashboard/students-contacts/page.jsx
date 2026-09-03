@@ -50,7 +50,7 @@ const StudentsContactsPage = async () => {
       <>
         <Header
           title="STUDENTS CONTACTS"
-          subTitle="Browse The List Of Students Contacts By Class"
+          subTitle="Browse the list of students contacts by class"
         />
         <div className="-mt-3 md:-mt-5">
           <StudentsContactsTable data={activeClasses} apiKey={process.env.API_KEY} />

@@ -708,6 +708,29 @@ export default function StudentDashboard({
   const [currentUser, setCurrentUser] = useState(user);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const detailsRef = useRef(null);
+  const historyRef = useRef(null);
+  const chartRef = useRef(null);
+
+  const downloadCardAsJpeg = async (elementRef, filename) => {
+    if (!elementRef.current) return;
+    try {
+      toast.info("Preparing download...");
+      const canvas = await html2canvas(elementRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+      const image = canvas.toDataURL("image/jpeg", 0.9);
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = filename;
+      link.click();
+      toast.success("Download complete!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download");
+    }
+  };
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -2572,9 +2595,16 @@ export default function StudentDashboard({
       {activeTab === "ATTENDANCE" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-5 print-stack-vertical">
           {/* Attendance History */}
-          <Card className="card-print-break">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-bold">Attendance History</CardTitle>
+          <Card className="card-print-break" ref={historyRef}>
+            <CardHeader className="bg-muted/10 pb-4 pt-4 border-b flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Calendar 
+                  className="w-5 h-5 text-primary cursor-pointer hover:opacity-80 transition-opacity no-print" 
+                  onClick={() => downloadCardAsJpeg(historyRef, `Attendance_History_${selectedYear}.jpg`)}
+                  title="Download as Image"
+                />
+                Attendance History
+              </CardTitle>
               <div className="no-print">
                 <Select
                   onValueChange={(value) => setSelectedYear(parseInt(value))}
@@ -2593,14 +2623,15 @@ export default function StudentDashboard({
                 </Select>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="max-h-[400px] overflow-y-auto pr-2">
+            <CardContent className="px-2 sm:px-4 pt-4 pb-6">
+              <div className="max-h-[400px] overflow-y-auto border rounded-md">
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
                       <TableHead className="py-2 text-xs">Month</TableHead>
                       <TableHead className="py-2 text-xs">Total</TableHead>
                       <TableHead className="py-2 text-xs">Present</TableHead>
+                      <TableHead className="py-2 text-xs">Absent</TableHead>
                       <TableHead className="py-2 text-xs text-right">%</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -2619,6 +2650,7 @@ export default function StudentDashboard({
                             <TableCell className="py-2 text-sm font-medium">{row.month}</TableCell>
                             <TableCell className="py-2 text-sm">{row.totalPeriods}</TableCell>
                             <TableCell className="py-2 text-sm">{row.presentPeriods}</TableCell>
+                            <TableCell className="py-2 text-sm">{(row.totalPeriods || 0) - (row.presentPeriods || 0)}</TableCell>
                             <TableCell className="py-2 text-sm text-right">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${parseFloat(row.percentage) > 80 ? 'bg-green-100 text-green-700' :
                                 parseFloat(row.percentage) >= 50 ? 'bg-orange-100 text-orange-700' :
@@ -2630,7 +2662,7 @@ export default function StudentDashboard({
                           </TableRow>
                           {expandedMonth === row.monthYear && (
                             <TableRow className="bg-muted/30">
-                              <TableCell colSpan={4} className="p-0">
+                              <TableCell colSpan={5} className="p-0">
                                 <div className="p-4">
                                   <Table className="border rounded-md bg-background">
                                     <TableHeader>
@@ -2665,7 +2697,7 @@ export default function StudentDashboard({
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">
+                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">
                           No records found for {selectedYear}.
                         </TableCell>
                       </TableRow>
@@ -2677,11 +2709,18 @@ export default function StudentDashboard({
           </Card>
 
           {/* Attendance Chart */}
-          <Card className="card-print-break flex flex-col">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">Attendance Chart ({selectedYear})</CardTitle>
+          <Card className="card-print-break flex flex-col" ref={chartRef}>
+            <CardHeader className="bg-muted/10 pb-4 pt-4 border-b flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <LayoutGrid 
+                  className="w-5 h-5 text-primary cursor-pointer hover:opacity-80 transition-opacity no-print" 
+                  onClick={() => downloadCardAsJpeg(chartRef, `Attendance_Chart_${selectedYear}.jpg`)}
+                  title="Download as Image"
+                />
+                Attendance Chart ({selectedYear})
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-0 flex-1 flex items-center justify-center">
+            <CardContent className="p-4 flex-1 flex items-center justify-center">
               <div className="w-full h-full min-h-[300px] overflow-x-auto pb-2 flex justify-start">
                 <BarChart
                   width={Math.max(300, filteredAttendanceHistory.length * 60 + 60)}
@@ -2709,6 +2748,16 @@ export default function StudentDashboard({
                         fontSize: '9px',
                         textTransform: 'uppercase',
                         pointerEvents: 'none'
+                      }}
+                    />
+                    <LabelList 
+                      dataKey="percentage" 
+                      position="top" 
+                      formatter={(val) => `${val}%`}
+                      style={{ 
+                        fontWeight: 'bold', 
+                        fontSize: '10px',
+                        fill: '#6b7280'
                       }}
                     />
                     {filteredAttendanceHistory.map((entry, index) => {

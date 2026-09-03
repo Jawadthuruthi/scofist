@@ -6,6 +6,7 @@ import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import LeaveRecord from "@/models/LeaveRecord";
 import { NextResponse } from "next/server";
+import { sortClasses } from "@/lib/utils";
 
 export async function GET(req, res) {
   try {
@@ -226,35 +227,20 @@ export async function GET(req, res) {
         }, { status: 200 });
       }
 
-      // Use $facet to get count AND paginated data in a SINGLE aggregation pass
-      // instead of two separate aggregation executions.
-      const facetPipeline = [
-        ...pipeline,
-        {
-          $facet: {
-            metadata: [{ $count: "total" }],
-            data: [
-              { $skip: limit === Infinity ? 0 : page * limit },
-              ...(limit !== Infinity ? [{ $limit: limit }] : []),
-            ],
-          },
-        },
-      ];
-
-      const [facetResult] = await StudentAttendance.aggregate(facetPipeline).exec();
-      const total = facetResult?.metadata?.[0]?.total ?? 0;
-      const attendances = facetResult?.data ?? [];
+      // Fetch all matched documents, sort in memory by class and admission number, then paginate.
+      const attendances = await StudentAttendance.aggregate(pipeline).exec();
+      const total = attendances.length;
 
       const userIds = attendances.map(a => a.studentId);
 
-      // Fetch names in parallel — reuse allClasses already fetched above for classSubjectMap
+      // Fetch users with classId and admissionNumber for sorting
       const [users, allSubjectsList, allTeachersList] = await Promise.all([
-        User.find({ _id: { $in: userIds } }, "_id name").lean(),
+        User.find({ _id: { $in: userIds } }, "_id name studentSpecificField.classId studentSpecificField.admissionNumber").lean(),
         Subject.find({}, "_id name").lean(),
         User.find({ roles: "Teacher" }, "_id name").lean(),
       ]);
 
-      const userMap        = new Map(users.map(u => [u._id.toString(), u.name]));
+      const userMap        = new Map(users.map(u => [u._id.toString(), u]));
       // Build class name map from the allClasses already fetched at the top of this handler
       const allClassesMap  = new Map(allClasses.map(c => [c._id.toString(), c.name]));
       const allSubjectsMap = new Map(allSubjectsList.map(s => [s._id.toString(), s.name]));
@@ -265,7 +251,7 @@ export async function GET(req, res) {
         studentId: { $in: userIds }
       }).lean();
 
-      const formattedStudentAttendances = attendances.map(doc => {
+      let formattedStudentAttendances = attendances.map(doc => {
         let records = doc.attendanceRecords || [];
 
         // Filter for CORE and MAJOR subjects if they are defined
@@ -279,10 +265,11 @@ export async function GET(req, res) {
         });
 
         const studentLeaves = leaveRecordsList.filter(lr => lr.studentId?.toString() === doc.studentId.toString());
+        const uInfo = userMap.get(doc.studentId.toString());
 
         return {
           _id: doc.studentId,
-          name: userMap.get(doc.studentId.toString()) || "Unknown Student",
+          name: uInfo?.name || "Unknown Student",
           attendanceRecords: records.map(r => {
             const classIdStr   = r.classId?.toString();
             const subjectIdStr = r.subjectId?.toString();
@@ -320,8 +307,35 @@ export async function GET(req, res) {
         };
       });
 
+      // Sort by Class Order and Admission Number
+      formattedStudentAttendances.sort((a, b) => {
+        const uA = userMap.get(a._id.toString());
+        const uB = userMap.get(b._id.toString());
+
+        const classIdA = uA?.studentSpecificField?.classId?.toString();
+        const classIdB = uB?.studentSpecificField?.classId?.toString();
+
+        const classA = allClassesMap.get(classIdA);
+        const classB = allClassesMap.get(classIdB);
+
+        const cA = { name: classA || "", originalName: classA || "" };
+        const cB = { name: classB || "", originalName: classB || "" };
+
+        const classCmp = sortClasses(cA, cB);
+        if (classCmp !== 0) return classCmp;
+
+        // If in same class, sort by admission number
+        const admA = parseInt(uA?.studentSpecificField?.admissionNumber) || Infinity;
+        const admB = parseInt(uB?.studentSpecificField?.admissionNumber) || Infinity;
+        return admA - admB;
+      });
+
+      const paginatedStudentAttendances = limit === Infinity 
+        ? formattedStudentAttendances 
+        : formattedStudentAttendances.slice(page * limit, (page + 1) * limit);
+
       return NextResponse.json({
-        studentAttendances: formattedStudentAttendances,
+        studentAttendances: paginatedStudentAttendances,
         pagination: {
           page,
           limit,
