@@ -1010,17 +1010,21 @@ const StudentsFund = ({
                         />
                       </div>
                       {!department && (
-                        <div className="w-full sm:w-auto flex flex-col justify-end">
+                        <>
+                          <div className="w-full sm:w-auto flex flex-col justify-end md:hidden">
+                            <Button
+                              variant="outline"
+                              className="w-full sm:w-auto h-10"
+                              onClick={() => setShowBalanceDialog(true)}
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              View All Students Balance
+                            </Button>
+                          </div>
                           <Dialog
                             open={showBalanceDialog}
                             onOpenChange={setShowBalanceDialog}
                           >
-                            <DialogTrigger asChild>
-                              <Button variant="outline" className="w-full sm:w-auto h-10">
-                                <FileText className="h-4 w-4 mr-2" />
-                                View All Students Balance
-                              </Button>
-                            </DialogTrigger>
                             <DialogContent ref={allStudentsBalancePopupRef} data-html2canvas-popup="true" className="sm:max-w-2xl h-[90vh] sm:h-[70vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
                               <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
                                 <button type="button" className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer" onClick={handleAllStudentsBalanceDownload} title="Download Image" data-html2canvas-ignore="true">
@@ -1119,7 +1123,7 @@ const StudentsFund = ({
                               </div>
                             </DialogContent>
                           </Dialog>
-                        </div>
+                        </>
                       )}
                     </>
                   )}
@@ -1133,14 +1137,26 @@ const StudentsFund = ({
           {/* Student Balance & Transaction Form */}
           {(selectedStudents.length > 0 || selectedBatch || selectedClass) && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Fund Management
-                </CardTitle>
-                <CardDescription>
-                  Current balance and transaction controls
-                </CardDescription>
+              <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="space-y-1.5">
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Fund Management
+                  </CardTitle>
+                  <CardDescription>
+                    Current balance and transaction controls
+                  </CardDescription>
+                </div>
+                {!department && (selectedBatch || selectedClass) && (
+                  <Button
+                    variant="outline"
+                    className="hidden md:inline-flex items-center gap-2 shrink-0"
+                    onClick={() => setShowBalanceDialog(true)}
+                  >
+                    <FileText className="h-4 w-4" />
+                    View All Students Balance
+                  </Button>
+                )}
               </CardHeader>
               {fetchStudentFundQuery.isLoading ? (
                 <CardContent className="space-y-6">
