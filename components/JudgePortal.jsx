@@ -39,31 +39,65 @@ import {
 
 const playAlertSound = () => {
   try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const audioCtx = new AudioContextClass();
     
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    
-    // Create a high-pitched piercing triple beep sound
-    oscillator.type = 'square';
-    oscillator.frequency.setValueAtTime(2500, audioCtx.currentTime); // 2.5kHz
-    
-    const beeps = 3;
-    const beepDuration = 0.1;
-    const beepPause = 0.05;
-    
-    for (let i = 0; i < beeps; i++) {
-      const startTime = audioCtx.currentTime + i * (beepDuration + beepPause);
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.setValueAtTime(0.2, startTime + 0.01); // Sharp attack
-      gainNode.gain.setValueAtTime(0.2, startTime + beepDuration - 0.01); // Sustain
-      gainNode.gain.linearRampToValueAtTime(0, startTime + beepDuration); // Release
+    const play = () => {
+      try {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        // Create a high-pitched piercing triple beep sound
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(2500, audioCtx.currentTime); // 2.5kHz
+        
+        const beeps = 3;
+        const beepDuration = 0.1;
+        const beepPause = 0.05;
+        const totalDuration = beeps * (beepDuration + beepPause);
+        
+        for (let i = 0; i < beeps; i++) {
+          const startTime = audioCtx.currentTime + i * (beepDuration + beepPause);
+          gainNode.gain.setValueAtTime(0, startTime);
+          gainNode.gain.setValueAtTime(0.2, startTime + 0.01); // Sharp attack
+          gainNode.gain.setValueAtTime(0.2, startTime + beepDuration - 0.01); // Sustain
+          gainNode.gain.linearRampToValueAtTime(0, startTime + beepDuration); // Release
+        }
+        
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + totalDuration);
+
+        setTimeout(() => {
+          try {
+            audioCtx.close();
+          } catch {}
+        }, (totalDuration + 0.2) * 1000);
+      } catch (err) {
+        console.error("Audio node error:", err);
+      }
+    };
+
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().then(() => {
+        play();
+      }).catch(() => {
+        const unlock = () => {
+          playAlertSound();
+          window.removeEventListener('click', unlock);
+          window.removeEventListener('keydown', unlock);
+          window.removeEventListener('touchstart', unlock);
+        };
+        window.addEventListener('click', unlock, { once: true });
+        window.addEventListener('keydown', unlock, { once: true });
+        window.addEventListener('touchstart', unlock, { once: true });
+      });
+    } else {
+      play();
     }
-    
-    oscillator.start(audioCtx.currentTime);
-    oscillator.stop(audioCtx.currentTime + (beeps * (beepDuration + beepPause)));
   } catch (e) {
     console.error("Audio play failed:", e);
   }
@@ -106,6 +140,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [showThankYou, setShowThankYou] = useState(false);
   const thankYouTimerRef = useRef(null);
   const prevAlertActiveRef = useRef(false);
+  const prevWelcomeOpenRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -123,7 +158,21 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       playAlertSound();
     }
     prevAlertActiveRef.current = !!assignment?.alertActive;
-  }, [assignment]);
+
+    // Play sound when welcome popup appears
+    const isWelcomeOpen = Boolean(
+      !loading &&
+      assignment &&
+      !assignment.isReady &&
+      !assignment.isCompleted &&
+      !showThankYou
+    );
+
+    if (isWelcomeOpen && !prevWelcomeOpenRef.current) {
+      playAlertSound();
+    }
+    prevWelcomeOpenRef.current = isWelcomeOpen;
+  }, [assignment, loading, showThankYou]);
 
   const fetchAssignment = useCallback(async (isPolling = false) => {
     if (!isPolling) setLoading(true);
@@ -748,7 +797,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
             <AlertDialogTitle asChild>
               <div className="text-center sm:text-center space-y-0.5 sm:space-y-1">
                 <span className="block text-xl sm:text-2xl md:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
-                  Welcome,
+                  Welcome
                 </span>
                 <span className="block text-2xl sm:text-3xl md:text-3xl font-black text-slate-900 dark:text-white tracking-wide uppercase">
                   {assignment?.judgeName},

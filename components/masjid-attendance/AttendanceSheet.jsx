@@ -49,6 +49,17 @@ const AttendanceSheet = ({
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
 
+    useEffect(() => {
+        if (!showSuccessDialog) return;
+
+        const timer = setTimeout(() => {
+            setShowSuccessDialog(false);
+            router.push(`/dashboard/general-attendance?expanded=${prayer}`);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, [showSuccessDialog, prayer, router]);
+
     const isPastDate = useMemo(() => {
         if (!date) return false;
         const todayStr = formatDate(new Date());
@@ -294,7 +305,7 @@ const AttendanceSheet = ({
             };
 
             await saveAttendance.mutateAsync(payload);
-            setSuccessMessage(existingRecordId ? "Attendance Updated Successfully!" : "Attendance Saved Successfully!");
+            setSuccessMessage(existingRecordId ? "Attendance Updated Successfully!" : "Attendance Marked Successfully!");
             setShowSuccessDialog(true);
             setExistingRecordId(true);
         } catch (error) {
@@ -719,7 +730,7 @@ const AttendanceSheet = ({
                                     ? "Attendance Reset"
                                     : successMessage?.toLowerCase().includes("update")
                                     ? "Attendance Updated"
-                                    : "Attendance Saved"}
+                                    : "Attendance Marked"}
                             </DialogTitle>
                             <DialogDescription className="m-0 text-xs text-muted-foreground">
                                 {successMessage || (successMessage?.toLowerCase().includes("reset") ? "Attendance records have been reset." : "Attendance marked and saved successfully.")}
