@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -61,19 +62,28 @@ const AVAILABLE_ROLES = [
 function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, loading, confirmText = "Confirm Delete" }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
-            {title}
-          </DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+      <DialogContent className="sm:max-w-lg p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl flex flex-col gap-0">
+        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+          <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+          </div>
+          <div className="flex-1 text-left space-y-0.5">
+            <DialogTitle className="text-xl font-bold m-0 text-destructive">
+              {title}
+            </DialogTitle>
+            <DialogDescription className="m-0 text-sm text-muted-foreground pt-1">
+              {description}
+            </DialogDescription>
+          </div>
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" disabled={loading}>
+            <X className="h-5 w-5" />
+          </DialogClose>
         </DialogHeader>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+        <DialogFooter className="p-4 sm:p-5 border-t bg-muted/20 flex flex-row justify-between gap-3 sm:space-x-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="flex-1 mt-0">
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={loading}>
+          <Button variant="destructive" onClick={onConfirm} disabled={loading} className="flex-1">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {confirmText}
           </Button>
@@ -258,12 +268,22 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
 
       {/* Role Assignment Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>ASSIGN ROLES — {selectedUser?.name}</DialogTitle>
-            <DialogDescription>Select roles to assign to this user.</DialogDescription>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl flex flex-col gap-0 max-h-[85vh]">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0">Assign Roles</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground pt-1">
+                Select roles to assign to <strong>{selectedUser?.name}</strong>.
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 py-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-4 sm:p-5 overflow-y-auto">
             {AVAILABLE_ROLES.map((role) => (
               <div
                 key={role}
@@ -287,11 +307,11 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
               </div>
             ))}
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
+          <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40 flex justify-end">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
+            <Button onClick={handleSubmit} disabled={submitting} className="w-full sm:w-auto">
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Roles
             </Button>
@@ -627,20 +647,28 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
 
       {/* ── Add Member Dialog ── */}
       <Dialog open={!!addRole} onOpenChange={(o) => !o && setAddRole(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="underline underline-offset-4 decoration-primary decoration-2">
-              Add to {addRole?.name}
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              {addRole?.type === 'Standard'
-                ? "Search for an existing user by email to assign this system role."
-                : "Enter an email to add a new member to this custom role group."}
-            </DialogDescription>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl flex flex-col gap-0">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <UserPlus className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0">
+                Add to {addRole?.name}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground pt-1">
+                {addRole?.type === 'Standard'
+                  ? "Enter email to assign the system role."
+                  : "Enter an email to add a new member to this custom role group."}
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1">
-              <Label htmlFor="member-email" className="text-xs font-bold text-muted-foreground">Email Address</Label>
+          <div className="space-y-4 px-4 sm:px-5 py-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="member-email" className="text-sm font-medium">Email Address</Label>
               <Input
                 id="member-email"
                 placeholder="user@example.com"
@@ -651,11 +679,11 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
               />
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setAddRole(null)} disabled={adding}>
+          <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40 flex justify-end">
+            <Button variant="outline" onClick={() => setAddRole(null)} disabled={adding} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleAddMember} disabled={adding}>
+            <Button onClick={handleAddMember} disabled={adding} className="w-full sm:w-auto">
               {adding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {addRole?.type === 'Standard' ? 'Assign Role' : 'Add Member'}
             </Button>
@@ -676,26 +704,35 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
 
       {/* ── Create Role Dialog ── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="">Create New Role</DialogTitle>
-            <DialogDescription>
-              Define a custom role name and optional description.
-            </DialogDescription>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl flex flex-col gap-0">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Plus className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0">Create New Role</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground pt-1">
+                Define a custom role name.
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1">
-              <Label htmlFor="new-role-name">Role Name *</Label>
+          <div className="space-y-4 px-4 sm:px-5 py-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-role-name" className="text-sm font-medium">Role Name *</Label>
               <Input
                 id="new-role-name"
                 placeholder="e.g. Sports Committee"
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateRole()}
+                autoFocus
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="new-role-desc">Description</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-role-desc" className="text-sm font-medium">Description</Label>
               <Input
                 id="new-role-desc"
                 placeholder="Optional description"
@@ -704,11 +741,11 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
               />
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+          <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40 flex justify-end">
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleCreateRole} disabled={creating}>
+            <Button onClick={handleCreateRole} disabled={creating} className="w-full sm:w-auto">
               {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Role
             </Button>
@@ -718,32 +755,46 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
 
       {/* ── Edit Role Dialog ── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="">Edit Role: {editRole?.name}</DialogTitle>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl flex flex-col gap-0">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Pencil className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0">Edit Role</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground pt-1">
+                Update details for <strong>{editRole?.name}</strong>.
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1">
-              <Label>Role Name *</Label>
+          <div className="space-y-4 px-4 sm:px-5 py-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-role-name" className="text-sm font-medium">Role Name *</Label>
               <Input
+                id="edit-role-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleEditRole()}
+                autoFocus
               />
             </div>
-            <div className="space-y-1">
-              <Label>Description</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-role-desc" className="text-sm font-medium">Description</Label>
               <Input
+                id="edit-role-desc"
                 value={editDesc}
                 onChange={(e) => setEditDesc(e.target.value)}
               />
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editing}>
+          <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40 flex justify-end">
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editing} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleEditRole} disabled={editing}>
+            <Button onClick={handleEditRole} disabled={editing} className="w-full sm:w-auto">
               {editing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
             </Button>
