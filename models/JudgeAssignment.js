@@ -43,6 +43,10 @@ const judgeAssignmentSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    isReady: {
+      type: Boolean,
+      default: false,
+    },
     createdBy: {
       type: String,
       ref: "User",

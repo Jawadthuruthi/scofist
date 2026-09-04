@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -51,6 +52,8 @@ import {
   Filter,
   Pencil,
   Bell,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { formatOptions } from "@/lib/utils";
@@ -94,8 +97,8 @@ const JudgesManagement = ({
     (p) => !selectedDivision || p.divisionId === selectedDivision
   );
 
-  const fetchAssignments = useCallback(async () => {
-    setLoading(true);
+  const fetchAssignments = useCallback(async (isPolling = false) => {
+    if (!isPolling) setLoading(true);
     try {
       const params = new URLSearchParams();
       if (selectedProgram) params.append("programId", selectedProgram);
@@ -108,17 +111,24 @@ const JudgesManagement = ({
       if (data.success) {
         setAssignments(data.assignments);
       } else {
-        toast.error(data.message || "Failed to load assignments");
+        if (!isPolling) toast.error(data.message || "Failed to load assignments");
       }
     } catch {
-      toast.error("Failed to load judge assignments");
+      if (!isPolling) toast.error("Failed to load judge assignments");
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   }, [selectedProgram, selectedDivision, activeYear, apiKey]);
 
   useEffect(() => {
     fetchAssignments();
+    
+    // Poll every 3 seconds for real-time status updates
+    const intervalId = setInterval(() => {
+      fetchAssignments(true);
+    }, 3000);
+    
+    return () => clearInterval(intervalId);
   }, [fetchAssignments]);
 
   // Reset program when division changes
@@ -330,7 +340,7 @@ const JudgesManagement = ({
             value={selectedDivision || "all"}
             onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-10">
               <SelectValue placeholder="All Divisions" />
             </SelectTrigger>
             <SelectContent>
@@ -354,13 +364,13 @@ const JudgesManagement = ({
             onValueChange={setSelectedProgram}
             placeholder="Select Program"
             multiSelect={false}
-            className="w-full"
+            className="w-full h-10"
           />
         </div>
 
         <div className="col-span-12 sm:col-span-3">
           <Button
-            className="w-full"
+            className="w-full h-10"
             onClick={openAddDialog}
             disabled={!selectedProgram}
           >
@@ -415,7 +425,7 @@ const JudgesManagement = ({
                     title="Select all"
                   />
                 </TableHead>
-                <TableHead className="text-center w-16">Judge #</TableHead>
+                <TableHead className="text-center w-16">Judge</TableHead>
                 <TableHead>Division</TableHead>
                 <TableHead>Program</TableHead>
                 <TableHead>User</TableHead>
@@ -472,6 +482,11 @@ const JudgesManagement = ({
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Completed
                           </Badge>
+                        ) : assignment.isReady ? (
+                          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Ready
+                          </Badge>
                         ) : (
                           <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                             <Clock className="h-3 w-3 mr-1" />
@@ -505,20 +520,25 @@ const JudgesManagement = ({
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Judge Assignment?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will remove{" "}
-                                  <strong>{assignment.judgeName}</strong> as Judge{" "}
-                                  {assignment.judgeNumber} from this program. Any marks
-                                  already submitted will remain.
-                                </AlertDialogDescription>
+                            <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden rounded-2xl">
+                              <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+                                <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                                </div>
+                                <div className="flex-1 text-left space-y-0.5">
+                                  <AlertDialogTitle className="text-xl font-bold m-0 text-destructive">Remove Judge Assignment?</AlertDialogTitle>
+                                  <AlertDialogDescription className="m-0 text-sm text-muted-foreground pt-1">
+                                    This will remove{" "}
+                                    <strong>{assignment.judgeName}</strong> as Judge{" "}
+                                    {assignment.judgeNumber} from this program. Any marks
+                                    already submitted will remain.
+                                  </AlertDialogDescription>
+                                </div>
                               </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogFooter className="p-5 border-t bg-muted/20 flex justify-between gap-4 sm:space-x-0">
+                                <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  className="bg-destructive hover:bg-destructive/90"
+                                  className="bg-destructive hover:bg-destructive/90 flex-1"
                                   onClick={() => handleDelete(assignment._id)}
                                 >
                                   Remove
@@ -539,19 +559,26 @@ const JudgesManagement = ({
 
       {/* Edit Judge Assignment Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10">
               <Pencil className="h-5 w-5 text-primary" />
-              Edit Judge Assignment
-            </DialogTitle>
-            <DialogDescription>
-              Update the assignment details for{" "}
-              <strong>{editingAssignment?.judgeName}</strong>.
-            </DialogDescription>
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0">
+                Edit Judge Assignment
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground pt-1">
+                Update the assignment details for{" "}
+                <strong>{editingAssignment?.judgeName}</strong>.
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 px-4 sm:px-5 pb-2 pt-2">
             <div className="space-y-2">
               <Label>User</Label>
               <MultiSelect
@@ -611,15 +638,16 @@ const JudgesManagement = ({
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40">
             <Button
               variant="outline"
               onClick={() => setEditDialogOpen(false)}
               disabled={saving}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={saving || !editJudgeNumber || !editJudgeId}>
+            <Button onClick={handleEdit} disabled={saving || !editJudgeNumber || !editJudgeId} className="w-full sm:w-auto">
               {saving ? (
                 <Loader className="animate-spin h-4 w-4 mr-2" />
               ) : (
@@ -633,19 +661,26 @@ const JudgesManagement = ({
 
       {/* Send Alert Dialog */}
       <Dialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-amber-500/10 dark:bg-amber-500/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-amber-500/20">
               <Bell className="h-5 w-5 text-amber-500" />
-              Send Alert to Judge
-            </DialogTitle>
-            <DialogDescription>
-              Send an alert notification to{" "}
-              <strong>{alertAssignment?.judgeName}</strong>. It will appear on their Mark Entry screen.
-            </DialogDescription>
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0 text-amber-600 dark:text-amber-500">
+                Send Alert to Judge
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground pt-1">
+                Send an alert notification to{" "}
+                <strong>{alertAssignment?.judgeName}</strong>. It will appear on their Mark Entry screen.
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 px-4 sm:px-5 pb-2 pt-2">
             <div className="space-y-2">
               <Label>Alert Message</Label>
               <textarea
@@ -658,18 +693,19 @@ const JudgesManagement = ({
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40">
             <Button
               variant="outline"
               onClick={() => setAlertDialogOpen(false)}
               disabled={saving}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSendAlert}
               disabled={saving || !alertMessage.trim()}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
+              className="bg-amber-500 hover:bg-amber-600 text-white w-full sm:w-auto"
             >
               {saving ? (
                 <Loader className="animate-spin h-4 w-4 mr-2" />
@@ -684,20 +720,27 @@ const JudgesManagement = ({
 
       {/* Add Judge Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10">
               <UserCheck className="h-5 w-5 text-primary" />
-              Assign Judge
-            </DialogTitle>
-            <DialogDescription>
-              Assign a judge to{" "}
-              <strong>{selectedProgramName}</strong>. The judge must complete
-              this program before they can be assigned another.
-            </DialogDescription>
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0">
+                Assign Judge
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground pt-1">
+                Assign a judge to{" "}
+                <strong>{selectedProgramName}</strong>. The judge must complete
+                this program before they can be assigned another.
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 px-4 sm:px-5 pb-2 pt-2">
             <div className="space-y-2">
               <Label>User</Label>
               <MultiSelect
@@ -749,22 +792,20 @@ const JudgesManagement = ({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                This determines which column (Judge 1, 2, …) in the Evaluation
-                page shows this judge&apos;s marks.
-              </p>
+
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40">
             <Button
               variant="outline"
               onClick={() => setAddDialogOpen(false)}
               disabled={saving}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={saving || !newJudgeId}>
+            <Button onClick={handleAdd} disabled={saving || !newJudgeId} className="w-full sm:w-auto">
               {saving ? (
                 <Loader className="animate-spin h-4 w-4 mr-2" />
               ) : (

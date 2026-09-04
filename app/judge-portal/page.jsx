@@ -29,13 +29,17 @@ export default async function JudgePortalPage() {
       0
     );
     const phone = settingsData?.institution?.contact?.primaryPhone;
-    const committeeContacts = settingsData?.festival?.committeeContacts;
+    const activeFestival =
+      settingsData?.festivals?.find((f) => f.year === activeYear) ||
+      settingsData?.festival;
+    const committeeContacts =
+      activeFestival?.committeeContacts || settingsData?.committeeContacts;
 
     return (
       <>
         <Header
           title="MARK ENTRY PORTAL"
-          subTitle="Enter marks for your assigned program."
+          subTitle="Enter marks for assigned program."
           rightAction={
             <ContactCommitteeDropdown 
               contacts={committeeContacts} 

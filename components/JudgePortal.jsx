@@ -102,7 +102,18 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
 
   const currentAssignmentIdRef = useRef(null);
   const [dismissingAlert, setDismissingAlert] = useState(false);
+  const [confirmingReady, setConfirmingReady] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
+  const thankYouTimerRef = useRef(null);
   const prevAlertActiveRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (thankYouTimerRef.current) {
+        clearTimeout(thankYouTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     currentAssignmentIdRef.current = assignment?._id;
@@ -134,13 +145,22 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         return;
       }
 
-      // If polling and we already have the same active assignment, we just check if alert state changed
+      // If polling and we already have the same active assignment, we just check if alert state or ready state changed
       // (to preserve user's typed marks/comments while still receiving alerts)
       if (isPolling && currentAssignmentIdRef.current === active._id) {
         setAssignment((prev) => {
           if (!prev) return prev;
-          if (prev.alertActive !== active.alertActive || prev.alertMessage !== active.alertMessage) {
-            return { ...prev, alertActive: active.alertActive, alertMessage: active.alertMessage };
+          if (
+            prev.alertActive !== active.alertActive ||
+            prev.alertMessage !== active.alertMessage ||
+            prev.isReady !== active.isReady
+          ) {
+            return {
+              ...prev,
+              alertActive: active.alertActive,
+              alertMessage: active.alertMessage,
+              isReady: active.isReady,
+            };
           }
           return prev;
         });
@@ -287,6 +307,41 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       toast.error("Failed to dismiss alert");
     } finally {
       setDismissingAlert(false);
+    }
+  };
+
+  const handleConfirmReady = async () => {
+    if (!assignment) return;
+    setConfirmingReady(true);
+    try {
+      const res = await fetch("/api/judge-assignments", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        },
+        body: JSON.stringify({
+          assignmentId: assignment._id,
+          isReady: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowThankYou(true);
+        if (thankYouTimerRef.current) {
+          clearTimeout(thankYouTimerRef.current);
+        }
+        thankYouTimerRef.current = setTimeout(() => {
+          setShowThankYou(false);
+          setAssignment((prev) => (prev ? { ...prev, isReady: true } : null));
+        }, 1000);
+      } else {
+        toast.error(data.message || "Failed to confirm readiness");
+      }
+    } catch {
+      toast.error("Failed to confirm readiness");
+    } finally {
+      setConfirmingReady(false);
     }
   };
 
@@ -683,6 +738,74 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
               Got it
             </Button>
           </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Ready Confirmation Popup ── */}
+      <AlertDialog open={Boolean(assignment && !assignment.isReady && !assignment.isCompleted && !showThankYou)}>
+        <AlertDialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl p-6 sm:p-7 md:p-8 border-blue-200 bg-gradient-to-b from-blue-50/95 via-white to-blue-50/50 dark:from-blue-950/60 dark:via-slate-900 dark:to-slate-900 border dark:border-blue-800 rounded-2xl sm:rounded-3xl shadow-2xl">
+          <AlertDialogHeader className="text-center sm:text-center space-y-3 sm:space-y-4">
+            <AlertDialogTitle asChild>
+              <div className="text-center sm:text-center space-y-0.5 sm:space-y-1">
+                <span className="block text-xl sm:text-2xl md:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
+                  Welcome,
+                </span>
+                <span className="block text-2xl sm:text-3xl md:text-3xl font-black text-slate-900 dark:text-white tracking-wide uppercase">
+                  {assignment?.judgeName},
+                </span>
+              </div>
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="text-center sm:text-center space-y-3 sm:space-y-4">
+                <div className="text-base sm:text-lg md:text-xl font-medium text-slate-700 dark:text-slate-300">
+                  You have been assigned to judge
+                </div>
+                <div className="bg-white/90 dark:bg-slate-800/80 border border-blue-200 dark:border-blue-700/60 rounded-xl p-3.5 sm:p-5 shadow-sm space-y-1 sm:space-y-2">
+                  <div className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
+                    Program : <span className="text-blue-600 dark:text-blue-400">{assignment?.programName}.</span>
+                  </div>
+                  <div className="text-sm sm:text-lg md:text-xl font-bold text-slate-900 dark:text-white">
+                    Division : <span className="text-blue-600 dark:text-blue-400">{assignment?.divisionName || ""}</span>
+                  </div>
+                </div>
+                <div className="text-lg sm:text-xl md:text-2xl font-extrabold text-blue-900 dark:text-blue-200 pt-1">
+                  Are you ready to begin?
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center mt-5 sm:mt-6">
+            <Button
+              onClick={handleConfirmReady}
+              disabled={confirmingReady}
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto min-w-40 sm:min-w-48 md:min-w-56 h-11 sm:h-13 md:h-14 text-base sm:text-lg md:text-xl font-bold rounded-xl sm:rounded-2xl shadow-lg transition-all hover:scale-105"
+            >
+              {confirmingReady ? (
+                <Loader className="animate-spin h-5 w-5 sm:h-6 sm:w-6 mr-2.5" />
+              ) : (
+                <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 mr-2.5" />
+              )}
+              Ready
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Thank You Popup (shown for 1 second only) ── */}
+      <AlertDialog open={showThankYou}>
+        <AlertDialogContent className="w-[90vw] sm:max-w-md md:max-w-lg p-8 sm:p-10 md:p-12 text-center border-green-200 bg-white dark:bg-slate-900 dark:border-green-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16" />
+          </div>
+          <AlertDialogHeader className="text-center sm:text-center items-center">
+            <AlertDialogTitle className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white">
+              Thank You!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-300 mt-2 font-medium">
+              You are ready to begin.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
         </AlertDialogContent>
       </AlertDialog>
     </div>

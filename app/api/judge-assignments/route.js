@@ -197,7 +197,7 @@ export async function PATCH(request) {
   try {
     await connectToDB();
     const body = await request.json();
-    const { assignmentId, judgeId, judgeName, judgeNumber, alertMessage, alertActive } = body;
+    const { assignmentId, judgeId, judgeName, judgeNumber, alertMessage, alertActive, isReady } = body;
 
     if (!assignmentId) {
       return NextResponse.json(
@@ -212,6 +212,7 @@ export async function PATCH(request) {
     if (judgeNumber !== undefined) updateFields.judgeNumber = judgeNumber;
     if (alertMessage !== undefined) updateFields.alertMessage = alertMessage;
     if (alertActive !== undefined) updateFields.alertActive = alertActive;
+    if (isReady !== undefined) updateFields.isReady = isReady;
 
     const assignment = await JudgeAssignment.findByIdAndUpdate(
       assignmentId,
