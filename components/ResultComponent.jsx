@@ -581,6 +581,14 @@ const ResultComponent = ({
     setSortBy("team-points");
   };
 
+  const hasActiveFilters = Boolean(
+    selectedDivision ||
+    selectedProgram ||
+    selectedCategory ||
+    selectedStatus !== "all" ||
+    sortBy !== "team-points"
+  );
+
   const isLoading = fetchResultsQuery.isLoading || fetchTeamsQuery.isLoading;
   const totalResults = filteredResults.length;
   const declaredResultsCount = filteredResults.filter(
@@ -615,19 +623,23 @@ const ResultComponent = ({
     <div className="space-y-6 ">
       {/* Controls */}
       <div className="no-print">
-        <div className="flex flex-col gap-4">
-          {/* Filters Row */}
-          <div className="grid grid-cols-12 gap-3">
-            <div className="flex items-center gap-2 col-span-12 xs:col-span-6 lg:col-span-2">
+        <div className="flex flex-col gap-3">
+          {/* Controls Row */}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-2 sm:gap-3">
+            {/* Division */}
+            <div className="w-full lg:w-36 xl:w-44 shrink-0">
               <Select
-                value={selectedDivision}
-                onValueChange={setSelectedDivision}
+                value={selectedDivision || "all"}
+                onValueChange={(val) => {
+                  setSelectedDivision(val === "all" ? "" : val);
+                  setSelectedProgram("");
+                }}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-10 w-full text-xs sm:text-sm">
                   <SelectValue placeholder="All Divisions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>All Divisions</SelectItem>
+                  <SelectItem value="all">All Divisions</SelectItem>
                   {divisions.map((division) => (
                     <SelectItem key={division._id} value={division._id}>
                       {division.name}
@@ -636,105 +648,119 @@ const ResultComponent = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-12 xs:col-span-6 lg:col-span-3">
+
+            {/* Program */}
+            <div className="w-full lg:flex-1 lg:max-w-[220px] xl:max-w-[280px]">
               <MultiSelect
                 value={selectedProgram}
                 onValueChange={setSelectedProgram}
                 options={formatOptions(availablePrograms)}
                 placeholder="All Programs"
                 multiSelect={false}
+                className="h-10 min-h-10 w-full text-xs sm:text-sm"
               />
             </div>
-            <div className="col-span-12 xs:col-span-6 lg:col-span-2">
-              <Select value={selectedCategory} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>All Categories</SelectItem>
-                  <SelectItem value="Stage">Stage</SelectItem>
-                  <SelectItem value="Off-Stage">Off-Stage</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-12 xs:col-span-6 lg:col-span-2">
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="declared">Declared</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
+
+            {/* Categories & Status - side by side on mobile, adjusted width on desktop */}
+            <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-2 shrink-0">
+              <div className="w-full lg:w-36 xl:w-44">
+                <Select
+                  value={selectedCategory || "all"}
+                  onValueChange={(val) =>
+                    setSelectedType(val === "all" ? "" : val)
+                  }
+                >
+                  <SelectTrigger className="h-10 w-full text-xs sm:text-sm">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="Stage">Stage</SelectItem>
+                    <SelectItem value="Off-Stage">Off-Stage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-full lg:w-32 xl:w-36">
+                <Select
+                  value={selectedStatus}
+                  onValueChange={setSelectedStatus}
+                >
+                  <SelectTrigger className="h-10 w-full text-xs sm:text-sm">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="declared">Declared</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Sort By Filter */}
-            <div className="flex items-center gap-2 col-span-12 xs:col-span-6 lg:col-span-2">
-              <ArrowUpDown className="h-4 w-4 flex-shrink-0" />
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sort By" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="team-points">Team Priority</SelectItem>
-                  <SelectItem value="program">Name</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Team Priority, Close, Print - in a row on mobile and desktop */}
+            <div className="flex items-center gap-2 shrink-0 lg:flex-none">
+              <div className="flex-1 min-w-0 lg:w-44 xl:w-52 flex items-center gap-1.5">
+                <ArrowUpDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-10 w-full text-xs sm:text-sm">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="team-points">Team Priority</SelectItem>
+                    <SelectItem value="program">Name</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {(selectedDivision ||
-              selectedProgram ||
-              selectedCategory ||
-              selectedStatus !== "all" ||
-              sortBy !== "team-points") && (
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={clearFilters}
+                  className="h-10 w-9 sm:w-10 shrink-0"
+                  title="Clear Filters"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+
               <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full col-span-12 xs:col-span-6 lg:col-span-1"
+                variant="default"
+                onClick={handlePrint}
+                className="h-10 px-2.5 sm:px-3 shrink-0 whitespace-nowrap"
               >
-                <X className="h-3 w-3" />
+                <Printer className="mr-1.5 h-4 w-4" />
+                Print
               </Button>
-            )}
+            </div>
           </div>
 
-          {/* Stats and Actions */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <FileText className="h-4 w-4" />
-                <span>{totalResults} results</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span>{totalParticipants} participants</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Eye className="h-4 w-4 text-green-500" />
-                <span>{declaredResultsCount} declared</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <EyeOff className="h-4 w-4 text-orange-500" />
-                <span>{pendingResults} pending</span>
-              </div>
-              {sortBy === "team-points" && pendingResults > 0 && (
-                <div className="flex items-center gap-1 text-xs text-blue-600 font-medium">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>Weakest teams prioritized</span>
-                </div>
-              )}
+          {/* Stats */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              <span>{totalResults} results</span>
             </div>
-            <Button
-              variant="default"
-              onClick={handlePrint}
-              className="flex-1 sm:flex-none"
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </Button>
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span>{totalParticipants} participants</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Eye className="h-4 w-4 text-green-500" />
+              <span>{declaredResultsCount} declared</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EyeOff className="h-4 w-4 text-orange-500" />
+              <span>{pendingResults} pending</span>
+            </div>
+            {sortBy === "team-points" && pendingResults > 0 && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 font-medium">
+                <TrendingUp className="h-4 w-4" />
+                <span>Weakest teams prioritized</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
