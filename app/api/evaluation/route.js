@@ -4,6 +4,7 @@ import connectToDB from "@/lib/db";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import GradeScheme from "@/models/GradeScheme";
 import Result from "@/models/Result";
+import JudgeAssignment from "@/models/JudgeAssignment";
 import { getYear } from "@/lib/getYear";
 import { undeclareResultData } from "@/lib/resultHelpers";
 
@@ -185,16 +186,16 @@ export async function PUT(request) {
       });
 
       // Process each participant update using participant ID matching
-      const bulkOps = [];
+      let modifiedInThisReg = 0;
 
       for (const participantUpdate of participantUpdates) {
-        // FIXED: Handle both single mark updates and complete marks array updates
+        // Handle both single mark updates and complete marks array updates
         const { participantId, marks, judgeIndex, marksByJudges } =
           participantUpdate;
 
         // Find the participant by ID in the registration
         const participantIndex = registration.participants.findIndex(
-          (p) => p.id.toString() === participantId.toString()
+          (p) => String(p.id?._id || p.id) === String(participantId)
         );
 
         if (participantIndex === -1) {
@@ -210,18 +211,16 @@ export async function PUT(request) {
         let finalMarksByJudges;
 
         if (marksByJudges) {
-          // Frontend sent complete marks array (preferred method)
+          // Frontend sent complete marks array
           finalMarksByJudges = marksByJudges;
         } else if (marks !== undefined && judgeIndex !== undefined) {
-          // Fallback: single mark update (legacy support)
+          // Fallback: single mark update
           let currentMarksByJudges = currentParticipant.marksByJudges || [];
 
-          // Ensure the array is long enough for the judge index
           while (currentMarksByJudges.length <= judgeIndex) {
             currentMarksByJudges.push(0);
           }
 
-          // Update the specific judge's marks
           currentMarksByJudges[judgeIndex] = marks;
           finalMarksByJudges = currentMarksByJudges;
         } else {
@@ -230,8 +229,9 @@ export async function PUT(request) {
         }
 
         // Calculate new average marks from all valid marks
-        // Also map any empty strings to 0 or null so MongoDB doesn't throw CastError
-        const sanitizedMarks = finalMarksByJudges.map(m => (m === "" ? 0 : m));
+        const sanitizedMarks = finalMarksByJudges.map((m) =>
+          m === "" || m === undefined || m === null ? 0 : Number(m) || 0
+        );
         const validMarks = sanitizedMarks.filter(
           (m) => m !== undefined && m !== null && m > 0
         );
@@ -243,41 +243,16 @@ export async function PUT(request) {
               )
             : 0;
 
-        console.log(`Updating participant ${participantId}:`, {
-          participantIndex,
-          finalMarksByJudges: sanitizedMarks,
-          newAverageMarks: averageMarks,
-        });
-
-        // Create bulk operation to update this specific participant
-        bulkOps.push({
-          updateOne: {
-            filter: {
-              _id: new mongoose.Types.ObjectId(registrationId),
-              [`participants.${participantIndex}.id`]: participantId,
-            },
-            update: {
-              $set: {
-                [`participants.${participantIndex}.marksByJudges`]: sanitizedMarks,
-                [`participants.${participantIndex}.totalMarks`]: averageMarks,
-              },
-            },
-          },
-        });
+        registration.participants[participantIndex].marksByJudges = sanitizedMarks;
+        registration.participants[participantIndex].totalMarks = averageMarks;
+        modifiedInThisReg++;
       }
 
-      if (bulkOps.length === 0) {
-        console.log(`No update operations for registration ${registrationId}`);
-        return { modifiedCount: 0 };
+      if (modifiedInThisReg > 0) {
+        await registration.save();
       }
 
-      console.log(
-        `Executing ${bulkOps.length} bulk operations for ${registrationId}`
-      );
-
-      // Execute all bulk operations for this registration
-      const result = await ProgramRegistration.bulkWrite(bulkOps);
-      return { modifiedCount: result.modifiedCount };
+      return { modifiedCount: modifiedInThisReg };
     });
 
     const results = await Promise.all(updatePromises);
@@ -317,7 +292,16 @@ export async function PUT(request) {
           });
         });
 
-        if (allParticipants.length === 0) return null;
+        if (allParticipants.length === 0) {
+          const oldResult = await Result.findOne({ programId, year: activeYear }).populate("programId");
+          if (oldResult) {
+            if (oldResult.isResultDeclared) {
+              await undeclareResultData(oldResult);
+            }
+            await Result.deleteOne({ _id: oldResult._id });
+          }
+          return null;
+        }
 
         allParticipants.sort((a, b) => b.totalMarks - a.totalMarks);
 
@@ -420,6 +404,12 @@ export async function DELETE(req) {
     );
 
     await Result.deleteMany({ programId: { $in: idsToClear } });
+
+    // Also re-open judge assignments for the cleared programs so judges can re-evaluate if needed
+    await JudgeAssignment.updateMany(
+      { programId: { $in: idsToClear } },
+      { $set: { isCompleted: false } }
+    );
 
     return NextResponse.json({
       success: true,

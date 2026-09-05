@@ -15,32 +15,90 @@ import {
 } from "./ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useTheme } from "next-themes";
+import { usePathname } from "next/navigation";
+import Cookies from "js-cookie";
 
-export function Topbar({ user, hideSidebarToggle = false }) {
+export function Topbar({ user, festival: initialFestival, activeRole: activeRoleProp, hideSidebarToggle = false }) {
   const { toggleSidebar } = useSidebar();
   const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [institution, setInstitution] = useState(null);
+  const [festival, setFestival] = useState(initialFestival || null);
+  const [activeRole, setActiveRole] = useState(activeRoleProp || null);
+  const [imageError, setImageError] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const isTeacher = user?.roles?.includes("Teacher");
 
-  // Handle client-side mounting to avoid hydration mismatch
+  useEffect(() => {
+    if (initialFestival) {
+      setFestival(initialFestival);
+      setImageError(false);
+    }
+  }, [initialFestival]);
+
+  useEffect(() => {
+    if (activeRoleProp) {
+      setActiveRole(activeRoleProp);
+    } else if (typeof window !== "undefined") {
+      const cookieRole = Cookies.get("active-role");
+      if (cookieRole) setActiveRole(cookieRole);
+    }
+  }, [activeRoleProp]);
+
+  // Handle client-side mounting and festival session detection
   useEffect(() => {
     setMounted(true);
 
-    const fetchSettings = async () => {
+    const loadSettings = async (targetYear) => {
       try {
         const response = await fetch("/api/settings");
         const data = await response.json();
         if (data.settings?.institution) {
           setInstitution(data.settings.institution);
         }
+
+        const role = activeRoleProp || (typeof window !== "undefined" ? Cookies.get("active-role") : null);
+        if (role) setActiveRole(role);
+
+        // Resolve current active year
+        const currentYear =
+          targetYear ||
+          (typeof window !== "undefined" ? Cookies.get("active-year") : null) ||
+          data.settings?.activeYear;
+
+        // Find festival matching currentYear exactly
+        let matchedFest = null;
+        if (data.settings?.festivals && data.settings.festivals.length > 0) {
+          matchedFest = data.settings.festivals.find((f) => f.year === currentYear);
+        }
+        if (!matchedFest && data.settings?.festival?.year === currentYear) {
+          matchedFest = data.settings.festival;
+        }
+        if (!matchedFest && data.settings?.festival) {
+          matchedFest = data.settings.festival;
+        }
+
+        setFestival(matchedFest || null);
+        setImageError(false);
       } catch (error) {
-        console.error("Error fetching institution settings:", error);
+        console.error("Error fetching settings in Topbar:", error);
       }
     };
-    fetchSettings();
-  }, []);
+
+    loadSettings();
+
+    // Listen for festival session change from sidebar
+    const handleYearChanged = (event) => {
+      const newYear = event?.detail || (typeof window !== "undefined" ? Cookies.get("active-year") : null);
+      loadSettings(newYear);
+    };
+
+    window.addEventListener("active-year-changed", handleYearChanged);
+    return () => {
+      window.removeEventListener("active-year-changed", handleYearChanged);
+    };
+  }, [activeRoleProp]);
 
   const handleLogout = async () => {
     try {
@@ -65,6 +123,30 @@ export function Topbar({ user, hideSidebarToggle = false }) {
     );
   };
 
+  const isJudgePortal = pathname?.startsWith("/judge-portal");
+  const effectiveRole =
+    activeRole ||
+    (typeof window !== "undefined" ? Cookies.get("active-role") : null);
+
+  const isAllowedRole =
+    effectiveRole === "Program Committee" ||
+    effectiveRole === "Program Leader" ||
+    effectiveRole === "Judge" ||
+    isJudgePortal;
+
+  const shouldShowFestival = Boolean(isAllowedRole);
+
+  const festivalFullNameImageUrl =
+    festival?.festivalFullNameImage?.url ||
+    (typeof festival?.festivalFullNameImage === "string" ? festival.festivalFullNameImage : null) ||
+    festival?.festivalNameImage?.url ||
+    (typeof festival?.festivalNameImage === "string" ? festival.festivalNameImage : null);
+
+  const festivalDisplayName =
+    festival?.festivalInfo?.name ||
+    festival?.name ||
+    "";
+
   return (
     <header className="fixed top-0 left-0 w-full z-10 h-14 bg-background border-b shadow-sm flex items-center px-4 justify-between no-print">
       {/* Sidebar Toggle Button */}
@@ -79,8 +161,26 @@ export function Topbar({ user, hideSidebarToggle = false }) {
         </Button>
       )}
 
+      {/* Center: Festival Full Name */}
+      {shouldShowFestival && (festivalFullNameImageUrl || festivalDisplayName) && (
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none max-w-[calc(100%-160px)] sm:max-w-[calc(100%-180px)] md:max-w-xl h-full px-2">
+          {!imageError && festivalFullNameImageUrl ? (
+            <img
+              src={festivalFullNameImageUrl}
+              alt={festivalDisplayName || "Festival Full Name"}
+              className="h-7 sm:h-8 md:h-9 max-h-9 w-auto max-w-full object-contain dark:brightness-0 dark:invert transition-all select-none"
+              onError={() => setImageError(true)}
+            />
+          ) : festivalDisplayName ? (
+            <span className="font-bold text-xs sm:text-sm md:text-base tracking-wider uppercase text-foreground/90 truncate select-none">
+              {festivalDisplayName}
+            </span>
+          ) : null}
+        </div>
+      )}
+
       {/* User Profile / Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ml-auto">
         <Button
           variant="ghost"
           size="icon"

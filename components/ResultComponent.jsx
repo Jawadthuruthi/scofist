@@ -40,12 +40,13 @@ import {
   Users,
   TrendingUp,
   ArrowUpDown,
+  AlertTriangle,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
 import { MultiSelect } from "./ui/multi-select";
-import { formatOptions } from "@/lib/utils";
+import { formatOptions, cn } from "@/lib/utils";
 
 const ResultComponent = ({
   programs = [],
@@ -66,6 +67,9 @@ const ResultComponent = ({
   const [teams, setTeams] = useState([]);
 
   const printRef = useRef();
+  const downloadCardRef = useRef(null);
+  const [downloadingResult, setDownloadingResult] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   // Use CRUD operations
   const { useFetchItems } = useCrud("results", apiKey);
@@ -525,15 +529,17 @@ const ResultComponent = ({
           flex-shrink: 0;
           overflow: hidden;
           font-size: 12px !important;
+          border: 1px solid #000 !important;
         }
         
         /* Table container - flexible height */
         .table-container {
           flex: 1;
-          overflow: hidden;
+          overflow: visible !important;
           display: flex;
           flex-direction: column;
           min-height: 0;
+          border: none !important;
         }
         
         table {
@@ -541,27 +547,31 @@ const ResultComponent = ({
           border: 1px solid #000 !important;
           width: 100% !important;
         }
+
+        thead, thead tr, thead th {
+          position: static !important;
+        }
         
         table th, table td {
           border: 1px solid #000 !important;
-          padding: 8px !important;
-          text-align: left;
+          padding: 6px 8px !important;
           vertical-align: middle;
-          line-height: 1.1 !important;
-          height: fit-content !important;
-          overflow: hidden;
+          line-height: 1.2 !important;
           font-size: 12px !important;
         }
         
         table th {
           background-color: #f5f5f5 !important;
-          height: 16px !important;
+          border: 1px solid #000 !important;
+          height: auto !important;
           font-weight: bold !important;
           color: #000 !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         
         table td {
-          font-weight: semibold !important;
+          font-weight: 500 !important;
         }
         
         .trophy-icon {
@@ -572,6 +582,87 @@ const ResultComponent = ({
       }
     `,
   });
+
+  // Handle download full result as image
+  const handleDownloadFullResult = useCallback(
+    async (result) => {
+      if (!result || downloadingId) return;
+      setDownloadingId(result._id);
+      setDownloadingResult(result);
+
+      const toastId = toast.loading(`Preparing full result download for ${result.programName}...`);
+
+      try {
+        // Wait for offscreen DOM to mount and render
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        const el = downloadCardRef.current;
+        if (!el) {
+          throw new Error("Download element not available");
+        }
+
+        // Wait for fonts
+        if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+          try {
+            await document.fonts.ready;
+          } catch (_) {}
+        }
+
+        // Wait for images inside el
+        const images = Array.from(el.querySelectorAll("img"));
+        if (images.length > 0) {
+          await Promise.all(
+            images.map(async (img) => {
+              if (!img.crossOrigin && img.src && !img.src.startsWith("data:")) {
+                img.crossOrigin = "anonymous";
+              }
+              if (!img.complete) {
+                await new Promise((res) => {
+                  img.onload = res;
+                  img.onerror = res;
+                });
+              }
+              if (img.decode) {
+                try {
+                  await img.decode();
+                } catch (_) {}
+              }
+            })
+          );
+        }
+
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const html2canvas = (await import("html2canvas")).default;
+        const canvas = await html2canvas(el, {
+          scale: 3,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          logging: false,
+        });
+
+        const cleanProgramName = (result.programName || "Result").replace(/[^a-zA-Z0-9_-]/g, "_");
+        const filename = `Result_${result.resultNumber || "Full"}_${cleanProgramName}.jpeg`;
+
+        const link = document.createElement("a");
+        link.download = filename;
+        link.href = canvas.toDataURL("image/jpeg", 0.95);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success(`Result #${result.resultNumber || ""} downloaded successfully!`, { id: toastId });
+      } catch (error) {
+        console.error("Failed to download full result:", error);
+        toast.error("Failed to download result image", { id: toastId });
+      } finally {
+        setDownloadingId(null);
+        setDownloadingResult(null);
+      }
+    },
+    [downloadingId]
+  );
 
   const clearFilters = () => {
     setSelectedDivision("");
@@ -635,7 +726,7 @@ const ResultComponent = ({
                   setSelectedProgram("");
                 }}
               >
-                <SelectTrigger className="h-10 w-full text-xs sm:text-sm">
+                <SelectTrigger className="h-10 w-full text-sm">
                   <SelectValue placeholder="All Divisions" />
                 </SelectTrigger>
                 <SelectContent>
@@ -657,7 +748,8 @@ const ResultComponent = ({
                 options={formatOptions(availablePrograms)}
                 placeholder="All Programs"
                 multiSelect={false}
-                className="h-10 min-h-10 w-full text-xs sm:text-sm"
+                noBadge={true}
+                className="h-10 min-h-10 w-full text-sm"
               />
             </div>
 
@@ -670,7 +762,7 @@ const ResultComponent = ({
                     setSelectedType(val === "all" ? "" : val)
                   }
                 >
-                  <SelectTrigger className="h-10 w-full text-xs sm:text-sm">
+                  <SelectTrigger className="h-10 w-full text-sm">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
@@ -686,7 +778,7 @@ const ResultComponent = ({
                   value={selectedStatus}
                   onValueChange={setSelectedStatus}
                 >
-                  <SelectTrigger className="h-10 w-full text-xs sm:text-sm">
+                  <SelectTrigger className="h-10 w-full text-sm">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -703,7 +795,7 @@ const ResultComponent = ({
               <div className="flex-1 min-w-0 lg:w-44 xl:w-52 flex items-center gap-1.5">
                 <ArrowUpDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="h-10 w-full text-xs sm:text-sm">
+                  <SelectTrigger className="h-10 w-full text-sm">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
                   <SelectContent>
@@ -767,6 +859,39 @@ const ResultComponent = ({
 
       {/* Printable Content */}
       <div ref={printRef} className="print-container">
+        <style>{`
+          @media print {
+            .print-container table {
+              border-collapse: collapse !important;
+              border: 1px solid #000 !important;
+              width: 100% !important;
+            }
+            .print-container thead,
+            .print-container thead tr,
+            .print-container thead th {
+              position: static !important;
+            }
+            .print-container table th {
+              border: 1px solid #000 !important;
+              background-color: #f5f5f5 !important;
+              color: #000 !important;
+              font-weight: bold !important;
+              height: auto !important;
+              padding: 6px 8px !important;
+              font-size: 12px !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .print-container table td {
+              border: 1px solid #000 !important;
+              padding: 6px 8px !important;
+              font-size: 12px !important;
+            }
+            .print-container .result-info {
+              border: 1px solid #000 !important;
+            }
+          }
+        `}</style>
         {/* Results Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -793,186 +918,223 @@ const ResultComponent = ({
                     <PrintHeader apiKey={apiKey} isFestival={true} />
                   )}
 
-                  {/* Result Header */}
-                  <div className="result-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border w-full print:bg-transparent print:border-none print:p-1 print:mb-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
-                      <div className="mb-2 sm:mb-0 w-full">
-                        <div className="flex items-center gap-2 mb-1 print:hidden">
-                          <h3 className="text-lg sm:text-xl font-semibold text-foreground">
-                            {result.programName}
-                          </h3>
-                          <Badge
-                            variant={
-                              result.isResultDeclared ? "default" : "secondary"
-                            }
-                            className="hidden sm:inline-flex"
-                          >
-                            {result.isResultDeclared ? (
-                              <>
-                                <Eye className="h-3 w-3 mr-1" />
-                                Declared
-                              </>
-                            ) : (
-                              <>
-                                <EyeOff className="h-3 w-3 mr-1" />
-                                Pending
-                              </>
-                            )}
-                          </Badge>
-                          {/* Show team priority indicator for pending results when sorted by team-points */}
-                          {!result.isResultDeclared &&
-                            sortBy === "team-points" &&
-                            weakestTeamRank !== null && (
-                              <Badge variant="outline" className="text-xs">
-                                <TrendingUp className="h-3 w-3 mr-1" />
-                                Presence: {Math.round(weakestPresence)}
-                              </Badge>
-                            )}
-                        </div>
-                        <div className="flex flex-wrap print:justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
-                          {result.isResultDeclared && (
-                            <span className="whitespace-nowrap print:hidden">
-                              <strong>Result No.:</strong>{" "}
-                              {result.resultNumber || "N/A"}
-                            </span>
+                  {/* Result Header - Attached directly to table below */}
+                  <div className="result-info relative flex items-center justify-between gap-1.5 sm:gap-3 bg-muted/60 border border-border rounded-t-lg px-2 sm:px-4 py-2 print:bg-gray-200 print:border print:border-black print:rounded-none">
+                    {/* Left: Result Number Badge (hidden download button) */}
+                    <div className="shrink-0 flex items-center no-print">
+                      {result.isResultDeclared && result.resultNumber ? (
+                        <Badge
+                          variant="outline"
+                          onClick={() => handleDownloadFullResult(result)}
+                          role="button"
+                          title="Download result"
+                          className="bg-background text-foreground border-border text-base sm:text-lg font-bold px-2.5 sm:px-3 py-1 sm:py-1 min-w-[2.25rem] sm:min-w-[2.5rem] text-center shadow-xs cursor-pointer hover:bg-muted/80 active:scale-95 transition-all select-none"
+                        >
+                          {downloadingId === result._id ? (
+                            <Loader className="h-4 w-4 animate-spin" />
+                          ) : (
+                            result.resultNumber
                           )}
-                          <span className="capitalize whitespace-nowrap hidden print:block">
-                            <strong>Program:</strong> {result.programName}
-                          </span>
-                          <span className="whitespace-nowrap">
-                            <strong>Division:</strong> {result.divisionName}
-                          </span>
-                          <span className="capitalize whitespace-nowrap print:hidden">
-                            <strong>Type:</strong> {result.programType}
-                          </span>
-                          <span className="capitalize whitespace-nowrap print:hidden">
-                            <strong>Category:</strong> {result.programCategory}
-                          </span>
-                          {result.isResultDeclared && (
-                            <span className="whitespace-nowrap hidden print:block print:ml-auto">
-                              <strong>Result No.:</strong>{" "}
-                              {result.resultNumber || "N/A"}
-                            </span>
-                          )}
-                          <span className="print:hidden whitespace-nowrap">
-                            <strong>Participants:</strong>{" "}
-                            {result.participants.length}
-                          </span>
-                        </div>
+                        </Badge>
+                      ) : (
+                        <div className="w-8 sm:w-0" />
+                      )}
+                    </div>
+
+                    {/* Centre: Program details (Centered on mobile, left-aligned on desktop) */}
+                    <div className="flex-1 min-w-0 flex items-center justify-center sm:justify-start text-center sm:text-left text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs">
+                      {/* Mobile: 4 lines, centered */}
+                      <div className="flex flex-col items-center justify-center sm:hidden print:hidden leading-tight py-0.5 px-0.5">
+                        <span className="capitalize">
+                          <strong>Program:</strong> {result.programName}
+                        </span>
+                        <span>
+                          <strong>Division:</strong> {result.divisionName}
+                        </span>
+                        <span className="capitalize">
+                          <strong>Type:</strong> {result.programType}
+                        </span>
+                        <span className="capitalize">
+                          <strong>Category:</strong> {result.programCategory}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-2 no-print">
-                        {!result._id && (
-                          <Button
-                            onClick={() =>
-                              handleGenerateResult(result.programId)
-                            }
-                            disabled={generating[result.programId]}
-                            size="sm"
-                            variant="outline"
-                          >
-                            {generating[result.programId] ? (
-                              <Loader className="animate-spin h-3 w-3 mr-1" />
-                            ) : (
-                              <TrendingUp className="h-3 w-3 mr-1" />
-                            )}
-                            Generate
-                          </Button>
+                      {/* Desktop & Print: Pipe-separated inline */}
+                      <div className="hidden sm:flex print:flex items-center flex-wrap print:justify-center print:w-full">
+                        {result.isResultDeclared && result.resultNumber && (
+                          <>
+                            <span className="hidden print:inline whitespace-nowrap pr-2">
+                              <strong>Result No.:</strong> {result.resultNumber}
+                            </span>
+                            <span className="text-muted-foreground select-none hidden print:inline">|</span>
+                          </>
                         )}
+                        <span className="capitalize whitespace-nowrap pr-2 print:px-2">
+                          <strong>Program:</strong> {result.programName}
+                        </span>
+                        <span className="text-muted-foreground select-none">|</span>
+                        <span className="whitespace-nowrap px-2">
+                          <strong>Division:</strong> {result.divisionName}
+                        </span>
+                        <span className="text-muted-foreground select-none">|</span>
+                        <span className="capitalize whitespace-nowrap px-2">
+                          <strong>Type:</strong> {result.programType}
+                        </span>
+                        <span className="text-muted-foreground select-none">|</span>
+                        <span className="capitalize whitespace-nowrap pl-2">
+                          <strong>Category:</strong> {result.programCategory}
+                        </span>
+                      </div>
+                    </div>
 
-                        {/* Declare/Undeclare Button */}
-                        {result._id && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant={
+                    {/* Right: Action button (Declare / Undeclare / Generate) */}
+                    <div className="shrink-0 flex items-center no-print z-10">
+                      {!result._id && (
+                        <Button
+                          onClick={() =>
+                            handleGenerateResult(result.programId)
+                          }
+                          disabled={generating[result.programId]}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 sm:h-8 px-2 sm:px-2.5 text-xs"
+                        >
+                          {generating[result.programId] ? (
+                            <Loader className="animate-spin h-3 w-3 mr-1" />
+                          ) : (
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                          )}
+                          Generate
+                        </Button>
+                      )}
+
+                      {result._id && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant={
+                                result.isResultDeclared
+                                  ? "destructive"
+                                  : "default"
+                              }
+                              disabled={declaring[result._id]}
+                              className="h-7 sm:h-8 px-2 sm:px-2.5 text-xs"
+                            >
+                              {declaring[result._id] ? (
+                                <Loader className="animate-spin h-3 w-3 mr-1" />
+                              ) : result.isResultDeclared ? (
+                                <EyeOff className="h-3 w-3 mr-1" />
+                              ) : (
+                                <Eye className="h-3 w-3 mr-1" />
+                              )}
+                              <span>
+                                {result.isResultDeclared
+                                  ? "Undeclare"
+                                  : "Declare"}
+                              </span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden">
+                            <AlertDialogHeader
+                              className={cn(
+                                "flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left",
+                                result.isResultDeclared
+                                  ? "bg-destructive/5 dark:bg-destructive/10"
+                                  : "bg-primary/5 dark:bg-primary/10"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "p-2 rounded-lg shrink-0",
                                   result.isResultDeclared
-                                    ? "destructive"
-                                    : "default"
-                                }
-                                disabled={declaring[result._id]}
-                              >
-                                {declaring[result._id] ? (
-                                  <Loader className="animate-spin h-3 w-3 mr-1" />
-                                ) : result.isResultDeclared ? (
-                                  <EyeOff className="h-3 w-3 mr-1" />
-                                ) : (
-                                  <Eye className="h-3 w-3 mr-1" />
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-primary/10 text-primary"
                                 )}
-                                <span className="hidden sm:inline">
+                              >
+                                {result.isResultDeclared ? (
+                                  <AlertTriangle className="h-5 w-5" />
+                                ) : (
+                                  <Trophy className="h-5 w-5" />
+                                )}
+                              </div>
+                              <div className="flex-1 text-left space-y-0.5">
+                                <AlertDialogTitle
+                                  className={cn(
+                                    "text-xl font-bold m-0",
+                                    result.isResultDeclared
+                                      ? "text-destructive"
+                                      : "text-foreground"
+                                  )}
+                                >
                                   {result.isResultDeclared
-                                    ? "Undeclare"
-                                    : "Declare"}
-                                </span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  {result.isResultDeclared
-                                    ? "Undeclare"
-                                    : "Declare"}{" "}
-                                  Result
+                                    ? "Undeclare Result?"
+                                    : "Declare Result?"}
                                 </AlertDialogTitle>
-                                <AlertDialogDescription>
+                                <AlertDialogDescription className="m-0 text-sm text-muted-foreground pt-1">
                                   {result.isResultDeclared
                                     ? "Are you sure you want to undeclare this result? This will remove all participant and team points associated with this program."
                                     : "Are you sure you want to declare this result? This will update participant and team records with the final rankings and points."}
                                 </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDeclareResult(
-                                      result._id,
-                                      result.isResultDeclared
-                                    )
-                                  }
-                                  className={
+                              </div>
+                              <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
+                                <X className="h-5 w-5" />
+                              </AlertDialogCancel>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="p-5 border-t bg-muted/20 flex justify-between gap-4 sm:space-x-0 w-full">
+                              <AlertDialogCancel className="flex-1 mt-0">
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  handleDeclareResult(
+                                    result._id,
                                     result.isResultDeclared
-                                      ? "bg-destructive hover:bg-destructive/90"
-                                      : ""
-                                  }
-                                >
-                                  {result.isResultDeclared
-                                    ? "Undeclare"
-                                    : "Declare"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
+                                  )
+                                }
+                                className={cn(
+                                  "flex-1",
+                                  result.isResultDeclared
+                                    ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                                )}
+                              >
+                                {result.isResultDeclared
+                                  ? "Undeclare"
+                                  : "Declare"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </div>
 
-                  {/* Results Table */}
-                  <div className="table-container border rounded-lg overflow-hidden print:rounded-none print:border-none">
+                  {/* Results Table - Attached directly to header above */}
+                  <div className="table-container border border-t-0 border-border rounded-b-lg overflow-hidden print:rounded-none print:border-none">
                     <div className="overflow-x-auto print:overflow-visible h-full">
                       <Table className="min-w-full">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                        <TableHeader className="print:static">
+                          <TableRow className="print:border-b-black">
+                            <TableHead className="w-16 text-center whitespace-nowrap border border-border print:!border print:!border-black">
                               Rank
                             </TableHead>
-                            <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                            <TableHead className="w-20 text-center whitespace-nowrap border border-border print:!border print:!border-black">
                               Chest Number
                             </TableHead>
-                            <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                            <TableHead className="w-20 text-center whitespace-nowrap border border-border print:!border print:!border-black">
                               Code Letter
                             </TableHead>
-                            <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black">
+                            <TableHead className="min-w-[150px] whitespace-nowrap border border-border print:!border print:!border-black">
                               Name
                             </TableHead>
-                            <TableHead className="whitespace-nowrap border-t border-r border-border print:border-black">
+                            <TableHead className="whitespace-nowrap border border-border print:!border print:!border-black">
                               Team
                             </TableHead>
-                            <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                            <TableHead className="w-16 text-center whitespace-nowrap border border-border print:!border print:!border-black">
                               Grade
                             </TableHead>
-                            <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                            <TableHead className="w-20 text-center whitespace-nowrap border border-border print:!border print:!border-black">
                               Points
                             </TableHead>
                           </TableRow>
@@ -1069,6 +1231,122 @@ const ResultComponent = ({
               <Button variant="outline" onClick={clearFilters}>
                 Clear Filters
               </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Offscreen Download Card for downloading full result image */}
+      <div
+        style={{
+          position: "fixed",
+          left: "-9999px",
+          top: 0,
+          width: "800px",
+          backgroundColor: "#ffffff",
+          zIndex: -1,
+          pointerEvents: "none",
+        }}
+        aria-hidden="true"
+      >
+        {downloadingResult && (
+          <div
+            ref={downloadCardRef}
+            className="p-6 bg-white text-black font-sans"
+            style={{ width: "800px", backgroundColor: "#ffffff" }}
+          >
+            {/* Festival Header */}
+            <PrintHeader apiKey={apiKey} isFestival={true} displayOnScreen={true} />
+
+            {/* Program Info Header */}
+            <div className="bg-gray-100 border border-black px-4 py-2.5 my-3 flex items-center justify-center text-xs font-semibold text-black text-center flex-wrap gap-1">
+              {downloadingResult.resultNumber && (
+                <>
+                  <span className="whitespace-nowrap pr-2">
+                    <strong>Result No.:</strong> {downloadingResult.resultNumber}
+                  </span>
+                  <span className="text-gray-400 select-none">|</span>
+                </>
+              )}
+              <span className="capitalize whitespace-nowrap px-2">
+                <strong>Program:</strong> {downloadingResult.programName}
+              </span>
+              <span className="text-gray-400 select-none">|</span>
+              <span className="whitespace-nowrap px-2">
+                <strong>Division:</strong> {downloadingResult.divisionName}
+              </span>
+              <span className="text-gray-400 select-none">|</span>
+              <span className="capitalize whitespace-nowrap px-2">
+                <strong>Type:</strong> {downloadingResult.programType}
+              </span>
+              <span className="text-gray-400 select-none">|</span>
+              <span className="capitalize whitespace-nowrap pl-2">
+                <strong>Category:</strong> {downloadingResult.programCategory}
+              </span>
+            </div>
+
+            {/* Full Results Table */}
+            <div className="border border-black overflow-hidden">
+              <table className="w-full text-xs text-black border-collapse" style={{ border: "1px solid #000" }}>
+                <thead>
+                  <tr style={{ backgroundColor: "#f5f5f5" }}>
+                    <th className="border border-black p-2 text-center w-14 font-bold">Rank</th>
+                    <th className="border border-black p-2 text-center w-20 font-bold">Chest No.</th>
+                    <th className="border border-black p-2 text-center w-20 font-bold">Code Letter</th>
+                    <th className="border border-black p-2 text-left font-bold">Name</th>
+                    <th className="border border-black p-2 text-left font-bold">Team</th>
+                    <th className="border border-black p-2 text-center w-16 font-bold">Grade</th>
+                    <th className="border border-black p-2 text-center w-16 font-bold">Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {downloadingResult.participants &&
+                  downloadingResult.participants.filter((p) => p.points > 0).length > 0 ? (
+                    downloadingResult.participants
+                      .filter((p) => p.points > 0)
+                      .sort((a, b) => (a.rank || 999) - (b.rank || 999))
+                      .map((participant, index) => (
+                        <tr key={participant._id || index} style={{ borderTop: "1px solid #000" }}>
+                          <td className="border border-black p-2 text-center font-bold">
+                            {participant.rank || "-"}
+                          </td>
+                          <td className="border border-black p-2 text-center font-medium">
+                            {participant.participantDetails?.chestNumber || "N/A"}
+                          </td>
+                          <td className="border border-black p-2 text-center">
+                            {participant.codeLetter || "-"}
+                          </td>
+                          <td className="border border-black p-2 font-medium">
+                            {participant.participantDetails?.name || "N/A"}
+                          </td>
+                          <td className="border border-black p-2 font-medium">
+                            {participant.participantDetails?.teamId?.name || "N/A"}
+                          </td>
+                          <td className="border border-black p-2 text-center font-bold">
+                            {!participant.grade || participant.grade.toLowerCase() === "f"
+                              ? "-"
+                              : participant.grade}
+                          </td>
+                          <td className="border border-black p-2 text-center font-bold">
+                            {participant.points ?? 0}
+                          </td>
+                        </tr>
+                      ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="border border-black p-4 text-center text-gray-500">
+                        No participants found for this result
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Official Footer */}
+            <div className="mt-3 pt-2 border-t border-gray-200 flex items-center justify-between text-[10px] text-gray-500">
+              <span>Official Competition Result</span>
+              <span>Generated on {new Date().toLocaleDateString()}</span>
             </div>
           </div>
         )}

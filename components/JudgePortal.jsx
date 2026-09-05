@@ -35,6 +35,8 @@ import {
   Users,
   Printer,
   BellRing,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 const playAlertSound = () => {
@@ -133,6 +135,10 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [submitted, setSubmitted] = useState(false);
   const [judgeSignature, setJudgeSignature] = useState("");
   const [activeTab, setActiveTab] = useState("Criteria");
+  const [hideMarks, setHideMarks] = useState(false);
+  const [submittedMarksPreview, setSubmittedMarksPreview] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   const currentAssignmentIdRef = useRef(null);
   const [dismissingAlert, setDismissingAlert] = useState(false);
@@ -189,26 +195,31 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
 
       // Find the first active (non-completed) assignment
       const active = data.assignments.find((a) => !a.isCompleted);
-      if (!active) {
-        setAssignment(null);
+      const anyCompleted = data.assignments.find((a) => a.isCompleted);
+      const current = active || (submitted || assignment?.isCompleted ? anyCompleted : null);
+
+      if (!current) {
+        if (!submitted) {
+          setAssignment(null);
+        }
         return;
       }
 
       // If polling and we already have the same active assignment, we just check if alert state or ready state changed
       // (to preserve user's typed marks/comments while still receiving alerts)
-      if (isPolling && currentAssignmentIdRef.current === active._id) {
+      if (isPolling && currentAssignmentIdRef.current === current._id) {
         setAssignment((prev) => {
           if (!prev) return prev;
           if (
-            prev.alertActive !== active.alertActive ||
-            prev.alertMessage !== active.alertMessage ||
-            prev.isReady !== active.isReady
+            prev.alertActive !== current.alertActive ||
+            prev.alertMessage !== current.alertMessage ||
+            prev.isReady !== current.isReady
           ) {
             return {
               ...prev,
-              alertActive: active.alertActive,
-              alertMessage: active.alertMessage,
-              isReady: active.isReady,
+              alertActive: current.alertActive,
+              alertMessage: current.alertMessage,
+              isReady: current.isReady,
             };
           }
           return prev;
@@ -216,18 +227,18 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         return;
       }
 
-      setAssignment(active);
-      if (active.programId) {
-        if (active.programId.criteria?.length > 0) setActiveTab("Criteria");
-        else if (active.programId.rules) setActiveTab("Rules");
-        else if (active.programId.topics) setActiveTab("Topics");
+      setAssignment(current);
+      if (current.programId) {
+        if (current.programId.criteria?.length > 0) setActiveTab("Criteria");
+        else if (current.programId.rules) setActiveTab("Rules");
+        else if (current.programId.topics) setActiveTab("Topics");
       }
-      if (isPolling) {
+      if (active && active._id !== currentAssignmentIdRef.current) {
         setSubmitted(false);
       }
 
       // Fetch registrations for this program
-      const programIdStr = active.programId?._id || active.programId;
+      const programIdStr = current.programId?._id || current.programId;
       const regRes = await fetch(
         `/api/program-registration?programId=${programIdStr}&isCodeLetter=true&limit=1000`,
         { headers: { "api-key": apiKey } }
@@ -238,7 +249,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         setRegistrations(regs);
 
         // Initialise marks from existing marksByJudges for this judge index
-        const judgeIdx = active.judgeNumber - 1;
+        const judgeIdx = current.judgeNumber - 1;
         const initialMarks = {};
         const initialComments = {};
         regs.forEach((reg) => {
@@ -250,6 +261,30 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         });
         setMarks(initialMarks);
         setComments(initialComments);
+
+        if (current.isCompleted) {
+          const completedItems = [];
+          regs.forEach((reg) => {
+            reg.participantsDetails?.forEach((p) => {
+              const m = p.marksByJudges?.[judgeIdx];
+              if (m !== "" && m !== undefined && m !== null) {
+                completedItems.push({
+                  codeLetter: p.codeLetter || "—",
+                  marks: Number(m),
+                });
+              }
+            });
+          });
+          completedItems.sort((a, b) => {
+            if (b.marks !== a.marks) return b.marks - a.marks;
+            return (a.codeLetter || "").localeCompare(b.codeLetter || "");
+          });
+          setSubmittedMarksPreview({
+            programName: current.programName,
+            divisionName: current.divisionName,
+            items: completedItems,
+          });
+        }
       }
     } catch {
       if (!isPolling) toast.error("Failed to load assignment");
@@ -270,8 +305,9 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   }, [fetchAssignment]);
 
   const handleMarkChange = (key, value) => {
+    const cleanVal = String(value).replace(/[^0-9]/g, "");
     const num =
-      value === "" ? "" : Math.max(0, Math.min(100, parseInt(value) || 0));
+      cleanVal === "" ? "" : Math.max(0, Math.min(100, parseInt(cleanVal, 10) || 0));
     setMarks((prev) => ({ ...prev, [key]: num }));
   };
 
@@ -319,8 +355,27 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       const data = await res.json();
       if (data.success) {
         toast.success("Marks submitted successfully!");
+
+        // Build preview list sorted in top mark order (descending)
+        const previewItems = participantRows
+          .filter((r) => marks[r.key] !== "" && marks[r.key] !== undefined)
+          .map((r) => ({
+            codeLetter: r.codeLetter || "—",
+            marks: Number(marks[r.key]),
+          }))
+          .sort((a, b) => {
+            if (b.marks !== a.marks) return b.marks - a.marks;
+            return (a.codeLetter || "").localeCompare(b.codeLetter || "");
+          });
+
+        setSubmittedMarksPreview({
+          programName: assignment.programName,
+          divisionName: assignment.divisionName,
+          items: previewItems,
+        });
+        setShowPreviewModal(true);
         setSubmitted(true);
-        setAssignment((prev) => ({ ...prev, isCompleted: true }));
+        setAssignment((prev) => (prev ? { ...prev, isCompleted: true } : null));
       } else {
         toast.error(data.message || "Failed to submit marks");
       }
@@ -441,6 +496,110 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
     (r) => marks[r.key] !== "" && marks[r.key] !== undefined
   ).length;
 
+  const handleOpenPreview = () => {
+    const previewItems = participantRows
+      .filter((r) => marks[r.key] !== "" && marks[r.key] !== undefined && marks[r.key] !== null)
+      .map((r) => ({
+        codeLetter: r.codeLetter || "—",
+        marks: Number(marks[r.key]),
+      }))
+      .sort((a, b) => {
+        if (b.marks !== a.marks) return b.marks - a.marks;
+        return (a.codeLetter || "").localeCompare(b.codeLetter || "");
+      });
+
+    if (previewItems.length === 0) {
+      toast.error("Please enter at least one mark before previewing");
+      return;
+    }
+
+    setSubmittedMarksPreview({
+      programName: assignment?.programName,
+      divisionName: assignment?.divisionName,
+      items: previewItems,
+    });
+    setShowPreviewModal(true);
+  };
+
+  const renderPreviewModal = () => {
+    if (!showPreviewModal) return null;
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in-0 duration-200"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="bg-background text-foreground border border-border rounded-2xl shadow-2xl w-[92vw] sm:max-w-md md:max-w-lg p-5 sm:p-6 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+          <div className="text-center space-y-1.5 mb-3 shrink-0">
+            <div className="mx-auto w-12 h-12 rounded-full bg-green-100 dark:bg-green-950/60 flex items-center justify-center text-green-600 dark:text-green-400 mb-1">
+              <Trophy className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold">
+              Submitted Marks Preview
+            </h2>
+            {submittedMarksPreview && (
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">
+                  {submittedMarksPreview.programName}
+                </span>
+                {submittedMarksPreview.divisionName && (
+                  <span> ({submittedMarksPreview.divisionName})</span>
+                )}
+              </p>
+            )}
+          </div>
+
+          {/* Table of Top Marks */}
+          <div className="flex-1 min-h-0 overflow-y-auto border rounded-xl my-2">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow className="bg-muted/50 sticky top-0">
+                  <TableHead className="w-12 text-center font-bold">#</TableHead>
+                  <TableHead className="text-center font-bold">Code Letter</TableHead>
+                  <TableHead className="text-center font-bold w-28">Mark</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {submittedMarksPreview?.items?.length > 0 ? (
+                  submittedMarksPreview.items.map((item, idx) => (
+                    <TableRow key={idx} className="hover:bg-muted/30">
+                      <TableCell className="text-center font-medium text-muted-foreground text-sm">
+                        {idx + 1}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary" className="font-mono text-sm px-3 py-0.5">
+                          {item.codeLetter || "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-mono font-bold text-base text-foreground">
+                        {item.marks}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
+                      No marks recorded
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="flex justify-center mt-4 shrink-0">
+            <Button
+              onClick={() => setShowPreviewModal(false)}
+              className="w-full sm:w-auto min-w-36 h-10 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white"
+            >
+              Got it
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -468,20 +627,33 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   }
 
   // ── Submitted ────────────────────────────────────────────────────────────
-  if (submitted || assignment.isCompleted) {
+  if (submitted || assignment?.isCompleted) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-          <Trophy className="h-8 w-8 text-green-500" />
+      <>
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+            <Trophy className="h-8 w-8 text-green-500" />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">Marks Submitted!</h3>
+          <p className="text-muted-foreground text-sm max-w-xs mb-4">
+            Your marks for{" "}
+            <strong>{assignment?.programName || submittedMarksPreview?.programName}</strong> have been submitted
+            successfully. Please contact the Program Committee for your next
+            assignment.
+          </p>
+          {submittedMarksPreview?.items?.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setShowPreviewModal(true)}
+              className="mt-1"
+            >
+              <Trophy className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
+              View Submitted Marks
+            </Button>
+          )}
         </div>
-        <h3 className="text-lg font-semibold mb-1">Marks Submitted!</h3>
-        <p className="text-muted-foreground text-sm max-w-xs">
-          Your marks for{" "}
-          <strong>{assignment.programName}</strong> have been submitted
-          successfully. Please contact the Program Committee for your next
-          assignment.
-        </p>
-      </div>
+        {renderPreviewModal()}
+      </>
     );
   }
 
@@ -637,8 +809,23 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                 </TableHead>
 
                 {/* Marks */}
-                <TableHead className="w-24 text-center whitespace-nowrap border-r border-border">
-                  Marks
+                <TableHead className="w-28 text-center whitespace-nowrap border-r border-border">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span>Marks</span>
+                    <button
+                      type="button"
+                      onClick={() => setHideMarks((prev) => !prev)}
+                      className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                      title={hideMarks ? "Show marks" : "Hide marks"}
+                      aria-label={hideMarks ? "Show marks" : "Hide marks"}
+                    >
+                      {hideMarks ? (
+                        <EyeOff className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -679,7 +866,8 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                       {/* Judge marks input */}
                       <TableCell className="text-center border-r border-border align-top p-2">
                         <Input
-                          type="number"
+                          type={hideMarks ? "password" : "number"}
+                          inputMode="numeric"
                           min="0"
                           max="100"
                           value={markVal}
@@ -687,7 +875,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                             handleMarkChange(row.key, e.target.value)
                           }
                           className="w-full mx-auto text-center font-mono text-sm px-1"
-                          placeholder="0-100"
+                          placeholder={hideMarks ? "•••" : "0-100"}
                         />
                       </TableCell>
                     </TableRow>
@@ -714,20 +902,20 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
           </p>
 
           <div className="print:hidden w-full sm:w-auto">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  className="bg-green-600 hover:bg-green-700 text-white w-full sm:min-w-36"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <Loader className="animate-spin h-4 w-4 mr-2" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  Submit Marks
-                </Button>
-              </AlertDialogTrigger>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white w-full sm:min-w-36"
+              disabled={submitting}
+              onClick={() => setShowSubmitConfirm(true)}
+            >
+              {submitting ? (
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Submit Marks
+            </Button>
+
+            <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Submit Marks?</AlertDialogTitle>
@@ -743,15 +931,38 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                     Once submitted you cannot edit the marks.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Review Again</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleSubmit}
-                    className="bg-green-600 hover:bg-green-700"
+                <AlertDialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                  <AlertDialogCancel onClick={() => setShowSubmitConfirm(false)}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowSubmitConfirm(false);
+                      handleOpenPreview();
+                    }}
+                    className="border"
                   >
-                    <Send className="h-4 w-4 mr-2" />
+                    <Eye className="h-4 w-4 mr-1.5" />
+                    Preview
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setShowSubmitConfirm(false);
+                      handleSubmit();
+                    }}
+                    disabled={submitting}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {submitting ? (
+                      <Loader className="animate-spin h-4 w-4 mr-2" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
                     Submit
-                  </AlertDialogAction>
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -857,6 +1068,9 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
           </AlertDialogHeader>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Submitted Marks Preview Popup ── */}
+      {renderPreviewModal()}
     </div>
   </div>
 );

@@ -27,10 +27,13 @@ import {
   Loader,
   FileText,
   Trash2,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
+import Header from "./Header";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +47,13 @@ import {
 } from "./ui/alert-dialog";
 import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
+
+const getPrintRowHeight = (count) => {
+  if (!count || count <= 6) return "36px";
+  if (count <= 9) return "31px";
+  if (count <= 12) return "27px";
+  return "25px";
+};
 
 const EvaluationComponent = ({
   programs = [],
@@ -62,6 +72,8 @@ const EvaluationComponent = ({
   const [changes, setChanges] = useState({});
   const [page, setPage] = useState(0);
   const [judgeNumber, setJudgeNumber] = useState("");
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isSaveAlertOpen, setIsSaveAlertOpen] = useState(false);
 
   const printRef = useRef();
 
@@ -151,14 +163,17 @@ const EvaluationComponent = ({
       // CRITICAL FIX: Use participant ID as unique identifier instead of index
       participantsDetails.forEach((participant, originalIndex) => {
         const pId = participant.id?._id || participant.id;
+        const pIdStr = String(pId || "");
+        const regIdStr = String(registrationId || "");
+        const uniqueId = `${regIdStr}___${pIdStr}`;
         const participantData = {
           ...participant,
-          registrationId,
+          registrationId: regIdStr,
           teamId,
           teamName,
           participantIndex: originalIndex, // Store original index for reference
-          participantId: pId, // Use string ID
-          uniqueId: `${registrationId}-${pId}`, // Ensure uniqueId is a string without [object Object]
+          participantId: pIdStr, // Use string ID
+          uniqueId, // Ensure uniqueId is a string without [object Object]
           participantDetails: participant.participantDetails || {
             name: participant.id?.name || participant.name || "Unknown",
             chestNumber: participant.id?.chestNumber || participant.chestNumber || "N/A",
@@ -226,6 +241,41 @@ const EvaluationComponent = ({
     setFilteredRegistrations(filtered);
   }, [selectedDivision, selectedProgram, programRegistrations, status]);
 
+  // Auto-detect number of judges from assignments or existing marks when a program is selected
+  useEffect(() => {
+    if (selectedProgram) {
+      // 1. Check judge assignments for this program
+      const programAssignments = judgeAssignments.filter(
+        (ja) => (ja.programId?._id === selectedProgram || ja.programId === selectedProgram)
+      );
+      if (programAssignments.length > 0) {
+        const maxAssigned = Math.max(...programAssignments.map((ja) => ja.judgeNumber || 1));
+        setJudgeNumber(maxAssigned);
+        return;
+      }
+
+      // 2. Check existing marks in registrations for this program
+      const programData = programRegistrations.find((p) => p.programId === selectedProgram);
+      if (programData && programData.participants?.length > 0) {
+        let maxMarksLength = 0;
+        programData.participants.forEach((p) => {
+          if (p.marksByJudges && p.marksByJudges.length > maxMarksLength) {
+            maxMarksLength = p.marksByJudges.length;
+          }
+        });
+        if (maxMarksLength > 0) {
+          setJudgeNumber(maxMarksLength);
+          return;
+        }
+      }
+
+      // Default to 1 if nothing found and judgeNumber is empty
+      if (judgeNumber === "") {
+        setJudgeNumber(1);
+      }
+    }
+  }, [selectedProgram, judgeAssignments, programRegistrations]);
+
   const filteredPrograms = useMemo(() => {
     const programIds = new Set(
       filteredRegistrations.flatMap((registration) => registration.programId)
@@ -244,9 +294,7 @@ const EvaluationComponent = ({
       [...program.participants]
         .sort((a, b) => a.codeLetter.localeCompare(b.codeLetter))
         .forEach((participant) => {
-          if (!program.isResultDeclared) {
-            ids.push(participant.uniqueId);
-          }
+          ids.push(participant.uniqueId);
         });
     });
     return ids;
@@ -269,7 +317,7 @@ const EvaluationComponent = ({
 
   // Handle marks change for individual participant
   // judgeIdx is the 0-based index of the judge column being edited
-  const handleMarksChange = (participantUniqueId, marks, judgeIdx) => {
+  const handleMarksChange = (participantUniqueId, marks, judgeIdx, regId, partId) => {
     const marksValue = marks === "" ? "" : Math.max(0, Math.min(100, parseInt(marks) || 0));
 
     const updateParticipant = (participant) => {
@@ -306,9 +354,23 @@ const EvaluationComponent = ({
     setProgramRegistrations((prev) => applyUpdate(prev));
     setFilteredRegistrations((prev) => applyUpdate(prev));
 
+    // Resolve registrationId and participantId safely
+    let registrationId = regId;
+    let participantId = partId;
+    if (!registrationId || !participantId) {
+      if (participantUniqueId.includes("___")) {
+        [registrationId, participantId] = participantUniqueId.split("___");
+      } else {
+        const found = programRegistrations
+          .flatMap((p) => p.participants)
+          .find((pt) => pt.uniqueId === participantUniqueId);
+        registrationId = found?.registrationId;
+        participantId = found?.participantId;
+      }
+    }
+
     // Store change keyed by uniqueId + judgeIdx so multiple judges don't overwrite
     const changeKey = `${participantUniqueId}__j${judgeIdx}`;
-    const [registrationId, participantId] = participantUniqueId.split("-");
     setChanges((prev) => ({
       ...prev,
       [changeKey]: {
@@ -351,9 +413,10 @@ const EvaluationComponent = ({
 
         Object.entries(changes).forEach(([uniqueId, markData]) => {
           const { registrationId, participantId, marks, judgeIndex } = markData;
+          if (!registrationId || !participantId) return;
 
-          // Create a key that combines registration and participant
-          const key = `${registrationId}-${participantId}`;
+          // Create a key that combines registration and participant safely
+          const key = `${registrationId}___${participantId}`;
 
           if (!updatesByRegistrationAndParticipant[key]) {
             updatesByRegistrationAndParticipant[key] = {
@@ -381,8 +444,8 @@ const EvaluationComponent = ({
             for (const program of programRegistrations) {
               const participant = program.participants.find(
                 (p) =>
-                  p.registrationId === registrationId &&
-                  p.participantId === participantId
+                  String(p.registrationId) === String(registrationId) &&
+                  String(p.participantId) === String(participantId)
               );
               if (participant) {
                 existingMarksByJudges = [...(participant.marksByJudges || [])];
@@ -468,7 +531,7 @@ const EvaluationComponent = ({
   // Handle print
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Marks Sheet - ${
+    documentTitle: `Evaluation Sheet - ${
       selectedProgram
         ? programs.find((p) => p._id === selectedProgram)?.name
         : selectedDivision
@@ -478,15 +541,108 @@ const EvaluationComponent = ({
     pageStyle: `
       @page {
         size: A4 portrait;
-        margin: 0.5in;
       }
       @media print {
-        body { -webkit-print-color-adjust: exact; }
+        body { 
+          -webkit-print-color-adjust: exact; 
+          font-size: 12px;
+          line-height: 1.2;
+        }
         .no-print { display: none !important; }
-        table { page-break-inside: auto; margin-bottom: 20px; }
-        tr { page-break-inside: avoid; page-break-after: auto; }
-        thead { display: table-header-group; }
-        .program-section { page-break-inside: avoid; margin-bottom: 30px; }
+        
+        /* Main print container */
+        .print-container {
+          width: 100%;
+          height: 100vh;
+        }
+        
+        /* Program section - exactly half page height */
+        .program-section {
+          height: 50vh !important;
+          max-height: 50vh !important;
+          overflow: hidden;
+          page-break-inside: avoid;
+          margin-bottom: 0 !important;
+          padding-bottom: 5px;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Every two program sections should be on a new page */
+        .program-section:nth-child(odd) {
+          page-break-before: avoid;
+        }
+        
+        .program-section:nth-child(2n+1):not(:first-child) {
+          page-break-before: always;
+        }
+        
+        /* Program info header */
+        .program-info {
+          height: auto !important;
+          flex-shrink: 0;
+          overflow: hidden;
+          background-color: #f5f5f5 !important;
+          border: 1px solid #000 !important;
+          border-bottom: none !important;
+          padding: 2px 4px !important;
+          margin-bottom: 0 !important;
+        }
+        
+        /* Table container - flexible height */
+        .table-container {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          overflow: hidden;
+          border: 1px solid #000 !important;
+        }
+        
+        /* Evaluation table */
+        .evaluation-table {
+          border-collapse: collapse !important;
+          border: 1px solid #000 !important;
+          width: 100% !important;
+          height: 100%;
+          font-size: 11px !important;
+        }
+        
+        .evaluation-table th,
+        .evaluation-table td {
+          border: 1px solid #000 !important;
+          padding: 2px 4px !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          line-height: 1.1 !important;
+          overflow: hidden;
+        }
+        
+        .evaluation-table th {
+          background-color: #f5f5f5 !important;
+          font-weight: bold !important;
+          color: #000 !important;
+          height: 20px !important;
+          font-size: 10px !important;
+        }
+        
+        .evaluation-table tbody tr,
+        .evaluation-table tbody td {
+          height: var(--print-row-height, 25px) !important;
+          font-size: 10px !important;
+        }
+        
+        /* Signature section */
+        .signature-section {
+          margin-top: 5px !important;
+          flex-shrink: 0;
+          font-size: 9px !important;
+        }
+        
+        .signature-section .signature-line {
+          border-top: 1px solid #333 !important;
+          margin-top: 15px !important;
+          padding-top: 2px !important;
+        }
       }
     `,
   });
@@ -503,13 +659,65 @@ const EvaluationComponent = ({
   const isLoading = fetchRegistrationsQuery.isLoading;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
+      <Header
+        title="PERFORMANCE EVALUATION"
+        subTitle="Manage and Oversee Participant Evaluations"
+        rightAction={
+          <div className="hidden sm:flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handlePrint}
+              disabled={filteredRegistrations.length === 0}
+              className="h-9 px-3 gap-1.5 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 border-transparent shadow-sm"
+              title="Print Program Sheet"
+            >
+              <Printer className="h-4 w-4" />
+              <span>Print</span>
+            </Button>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteAlertOpen(true)}
+              disabled={deleteEvaluation.isPending || !hasAnyMarks || filteredRegistrations.length === 0}
+              className="h-9 px-3 gap-1.5"
+              title="Delete Marks"
+            >
+              {deleteEvaluation.isPending ? (
+                <Loader className="animate-spin h-4 w-4" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              <span>Delete</span>
+            </Button>
+
+            {showSaveButton && (
+              <Button
+                size="sm"
+                onClick={() => setIsSaveAlertOpen(true)}
+                disabled={saving}
+                className="h-9 px-3 gap-1.5 bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                title="Save Marks"
+              >
+                {saving ? (
+                  <Loader className="animate-spin h-4 w-4" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                <span>Save</span>
+              </Button>
+            )}
+          </div>
+        }
+      />
+
       {/* Controls */}
       <div className="no-print">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           {/* Status & Division (side-by-side on mobile, individual on desktop) */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 flex-shrink-0">
-            <div className="w-full sm:w-36 lg:w-40">
+            <div className="w-full sm:w-32 lg:w-36">
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="Status" />
@@ -522,7 +730,7 @@ const EvaluationComponent = ({
               </Select>
             </div>
 
-            <div className="w-full sm:w-56 lg:w-64">
+            <div className="w-full sm:w-48 lg:w-56">
               <Select
                 value={selectedDivision || "all"}
                 onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
@@ -543,7 +751,7 @@ const EvaluationComponent = ({
           </div>
 
           {/* Program Dropdown & Clear Button side by side */}
-          <div className="flex items-center gap-2 flex-1 min-w-0 sm:min-w-[180px] lg:min-w-[200px]">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <div className="flex-1 min-w-0">
               <MultiSelect
                 options={formatOptions(filteredPrograms)}
@@ -558,46 +766,90 @@ const EvaluationComponent = ({
             {(selectedDivision || selectedProgram || status !== "both") && (
               <Button
                 variant="outline"
+                size="icon"
                 onClick={clearFilters}
-                className="h-10 px-3 whitespace-nowrap flex-shrink-0"
+                className="h-10 w-10 flex-shrink-0"
                 title="Clear Filters"
               >
-                <X className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Clear</span>
+                <X className="h-4 w-4" />
               </Button>
             )}
           </div>
 
-          {/* Judges count selector - full width on mobile, widened on desktop */}
-          <div className="flex items-center gap-2 w-full sm:w-auto flex-shrink-0">
-            <span className="text-sm font-medium whitespace-nowrap text-muted-foreground">
-              Judges:
-            </span>
-            <div className="flex-1 sm:w-36 lg:w-40">
-              <Select
-                value={judgeNumber.toString()}
-                onValueChange={(v) => setJudgeNumber(parseInt(v))}
+          {/* Judges count selector & Mobile action buttons */}
+          <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium whitespace-nowrap text-muted-foreground">
+                Judges:
+              </span>
+              <div className="w-20 sm:w-24">
+                <Select
+                  value={judgeNumber.toString()}
+                  onValueChange={(v) => setJudgeNumber(parseInt(v))}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        {num}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Mobile Action Buttons (Print, Delete, Save in same row after judges dropdown without text) */}
+            <div className="flex sm:hidden items-center gap-1.5 ml-auto">
+              <Button
+                size="icon"
+                onClick={handlePrint}
+                disabled={filteredRegistrations.length === 0}
+                className="h-10 w-10 shrink-0 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 border-transparent shadow-sm"
+                title="Print Program Sheet"
               >
-                <SelectTrigger className="h-10 w-full">
-                  <SelectValue placeholder="Select..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                    <SelectItem key={num} value={num.toString()}>
-                      {num}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Printer className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() => setIsDeleteAlertOpen(true)}
+                disabled={deleteEvaluation.isPending || !hasAnyMarks || filteredRegistrations.length === 0}
+                className="h-10 w-10 shrink-0"
+                title="Delete Marks"
+              >
+                {deleteEvaluation.isPending ? (
+                  <Loader className="animate-spin h-4 w-4" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </Button>
+
+              {showSaveButton && (
+                <Button
+                  size="icon"
+                  onClick={() => setIsSaveAlertOpen(true)}
+                  disabled={saving}
+                  className="h-10 w-10 shrink-0 bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                  title="Save Marks"
+                >
+                  {saving ? (
+                    <Loader className="animate-spin h-4 w-4" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Printable Content */}
-      <div ref={printRef}>
-        {/* Print Header */}
-        <PrintHeader apiKey={apiKey} isFestival={true} />
+      <div ref={printRef} className="print-container">
         {/* Program Tables */}
         {!selectedProgram || judgeNumber === "" ? (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
@@ -618,14 +870,21 @@ const EvaluationComponent = ({
             </div>
           </div>
         ) : filteredRegistrations.length > 0 ? (
-          <div className="space-y-8">
+          <div className="space-y-8 print:space-y-0">
             {filteredRegistrations.map((program, programIndex) => (
               <div key={program._id} className="program-section">
+                {/* Print Header for each sheet */}
+                <PrintHeader
+                  title="Evaluation Sheet"
+                  apiKey={apiKey}
+                  isFestival={true}
+                />
+
                 {/* Program Header - Attached directly to table below */}
-                <div className="program-info relative p-2.5 sm:p-3 bg-muted/60 rounded-t-lg border border-border print:bg-gray-100 print:border-black print:border-b-0 print:rounded-none">
-                  <div className="flex flex-col sm:flex-row items-center justify-center min-h-[32px] gap-2">
+                <div className="program-info relative p-2 sm:p-2.5 bg-muted/60 rounded-t-lg border border-border print:bg-gray-100 print:border-black print:border-b-0 print:rounded-none print:p-1">
+                  <div className="flex flex-col sm:flex-row items-center justify-center min-h-[28px] gap-2">
                     {/* Centered Program Details */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs text-center w-full sm:w-auto px-2">
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs text-center w-full sm:w-auto px-2">
                       <span className="capitalize whitespace-nowrap">
                         <strong>Program:</strong> {program.programName}
                       </span>
@@ -642,81 +901,27 @@ const EvaluationComponent = ({
                         <strong>Category:</strong> {program.programCategory}
                       </span>
                     </div>
-
-                    {/* Action buttons in program header - pinned right on desktop */}
-                    <div className="sm:absolute sm:right-3 sm:top-1/2 sm:-translate-y-1/2 flex items-center gap-2 no-print shrink-0">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handlePrint}
-                        disabled={filteredRegistrations.length === 0}
-                        title="Print Program Sheet"
-                      >
-                        <Printer className="h-4 w-4" />
-                      </Button>
-
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={deleteEvaluation.isPending}
-                            title="Clear All Marks"
-                          >
-                            {deleteEvaluation.isPending ? (
-                              <Loader className="animate-spin h-4 w-4" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Clear all marks for displayed programs?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove all marks submitted by judges for the currently displayed programs. This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleClearAllMarks}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Clear Marks
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-
-                      {showSaveButton && (
-                        <Button
-                          size="sm"
-                          onClick={handleSave}
-                          disabled={saving}
-                          className="bg-green-600 hover:bg-green-700"
-                          title="Save Marks"
-                        >
-                          <Save className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
                   </div>
                 </div>
 
                 {/* Participants Table with Horizontal Scroll - Attached directly to header above */}
-                <div className="border border-t-0 border-border rounded-b-lg overflow-hidden border-collapse print:rounded-none print:border print:border-black">
-                  <div className="overflow-x-auto ">
-                    <Table className="min-w-full">
+                <div className="table-container border border-t-0 border-border rounded-b-lg overflow-hidden print:rounded-none print:border print:border-black">
+                  <div className="overflow-x-auto print:overflow-visible h-full">
+                    <Table
+                      className="min-w-full evaluation-table border-collapse h-full"
+                      style={{
+                        "--print-row-height": getPrintRowHeight(
+                          program.participants?.length
+                        ),
+                      }}
+                    >
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-12 print:w-1/12 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="w-12 print:w-12 text-center whitespace-nowrap border-t border-r border-border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
                             Sl.
                           </TableHead>
 
-                          <TableHead className="w-20 print:w-1/12 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="w-20 print:w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
                             Code Letter
                           </TableHead>
 
@@ -724,19 +929,13 @@ const EvaluationComponent = ({
                           {Array.from({ length: judgeNumber }, (_, i) => (
                             <TableHead
                               key={i}
-                              className="w-28 text-center whitespace-nowrap border-t border-r border-border no-print"
+                              className="w-28 print:w-auto text-center whitespace-nowrap border-t border-r border-border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs"
                             >
                               Judge {i + 1} Marks
                             </TableHead>
                           ))}
 
-                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border no-print">
-                            Average
-                          </TableHead>
-                          <TableHead className="w-9/12 text-center whitespace-nowrap border-t border-r border-border hidden print:table-cell">
-                            Marks
-                          </TableHead>
-                          <TableHead className="w-1/12 text-center whitespace-nowrap border-t border-r border-border hidden print:table-cell">
+                          <TableHead className="w-20 print:w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
                             Total
                           </TableHead>
                         </TableRow>
@@ -750,84 +949,82 @@ const EvaluationComponent = ({
                             .map((participant, displayIndex) => {
                               return (
                                 <TableRow key={participant.uniqueId}>
-                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border">
+                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black print:text-xs print:p-1">
                                     {displayIndex + 1}
                                   </TableCell>
 
-                                  <TableCell className="text-center  whitespace-nowrap border-t border-r border-border">
+                                  <TableCell className="text-center font-bold whitespace-nowrap border-t border-r border-border print:border-black print:text-xs print:p-1">
                                     {participant.codeLetter || "-"}
                                   </TableCell>
 
                                   {/* One input cell per judge */}
                                   {Array.from({ length: judgeNumber }, (_, judgeIdx) => {
-                                    const judgeMarks = participant.marksByJudges?.[judgeIdx] ?? "";
+                                    const rawMark = participant.marksByJudges?.[judgeIdx];
+                                    const judgeMarks = (rawMark !== undefined && rawMark !== null && rawMark !== "" && rawMark > 0) ? rawMark : "";
                                     return (
                                       <TableCell
                                         key={judgeIdx}
-                                        className="text-center border-t border-r border-border no-print"
+                                        className="text-center border-t border-r border-border print:border-black print:p-1"
                                       >
-                                        {program.isResultDeclared ? (
-                                          <div className="font-bold whitespace-nowrap">
-                                            {judgeMarks !== "" ? judgeMarks : "___"}
-                                          </div>
-                                        ) : (
-                                          <>
-                                            <div className="hidden print:block font-bold whitespace-nowrap">
-                                              {judgeMarks !== "" ? judgeMarks : "___"}
-                                            </div>
-                                            <Input
-                                              type="number"
-                                              min="0"
-                                              max="100"
-                                              value={judgeMarks}
-                                              onChange={(e) =>
-                                                handleMarksChange(
-                                                  participant.uniqueId,
-                                                  e.target.value,
-                                                  judgeIdx
-                                                )
-                                              }
-                                              onKeyDown={(e) =>
-                                                handleMarkKeyDown(e, participant.uniqueId, judgeIdx)
-                                              }
-                                              data-mark-uid={participant.uniqueId}
-                                              data-mark-judge={judgeIdx}
-                                              className="no-print w-16 sm:w-20 text-center text-sm mx-auto"
-                                              placeholder="0-100"
-                                            />
-                                          </>
-                                        )}
+                                        <div className="hidden print:block font-bold whitespace-nowrap print:text-xs print:text-black text-center">
+                                          {judgeMarks !== "" ? judgeMarks : "—"}
+                                        </div>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          value={judgeMarks}
+                                          onChange={(e) =>
+                                            handleMarksChange(
+                                              participant.uniqueId,
+                                              e.target.value,
+                                              judgeIdx,
+                                              participant.registrationId,
+                                              participant.participantId
+                                            )
+                                          }
+                                          onKeyDown={(e) =>
+                                            handleMarkKeyDown(e, participant.uniqueId, judgeIdx)
+                                          }
+                                          data-mark-uid={participant.uniqueId}
+                                          data-mark-judge={judgeIdx}
+                                          className="no-print w-16 sm:w-20 text-center text-sm mx-auto font-mono"
+                                          placeholder="0-100"
+                                        />
                                       </TableCell>
                                     );
                                   })}
 
-                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border no-print">
-                                    {participant.averageMarks > 0 ? (
-                                      <Badge
-                                        variant={
-                                          participant.averageMarks >= 75
-                                            ? "default"
-                                            : participant.averageMarks >= 50
-                                              ? "secondary"
-                                              : "destructive"
-                                        }
-                                      >
-                                        {participant.averageMarks}
-                                      </Badge>
-                                    ) : (
-                                      "-"
-                                    )}
+                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black print:p-1">
+                                    <div className="no-print">
+                                      {participant.averageMarks > 0 ? (
+                                        <Badge
+                                          variant={
+                                            participant.averageMarks >= 75
+                                              ? "default"
+                                              : participant.averageMarks >= 50
+                                                ? "secondary"
+                                                : "destructive"
+                                          }
+                                        >
+                                          {participant.averageMarks}
+                                        </Badge>
+                                      ) : (
+                                        "-"
+                                      )}
+                                    </div>
+                                    <div className="hidden print:block font-bold text-center print:text-xs print:text-black">
+                                      {participant.averageMarks > 0 ? participant.averageMarks : "—"}
+                                    </div>
                                   </TableCell>
-                                  <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border"></TableCell>
-                                  <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border"></TableCell>
                                 </TableRow>
                               );
                             })
                         ) : (
                           <TableRow>
                             <TableCell
-                              colSpan={8}
-                              className="text-center py-6 text-muted-foreground"
+                              colSpan={judgeNumber + 3}
+                              className="text-center py-6 text-muted-foreground border border-border print:border-black print:py-2"
                             >
                               No participants found for this program
                             </TableCell>
@@ -840,7 +1037,7 @@ const EvaluationComponent = ({
 
                 {/* Judge Signatures */}
                 {judgeNumber > 0 && (
-                  <div className="grid mt-6 gap-6" style={{ gridTemplateColumns: `repeat(${judgeNumber}, minmax(0, 1fr))` }}>
+                  <div className="signature-section grid mt-4 sm:mt-6 gap-4 sm:gap-6 print:mt-1 print:gap-2" style={{ gridTemplateColumns: `repeat(${judgeNumber}, minmax(0, 1fr))` }}>
                     {Array.from({ length: judgeNumber }, (_, i) => {
                       const judgeNum = i + 1;
                       const assignment = judgeAssignments.find(
@@ -848,9 +1045,9 @@ const EvaluationComponent = ({
                       );
                       return (
                         <div key={i} className="text-center">
-                          <div className="mb-2 font-semibold">Judge {judgeNum}</div>
-                          <div className="mt-4 mx-auto w-3/4 max-w-[250px] border-b border-foreground/30 print:border-black pb-1">
-                            <div className="text-sm">
+                          <div className="mb-1 font-semibold text-xs print:text-[10px]">Judge {judgeNum}</div>
+                          <div className="mt-1 mx-auto w-3/4 max-w-[200px] border-b border-foreground/30 print:border-black pb-0.5">
+                            <div className="text-xs print:text-[9px]">
                               Name & Signature : {assignment ? <span className="font-semibold">{assignment.judgeName}</span> : ""}
                             </div>
                           </div>
@@ -875,14 +1072,133 @@ const EvaluationComponent = ({
         )}
       </div>
 
+      {/* Delete Confirmation Popup */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <AlertDialogTitle className="text-xl font-bold m-0 text-destructive">
+                Clear All Marks?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-sm text-muted-foreground pt-1">
+                This will remove all marks submitted by judges for the currently displayed programs. This action cannot be undone.
+              </AlertDialogDescription>
+            </div>
+            <AlertDialogCancel asChild>
+              <button className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </AlertDialogCancel>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="p-5 border-t bg-muted/20 flex justify-between gap-4 sm:space-x-0">
+            <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground flex-1"
+              onClick={handleClearAllMarks}
+              disabled={deleteEvaluation.isPending}
+            >
+              {deleteEvaluation.isPending ? (
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Clear Marks
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Save / Update Confirmation Popup */}
+      <AlertDialog open={isSaveAlertOpen} onOpenChange={setIsSaveAlertOpen}>
+        <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-green-500/10 dark:bg-green-500/20 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-green-500/20 shrink-0">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <AlertDialogTitle className="text-xl font-bold m-0 text-green-600 dark:text-green-500">
+                Save & Update Marks?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-sm text-muted-foreground pt-1">
+                Are you sure you want to save and update the evaluation marks? This will recalculate participant results and rankings.
+              </AlertDialogDescription>
+            </div>
+            <AlertDialogCancel asChild>
+              <button className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </AlertDialogCancel>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="p-5 border-t bg-muted/20 flex justify-between gap-4 sm:space-x-0">
+            <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-green-600 hover:bg-green-700 text-white flex-1"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Marks
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <style jsx>{`
         @media print {
           .no-print {
             display: none !important;
           }
+
+          /* Ensure exactly two sheets per page */
           .program-section {
+            height: 50vh !important;
+            max-height: 50vh !important;
+            overflow: hidden;
             page-break-inside: avoid;
-            margin-bottom: 30px;
+            margin-bottom: 0 !important;
+            display: flex;
+            flex-direction: column;
+          }
+
+          /* Page breaks for every two sheets */
+          .program-section:nth-child(2n + 1):not(:first-child) {
+            page-break-before: always;
+          }
+
+          .evaluation-table {
+            border-collapse: collapse !important;
+            border: 1px solid #000 !important;
+            width: 100% !important;
+          }
+
+          .evaluation-table th,
+          .evaluation-table td {
+            border: 1px solid #000 !important;
+            padding: 2px 4px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+            line-height: 1.2 !important;
+          }
+
+          .evaluation-table th {
+            background-color: #f5f5f5 !important;
+            font-weight: bold !important;
+            color: #000 !important;
+            height: 20px !important;
+            font-size: 10px !important;
+          }
+
+          .evaluation-table tbody tr,
+          .evaluation-table tbody td {
+            height: var(--print-row-height, 25px) !important;
+            font-size: 10px !important;
           }
         }
 

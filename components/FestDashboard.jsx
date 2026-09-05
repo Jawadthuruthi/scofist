@@ -517,20 +517,6 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
         icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
       />
 
-      {/* Festival Full Image */}
-      <div className="w-full flex justify-center mt-0 mb-6 -mt-2">
-        {!settingsQuery.isLoading && (
-          <img 
-            src={
-              settingsQuery.data?.settings?.festival?.festivalFullNameImage?.url ||
-              settingsQuery.data?.settings?.festival?.festivalNameImage?.url ||
-              "/sdc_seal.png"
-            } 
-            alt="Festival Image" 
-            className="px-4 pb-4 pt-0 w-64 sm:w-80 md:w-auto md:max-w-2xl h-auto object-contain"
-          />
-        )}
-      </div>
 
       {/* 6 Stat Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

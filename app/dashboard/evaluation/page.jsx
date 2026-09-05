@@ -1,6 +1,5 @@
 import EvaluationComponent from "@/components/EvaluationComponent";
 import ErrorPage from "@/components/ErrorPage";
-import Header from "@/components/Header";
 import { fetchData, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
@@ -51,26 +50,18 @@ export default async function EvaluationPage() {
     const url = `/api/evaluation`;
 
     return (
-      <>
-        <Header
-          title="PERFORMANCE EVALUATION"
-          subTitle={"Manage and Oversee Participant Evaluations"}
-        />
-        <div className="pt-1">
-          <EvaluationComponent
-            programs={sortedPrograms}
-            divisions={divisions}
-            gradeSchemes={sortedGradeSchemes}
-            url={url}
-            apiKey={apiKey}
-            additionalProps={{
-              userId: user?.userId,
-              activeRole,
-              userName: user?.name,
-            }}
-          />
-        </div>
-      </>
+      <EvaluationComponent
+        programs={sortedPrograms}
+        divisions={divisions}
+        gradeSchemes={sortedGradeSchemes}
+        url={url}
+        apiKey={apiKey}
+        additionalProps={{
+          userId: user?.userId,
+          activeRole,
+          userName: user?.name,
+        }}
+      />
     );
   } catch (error) {
     console.error("Error loading evaluation page:", error?.message);

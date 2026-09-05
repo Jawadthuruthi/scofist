@@ -445,7 +445,7 @@ export const MultiSelect = React.forwardRef(
                             {IconComponent && (
                               <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />
                             )}
-                            <span className="truncate text-left text-sm font-medium">
+                            <span className="truncate text-left text-inherit font-medium">
                               {option?.label ||
                                 (typeof selectedValues === "object"
                                   ? selectedValues?.label ||
@@ -520,7 +520,7 @@ export const MultiSelect = React.forwardRef(
               </div>
             ) : (
               <div className="flex items-center justify-between w-full mx-auto">
-                <span className="text-sm text-muted-foreground mx-3">
+                <span className="text-inherit text-muted-foreground mx-3 truncate">
                   {placeholder}
                 </span>
                 <ChevronDown className="h-4 cursor-pointer text-muted-foreground mx-2" />

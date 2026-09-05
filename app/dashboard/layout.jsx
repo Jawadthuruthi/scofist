@@ -44,6 +44,17 @@ export default async function Layout({ children }) {
     // Non-critical — YearSwitcher will fetch it client-side as fallback
   }
 
+  const isFestivalRole =
+    activeRole === "Program Committee" ||
+    activeRole === "Program Leader" ||
+    activeRole === "Judge";
+
+  const activeFestival = isFestivalRole
+    ? (initialActiveYear && settingsData?.festivals?.find((f) => f.year === initialActiveYear)) ||
+      (settingsData?.festival?.year === initialActiveYear ? settingsData?.festival : null) ||
+      (initialActiveYear ? { year: initialActiveYear } : settingsData?.festival)
+    : null;
+
   return (
     <ThemeProvider
       attribute="class"
@@ -55,7 +66,7 @@ export default async function Layout({ children }) {
         <div className="flex h-screen print:h-auto overflow-hidden print:overflow-visible min-w-full max-w-full">
           <AppSidebar roles={user?.roles} activeRole={activeRole} user={user} settingsData={settingsData} initialActiveYear={initialActiveYear} />
           <div className="flex flex-col flex-1 min-w-0 print:block">
-            <Topbar user={user} />
+            <Topbar user={user} festival={activeFestival} activeRole={activeRole} />
             <main className="flex-1 px-4 lg:p-6 mt-14 print:mt-0 overflow-auto print:overflow-visible container print:block print:p-0">
               {children}
               <div className="h-16 no-print"></div>

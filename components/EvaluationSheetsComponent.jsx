@@ -26,6 +26,13 @@ import { formatOptions } from "@/lib/utils";
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+const getPrintRowHeight = (count) => {
+  if (!count || count <= 6) return "36px";
+  if (count <= 9) return "31px";
+  if (count <= 12) return "27px";
+  return "25px";
+};
+
 const EvaluationSheetsComponent = ({ apiKey }) => {
   const [programRegistrations, setProgramRegistrations] = useState([]);
   const [filteredRegistrations, setFilteredRegistrations] = useState([]);
@@ -293,8 +300,9 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
         
 
         
+        .evaluation-table tbody tr,
         .evaluation-table tbody td {
-          height: 25px !important;
+          height: var(--print-row-height, 25px) !important;
           font-size: 10px !important;
         }
         
@@ -472,19 +480,26 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
                 {/* Evaluation Sheet Table - Attached directly to header above */}
                 <div className="table-container border border-t-0 border-border rounded-b-lg overflow-hidden print:rounded-none print:border print:border-black">
                   <div className="overflow-x-auto print:overflow-visible h-full">
-                    <Table className="min-w-full evaluation-table border-collapse h-full">
+                    <Table
+                      className="min-w-full evaluation-table border-collapse h-full"
+                      style={{
+                        "--print-row-height": getPrintRowHeight(
+                          program.participants?.length
+                        ),
+                      }}
+                    >
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-16 text-center whitespace-nowrap border border-border p-2 h-5 print:border-black print:font-bold print:bg-gray-100">
+                          <TableHead className="w-16 text-center whitespace-nowrap border border-border p-2 print:border-black print:font-bold print:bg-gray-100">
                             Sl.
                           </TableHead>
-                          <TableHead className="w-32 text-center whitespace-nowrap border border-border p-2 h-5 print:border-black print:font-bold print:bg-gray-100">
+                          <TableHead className="w-32 text-center whitespace-nowrap border border-border p-2 print:border-black print:font-bold print:bg-gray-100">
                             Code Letter
                           </TableHead>
-                          <TableHead className="w-auto text-center whitespace-nowrap border border-border p-2 h-5 print:border-black print:font-bold print:bg-gray-100">
+                          <TableHead className="w-auto text-center whitespace-nowrap border border-border p-2 print:border-black print:font-bold print:bg-gray-100">
                             Marks
                           </TableHead>
-                          <TableHead className="w-32 text-center whitespace-nowrap border border-border p-2 h-5 print:border-black print:font-bold print:bg-gray-100">
+                          <TableHead className="w-32 text-center whitespace-nowrap border border-border p-2 print:border-black print:font-bold print:bg-gray-100">
                             Total
                           </TableHead>
                         </TableRow>
@@ -493,14 +508,14 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
                         {program.participants.length > 0 ? (
                           program.participants.map((participant, index) => (
                             <TableRow key={participant.uniqueId}>
-                              <TableCell className="text-center font-medium whitespace-nowrap border border-border p-2 h-5 print:border-black">
+                              <TableCell className="text-center font-medium whitespace-nowrap border border-border p-2 print:border-black">
                                 {index + 1}
                               </TableCell>
-                              <TableCell className="text-center font-bold whitespace-nowrap border border-border p-2 h-5 print:border-black">
+                              <TableCell className="text-center font-bold whitespace-nowrap border border-border p-2 print:border-black">
                                 {alphabet[index]}
                               </TableCell>
-                              <TableCell className="text-center whitespace-nowrap border border-border p-2 h-5 print:border-black"></TableCell>
-                              <TableCell className="text-center whitespace-nowrap border border-border p-2 h-5 print:border-black"></TableCell>
+                              <TableCell className="text-center whitespace-nowrap border border-border p-2 print:border-black"></TableCell>
+                              <TableCell className="text-center whitespace-nowrap border border-border p-2 print:border-black"></TableCell>
                             </TableRow>
                           ))
                         ) : (
@@ -594,7 +609,9 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
             font-size: 10px !important;
           }
 
+          .evaluation-table tbody tr,
           .evaluation-table tbody td {
+            height: var(--print-row-height, 25px) !important;
             font-size: 10px !important;
           }
         }

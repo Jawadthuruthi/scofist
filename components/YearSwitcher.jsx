@@ -82,6 +82,9 @@ const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
   const handleYearChange = (value) => {
     setActiveYear(value);
     Cookies.set("active-year", value, { expires: 365, path: "/" });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("active-year-changed", { detail: value }));
+    }
     window.location.reload();
   };
 
@@ -115,6 +118,9 @@ const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
       // Automatically select the newly added year
       setActiveYear(newYear.trim());
       Cookies.set("active-year", newYear.trim(), { expires: 365, path: "/" });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("active-year-changed", { detail: newYear.trim() }));
+      }
       
       setNewYear("");
       toast.success("Year added successfully");
@@ -152,6 +158,9 @@ const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
           expires: 365,
           path: "/",
         });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("active-year-changed", { detail: editValue.trim() }));
+        }
       }
       setEditingYear(null);
       toast.success("Year renamed successfully", { id: "rename" });
