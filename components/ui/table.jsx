@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 const Table = React.forwardRef(({ className, style, ...props }, ref) => (
   <table
     ref={ref}
+    style={style}
     className={cn("w-full caption-bottom text-sm", className)}
     {...props}
   />
@@ -14,7 +15,7 @@ Table.displayName = "Table";
 const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn("[&_tr]:border-b sticky top-0 z-10", className)}
+    className={cn("[&_tr]:border-b sticky top-0 z-10 print:static", className)}
     {...props}
   />
 ));
@@ -69,7 +70,7 @@ const TableCell = React.forwardRef(({ className, ...props }, ref) => (
   <td
     ref={ref}
     className={cn(
-      "p-2 align-top [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
       className
     )}
     {...props}

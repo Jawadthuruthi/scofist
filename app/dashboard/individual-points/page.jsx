@@ -15,7 +15,7 @@ const columnsConfig = [
   },
   {
     accessorKey: "chestNumber",
-    header: "Chest Number",
+    header: "Chest No.",
     type: ["number"],
   },
   { accessorKey: "name", header: "Name" },

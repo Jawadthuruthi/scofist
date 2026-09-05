@@ -37,6 +37,10 @@ import {
   BellRing,
   Eye,
   EyeOff,
+  Timer,
+  Play,
+  Pause,
+  RotateCcw,
 } from "lucide-react";
 
 const playAlertSound = () => {
@@ -144,6 +148,12 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [dismissingAlert, setDismissingAlert] = useState(false);
   const [confirmingReady, setConfirmingReady] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
+  const [timerMinutes, setTimerMinutes] = useState(5);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
+  const [showTimerPopup, setShowTimerPopup] = useState(false);
+  
   const thankYouTimerRef = useRef(null);
   const prevAlertActiveRef = useRef(false);
   const prevWelcomeOpenRef = useRef(false);
@@ -155,6 +165,42 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    let interval;
+    if (timerActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timerActive && timeLeft === 0) {
+      setTimerActive(false);
+      // Play alert sound when timer completes
+      playAlertSound();
+    }
+    return () => clearInterval(interval);
+  }, [timerActive, timeLeft]);
+
+  const handleStartTimer = () => {
+    if (timeLeft === 0) {
+      setTimeLeft(timerMinutes * 60 + timerSeconds);
+    }
+    setTimerActive(true);
+    setShowTimerPopup(true);
+  };
+
+  const handlePauseResumeTimer = () => setTimerActive((prev) => !prev);
+
+  const handleCancelTimer = () => {
+    setTimerActive(false);
+    setTimeLeft(0);
+    setShowTimerPopup(false);
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
 
   useEffect(() => {
     currentAssignmentIdRef.current = assignment?._id;
@@ -664,13 +710,62 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       {/* ── Top Header Section ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Unified Division + Program Info Card */}
-        <div className="flex flex-col items-center justify-center text-center gap-2 rounded-xl border bg-muted/40 px-6 py-6 h-full">
+        <div className="flex flex-col items-center justify-center text-center gap-2 rounded-xl border bg-muted/40 px-2 sm:px-6 py-6 h-full">
           <p className="text-sm md:text-base uppercase tracking-widest text-muted-foreground font-medium">
             {assignment.divisionName || "—"}
           </p>
           <h2 className="font-bold text-3xl">
             {assignment.programName}
           </h2>
+          
+          {/* Timer Section */}
+          <div className="flex flex-row items-center justify-center gap-1.5 sm:gap-3 mt-1.5 sm:mt-2 bg-background px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border shadow-sm w-fit max-w-full mx-auto">
+            <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground font-medium">
+              <Timer className="h-4 w-4 shrink-0" />
+              <span className="text-sm whitespace-nowrap">Timer:</span>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                min="0"
+                max="120"
+                value={timerMinutes}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  setTimerMinutes(isNaN(val) ? 0 : val);
+                }}
+                className="w-12 sm:w-14 h-8 text-center p-0.5 sm:p-1 text-sm"
+                disabled={timerActive || timeLeft > 0}
+              />
+              <span className="text-sm text-muted-foreground mr-0.5 sm:mr-1">min</span>
+              <Input
+                type="number"
+                min="0"
+                max="59"
+                value={timerSeconds}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  setTimerSeconds(isNaN(val) ? 0 : val);
+                }}
+                className="w-12 sm:w-14 h-8 text-center p-0.5 sm:p-1 text-sm"
+                disabled={timerActive || timeLeft > 0}
+              />
+              <span className="text-sm text-muted-foreground">sec</span>
+            </div>
+            
+            <div className="flex items-center">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="h-8 text-sm px-3 text-green-600 hover:text-green-700 hover:bg-green-100 border-green-200" 
+                onClick={handleStartTimer}
+              >
+                <Play className="h-4 w-4 mr-1 fill-current shrink-0" />
+                {timeLeft > 0 ? "Resume" : "Start"}
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* ── Instructions (Desktop) ── */}
@@ -846,7 +941,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                       <TableCell className="text-center whitespace-nowrap border-r border-border align-top">
                         <Badge
                           variant="secondary"
-                          className="font-mono text-sm px-3 mt-1"
+                          className="text-sm px-3 mt-1"
                         >
                           {row.codeLetter || "—"}
                         </Badge>
@@ -874,7 +969,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                           onChange={(e) =>
                             handleMarkChange(row.key, e.target.value)
                           }
-                          className="w-full mx-auto text-center font-mono text-sm px-1"
+                          className="w-full mx-auto text-center text-sm px-1"
                           placeholder={hideMarks ? "•••" : "0-100"}
                         />
                       </TableCell>
@@ -1071,6 +1166,51 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
 
       {/* ── Submitted Marks Preview Popup ── */}
       {renderPreviewModal()}
+
+      {/* ── Big Timer Popup ── */}
+      <AlertDialog open={showTimerPopup}>
+        <AlertDialogContent className="w-[90vw] sm:max-w-md md:max-w-lg p-8 sm:p-10 md:p-12 text-center border-blue-200 bg-white dark:bg-slate-900 dark:border-blue-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center">
+          <AlertDialogHeader className="text-center sm:text-center items-center w-full">
+            <AlertDialogTitle className="text-muted-foreground font-medium text-lg uppercase tracking-widest mb-4">
+              Program Timer
+            </AlertDialogTitle>
+            <div className="font-mono text-6xl sm:text-7xl md:text-8xl font-black text-slate-900 dark:text-white my-6 tracking-tight">
+              {formatTime(timeLeft)}
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center mt-6 w-full flex-col sm:flex-row gap-3 sm:gap-4">
+            <Button
+              onClick={handlePauseResumeTimer}
+              size="lg"
+              className={`w-full sm:w-auto min-w-32 h-14 text-xl font-bold ${
+                timerActive 
+                  ? "bg-amber-500 hover:bg-amber-600 text-white" 
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
+            >
+              {timerActive ? (
+                <>
+                  <Pause className="h-6 w-6 mr-2 fill-current" />
+                  Pause
+                </>
+              ) : (
+                <>
+                  <Play className="h-6 w-6 mr-2 fill-current" />
+                  Resume
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleCancelTimer}
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto min-w-32 h-14 text-xl font-bold border-2"
+            >
+              Cancel
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   </div>
 );

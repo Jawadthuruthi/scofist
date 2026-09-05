@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,7 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const Header = ({ title, subTitle, alertTitle, alertDescription, rightAction }) => {
+const Header = ({ title, subTitle, alertTitle, alertDescription, rightAction, className }) => {
   const [isAlertOpen, setIsAlertOpen] = useState(true); // Opens by default
 
   const handleIconClick = () => {
@@ -21,7 +22,7 @@ const Header = ({ title, subTitle, alertTitle, alertDescription, rightAction }) 
 
   return (
     <>
-      <div className="py-2 mb-1 flex items-center justify-between no-print">
+      <div className={cn("py-2 mb-1 flex items-center justify-between no-print", className)}>
         <div>
           <h1 className="font-bold text-xl md:text-2xl text-foreground">
             {title}

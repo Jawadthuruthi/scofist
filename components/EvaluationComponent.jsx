@@ -49,10 +49,13 @@ import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
 
 const getPrintRowHeight = (count) => {
-  if (!count || count <= 6) return "36px";
-  if (count <= 9) return "31px";
-  if (count <= 12) return "27px";
-  return "25px";
+  if (!count || count <= 4) return "44px";
+  if (count <= 6) return "40px";
+  if (count <= 8) return "36px";
+  if (count <= 10) return "32px";
+  if (count <= 12) return "28px";
+  if (count <= 16) return "24px";
+  return "20px";
 };
 
 const EvaluationComponent = ({
@@ -558,6 +561,7 @@ const EvaluationComponent = ({
         
         /* Program section - exactly half page height */
         .program-section {
+          box-sizing: border-box !important;
           height: 50vh !important;
           max-height: 50vh !important;
           overflow: hidden;
@@ -581,12 +585,28 @@ const EvaluationComponent = ({
         .program-info {
           height: auto !important;
           flex-shrink: 0;
-          overflow: hidden;
+          overflow: visible !important;
           background-color: #f5f5f5 !important;
           border: 1px solid #000 !important;
-          border-bottom: none !important;
-          padding: 2px 4px !important;
+          padding: 0 !important;
           margin-bottom: 0 !important;
+        }
+        
+        .program-info table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          border-spacing: 0 !important;
+          margin: 0 !important;
+        }
+
+        .program-info td {
+          border: 1px solid #000 !important;
+          padding: 2px 4px !important;
+          text-align: center !important;
+          font-size: 10px !important;
+          font-weight: 600 !important;
+          color: #000 !important;
+          vertical-align: middle !important;
         }
         
         /* Table container - flexible height */
@@ -594,40 +614,60 @@ const EvaluationComponent = ({
           display: flex;
           flex-direction: column;
           min-height: 0;
-          overflow: hidden;
-          border: 1px solid #000 !important;
+          overflow: visible !important;
+          border: none !important;
+          margin-top: -1px !important;
         }
         
         /* Evaluation table */
         .evaluation-table {
           border-collapse: collapse !important;
+          border-spacing: 0 !important;
           border: 1px solid #000 !important;
           width: 100% !important;
           height: 100%;
           font-size: 11px !important;
         }
+
+        /* Disable sticky header in print so column borders don't vanish */
+        thead,
+        thead tr,
+        thead th,
+        th {
+          position: static !important;
+        }
         
         .evaluation-table th,
-        .evaluation-table td {
+        .evaluation-table td,
+        table th,
+        table td {
           border: 1px solid #000 !important;
+          border-top: 1px solid #000 !important;
+          border-bottom: 1px solid #000 !important;
+          border-left: 1px solid #000 !important;
+          border-right: 1px solid #000 !important;
           padding: 2px 4px !important;
           text-align: center !important;
           vertical-align: middle !important;
           line-height: 1.1 !important;
-          overflow: hidden;
+          box-sizing: border-box !important;
         }
         
-        .evaluation-table th {
+        .evaluation-table th,
+        table th {
           background-color: #f5f5f5 !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
           font-weight: bold !important;
           color: #000 !important;
-          height: 20px !important;
+          height: 22px !important;
           font-size: 10px !important;
+          border: 1px solid #000 !important;
         }
         
         .evaluation-table tbody tr,
         .evaluation-table tbody td {
-          height: var(--print-row-height, 25px) !important;
+          height: var(--print-row-height, 24px) !important;
           font-size: 10px !important;
         }
         
@@ -659,10 +699,11 @@ const EvaluationComponent = ({
   const isLoading = fetchRegistrationsQuery.isLoading;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-2 sm:space-y-3">
       <Header
         title="PERFORMANCE EVALUATION"
         subTitle="Manage and Oversee Participant Evaluations"
+        className="py-1 mb-0"
         rightAction={
           <div className="hidden sm:flex items-center gap-2">
             <Button
@@ -830,10 +871,10 @@ const EvaluationComponent = ({
 
               {showSaveButton && (
                 <Button
-                  size="icon"
+                  size="sm"
                   onClick={() => setIsSaveAlertOpen(true)}
                   disabled={saving}
-                  className="h-10 w-10 shrink-0 bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                  className="h-10 px-3 gap-1.5 shrink-0 bg-green-600 hover:bg-green-700 text-white shadow-sm font-medium"
                   title="Save Marks"
                 >
                   {saving ? (
@@ -841,6 +882,7 @@ const EvaluationComponent = ({
                   ) : (
                     <Save className="h-4 w-4" />
                   )}
+                  <span>Save</span>
                 </Button>
               )}
             </div>
@@ -849,7 +891,7 @@ const EvaluationComponent = ({
       </div>
 
       {/* Printable Content */}
-      <div ref={printRef} className="print-container">
+      <div ref={printRef} className="print-container pt-2 sm:pt-3">
         {/* Program Tables */}
         {!selectedProgram || judgeNumber === "" ? (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
@@ -872,7 +914,15 @@ const EvaluationComponent = ({
         ) : filteredRegistrations.length > 0 ? (
           <div className="space-y-8 print:space-y-0">
             {filteredRegistrations.map((program, programIndex) => (
-              <div key={program._id} className="program-section">
+              <div
+                key={program._id}
+                className="program-section"
+                style={{
+                  "--print-row-height": getPrintRowHeight(
+                    program.participants?.length
+                  ),
+                }}
+              >
                 {/* Print Header for each sheet */}
                 <PrintHeader
                   title="Evaluation Sheet"
@@ -881,10 +931,10 @@ const EvaluationComponent = ({
                 />
 
                 {/* Program Header - Attached directly to table below */}
-                <div className="program-info relative p-2 sm:p-2.5 bg-muted/60 rounded-t-lg border border-border print:bg-gray-100 print:border-black print:border-b-0 print:rounded-none print:p-1">
-                  <div className="flex flex-col sm:flex-row items-center justify-center min-h-[28px] gap-2">
-                    {/* Centered Program Details */}
-                    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs text-center w-full sm:w-auto px-2">
+                <div className="program-info relative p-2 sm:p-2.5 bg-muted/60 rounded-t-lg border border-border print:bg-gray-100 print:border print:border-black print:rounded-none print:p-0">
+                  {/* Screen View */}
+                  <div className="flex print:hidden flex-col sm:flex-row items-center justify-center min-h-[28px] gap-2">
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-xs sm:text-sm font-semibold text-foreground text-center w-full sm:w-auto px-2">
                       <span className="capitalize whitespace-nowrap">
                         <strong>Program:</strong> {program.programName}
                       </span>
@@ -902,10 +952,37 @@ const EvaluationComponent = ({
                       </span>
                     </div>
                   </div>
+
+                  {/* Print View: Each column heading has its own full border */}
+                  <table className="hidden print:table w-full border-collapse border border-black text-xs font-semibold text-black text-center m-0">
+                    <tbody>
+                      <tr>
+                        <td className="border border-black p-1 text-center font-semibold capitalize w-1/4">
+                          <strong>Program:</strong> {program.programName}
+                        </td>
+                        <td className="border border-black p-1 text-center font-semibold w-1/4">
+                          <strong>Division:</strong> {program.divisionName}
+                        </td>
+                        <td className="border border-black p-1 text-center font-semibold capitalize w-1/4">
+                          <strong>Type:</strong> {program.programType}
+                        </td>
+                        <td className="border border-black p-1 text-center font-semibold capitalize w-1/4">
+                          <strong>Category:</strong> {program.programCategory}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
 
                 {/* Participants Table with Horizontal Scroll - Attached directly to header above */}
-                <div className="table-container border border-t-0 border-border rounded-b-lg overflow-hidden print:rounded-none print:border print:border-black">
+                <div
+                  className="table-container border border-border rounded-b-lg overflow-hidden print:rounded-none print:border-0 print:overflow-visible"
+                  style={{
+                    "--print-row-height": getPrintRowHeight(
+                      program.participants?.length
+                    ),
+                  }}
+                >
                   <div className="overflow-x-auto print:overflow-visible h-full">
                     <Table
                       className="min-w-full evaluation-table border-collapse h-full"
@@ -915,13 +992,13 @@ const EvaluationComponent = ({
                         ),
                       }}
                     >
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12 print:w-12 text-center whitespace-nowrap border-t border-r border-border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
+                      <TableHeader className="print:static">
+                        <TableRow className="print:static">
+                          <TableHead className="w-12 print:w-12 text-center align-middle whitespace-nowrap border border-border print:border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
                             Sl.
                           </TableHead>
 
-                          <TableHead className="w-20 print:w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
+                          <TableHead className="w-20 print:w-20 text-center align-middle whitespace-nowrap border border-border print:border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
                             Code Letter
                           </TableHead>
 
@@ -929,13 +1006,13 @@ const EvaluationComponent = ({
                           {Array.from({ length: judgeNumber }, (_, i) => (
                             <TableHead
                               key={i}
-                              className="w-28 print:w-auto text-center whitespace-nowrap border-t border-r border-border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs"
+                              className="w-28 print:w-auto text-center align-middle whitespace-nowrap border border-border print:border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs"
                             >
                               Judge {i + 1} Marks
                             </TableHead>
                           ))}
 
-                          <TableHead className="w-20 print:w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
+                          <TableHead className="w-20 print:w-20 text-center align-middle whitespace-nowrap border border-border print:border print:border-black print:font-bold print:bg-gray-100 print:text-black print:text-xs">
                             Total
                           </TableHead>
                         </TableRow>
@@ -949,11 +1026,11 @@ const EvaluationComponent = ({
                             .map((participant, displayIndex) => {
                               return (
                                 <TableRow key={participant.uniqueId}>
-                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black print:text-xs print:p-1">
+                                  <TableCell className="text-center align-middle font-medium whitespace-nowrap border border-border print:border print:border-black print:text-xs print:p-1">
                                     {displayIndex + 1}
                                   </TableCell>
 
-                                  <TableCell className="text-center font-bold whitespace-nowrap border-t border-r border-border print:border-black print:text-xs print:p-1">
+                                  <TableCell className="text-center align-middle font-bold whitespace-nowrap border border-border print:border print:border-black print:text-xs print:p-1">
                                     {participant.codeLetter || "-"}
                                   </TableCell>
 
@@ -964,7 +1041,7 @@ const EvaluationComponent = ({
                                     return (
                                       <TableCell
                                         key={judgeIdx}
-                                        className="text-center border-t border-r border-border print:border-black print:p-1"
+                                        className="text-center align-middle border border-border print:border print:border-black print:p-1"
                                       >
                                         <div className="hidden print:block font-bold whitespace-nowrap print:text-xs print:text-black text-center">
                                           {judgeMarks !== "" ? judgeMarks : "—"}
@@ -988,15 +1065,15 @@ const EvaluationComponent = ({
                                           }
                                           data-mark-uid={participant.uniqueId}
                                           data-mark-judge={judgeIdx}
-                                          className="no-print w-16 sm:w-20 text-center text-sm mx-auto font-mono"
+                                          className="no-print w-16 sm:w-20 text-center text-sm mx-auto font-medium font-sans"
                                           placeholder="0-100"
                                         />
                                       </TableCell>
                                     );
                                   })}
 
-                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black print:p-1">
-                                    <div className="no-print">
+                                  <TableCell className="text-center align-middle font-medium whitespace-nowrap border border-border print:border print:border-black print:p-1">
+                                    <div className="no-print flex items-center justify-center">
                                       {participant.averageMarks > 0 ? (
                                         <Badge
                                           variant={
@@ -1024,7 +1101,7 @@ const EvaluationComponent = ({
                           <TableRow>
                             <TableCell
                               colSpan={judgeNumber + 3}
-                              className="text-center py-6 text-muted-foreground border border-border print:border-black print:py-2"
+                              className="text-center py-6 text-muted-foreground border border-border print:border print:border-black print:py-2"
                             >
                               No participants found for this program
                             </TableCell>
@@ -1172,34 +1249,90 @@ const EvaluationComponent = ({
             page-break-before: always;
           }
 
+          .program-info {
+            background-color: #f5f5f5 !important;
+            border: 1px solid #000 !important;
+            padding: 0 !important;
+            margin-bottom: 0 !important;
+          }
+
+          .program-info table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            border-spacing: 0 !important;
+            margin: 0 !important;
+          }
+
+          .program-info td {
+            border: 1px solid #000 !important;
+            padding: 2px 4px !important;
+            text-align: center !important;
+            font-size: 10px !important;
+            font-weight: 600 !important;
+            color: #000 !important;
+            vertical-align: middle !important;
+          }
+
+          .table-container {
+            border: none !important;
+            margin-top: -1px !important;
+            overflow: visible !important;
+          }
+
           .evaluation-table {
             border-collapse: collapse !important;
+            border-spacing: 0 !important;
             border: 1px solid #000 !important;
             width: 100% !important;
           }
 
+          thead,
+          thead tr,
+          thead th,
+          th {
+            position: static !important;
+          }
+
           .evaluation-table th,
-          .evaluation-table td {
+          .evaluation-table td,
+          table th,
+          table td {
             border: 1px solid #000 !important;
+            border-top: 1px solid #000 !important;
+            border-bottom: 1px solid #000 !important;
+            border-left: 1px solid #000 !important;
+            border-right: 1px solid #000 !important;
             padding: 2px 4px !important;
             text-align: center !important;
             vertical-align: middle !important;
             line-height: 1.2 !important;
+            box-sizing: border-box !important;
           }
 
-          .evaluation-table th {
+          .evaluation-table th,
+          table th {
             background-color: #f5f5f5 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
             font-weight: bold !important;
             color: #000 !important;
-            height: 20px !important;
+            height: 22px !important;
             font-size: 10px !important;
+            border: 1px solid #000 !important;
           }
 
           .evaluation-table tbody tr,
           .evaluation-table tbody td {
-            height: var(--print-row-height, 25px) !important;
+            height: var(--print-row-height, 24px) !important;
             font-size: 10px !important;
           }
+        }
+
+        /* Center all evaluation table header and body cells */
+        .evaluation-table th,
+        .evaluation-table td {
+          vertical-align: middle !important;
+          text-align: center !important;
         }
 
         /* Mobile table scrolling styles */

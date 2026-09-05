@@ -1749,14 +1749,14 @@ const DataTableComponent = ({
               </button>
               <div className="flex-1 text-left min-w-0">
                 <DialogTitle className={`text-xl font-bold m-0 leading-tight ${detailView?.colHeader === "Present" ? "text-green-600 dark:text-green-400" : detailView?.colHeader === "Absent" ? "text-red-600 dark:text-red-400" : ""}`}>
-                  {detailView?.colHeader} Records
+                  {detailView?.colHeader === "Programs Count" ? "Point" : detailView?.colHeader} Records
                   <span className="ml-1.5 text-base font-semibold text-muted-foreground">
                     ({detailedRecords.length})
                   </span>
                 </DialogTitle>
                 <div className="m-0 flex flex-col mt-0.5">
                   <DialogDescription className="font-medium text-foreground m-0 text-sm leading-tight">
-                    {detailView?.student?.name} {detailView?.viewType !== "allRecords" && detailView?.student?._id && `(${detailView.student._id})`}
+                    {detailView?.student?.name} {detailView?.viewType !== "allRecords" && detailView?.student?._id && `(${String(detailView.student._id).split('-')[0]})`}
                   </DialogDescription>
                   {detailView?.viewType === "allRecords" && filterMonth && filterYear && (
                     <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
@@ -2028,7 +2028,7 @@ const DataTableComponent = ({
                 <p className="text-sm">There are no matching entries for the selected filter.</p>
               </div>
             ) : (
-              <div className="border rounded-md sm:rounded-lg shadow-sm bg-background overflow-hidden">
+              <div className="border rounded-md sm:rounded-lg shadow-sm bg-background overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -2045,7 +2045,6 @@ const DataTableComponent = ({
                         <>
                           <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
                           <TableHead className="font-bold">Program</TableHead>
-                          <TableHead className="font-bold">Category</TableHead>
                           <TableHead className="font-bold text-center">Grade</TableHead>
                           <TableHead className="font-bold text-center">Rank</TableHead>
                           <TableHead className="font-bold text-center">Points</TableHead>
@@ -2098,9 +2097,6 @@ const DataTableComponent = ({
                               <TableCell className="font-bold text-sm py-3 uppercase">
                                 {rec.name || "—"}
                                 {rec.type && <span className="block text-xs font-normal text-muted-foreground">{rec.type}</span>}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground text-sm py-3 font-medium">
-                                {rec.category || "—"}
                               </TableCell>
                               <TableCell className="text-center text-sm py-3 font-medium text-indigo-600">
                                 {rec.grade || "—"}
