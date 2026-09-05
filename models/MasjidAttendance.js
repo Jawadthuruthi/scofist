@@ -14,7 +14,6 @@ const masjidAttendanceSchema = new mongoose.Schema(
         prayer: {
             type: String,
             required: true,
-            enum: ["ZUHR", "ASAR", "MAGRIB", "ISHA", "SUBH"],
         },
         classId: {
             type: String,

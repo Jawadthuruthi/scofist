@@ -43,7 +43,7 @@ import { cn } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const prayers = ["ZUHR", "ASAR", "MAGRIB", "ISHA", "SUBH"];
 
@@ -293,9 +293,9 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
             <div className="overflow-x-auto border rounded-md">
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead>Class</TableHead>
-                            <TableHead className="text-right">Status</TableHead>
+                        <TableRow className="h-10 sm:h-11">
+                            <TableHead className="py-2.5 px-4 sm:px-5 font-semibold text-xs sm:text-sm">Class</TableHead>
+                            <TableHead className="py-2.5 px-4 sm:px-5 text-right font-semibold text-xs sm:text-sm">Status</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -343,26 +343,26 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
                                 <TableRow
                                     key={cls._id}
                                     className={cn(
-                                        "transition-colors",
+                                        "transition-colors h-14 sm:h-16",
                                         !isPastDate && "hover:bg-accent/50 cursor-pointer",
                                         isPastDate && isMarked && "hover:bg-green-100/50 dark:hover:bg-green-950/30 cursor-pointer bg-green-50/40 dark:bg-green-950/10",
                                         isPastDate && !isMarked && "cursor-default opacity-70"
                                     )}
                                     onClick={handleRowClick}
                                 >
-                                    <TableCell className="whitespace-nowrap">
-                                        <div className="text-xs md:text-base font-medium">{cls.name}</div>
+                                    <TableCell className="whitespace-nowrap py-3 px-4 sm:py-3.5 sm:px-5">
+                                        <div className="text-sm sm:text-base font-semibold">{cls.name}</div>
                                         {isMarked && (
                                             <div className="flex items-center gap-2 mt-1">
                                                 <span
-                                                    className="text-xs text-green-600 font-medium hover:underline cursor-pointer"
+                                                    className="text-xs sm:text-sm text-green-600 font-medium hover:underline cursor-pointer"
                                                     onClick={(e) => handleShowPresentees(e, presentees, cls.name)}
                                                 >
                                                     {presenteeCount} Present
                                                 </span>
                                                 <span className="text-muted-foreground text-xs">·</span>
                                                 <span
-                                                    className="text-xs text-red-600 font-medium hover:underline cursor-pointer"
+                                                    className="text-xs sm:text-sm text-red-600 font-medium hover:underline cursor-pointer"
                                                     onClick={(e) => handleShowAbsentees(e, absentees, cls.name)}
                                                 >
                                                     {absenteeCount} Absent
@@ -375,10 +375,10 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
                                             </div>
                                         )}
                                     </TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right py-3 px-4 sm:py-3.5 sm:px-5">
                                         {isMarked ? (
-                                            <span className="inline-flex items-center gap-1 text-green-600 text-xs font-semibold">
-                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                            <span className="inline-flex items-center gap-1.5 text-green-600 text-xs sm:text-sm font-semibold">
+                                                <CheckCircle2 className="h-4 w-4" />
                                                 Marked
                                             </span>
                                         ) : (
@@ -392,7 +392,7 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
                         })}
                         {classes.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={2} className="text-center py-12 text-muted-foreground">
                                     No active classes found.
                                 </TableCell>
                             </TableRow>
@@ -514,7 +514,11 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
 };
 
 // ── Main dashboard ─────────────────────────────────────────────────────────
-const MasjidDashboard = ({ classes, apiKey }) => {
+const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const sessionFromUrl = searchParams?.get("session") || searchParams?.get("category") || initialSession;
+
     const [selectedDate, setSelectedDate] = useState(() => new Date());
 
     const formattedDate = useMemo(() => formatDateForDisplay(selectedDate), [selectedDate]);
@@ -565,20 +569,49 @@ const MasjidDashboard = ({ classes, apiKey }) => {
 
     // Category state – persisted in localStorage
     const [categories, setCategories] = useState(() => {
-        if (typeof window === "undefined") return DEFAULT_CATEGORIES;
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                const merged = [...DEFAULT_CATEGORIES];
-                parsed.forEach((c) => { if (!merged.includes(c)) merged.push(c); });
-                return merged;
-            }
-        } catch (_) {}
-        return DEFAULT_CATEGORIES;
+        let base = DEFAULT_CATEGORIES;
+        if (typeof window !== "undefined") {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    const merged = [...DEFAULT_CATEGORIES];
+                    parsed.forEach((c) => { if (!merged.includes(c)) merged.push(c); });
+                    base = merged;
+                }
+            } catch (_) {}
+        }
+        if (sessionFromUrl && !base.some((c) => c.toLowerCase() === sessionFromUrl.toLowerCase())) {
+            base = [...base, sessionFromUrl];
+        }
+        return base;
     });
 
-    const [selectedCategory, setSelectedCategory] = useState("Masjid");
+    const [selectedCategory, setSelectedCategory] = useState(() => {
+        if (sessionFromUrl) {
+            const found = DEFAULT_CATEGORIES.find((c) => c.toLowerCase() === sessionFromUrl.toLowerCase());
+            return found || sessionFromUrl;
+        }
+        return "Masjid";
+    });
+
+    useEffect(() => {
+        const sessionParam = searchParams?.get("session") || searchParams?.get("category");
+        if (sessionParam) {
+            setCategories((prev) => {
+                const exists = prev.some((c) => c.toLowerCase() === sessionParam.toLowerCase());
+                if (!exists) {
+                    return [...prev, sessionParam];
+                }
+                return prev;
+            });
+            setSelectedCategory((prev) => {
+                if (prev.toLowerCase() === sessionParam.toLowerCase()) return prev;
+                const found = categories.find((c) => c.toLowerCase() === sessionParam.toLowerCase());
+                return found || sessionParam;
+            });
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         try {
@@ -596,6 +629,18 @@ const MasjidDashboard = ({ classes, apiKey }) => {
     const handleRemoveCategory = useCallback((cat) => {
         setCategories((prev) => prev.filter((c) => c !== cat));
     }, []);
+
+    const handleCategoryChange = (cat) => {
+        setSelectedCategory(cat);
+        const params = new URLSearchParams(searchParams ? searchParams.toString() : "");
+        if (cat === "Masjid") {
+            params.delete("session");
+        } else {
+            params.set("session", cat);
+        }
+        const query = params.toString();
+        router.replace(`/dashboard/general-attendance${query ? `?${query}` : ""}`, { scroll: false });
+    };
 
     const isMasjid = selectedCategory === "Masjid";
 
@@ -677,7 +722,7 @@ const MasjidDashboard = ({ classes, apiKey }) => {
                         <div className="flex-1 sm:w-56 min-w-0">
                             <CategoryCombobox
                                 value={selectedCategory}
-                                onChange={setSelectedCategory}
+                                onChange={handleCategoryChange}
                                 categories={categories}
                                 onAddCategory={handleAddCategory}
                                 onRemoveCategory={handleRemoveCategory}

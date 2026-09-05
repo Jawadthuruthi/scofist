@@ -13,7 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Loader, Save, ArrowLeft, Clock, X, Calendar, History, CheckCircle2 } from "lucide-react";
+import { Loader, Save, ArrowLeft, Clock, X, Calendar, History, CheckCircle2, RotateCcw } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { toast } from "sonner";
@@ -49,16 +49,38 @@ const AttendanceSheet = ({
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
 
+    const displaySessionPrayer = useMemo(() => {
+        if (!sessionLabel || sessionLabel === "General") {
+            return prayer;
+        }
+        if (sessionLabel.trim().toLowerCase() === prayer?.trim().toLowerCase()) {
+            return sessionLabel;
+        }
+        return `${sessionLabel} · ${prayer}`;
+    }, [sessionLabel, prayer]);
+
+    const returnUrl = useMemo(() => {
+        const isStandardPrayer = ["ZUHR", "ASAR", "MAGRIB", "ISHA", "SUBH"].includes(prayer?.toUpperCase());
+        const isMasjid = (!sessionLabel || sessionLabel === "General" || sessionLabel === "Masjid") && isStandardPrayer;
+
+        if (isMasjid) {
+            return `/dashboard/general-attendance?session=Masjid&expanded=${prayer}`;
+        }
+
+        const targetSession = sessionLabel && sessionLabel !== "General" ? sessionLabel : prayer;
+        return `/dashboard/general-attendance?session=${encodeURIComponent(targetSession || "Masjid")}`;
+    }, [sessionLabel, prayer]);
+
     useEffect(() => {
         if (!showSuccessDialog) return;
 
         const timer = setTimeout(() => {
             setShowSuccessDialog(false);
-            router.push(`/dashboard/general-attendance?expanded=${prayer}`);
+            router.push(returnUrl);
         }, 2000);
 
         return () => clearTimeout(timer);
-    }, [showSuccessDialog, prayer, router]);
+    }, [showSuccessDialog, returnUrl, router]);
 
     const isPastDate = useMemo(() => {
         if (!date) return false;
@@ -383,7 +405,7 @@ const AttendanceSheet = ({
             {/* Header & Metadata */}
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
                 <div className="flex items-start md:items-center gap-2 flex-1">
-                    <Button variant="ghost" size="icon" className="shrink-0 -mt-0.5 md:mt-0" onClick={() => router.push(`/dashboard/general-attendance?expanded=${prayer}`)}>
+                    <Button variant="ghost" size="icon" className="shrink-0 -mt-0.5 md:mt-0" onClick={() => router.push(returnUrl)}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div className="flex-1 min-w-0">
@@ -391,7 +413,7 @@ const AttendanceSheet = ({
                             {isPastDate ? "VIEW ATTENDANCE" : "MARK ATTENDANCE"}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {sessionLabel && sessionLabel !== "General" ? `${sessionLabel} · ` : ""}{prayer} - {className}
+                            {displaySessionPrayer} - {className}
                         </p>
                         {/* Mobile Date - aligned directly under heading and subheading */}
                         <div className="flex md:hidden items-center gap-1.5 text-muted-foreground mt-1">
@@ -599,26 +621,52 @@ const AttendanceSheet = ({
             )}
 
             <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Reset Attendance?</DialogTitle>
-                        <DialogDescription>
-                            This will remove the attendance record for this class. All students
-                            will be marked as pending. This action cannot be undone.
-                        </DialogDescription>
+                <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-3 sm:py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+                        <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 shrink-0">
+                            <RotateCcw className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left space-y-0.5">
+                            <DialogTitle className="text-xl font-bold m-0 text-red-600 dark:text-red-400">
+                                Reset Attendance?
+                            </DialogTitle>
+                            <DialogDescription className="m-0 text-xs text-muted-foreground">
+                                {className || "Class"} · {displaySessionPrayer}
+                            </DialogDescription>
+                        </div>
+                        <DialogClose 
+                            className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+                            onClick={() => setResetDialogOpen(false)}
+                        >
+                            <X className="h-5 w-5" />
+                        </DialogClose>
                     </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <div className="p-5 space-y-3 bg-muted/5 flex-1">
+                        <div className="bg-card border border-destructive/20 dark:border-destructive/30 rounded-xl p-4 space-y-1.5 shadow-sm">
+                            <p className="text-sm font-semibold text-foreground">
+                                Are you sure you want to reset this record?
+                            </p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                This will remove the attendance record for this class. All students will be marked as pending. This action cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter className="px-5 py-3 bg-muted/20 border-t flex flex-row items-center justify-end gap-2 shrink-0">
                         <Button
+                            type="button"
                             variant="outline"
                             onClick={() => setResetDialogOpen(false)}
                             disabled={saving}
+                            className="rounded-lg text-sm"
                         >
                             Cancel
                         </Button>
                         <Button
+                            type="button"
                             variant="destructive"
                             onClick={handleReset}
                             disabled={saving}
+                            className="rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
                         >
                             {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                             Yes, Reset Record
@@ -741,7 +789,7 @@ const AttendanceSheet = ({
                             data-html2canvas-ignore="true"
                             onClick={() => {
                                 setShowSuccessDialog(false);
-                                router.push(`/dashboard/general-attendance?expanded=${prayer}`);
+                                router.push(returnUrl);
                             }}
                         >
                             <X className="h-5 w-5" />
@@ -756,7 +804,7 @@ const AttendanceSheet = ({
                                     {className || "Class"}
                                 </span>
                                 <Badge variant="outline" className="text-xs px-2.5 py-0.5 bg-primary/5 text-primary border-primary/20 font-medium">
-                                    {sessionLabel && sessionLabel !== "General" ? `${sessionLabel} · ` : ""}{prayer}
+                                    {displaySessionPrayer}
                                 </Badge>
                             </div>
                             <div className="flex flex-wrap items-center gap-y-1 gap-x-2 text-xs text-muted-foreground">

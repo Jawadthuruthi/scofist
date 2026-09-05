@@ -6,10 +6,13 @@ import { parseUser } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const GeneralAttendancePage = async () => {
+const GeneralAttendancePage = async ({ searchParams }) => {
     const apiKey = process.env.API_KEY;
     const headerStore = await headers();
     const user = parseUser(headerStore);
+
+    const params = await searchParams;
+    const initialSession = params?.session || params?.category || null;
 
     await connectDB();
     // Fetch only active classes (including those without a status explicitly set to Closed)
@@ -29,7 +32,13 @@ const GeneralAttendancePage = async () => {
         batchName: cls.batchId?.name,
     }));
 
-    return <MasjidDashboard classes={serializedClasses} apiKey={apiKey} />;
+    return (
+        <MasjidDashboard
+            classes={serializedClasses}
+            apiKey={apiKey}
+            initialSession={initialSession}
+        />
+    );
 };
 
 export default GeneralAttendancePage;

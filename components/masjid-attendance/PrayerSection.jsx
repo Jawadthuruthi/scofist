@@ -264,7 +264,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 const cardContent = (
                                     <div
                                         className={cn(
-                                            "p-3 sm:p-3.5 border rounded-lg flex items-center justify-between transition-colors",
+                                            "p-3.5 sm:p-4 min-h-[64px] sm:min-h-[70px] border rounded-lg flex items-center justify-between transition-colors",
                                             isMarked ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900" : "",
                                             !isPastDate && "hover:bg-accent cursor-pointer",
                                             isPastDate && isMarked && "hover:bg-green-100/60 dark:hover:bg-green-900/30 cursor-pointer",
@@ -283,29 +283,29 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                         }
                                     >
                                         <div>
-                                            <h4 className="font-medium text-sm sm:text-base">
+                                            <h4 className="font-semibold text-sm sm:text-base">
                                                 {cls.name}
                                             </h4>
                                             {isMarked ? (
                                                 <div
-                                                    className="text-xs text-green-600 font-medium hover:underline cursor-pointer z-10 relative"
+                                                    className="text-xs sm:text-sm text-green-600 font-medium hover:underline cursor-pointer z-10 relative mt-0.5"
                                                     onClick={(e) => handleShowPresentees(e, presentees, cls.name)}
                                                 >
                                                     {presenteeCount} Present
                                                 </div>
                                             ) : (
-                                                <p className="text-xs text-muted-foreground">
+                                                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                                                     {isPastDate ? "Not Marked" : "Pending"}
                                                 </p>
                                             )}
                                         </div>
                                         {isMarked ? (
                                             <div 
-                                                className="flex items-center justify-center h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 cursor-pointer z-10 relative hover:bg-red-200 dark:hover:bg-red-800"
+                                                className="flex items-center justify-center h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-full bg-red-100 dark:bg-red-900 cursor-pointer z-10 relative hover:bg-red-200 dark:hover:bg-red-800"
                                                 onClick={(e) => handleShowAbsentees(e, absentees, cls.name)}
                                                 title="View Absentees"
                                             >
-                                                <span className="text-sm font-bold text-red-700 dark:text-red-300">
+                                                <span className="text-xs sm:text-sm font-bold text-red-700 dark:text-red-300">
                                                     {absenteeCount}
                                                 </span>
                                             </div>
@@ -326,7 +326,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 return (
                                     <Link
                                         key={cls._id}
-                                        href={`/dashboard/general-attendance/mark?classId=${cls._id}&className=${cls.name}&batchId=${cls.batchId}&prayer=${prayer}&date=${formattedDate}&apiKey=${apiKey}&sessionLabel=${encodeURIComponent(sessionCategory || "General")}`}
+                                        href={`/dashboard/general-attendance/mark?classId=${cls._id}&className=${cls.name}&batchId=${cls.batchId}&prayer=${prayer}&date=${formattedDate}&apiKey=${apiKey}&sessionLabel=${encodeURIComponent(sessionCategory || "Masjid")}`}
                                         prefetch={false}
                                     >
                                         {cardContent}
