@@ -16,6 +16,7 @@ export default async function ResultsQRCodePage() {
 
     let initialFestivalName = "SCOFIST";
     let initialFestivalNameImage = "";
+    let initialFestivalLogo = "";
 
     try {
       await connectToDB();
@@ -34,12 +35,17 @@ export default async function ResultsQRCodePage() {
           matchingFestival?.festivalInfo || settings.festival?.festivalInfo || {};
         initialFestivalName =
           festivalInfo.name || matchingFestival?.name || "SCOFIST";
+        initialFestivalLogo =
+          matchingFestival?.festivalLogo?.url ||
+          settings.festival?.festivalLogo?.url ||
+          settings.festivals?.find((f) => f.festivalLogo?.url)?.festivalLogo?.url ||
+          "https://res.cloudinary.com/do8vcjig0/image/upload/v1787142034/profiles/i5cq1yxqoori5xff52cz.png";
         initialFestivalNameImage =
           matchingFestival?.festivalNameImage?.url ||
           settings.festival?.festivalNameImage?.url ||
           settings.festivals?.find((f) => f.festivalNameImage?.url)
             ?.festivalNameImage?.url ||
-          "";
+          "https://res.cloudinary.com/do8vcjig0/image/upload/v1787142796/profiles/q4bwbn3hk21k6zonu5t8.png";
       }
     } catch (dbErr) {
       console.warn(
@@ -54,6 +60,7 @@ export default async function ResultsQRCodePage() {
           activeYear={activeYear}
           apiKey={apiKey}
           initialFestivalName={initialFestivalName}
+          initialFestivalLogo={initialFestivalLogo}
           initialFestivalNameImage={initialFestivalNameImage}
         />
       </Suspense>

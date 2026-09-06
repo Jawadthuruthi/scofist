@@ -12,7 +12,6 @@ export function QRCodeGenerator({
   printRef,
   apiKey,
   festivalName,
-  festivalNameImage,
 }) {
   return (
     <Card className="h-full flex flex-col">
@@ -33,15 +32,6 @@ export function QRCodeGenerator({
           </div>
 
           <div className="flex flex-col items-center justify-center space-y-4 p-4 sm:px-8 sm:pb-8 sm:pt-4">
-            {festivalNameImage && (
-              <div className="flex items-center justify-center py-2 max-w-[260px]">
-                <img
-                  src={festivalNameImage}
-                  alt={festivalName || "Festival"}
-                  className="max-h-16 w-auto object-contain"
-                />
-              </div>
-            )}
             <QRCodeCanvas
               value={resultsUrl}
               size={qrOptions.width}

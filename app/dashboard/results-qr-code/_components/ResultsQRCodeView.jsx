@@ -13,6 +13,7 @@ export default function ResultsQRCodeView({
   activeYear,
   apiKey,
   initialFestivalName = "SCOFIST",
+  initialFestivalLogo = "",
   initialFestivalNameImage = "",
 }) {
   const printRef = useRef(null);
@@ -28,11 +29,12 @@ export default function ResultsQRCodeView({
     }
   );
 
-  const { festivalName, festivalNameImage } = useMemo(() => {
+  const { festivalName, festivalLogo, festivalNameImage } = useMemo(() => {
     const settings = fetchSettingsQuery.data?.settings;
     if (!settings) {
       return {
         festivalName: initialFestivalName,
+        festivalLogo: initialFestivalLogo,
         festivalNameImage: initialFestivalNameImage,
       };
     }
@@ -50,6 +52,11 @@ export default function ResultsQRCodeView({
       matchingFestival?.festivalInfo || settings.festival?.festivalInfo || {};
     const name =
       festivalInfo.name || matchingFestival?.name || initialFestivalName;
+    const logo =
+      matchingFestival?.festivalLogo?.url ||
+      settings.festival?.festivalLogo?.url ||
+      settings.festivals?.find((f) => f.festivalLogo?.url)?.festivalLogo?.url ||
+      initialFestivalLogo;
     const nameImage =
       matchingFestival?.festivalNameImage?.url ||
       settings.festival?.festivalNameImage?.url ||
@@ -59,12 +66,14 @@ export default function ResultsQRCodeView({
 
     return {
       festivalName: name,
+      festivalLogo: logo,
       festivalNameImage: nameImage,
     };
   }, [
     fetchSettingsQuery.data,
     activeYear,
     initialFestivalName,
+    initialFestivalLogo,
     initialFestivalNameImage,
   ]);
 
@@ -83,7 +92,6 @@ export default function ResultsQRCodeView({
             printRef={printRef}
             apiKey={apiKey}
             festivalName={festivalName}
-            festivalNameImage={festivalNameImage}
           />
         </div>
 
@@ -93,7 +101,9 @@ export default function ResultsQRCodeView({
             resultsUrl={resultsUrl}
             organizationName="SCOFIST"
             festivalName={festivalName}
+            festivalLogo={festivalLogo}
             festivalNameImage={festivalNameImage}
+            activeYear={activeYear}
             printRef={printRef}
           />
         </div>

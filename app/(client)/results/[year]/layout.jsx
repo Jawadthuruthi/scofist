@@ -41,6 +41,8 @@ export async function generateMetadata({ params }) {
     const title = `${displayName} Results | SCOFIST`;
     const description = `Check out declared results and podium winners for ${displayName} (${yearParam || "Festival"})`;
 
+    const ogImageUrl = `/api/og/results/${encodeURIComponent(yearParam)}`;
+
     return {
       title,
       description,
@@ -48,22 +50,20 @@ export async function generateMetadata({ params }) {
         title,
         description,
         type: "website",
-        images: festivalNameImageUrl
-          ? [
-              {
-                url: festivalNameImageUrl,
-                width: 1200,
-                height: 630,
-                alt: `${displayName} Festival Logo`,
-              },
-            ]
-          : [],
+        images: [
+          {
+            url: ogImageUrl,
+            width: 1080,
+            height: 1080,
+            alt: `${displayName} Festival`,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title,
         description,
-        images: festivalNameImageUrl ? [festivalNameImageUrl] : [],
+        images: [ogImageUrl],
       },
     };
   } catch (error) {
