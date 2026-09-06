@@ -152,6 +152,7 @@ function GallerySidebar({
   festivalVenue,
   festivalNameImage,
   yearParam,
+  onLoginClick,
 }) {
   const safeYear = yearParam || "2026";
   const resultsLink = `/results/${safeYear}`;
@@ -238,14 +239,16 @@ function GallerySidebar({
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <Link
-            href="/participant"
-            onClick={onClose}
+          <button
+            onClick={() => {
+              onClose();
+              onLoginClick?.();
+            }}
             className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-[#d4af37] to-[#df6b43] text-[#120d09] py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow hover:opacity-90 transition-opacity"
           >
             <LogIn className="w-4 h-4" />
             Participant Login
-          </Link>
+          </button>
         </div>
       </aside>
     </>
@@ -394,6 +397,7 @@ function GalleryContent({ initialYear }) {
         festivalVenue={festivalVenue}
         festivalNameImage={festivalNameImage}
         yearParam={yearParam}
+        onLoginClick={() => setShowLoginModal(true)}
       />
 
       {/* ── MAIN CONTENT ── */}

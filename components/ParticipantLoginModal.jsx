@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -14,8 +14,33 @@ export default function ParticipantLoginModal({
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fetchedImage, setFetchedImage] = useState(null);
+
+  useEffect(() => {
+    if (!festivalNameImage && isOpen) {
+      fetch("/api/settings")
+        .then((res) => res.json())
+        .then((data) => {
+          const img =
+            data?.settings?.festival?.festivalNameImage?.url ||
+            data?.settings?.festivals?.[0]?.festivalNameImage?.url;
+          if (img) setFetchedImage(img);
+        })
+        .catch(() => {});
+    }
+  }, [festivalNameImage, isOpen]);
 
   if (!isOpen) return null;
+
+  const resolvedFestivalNameImage =
+    (typeof festivalNameImage === "string" ? festivalNameImage : festivalNameImage?.url) ||
+    fetchedImage ||
+    "https://res.cloudinary.com/do8vcjig0/image/upload/v1787142796/profiles/q4bwbn3hk21k6zonu5t8.png";
+
+  const handleClose = () => {
+    setError("");
+    onClose();
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -48,24 +73,23 @@ export default function ParticipantLoginModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-10"
-        >
-          <X className="w-5 h-5 text-gray-600" />
-        </button>
-
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) {
+          handleClose();
+        }
+      }}
+    >
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
         <div className="p-8">
           {/* Header */}
           <div className="flex flex-col items-center mb-8">
-            {festivalNameImage ? (
+            {resolvedFestivalNameImage ? (
               <img
-                src={festivalNameImage}
-                alt="Festival Logo"
-                className="h-16 w-auto object-contain mb-4"
+                src={resolvedFestivalNameImage}
+                alt="Festival Name"
+                className="h-16 w-auto max-w-[260px] object-contain mb-4"
               />
             ) : (
               <div className="h-16 flex items-center justify-center mb-4">
@@ -76,7 +100,7 @@ export default function ParticipantLoginModal({
               Welcome back!
             </h3>
             <p className="text-sm text-gray-500 text-center mt-1">
-              Enter your chest number and date of birth to login.
+              Enter your Chest Number and Date of Birth.
             </p>
           </div>
 
@@ -115,17 +139,29 @@ export default function ParticipantLoginModal({
               </div>
             )}
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-[#3f2720] to-[#9e6237] hover:opacity-90 text-white rounded-xl py-6 text-lg font-semibold shadow-md transition-all mt-4"
-            >
-              {loading ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : (
-                "Login"
-              )}
-            </Button>
+            <div className="pt-2 space-y-2.5">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-[#3f2720] to-[#9e6237] hover:opacity-90 text-white rounded-xl py-6 text-lg font-semibold shadow-md transition-all"
+              >
+                {loading ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  "Login"
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={loading}
+                className="w-full border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-xl py-6 text-base font-semibold transition-all"
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
         </div>
       </div>
