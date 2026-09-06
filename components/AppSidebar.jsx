@@ -43,6 +43,7 @@ import {
   TrendingUp,
   ScanBarcode,
   Monitor,
+  Camera,
 } from "lucide-react";
 
 import {
@@ -561,6 +562,12 @@ const items = [
     url: "/dashboard/poster-customizer",
     allowedRoles: ["Program Committee"],
     icon: LayoutGrid,
+  },
+  {
+    title: "Gallery",
+    url: "/dashboard/gallery",
+    allowedRoles: ["Program Committee"],
+    icon: Camera,
   },
 
   {

@@ -345,6 +345,11 @@ const pages = [
     allowedRoles: ["Program Committee", "Program Leader"],
   },
   {
+    title: "Gallery",
+    path: "/dashboard/gallery",
+    allowedRoles: ["Program Committee", "College Admin"],
+  },
+  {
     title: "Code Letters",
     path: "/dashboard/code-letters",
     allowedRoles: ["Program Committee"],
@@ -620,7 +625,7 @@ async function handleLoginPageRequest(req) {
 }
 
 async function handleApiRequest(req) {
-  if (req.nextUrl.pathname === "/api/upload") return NextResponse.next();
+  if (req.nextUrl.pathname === "/api/upload" || req.nextUrl.pathname === "/api/gallery/upload") return NextResponse.next();
 
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key");

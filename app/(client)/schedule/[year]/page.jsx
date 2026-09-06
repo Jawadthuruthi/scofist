@@ -70,7 +70,7 @@ function ScheduleTopBar({
           : "bg-[#120d09]/80 backdrop-blur-sm border-white/20"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
             <button
@@ -81,25 +81,24 @@ function ScheduleTopBar({
               <Menu className="w-5 h-5" />
             </button>
 
-            <Link href={scheduleLink} className="flex items-center gap-2.5 sm:gap-3 group">
-              {festivalLogo && (
-                <img
-                  src={festivalLogo}
-                  alt={displayName}
-                  className="h-10 w-10 sm:h-11 sm:w-11 object-contain rounded-lg group-hover:opacity-85 transition-opacity flex-shrink-0"
-                />
-              )}
+            <Link href={scheduleLink} className="flex items-center gap-3 group">
               {festivalNameImage ? (
                 <img
                   src={festivalNameImage}
                   alt={displayName}
-                  className="h-7 sm:h-8 w-auto max-w-[140px] sm:max-w-[200px] object-contain brightness-0 invert group-hover:opacity-85 transition-opacity"
+                  className="h-8 sm:h-9 md:h-10 w-auto max-w-[170px] sm:max-w-[220px] md:max-w-[260px] object-contain brightness-0 invert group-hover:opacity-85 transition-opacity"
                 />
-              ) : !festivalLogo ? (
+              ) : festivalLogo ? (
+                <img
+                  src={festivalLogo}
+                  alt={displayName}
+                  className="h-9 w-9 sm:h-10 sm:w-10 object-contain rounded-lg group-hover:opacity-85 transition-opacity flex-shrink-0"
+                />
+              ) : (
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#9e6237] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow flex-shrink-0">
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
-              ) : null}
+              )}
             </Link>
           </div>
 
@@ -404,20 +403,20 @@ function ScheduleContent() {
           className="pointer-events-none absolute -left-48 top-80 h-96 w-96 rounded-full bg-[#9e6237]/[0.08] blur-[120px]"
         />
 
-        <section className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-20">
+        <section className="relative mx-auto max-w-7xl px-6 pt-5 pb-12 sm:px-8 md:px-12 sm:pt-7 sm:pb-16">
           {/* Hero Header */}
           <header className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[11px] font-bold uppercase tracking-[0.2em] mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[11px] font-bold uppercase tracking-[0.2em] mb-3">
               <Calendar className="w-3.5 h-3.5" />
               <span>Schedule • {festivalName} '{festivalYear.toString().slice(-2)}</span>
             </div>
-            <h1 className="text-5xl font-black leading-[0.92] tracking-[-0.03em] sm:text-7xl lg:text-[5.75rem]">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight">
               Programme{" "}
-              <span className="block bg-gradient-to-r from-[#e5c07b] via-[#d4af37] to-[#df6b43] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#e5c07b] via-[#d4af37] to-[#df6b43] bg-clip-text text-transparent">
                 schedule.
               </span>
             </h1>
-            <p className="mt-4 text-sm sm:text-base text-white/60 max-w-xl">
+            <p className="mt-3 text-sm sm:text-base text-white/60 max-w-xl">
               Stage-by-stage schedule and timings.
             </p>
           </header>
