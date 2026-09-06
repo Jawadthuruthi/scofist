@@ -404,7 +404,7 @@ function TeamPointsContent() {
         />
 
         {authParticipant ? (
-          <div className="p-4 md:p-8 max-w-5xl mx-auto min-h-screen">
+          <div className="p-4 pt-8 md:p-8 max-w-5xl mx-auto min-h-screen">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-white">My Participant Card</h2>
               <button
@@ -425,7 +425,7 @@ function TeamPointsContent() {
             </div>
           </div>
         ) : (
-          <section className="relative mx-auto max-w-7xl px-6 pt-5 pb-12 sm:px-8 md:px-12 sm:pt-7 sm:pb-16">
+          <section className="relative mx-auto max-w-7xl px-6 pt-10 pb-12 sm:px-8 md:px-12 sm:pt-7 sm:pb-16">
             {/* Header / Hero Title */}
             <header className="max-w-4xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[11px] font-bold uppercase tracking-[0.2em] mb-3">

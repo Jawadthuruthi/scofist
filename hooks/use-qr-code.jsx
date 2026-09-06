@@ -28,7 +28,7 @@ export function useQRCodeConfig(activeYear) {
       scale: 4,
       width: size,
       color: {
-        dark: "#000000",
+        dark: "#1d4ed8",
         light: "#ffffff",
       },
     }),

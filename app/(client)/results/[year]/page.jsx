@@ -281,7 +281,6 @@ function PublicResultsContent() {
   const params = useParams();
   const yearParam =
     (params?.year ? decodeURIComponent(params.year) : null) ||
-    initialYear ||
     searchParams.get("year") ||
     "2026";
   const yearQuery = `year=${encodeURIComponent(yearParam)}&`;
@@ -377,6 +376,25 @@ function PublicResultsContent() {
     [programs]
   );
 
+  /* --------------- memoized program and division names --------------- */
+  const currentProgramName = useMemo(() => {
+    return (
+      resultData?.programName ||
+      programs.find((p) => p._id === (selectedProgram || resultData?.programId))?.name ||
+      resultData?.programId?.name ||
+      ""
+    );
+  }, [resultData, programs, selectedProgram]);
+
+  const currentDivisionName = useMemo(() => {
+    return (
+      resultData?.divisionName ||
+      divisions.find((d) => d._id === (selectedDivision || resultData?.divisionId))?.name ||
+      resultData?.programId?.divisionId?.name ||
+      ""
+    );
+  }, [resultData, divisions, selectedDivision]);
+
   /* --------------- medal config (Dark Sahityotsav Palette) --------------- */
   const getMedalConfig = useCallback((rank) => {
     if (rank === 1)
@@ -384,6 +402,7 @@ function PublicResultsContent() {
         emoji: "🥇",
         bg: "bg-gradient-to-b from-[#24170e] via-[#1a110a] to-[#120c07]",
         border: "border-[#d4af37]/70 shadow-[0_0_40px_rgba(212,175,55,0.2)]",
+        photoBorder: "border-[#d4af37] shadow-[0_0_25px_rgba(212,175,55,0.35)]",
         text: "text-[#d4af37]",
       };
     if (rank === 2)
@@ -391,12 +410,14 @@ function PublicResultsContent() {
         emoji: "🥈",
         bg: "bg-[#17100b]/80 backdrop-blur-md",
         border: "border-slate-400/40 shadow-lg",
+        photoBorder: "border-slate-300 shadow-[0_0_20px_rgba(203,213,225,0.25)]",
         text: "text-slate-300",
       };
     return {
       emoji: "🥉",
       bg: "bg-[#17100b]/80 backdrop-blur-md",
       border: "border-amber-600/40 shadow-lg",
+      photoBorder: "border-amber-500 shadow-[0_0_20px_rgba(217,119,6,0.25)]",
       text: "text-amber-400",
     };
   }, []);
@@ -408,7 +429,22 @@ function PublicResultsContent() {
       const name = participant.participantDetails?.name || "Unknown";
       const team = participant.participantDetails?.teamId?.name || "Unknown";
       const chest = participant.participantDetails?.chestNumber;
-      const grade = participant.participantDetails?.grade;
+      const photoUrl =
+        participant.participantDetails?.profilePic?.url ||
+        (typeof participant.participantDetails?.profilePic === "string"
+          ? participant.participantDetails.profilePic
+          : null) ||
+        participant.profilePic?.url ||
+        (typeof participant.profilePic === "string" ? participant.profilePic : null) ||
+        null;
+      const rawGrade = participant.grade || participant.participantDetails?.grade;
+      const cleanGrade =
+        rawGrade &&
+        rawGrade !== "-" &&
+        rawGrade.toLowerCase() !== "f" &&
+        rawGrade.toLowerCase() !== "no grade"
+          ? `${rawGrade.replace(/grade/gi, "").trim()} Grade`
+          : null;
       const points = participant.points;
 
       const medal = getMedalConfig(rank);
@@ -425,10 +461,37 @@ function PublicResultsContent() {
         >
           <CardContent className="p-8">
             <div className="text-center space-y-4">
-              <div className="text-5xl drop-shadow-md">{medal.emoji}</div>
+              {/* Winner Photo with Medal Overlay */}
+              <div className="relative mx-auto w-24 h-24 sm:w-28 sm:h-28">
+                <div
+                  className={`w-full h-full rounded-full overflow-hidden border-4 ${medal.photoBorder} bg-black/50 flex items-center justify-center`}
+                >
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-black text-3xl uppercase text-white/40 bg-white/[0.06]">
+                      {name?.charAt(0) || <User className="w-8 h-8 text-white/40" />}
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-2 -right-1 text-3xl sm:text-4xl drop-shadow-lg select-none">
+                  {medal.emoji}
+                </div>
+              </div>
 
-              <div className={`text-xl font-black ${medal.text} tracking-wide`}>
-                {rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd"} Place
+              <div>
+                <div className={`text-xl font-black ${medal.text} tracking-wide`}>
+                  {rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd"} Place
+                </div>
+                {chest && (
+                  <p className="text-sm font-semibold text-white/70 tracking-wide mt-1">
+                    Chest No. {chest}
+                  </p>
+                )}
               </div>
 
               <h3 className="text-xl font-black text-white capitalize">{name}</h3>
@@ -436,19 +499,14 @@ function PublicResultsContent() {
               <p className="text-sm text-white/60 font-medium">{team}</p>
 
               <div className="flex flex-wrap gap-2 justify-center pt-2">
-                {chest && (
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 border border-white/15 text-white/90">
-                    Chest #{chest}
-                  </span>
-                )}
-                {grade && (
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 border border-white/15 text-white/90">
-                    {grade}
+                {cleanGrade && (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/10 border border-white/15 text-white/90">
+                    {cleanGrade}
                   </span>
                 )}
                 {points > 0 && (
                   <span className="px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#d4af37] to-[#df6b43] text-black">
-                    {points} pts
+                    {points} Points
                   </span>
                 )}
               </div>
@@ -540,7 +598,7 @@ function PublicResultsContent() {
 
         <main className="flex-1 overflow-y-auto relative w-full">
           {authParticipant ? (
-            <div className="p-4 md:p-8 max-w-5xl mx-auto min-h-screen">
+            <div className="p-4 pt-8 md:p-8 max-w-5xl mx-auto min-h-screen">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-black text-white">My Participant Card</h2>
                 <button
@@ -563,7 +621,7 @@ function PublicResultsContent() {
           ) : (
             <>
               {/* HERO HEADER */}
-              <section className="relative mx-auto max-w-7xl px-6 pt-5 pb-5 sm:px-8 md:px-12 sm:pt-7 sm:pb-6">
+              <section className="relative mx-auto max-w-7xl px-6 pt-10 pb-5 sm:px-8 md:px-12 sm:pt-7 sm:pb-6">
                 <header className="max-w-4xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[11px] font-bold uppercase tracking-[0.2em] mb-3">
                     <Trophy className="w-3.5 h-3.5" />
@@ -661,7 +719,7 @@ function PublicResultsContent() {
                         Ready to Reveal Champions
                       </h3>
                       <p className="text-white/60 leading-relaxed text-sm">
-                        Select a division and program above or enter a result number to see the podium winners.
+                        Select a division and program above or enter a result number to see the winners.
                       </p>
                     </div>
                   </div>
@@ -689,13 +747,19 @@ function PublicResultsContent() {
                 {!loading && !error && results && results.length > 0 && (
                   <div className="space-y-12">
                     <div className="text-center">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37] text-xs font-bold uppercase tracking-widest mb-3">
-                        <Trophy className="w-3.5 h-3.5" />
-                        Podium Winners
-                      </div>
-                      <h2 className="text-4xl font-black text-white">
+                      <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
                         Champions Podium
                       </h2>
+                      {currentProgramName && (
+                        <p className="mt-3 text-xl sm:text-2xl md:text-3xl font-bold text-[#d4af37] capitalize tracking-wide">
+                          {currentProgramName}
+                        </p>
+                      )}
+                      {currentDivisionName && (
+                        <p className="mt-1.5 text-xs sm:text-sm md:text-base font-semibold text-white/60 uppercase tracking-[0.2em]">
+                          {currentDivisionName}
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

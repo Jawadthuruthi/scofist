@@ -39,7 +39,7 @@ export async function generateMetadata({ params }) {
       "https://res.cloudinary.com/do8vcjig0/image/upload/v1787142796/profiles/q4bwbn3hk21k6zonu5t8.png";
 
     const title = `${displayName} Results | SCOFIST`;
-    const description = `Check out declared results and podium winners for ${displayName} (${yearParam || "Festival"})`;
+    const description = `Check out declared results and winners for ${displayName} (${yearParam || "Festival"})`;
 
     const ogImageUrl = `/api/og/results/${encodeURIComponent(yearParam)}`;
 

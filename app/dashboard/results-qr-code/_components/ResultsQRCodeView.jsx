@@ -84,18 +84,19 @@ export default function ResultsQRCodeView({
         subTitle="Generate and share festival results instantly"
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 h-full">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="h-full">
           <QRCodeGenerator
             resultsUrl={resultsUrl}
             qrOptions={qrOptions}
             printRef={printRef}
             apiKey={apiKey}
             festivalName={festivalName}
+            organizationName="SCOFIST"
           />
         </div>
 
-        {/* Sidebar */}
+        {/* Sharable Preview & Actions */}
         <div className="h-full">
           <QRCodeActions
             resultsUrl={resultsUrl}
@@ -104,7 +105,6 @@ export default function ResultsQRCodeView({
             festivalLogo={festivalLogo}
             festivalNameImage={festivalNameImage}
             activeYear={activeYear}
-            printRef={printRef}
           />
         </div>
       </div>

@@ -2,7 +2,19 @@ import { ImageResponse } from "next/og";
 import connectToDB from "@/lib/db";
 import Settings from "@/models/Settings";
 
+function getTrimmedImageUrl(url) {
+  if (!url || typeof url !== "string") return url;
+  if (url.includes("cloudinary.com") && url.includes("/upload/")) {
+    if (!url.includes("e_trim")) {
+      return url.replace("/upload/", "/upload/e_trim/");
+    }
+  }
+  return url;
+}
+
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request, { params }) {
   try {
@@ -32,18 +44,21 @@ export async function GET(request, { params }) {
     const festivalName =
       festivalInfo.name || matchingFestival?.name || "Festival";
 
-    const festivalLogoUrl =
+    const rawFestivalLogoUrl =
       matchingFestival?.festivalLogo?.url ||
       settings?.festival?.festivalLogo?.url ||
       settings?.festivals?.find((f) => f.festivalLogo?.url)?.festivalLogo?.url ||
       "https://res.cloudinary.com/do8vcjig0/image/upload/v1787142034/profiles/i5cq1yxqoori5xff52cz.png";
 
-    const festivalNameImageUrl =
+    const rawFestivalNameImageUrl =
       matchingFestival?.festivalNameImage?.url ||
       settings?.festival?.festivalNameImage?.url ||
       settings?.festivals?.find((f) => f.festivalNameImage?.url)
         ?.festivalNameImage?.url ||
       "https://res.cloudinary.com/do8vcjig0/image/upload/v1787142796/profiles/q4bwbn3hk21k6zonu5t8.png";
+
+    const festivalLogoUrl = getTrimmedImageUrl(rawFestivalLogoUrl);
+    const festivalNameImageUrl = getTrimmedImageUrl(rawFestivalNameImageUrl);
 
     const urlObj = new URL(request.url);
     const host =
@@ -67,7 +82,7 @@ export async function GET(request, { params }) {
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: "#2563eb",
-            padding: "30px 40px",
+            padding: "40px 50px",
           }}
         >
           {/* Centered Festival Logo & Name Image */}
@@ -80,29 +95,30 @@ export async function GET(request, { params }) {
               width: "100%",
             }}
           >
-            {/* Festival Logo - 60% size (648px x 648px) in white */}
+            {/* Festival Logo - Trimmed and large in white */}
             {festivalLogoUrl && (
               <img
                 src={festivalLogoUrl}
                 alt="Festival Logo"
                 style={{
-                  width: "648px",
-                  height: "648px",
+                  height: "660px",
+                  maxHeight: "660px",
+                  maxWidth: "700px",
                   objectFit: "contain",
-                  marginBottom: "12px",
+                  marginBottom: "24px",
                   filter: "brightness(0) invert(1)",
                 }}
               />
             )}
 
-            {/* Festival Name Image - 60% size (648px x 110px) in white */}
+            {/* Festival Name Image - Trimmed in white */}
             {festivalNameImageUrl ? (
               <img
                 src={festivalNameImageUrl}
                 alt="Festival Name"
                 style={{
-                  maxWidth: "648px",
-                  maxHeight: "110px",
+                  maxWidth: "840px",
+                  maxHeight: "160px",
                   objectFit: "contain",
                   filter: "brightness(0) invert(1)",
                 }}
@@ -110,7 +126,7 @@ export async function GET(request, { params }) {
             ) : (
               <div
                 style={{
-                  fontSize: 54,
+                  fontSize: 56,
                   fontWeight: 900,
                   color: "#ffffff",
                   textTransform: "uppercase",
@@ -126,6 +142,11 @@ export async function GET(request, { params }) {
       {
         width: 1080,
         height: 1080,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          "Pragma": "no-cache",
+          "Expires": "0",
+        },
       }
     );
   } catch (error) {

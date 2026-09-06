@@ -174,7 +174,19 @@ export async function GET(request) {
           const pDoc = (p.id && typeof p.id === 'object' && p.id.name) 
             ? p.id 
             : manualParticipantMap[String(p.id?._id || p.id)];
-          return `${p.rank}. ${pDoc?.name || "Unknown"}`;
+          const name = pDoc?.name || "Unknown";
+          const chest = pDoc?.chestNumber ? ` (Chest No. ${pDoc.chestNumber})` : "";
+          const team = pDoc?.teamId?.name ? ` - ${pDoc.teamId.name}` : "";
+          const rawGrade = p.grade || pDoc?.grade;
+          const grade =
+            rawGrade &&
+            rawGrade !== "-" &&
+            rawGrade.toLowerCase() !== "f" &&
+            rawGrade.toLowerCase() !== "no grade"
+              ? ` - ${rawGrade.replace(/grade/gi, "").trim()} Grade`
+              : "";
+          const points = p.points > 0 ? ` - ${p.points} Points` : "";
+          return `${p.rank}. ${name}${chest}${team}${grade}${points}`;
         }),
 
       isResultDeclared: result.isResultDeclared,

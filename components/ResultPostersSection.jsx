@@ -17,13 +17,25 @@ export default function ResultPostersSection({ resultData, settings }) {
       const topWinners = resultData.participants
         .filter((p) => p.rank <= 3)
         .sort((a, b) => a.rank - b.rank)
-        .map((p) => ({
-          rank: p.rank,
-          name: p.participantDetails?.name || "Unknown",
-          teamName: p.participantDetails?.teamId?.name || "NA",
-          codeLetter: p.codeLetter,
-          chestNumber: p.participantDetails?.chestNumber,
-        }));
+        .map((p) => {
+          const rawGrade = p.grade || p.participantDetails?.grade;
+          const cleanGrade =
+            rawGrade &&
+            rawGrade !== "-" &&
+            rawGrade.toLowerCase() !== "f" &&
+            rawGrade.toLowerCase() !== "no grade"
+              ? `${rawGrade.replace(/grade/gi, "").trim()} Grade`
+              : null;
+          return {
+            rank: p.rank,
+            name: p.participantDetails?.name || "Unknown",
+            teamName: p.participantDetails?.teamId?.name || "NA",
+            codeLetter: p.codeLetter,
+            chestNumber: p.participantDetails?.chestNumber,
+            grade: cleanGrade,
+            points: p.points,
+          };
+        });
 
       setWinners(topWinners);
     }
@@ -203,17 +215,44 @@ export default function ResultPostersSection({ resultData, settings }) {
                   <p className="font-semibold text-gray-800 text-sm sm:text-base truncate">
                     {winner.name}
                   </p>
-                  <div className="flex items-center gap-2 flex-wrap mt-1">
-                    <p className="text-xs sm:text-sm text-gray-600">
-                      {winner.teamName}
-                    </p>
-                    {winner.chestNumber && (
-                      <>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 text-xs sm:text-sm text-gray-600 mt-1">
+                    {/* Line 2 (Mobile) / Segment 1 (Desktop): Chest Number & Team Name */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {winner.chestNumber && (
+                        <span className="font-medium">
+                          Chest No. {winner.chestNumber}
+                        </span>
+                      )}
+                      {winner.chestNumber && winner.teamName && (
                         <span className="text-gray-400">•</span>
-                        <Badge variant="outline" className="text-xs px-2 py-0">
-                          Chest #{winner.chestNumber}
-                        </Badge>
-                      </>
+                      )}
+                      {winner.teamName && (
+                        <span>{winner.teamName}</span>
+                      )}
+                    </div>
+
+                    {/* Desktop separator between team and grade/points */}
+                    {(winner.grade || winner.points > 0) && (winner.chestNumber || winner.teamName) && (
+                      <span className="hidden sm:inline text-gray-400">•</span>
+                    )}
+
+                    {/* Line 3 (Mobile) / Segment 2 (Desktop): Grade & Points */}
+                    {(winner.grade || winner.points > 0) && (
+                      <div className="flex items-center gap-2 flex-wrap mt-0.5 sm:mt-0">
+                        {winner.grade && (
+                          <span className="font-semibold text-amber-600">
+                            {winner.grade}
+                          </span>
+                        )}
+                        {winner.grade && winner.points > 0 && (
+                          <span className="text-gray-400">•</span>
+                        )}
+                        {winner.points > 0 && (
+                          <span className="font-bold text-gray-800">
+                            {winner.points} Points
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
