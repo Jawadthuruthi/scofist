@@ -686,17 +686,31 @@ const DataTableComponent = ({
       records = row[arrayKey] || [];
     } else {
       records = row[arrayKey]?.filter(
-        (item) => !col.filterKey || item?.[col.accessorKey || col.filterKey] === col.filterValue
+        (item) => !col.filterKey || item?.[col.filterKey || col.accessorKey] === col.filterValue
       ) || [];
     }
+
+    const extractHeaderText = (hdr) => {
+      if (!hdr) return "";
+      if (typeof hdr === "string") return hdr;
+      if (typeof hdr === "number") return String(hdr);
+      if (Array.isArray(hdr)) return hdr.map(extractHeaderText).join(" ").replace(/\s+/g, " ").trim();
+      if (isValidElement(hdr)) {
+        if (hdr.type === "br") return " ";
+        return extractHeaderText(hdr.props?.children);
+      }
+      return "";
+    };
+
+    const headerText = col.popupHeader || col.headerText || extractHeaderText(col.header) || col.accessorKey;
 
     setDetailView({
       student: row,
       col: col,
       title: col.header === "Absentees" 
         ? `Absent Students for ${formatDateForDisplay(row.date)}` 
-        : `${col.header} for ${row.name || row.teamName || "Selected Item"}`,
-      colHeader: col.header,
+        : `${headerText} for ${row.name || row.teamName || "Selected Item"}`,
+      colHeader: headerText,
       viewType: col.viewType || (col.header === "Absentees" ? "studentList" : "recordList")
     });
     setDetailedRecords(records);
@@ -819,11 +833,30 @@ const DataTableComponent = ({
         baseData = [...baseData].sort((a, b) => {
           return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
         });
+      } else if (resource === "teams") {
+        if (apiFilters?.sortByPoints === true || apiFilters?.sortByPoints === "true") {
+          baseData = [...baseData].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+        } else {
+          baseData = [...baseData].sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateB !== dateA) return dateB - dateA;
+            return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
+          });
+        }
       } else if (resource === "participants") {
-        // Sort participants by ID ascending
-        baseData = [...baseData].sort((a, b) =>
-          String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' })
-        );
+        if (apiFilters?.sortByPoints === true || apiFilters?.sortByPoints === "true") {
+          baseData = [...baseData].sort((a, b) => {
+            const pointsDiff = (b.totalPoints || 0) - (a.totalPoints || 0);
+            if (pointsDiff !== 0) return pointsDiff;
+            return (a.chestNumber || 0) - (b.chestNumber || 0);
+          });
+        } else {
+          // Sort participants by ID ascending
+          baseData = [...baseData].sort((a, b) =>
+            String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' })
+          );
+        }
       } else if (resource === "schedules") {
         // Sort schedules by date and time descending
         baseData = [...baseData].sort((a, b) => {
@@ -1748,8 +1781,8 @@ const DataTableComponent = ({
                 )}
               </button>
               <div className="flex-1 text-left min-w-0">
-                <DialogTitle className={`text-xl font-bold m-0 leading-tight ${detailView?.colHeader === "Present" ? "text-green-600 dark:text-green-400" : detailView?.colHeader === "Absent" ? "text-red-600 dark:text-red-400" : ""}`}>
-                  {detailView?.colHeader === "Programs Count" ? "Point" : detailView?.colHeader} Records
+                <DialogTitle className={`text-xl font-bold m-0 leading-tight whitespace-nowrap ${detailView?.colHeader === "Present" ? "text-green-600 dark:text-green-400" : detailView?.colHeader === "Absent" ? "text-red-600 dark:text-red-400" : ""}`}>
+                  {detailView?.colHeader} Records
                   <span className="ml-1.5 text-base font-semibold text-muted-foreground">
                     ({detailedRecords.length})
                   </span>
@@ -2096,7 +2129,11 @@ const DataTableComponent = ({
                               </TableCell>
                               <TableCell className="font-bold text-sm py-3 uppercase">
                                 {rec.name || "—"}
-                                {rec.type && <span className="block text-xs font-normal text-muted-foreground">{rec.type}</span>}
+                                {(rec.type || rec.participantName) && (
+                                  <span className="block text-xs font-normal text-muted-foreground mt-0.5">
+                                    {rec.type} {rec.participantName && `• ${rec.participantName}`}
+                                  </span>
+                                )}
                               </TableCell>
                               <TableCell className="text-center text-sm py-3 font-medium text-indigo-600">
                                 {rec.grade || "—"}

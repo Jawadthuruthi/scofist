@@ -20,34 +20,16 @@ const columnsConfig = [
     header: "Program",
   },
   {
+    accessorKey: "divisionName",
+    header: "Division",
+  },
+  {
     accessorKey: "programType",
     header: "Type",
   },
   {
     accessorKey: "programCategory",
     header: "Category",
-  },
-  {
-    accessorKey: "divisionName",
-    header: "Division",
-  },
-  {
-    accessorKey: "teamName",
-    header: "Team",
-  },
-  {
-    accessorKey: "evaluatedParticipants",
-    header: "Evaluated",
-    type: "number",
-  },
-  {
-    accessorKey: "totalParticipants",
-    header: "Total",
-    type: "number",
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
   },
 ];
 
@@ -58,10 +40,8 @@ export default async function UndeclaredResultsPage() {
     const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.APIKEY;
 
-    // Fetch divisions and teams for filter options
-    const [divisions, teams] = await Promise.all([
+    const [divisions] = await Promise.all([
       fetchData("divisions", `${yearParam}projection=id,name`, 0),
-      fetchData("teams", `${yearParam}projection=id,name`, 0),
     ]);
 
     // Filter configuration
@@ -71,12 +51,6 @@ export default async function UndeclaredResultsPage() {
         label: "Division",
         inputType: "select",
         options: formatOptions(divisions),
-      },
-      {
-        id: "teamName",
-        label: "Team",
-        inputType: "select",
-        options: formatOptions(teams),
       },
       {
         id: "programType",
@@ -116,6 +90,9 @@ export default async function UndeclaredResultsPage() {
           apiKey={apiKey}
           limit={1000}
           isFestival={true}
+          enableSearch={true}
+          desktopSearchPlaceholder="Search program name..."
+          searchBarClassName="md:w-full"
         />
       </>
     );

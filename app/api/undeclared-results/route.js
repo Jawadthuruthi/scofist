@@ -15,16 +15,16 @@ export async function GET(request) {
 
     // Get filter params
     const divisionId = searchParams.get("divisionId");
-    const teamId = searchParams.get("teamId");
     const programCategory = searchParams.get("programCategory");
     const programType = searchParams.get("programType");
+    const globalSearch = searchParams.get("global");
 
     // Build aggregation pipeline
     let pipeline = [
       // Match registrations with marks but result not declared
       {
         $match: {
-          isResultDeclared: false,
+          isResultDeclared: { $ne: true },
           // Has at least one participant with marks assigned
           "participants.totalMarks": { $gt: 0 },
         },
@@ -46,7 +46,7 @@ export async function GET(request) {
         $lookup: {
           from: "divisions",
           localField: "program.divisionId",
-          foreignField: "id",
+          foreignField: "_id",
           as: "division",
         },
       },
@@ -57,67 +57,35 @@ export async function GET(request) {
         },
       },
 
-      // Lookup team details
-      {
-        $lookup: {
-          from: "teams",
-          localField: "teamId",
-          foreignField: "id",
-          as: "team",
-        },
-      },
-      {
-        $unwind: {
-          path: "$team",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-
       // Apply additional filters
-      ...(divisionId ? [{ $match: { "division.id": divisionId } }] : []),
-      ...(teamId ? [{ $match: { teamId: teamId } }] : []),
+      ...(divisionId ? [{ $match: { "division._id": divisionId } }] : []),
       ...(programCategory
         ? [{ $match: { "program.category": programCategory } }]
         : []),
       ...(programType ? [{ $match: { "program.type": programType } }] : []),
-
-      // Count evaluated participants
-      {
-        $addFields: {
-          evaluatedParticipants: {
-            $size: {
-              $filter: {
-                input: "$participants",
-                cond: { $gt: ["$$this.totalMarks", 0] },
+      ...(globalSearch
+        ? [
+            {
+              $match: {
+                "program.name": { $regex: globalSearch, $options: "i" },
               },
             },
-          },
-          totalParticipants: { $size: "$participants" },
-        },
-      },
+          ]
+        : []),
 
-      // Project required fields
+      // Group by program ID to ensure one row per program
       {
-        $project: {
-          _id: 1,
-          programId: "$program._id",
-          programName: "$program.name",
-          programType: "$program.type",
-          programCategory: "$program.category",
-          divisionId: "$division.id",
-          divisionName: "$division.name",
-          teamId: "$team.id",
-          teamName: "$team.name",
-          evaluatedParticipants: 1,
-          totalParticipants: 1,
-          status: "Ready to Declare",
-          createdAt: 1,
-          updatedAt: 1,
-        },
+        $group: {
+          _id: "$program._id",
+          programName: { $first: "$program.name" },
+          programType: { $first: "$program.type" },
+          programCategory: { $first: "$program.category" },
+          divisionName: { $first: "$division.name" }
+        }
       },
 
-      // Sort by program name, then team name
-      { $sort: { programName: 1, teamName: 1 } },
+      // Sort by program name
+      { $sort: { programName: 1 } },
     ];
 
     // Get total count
@@ -142,16 +110,12 @@ export async function GET(request) {
       programType: reg.programType,
       programCategory: reg.programCategory,
       divisionName: reg.divisionName || "Unknown",
-      teamName: reg.teamName || "Unknown",
-      evaluatedParticipants: reg.evaluatedParticipants || 0,
-      totalParticipants: reg.totalParticipants || 0,
-      status: reg.status,
     }));
 
     return NextResponse.json(
       {
         success: true,
-        undeclaredResults: transformedData,
+        "undeclared-results": transformedData,
         pagination: {
           page,
           limit,

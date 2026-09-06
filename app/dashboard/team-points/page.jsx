@@ -1,3 +1,4 @@
+import React from "react";
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
@@ -18,18 +19,34 @@ const columnsConfig = [
 
   {
     accessorKey: "stagePoints",
-    header: "Stage Points",
-    type: ["number"],
+    header: <span className="whitespace-normal block leading-tight text-left">Stage<br />Points</span>,
+    popupHeader: "Stage Points",
+    type: ["clickableNumber"],
+    clickable: true,
+    valueKey: "programs",
+    viewType: "programsList",
+    filterKey: "category",
+    filterValue: "Stage",
   },
   {
     accessorKey: "offStagePoints",
-    header: "Off-Stage Points",
-    type: ["number"],
+    header: <span className="whitespace-normal block leading-tight text-left">Off-Stage<br />Points</span>,
+    popupHeader: "Off-Stage Points",
+    type: ["clickableNumber"],
+    clickable: true,
+    valueKey: "programs",
+    viewType: "programsList",
+    filterKey: "category",
+    filterValue: "Off-Stage",
   },
   {
     accessorKey: "totalPoints",
-    header: "Total Points",
-    type: ["number"],
+    header: <span className="whitespace-normal block leading-tight text-left">Total<br />Points</span>,
+    popupHeader: "Total Points",
+    type: ["clickableNumber"],
+    clickable: true,
+    valueKey: "programs",
+    viewType: "programsList",
   },
 ];
 

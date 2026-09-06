@@ -71,7 +71,7 @@ export async function GET(request) {
           select: "name type",
         },
       })
-      .sort({ resultNumber: 1 })
+      .sort({ resultNumber: -1 })
       .skip(skip)
       .lean();
 
@@ -191,7 +191,7 @@ export async function GET(request) {
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(totalCount / limit) || 1,
-        totalCount,
+        total: totalCount,
         hasNextPage: skip + limit < totalCount,
         hasPrevPage: page > 1,
       },
@@ -283,6 +283,15 @@ export async function POST(request) {
     const activeYear = await getYear(request);
     let result = await Result.findOne({ programId, year: activeYear });
     if (result) {
+      if (result.isResultDeclared) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Result is already declared. Please undeclare it first before generating new results.",
+          },
+          { status: 400 }
+        );
+      }
       result.participants = participants;
       result.isResultDeclared = false; // Reset declaration status
       await result.save();
@@ -513,6 +522,7 @@ export async function PUT(request) {
           const programId = result.programId._id;
           const programCategory = result.programId.category;
           const programType = result.programId.type;
+          const divisionType = result.programId.divisionId?.type;
 
           // Update participant's program entry
           const participant = await Participant.findById(participantId);
@@ -523,14 +533,19 @@ export async function PUT(request) {
             );
 
             // Subtract stage/off-stage points from participant
-            if (programCategory === "Stage" && programType === "Individual") {
+            if (
+              programCategory === "Stage" && 
+              programType === "Individual" &&
+              divisionType === "Primary"
+            ) {
               participant.stagePoints = Math.max(
                 0,
                 (participant.stagePoints || 0) - participantResult.points
               );
             } else if (
               programCategory === "Off-Stage" &&
-              programType === "Individual"
+              programType === "Individual" &&
+              divisionType === "Primary"
             ) {
               participant.offStagePoints = Math.max(
                 0,

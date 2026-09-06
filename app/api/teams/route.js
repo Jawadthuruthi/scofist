@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import Team from "@/models/Team";
+import Result from "@/models/Result";
 import apiResponse from "@/lib/apiResponse";
 import { getYear } from "@/lib/getYear";
 
@@ -35,6 +36,46 @@ export async function GET(req) {
       });
     }
 
+    // Get declared results for active year with program and participant details
+    const activeYear = await getYear(req);
+    const declaredResults = await Result.find({ isResultDeclared: true, year: activeYear })
+      .populate({
+        path: "programId",
+        select: "name type category divisionId",
+        populate: {
+          path: "divisionId",
+          select: "name type",
+        },
+      })
+      .populate("participants.id", "name teamId")
+      .lean();
+
+    // Map each team to its declared winning program entries
+    const teamProgramsMap = new Map();
+    declaredResults.forEach((res) => {
+      if (!res.participants || !Array.isArray(res.participants)) return;
+      res.participants.forEach((p) => {
+        if (!p.id || !p.id.teamId || (p.points || 0) <= 0) return;
+        const teamIdStr = p.id.teamId.toString();
+        if (!teamProgramsMap.has(teamIdStr)) {
+          teamProgramsMap.set(teamIdStr, []);
+        }
+        teamProgramsMap.get(teamIdStr).push({
+          id: (res.programId?._id || res.programId)?.toString(),
+          name: res.programId?.name,
+          type: res.programId?.type,
+          category: res.programId?.category,
+          divisionId: res.programId?.divisionId?._id,
+          divisionType: res.programId?.divisionId?.type,
+          divisionName: res.programId?.divisionId?.name,
+          participantName: p.id?.name,
+          grade: p.grade || "—",
+          rank: p.rank || "—",
+          points: p.points || 0,
+        });
+      });
+    });
+
     const sortByPoints = url.searchParams.get("sortByPoints") === "true";
 
     const total = await Team.countDocuments(query);
@@ -44,13 +85,28 @@ export async function GET(req) {
       .limit(limit)
       .lean();
 
-    const formattedTeams = teams.map((team) => ({
-      ...team,
-      totalPoints: (team.stagePoints || 0) + (team.offStagePoints || 0),
-      leaderName: team.leaderId?.name || "N/A",
-      color: team.color || "#808080",
-      membersCount: team.membersId?.length || 0,
-    }));
+    const formattedTeams = teams.map((team) => {
+      const teamIdStr = team._id.toString();
+      const teamPrograms = teamProgramsMap.get(teamIdStr) || [];
+
+      const stagePoints = teamPrograms
+        .filter((p) => p.category === "Stage")
+        .reduce((sum, p) => sum + (p.points || 0), 0);
+      const offStagePoints = teamPrograms
+        .filter((p) => p.category === "Off-Stage")
+        .reduce((sum, p) => sum + (p.points || 0), 0);
+
+      return {
+        ...team,
+        stagePoints,
+        offStagePoints,
+        totalPoints: stagePoints + offStagePoints,
+        leaderName: team.leaderId?.name || "N/A",
+        color: team.color || "#808080",
+        membersCount: team.membersId?.length || 0,
+        programs: teamPrograms,
+      };
+    });
 
     if (sortByPoints) {
       formattedTeams.sort((a, b) => b.totalPoints - a.totalPoints);

@@ -5,12 +5,12 @@ import { fetchData, formatOptions } from "@/lib/utils";
 
 const columnsConfig = [
   {
-    accessorKey: "serialNo",
-    header: "Sl.No",
-    type: ["serialNo"],
-    width: 60,
-    maxWidth: 60,
-    minWidth: 60,
+    accessorKey: "resultNumber",
+    header: "Result No",
+    type: "number",
+    width: 80,
+    maxWidth: 80,
+    minWidth: 80,
   },
   {
     accessorKey: "programName",
@@ -55,6 +55,8 @@ export default async function DeclaredResultsPage() {
           }}
           filterConfig={filterConfig}
           isFestival={true}
+          enableSearch={true}
+          desktopSearchPlaceholder="Search program name..."
         />
       </>
     );

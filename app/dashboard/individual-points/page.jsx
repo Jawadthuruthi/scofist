@@ -1,3 +1,4 @@
+import React from "react";
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
@@ -23,7 +24,8 @@ const columnsConfig = [
   { accessorKey: "divisionName", header: "Division" },
   {
     accessorKey: "programsCount",
-    header: "Programs Count",
+    header: <span className="whitespace-normal block leading-tight text-left">Programs<br />Count</span>,
+    popupHeader: "Programs Count",
     type: ["clickableNumber"],
     clickable: true,
     valueKey: "programs",
@@ -31,7 +33,8 @@ const columnsConfig = [
   },
   {
     accessorKey: "stagePoints",
-    header: "Stage Points",
+    header: <span className="whitespace-normal block leading-tight text-left">Stage<br />Points</span>,
+    popupHeader: "Stage Points",
     type: ["clickableNumber"],
     clickable: true,
     valueKey: "programs",
@@ -41,7 +44,8 @@ const columnsConfig = [
   },
   {
     accessorKey: "offStagePoints",
-    header: "Off-Stage Points",
+    header: <span className="whitespace-normal block leading-tight text-left">Off-Stage<br />Points</span>,
+    popupHeader: "Off-Stage Points",
     type: ["clickableNumber"],
     clickable: true,
     valueKey: "programs",
@@ -51,7 +55,8 @@ const columnsConfig = [
   },
   {
     accessorKey: "totalPoints",
-    header: "Total Points",
+    header: <span className="whitespace-normal block leading-tight text-left">Total<br />Points</span>,
+    popupHeader: "Total Points",
     type: ["clickableNumber"],
     clickable: true,
     valueKey: "programs",

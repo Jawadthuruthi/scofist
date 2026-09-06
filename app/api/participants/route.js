@@ -99,6 +99,12 @@ export async function GET(req, res) {
     const projectionParam = url.searchParams.get("projection");
     let projections = {};
 
+    // Get declared program IDs for filtering
+    const activeYear = await getYear(req);
+    const declaredResults = await Result.find({ isResultDeclared: true, year: activeYear }).select("programId").lean();
+    const declaredProgramObjectIds = declaredResults.map(r => r.programId);
+    const declaredProgramIdsStr = new Set(declaredProgramObjectIds.map(id => id.toString()));
+
     if (projectionParam) {
       const fields = projectionParam.split(",");
       fields.forEach((field) => {
@@ -131,7 +137,6 @@ export async function GET(req, res) {
     }
 
     // Add year to query
-    const activeYear = await getYear(req);
     query.year = activeYear;
 
     // Handle non-responders filter at database level
@@ -433,13 +438,21 @@ export async function GET(req, res) {
       sortCriteria = [
         {
           $addFields: {
+            filteredPrograms: {
+              $filter: {
+                input: { $ifNull: ["$programs", []] },
+                as: "program",
+                cond: { $in: ["$$program.id", declaredProgramObjectIds] }
+              }
+            }
+          }
+        },
+        {
+          $addFields: {
             totalPoints: {
-              $add: [
-                { $ifNull: ["$stagePoints", 0] },
-                { $ifNull: ["$offStagePoints", 0] },
-              ],
-            },
-          },
+              $sum: "$filteredPrograms.points"
+            }
+          }
         },
         { $sort: { totalPoints: -1, chestNumber: 1 } },
       ];
@@ -514,35 +527,59 @@ export async function GET(req, res) {
       const total = totalResult[0]?.total || 0;
 
       // Format participants data
-      const formattedParticipants = participants.map((participant) => ({
-        ...participant,
-        _id: participant._id,
-        profilePic: participant.userDetails[0]?.profilePic,
-        classId: participant.classDetails?.[0]?._id,
-        className: participant.classDetails?.[0]?.name || "Unknown",
-        teamId: participant.teamDetails[0]?._id,
-        teamName: participant.teamDetails[0]?.name || "Unknown",
-        divisionId: participant.divisionDetails[0]?._id,
-        divisionName: participant.divisionDetails[0]?.name || "Unknown",
-        programsCount: participant.programs?.length || 0,
-        stageProgramsCount:
-          participant.programs?.filter((p) => p.id?.category === "Stage")?.length ||
-          0,
-        offStageProgramsCount:
-          participant.programs?.filter((p) => p.id?.category === "Off-Stage")
-            ?.length || 0,
-        totalPoints: participant.totalPoints || 0,
-        programs: participant.programs?.map((program) => ({
-          ...program,
-          id: program?.id?._id || program?.id,
-          name: program?.id?.name,
-          type: program?.id?.type,
-          category: program?.id?.category,
-          divisionId: program?.id?.divisionId?._id,
-          divisionType: program?.id?.divisionId?.type,
-          divisionName: program?.id?.divisionId?.name,
-        })) || [],
-      }));
+      const formattedParticipants = participants.map((participant) => {
+        const seenProgIds = new Set();
+        const validPrograms = [];
+        (participant.programs || []).forEach((p) => {
+          const pIdStr = (p?.id?._id || p?.id)?.toString();
+          if (pIdStr && declaredProgramIdsStr.has(pIdStr)) {
+            if (!seenProgIds.has(pIdStr)) {
+              seenProgIds.add(pIdStr);
+              validPrograms.push(p);
+            }
+          }
+        });
+
+        const stagePrograms = validPrograms.filter((p) => (p.id?.category || p.category) === "Stage");
+        const offStagePrograms = validPrograms.filter((p) => (p.id?.category || p.category) === "Off-Stage");
+
+        const stagePoints = stagePrograms.reduce((sum, p) => sum + (p.points || 0), 0);
+        const offStagePoints = offStagePrograms.reduce((sum, p) => sum + (p.points || 0), 0);
+        const totalPoints = stagePoints + offStagePoints;
+
+        return {
+          ...participant,
+          _id: participant._id,
+          profilePic: participant.userDetails?.[0]?.profilePic,
+          classId: participant.classDetails?.[0]?._id,
+          className: participant.classDetails?.[0]?.name || "Unknown",
+          teamId: participant.teamDetails?.[0]?._id,
+          teamName: participant.teamDetails?.[0]?.name || "Unknown",
+          divisionId: participant.divisionDetails?.[0]?._id,
+          divisionName: participant.divisionDetails?.[0]?.name || "Unknown",
+          stagePoints,
+          offStagePoints,
+          totalPoints,
+          programsCount: validPrograms.length,
+          stageProgramsCount: stagePrograms.length,
+          offStageProgramsCount: offStagePrograms.length,
+          programs: validPrograms.map((program) => ({
+            ...program,
+            id: program?.id?._id || program?.id,
+            name: program?.id?.name,
+            type: program?.id?.type,
+            category: program?.id?.category,
+            divisionId: program?.id?.divisionId?._id,
+            divisionType: program?.id?.divisionId?.type,
+            divisionName: program?.id?.divisionId?.name,
+            points: program?.points || 0,
+            rank: program?.rank || "—",
+            grade: program?.grade || "—",
+          })),
+        };
+      });
+
+      formattedParticipants.sort((a, b) => b.totalPoints - a.totalPoints || (a.chestNumber || 0) - (b.chestNumber || 0));
 
       return NextResponse.json(
         {
@@ -593,36 +630,57 @@ export async function GET(req, res) {
     const formattedParticipants = participants.map((participant) => {
       const userId = String(participant._id).split("-")[0];
       const user = userMap[userId];
+
+      // Filter programs to only include declared results
+      const seenProgIds = new Set();
+      const validPrograms = [];
+      (participant.programs || []).forEach((p) => {
+        const pIdStr = (p?.id?._id || p?.id)?.toString();
+        if (pIdStr && declaredProgramIdsStr.has(pIdStr)) {
+          if (!seenProgIds.has(pIdStr)) {
+            seenProgIds.add(pIdStr);
+            validPrograms.push(p);
+          }
+        }
+      });
+
+      const stagePrograms = validPrograms.filter((p) => (p.id?.category || p.category) === "Stage");
+      const offStagePrograms = validPrograms.filter((p) => (p.id?.category || p.category) === "Off-Stage");
+
+      const stagePoints = stagePrograms.reduce((sum, p) => sum + (p.points || 0), 0);
+      const offStagePoints = offStagePrograms.reduce((sum, p) => sum + (p.points || 0), 0);
+      const totalPoints = stagePoints + offStagePoints;
+
       return {
-      ...participant.toObject(),
-      _id: participant._id,
-      profilePic: user?.profilePic?.url || null,
-      classId: participant.classId?._id,
-      className: participant.classId?.name || "Unknown",
-      teamId: participant.teamId?._id,
-      teamName: participant.teamId?.name || "Unknown",
-      divisionId: participant.divisionId?._id,
-      divisionName: participant.divisionId?.name || "Unknown",
-      programsCount: participant.programs?.length || 0,
-      stageProgramsCount:
-        participant.programs?.filter((p) => p.id.category === "Stage")
-          ?.length || 0,
-      offStageProgramsCount:
-        participant.programs?.filter((p) => p.id.category === "Off-Stage")
-          ?.length || 0,
-      totalPoints:
-        (participant.stagePoints || 0) + (participant.offStagePoints || 0),
-      programs: participant.programs.map((program) => ({
-        ...program.toObject(),
-        id: program?.id?._id,
-        name: program?.id?.name,
-        type: program?.id?.type,
-        category: program?.id?.category,
-        divisionId: program?.id?.divisionId?._id,
-        divisionType: program?.id?.divisionId?.type,
-        divisionName: program?.id?.divisionId?.name,
-      })),
-    };
+        ...participant.toObject(),
+        _id: participant._id,
+        profilePic: user?.profilePic?.url || null,
+        classId: participant.classId?._id,
+        className: participant.classId?.name || "Unknown",
+        teamId: participant.teamId?._id,
+        teamName: participant.teamId?.name || "Unknown",
+        divisionId: participant.divisionId?._id,
+        divisionName: participant.divisionId?.name || "Unknown",
+        stagePoints,
+        offStagePoints,
+        totalPoints,
+        programsCount: validPrograms.length,
+        stageProgramsCount: stagePrograms.length,
+        offStageProgramsCount: offStagePrograms.length,
+        programs: validPrograms.map((program) => ({
+          ...program.toObject(),
+          id: program?.id?._id || program?.id,
+          name: program?.id?.name,
+          type: program?.id?.type,
+          category: program?.id?.category,
+          divisionId: program?.id?.divisionId?._id,
+          divisionType: program?.id?.divisionId?.type,
+          divisionName: program?.id?.divisionId?.name,
+          points: program?.points || 0,
+          rank: program?.rank || "—",
+          grade: program?.grade || "—",
+        })),
+      };
     });
 
     return NextResponse.json(
