@@ -77,6 +77,15 @@ module.exports = {
       fontSize: {
         xxs: ["0.625rem", { lineHeight: "1rem" }],
       },
+      height: {
+        topbar: "var(--topbar-height, 3.5rem)",
+      },
+      minHeight: {
+        topbar: "var(--topbar-height, 3.5rem)",
+      },
+      spacing: {
+        topbar: "var(--topbar-height, 3.5rem)",
+      },
     },
     screens: {
       xs: "480px",

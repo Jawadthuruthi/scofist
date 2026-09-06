@@ -51,6 +51,7 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -922,8 +923,8 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
 
   return (
     <Sidebar ref={sidebarRef} className="no-print">
-      <SidebarContent>
-        <div className="flex justify-between items-center h-14 px-6 border-b">
+      <SidebarHeader className="p-0 gap-0 shrink-0">
+        <div className="flex justify-between items-center h-14 min-h-14 px-4 sm:px-6 border-b shrink-0 bg-background">
           <h2 className="text-lg font-semibold">SCOFIST</h2>
           <Button
             variant="ghost"
@@ -936,7 +937,9 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
             <X className="w-5 h-5" />
           </Button>
         </div>
-        <div className="mx-4">
+      </SidebarHeader>
+      <SidebarContent>
+        <div className="mx-4 pt-2">
           <ComboBox roles={filteredRoles} role={role} />
         </div>
         {(role === "Program Committee" || role === "Program Leader" || role === "Judge") && (

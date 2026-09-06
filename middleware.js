@@ -625,7 +625,11 @@ async function handleLoginPageRequest(req) {
 }
 
 async function handleApiRequest(req) {
-  if (req.nextUrl.pathname === "/api/upload" || req.nextUrl.pathname === "/api/gallery/upload") return NextResponse.next();
+  if (
+    req.nextUrl.pathname === "/api/upload" ||
+    req.nextUrl.pathname === "/api/gallery/upload" ||
+    req.nextUrl.pathname.startsWith("/api/og/")
+  ) return NextResponse.next();
 
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key");

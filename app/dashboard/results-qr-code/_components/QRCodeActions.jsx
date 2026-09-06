@@ -20,8 +20,38 @@ import { useClipboard } from "@/hooks/use-clipboard";
 import { createPrintHandler } from "@/lib/qr-code/print-handler";
 import { downloadQRCode } from "@/lib/qr-code/download-handler";
 
-// Helper to generate square white background image on canvas as fallback
-async function generateSquareShareImage(logoUrl, nameImageUrl, resultsUrl) {
+// Helper to draw an image in pure white on canvas
+function drawWhiteImage(ctx, img, x, y, w, h) {
+  const rw = Math.round(w);
+  const rh = Math.round(h);
+  const rx = Math.round(x);
+  const ry = Math.round(y);
+
+  try {
+    const offCanvas = document.createElement("canvas");
+    offCanvas.width = rw;
+    offCanvas.height = rh;
+    const offCtx = offCanvas.getContext("2d");
+    if (offCtx) {
+      offCtx.drawImage(img, 0, 0, rw, rh);
+      offCtx.globalCompositeOperation = "source-in";
+      offCtx.fillStyle = "#ffffff";
+      offCtx.fillRect(0, 0, rw, rh);
+      ctx.drawImage(offCanvas, rx, ry);
+      return;
+    }
+  } catch (e) {
+    console.warn("Offscreen canvas white fill error:", e);
+  }
+
+  ctx.save();
+  ctx.filter = "brightness(0) invert(1)";
+  ctx.drawImage(img, rx, ry, rw, rh);
+  ctx.restore();
+}
+
+// Helper to generate square blue background image with white logo and festival name (75% size, no URL)
+async function generateSquareShareImage(logoUrl, nameImageUrl) {
   try {
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
@@ -29,8 +59,8 @@ async function generateSquareShareImage(logoUrl, nameImageUrl, resultsUrl) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    // 1. Pure white background
-    ctx.fillStyle = "#ffffff";
+    // 1. Blue background
+    ctx.fillStyle = "#2563eb";
     ctx.fillRect(0, 0, 1080, 1080);
 
     const loadImage = (src) =>
@@ -56,35 +86,45 @@ async function generateSquareShareImage(logoUrl, nameImageUrl, resultsUrl) {
       } catch (e) {}
     }
 
-    // 2. Draw Festival Logo in big
-    if (logoImg) {
-      const logoSize = 540;
-      const logoX = (1080 - logoSize) / 2;
-      const logoY = nameImg ? 90 : (1080 - logoSize) / 2;
-      ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
-    }
+    // Logo size reduced to 60% (648px on 1080px canvas)
+    const logoSize = 648;
+    const maxNameW = 648;
+    const maxNameH = 110;
+    const gap = 12;
 
-    // 3. Draw Festival Name Image under logo
+    let nameW = 0;
+    let nameH = 0;
     if (nameImg) {
-      const maxWidth = 860;
-      const maxHeight = 160;
-      let w = nameImg.width;
-      let h = nameImg.height;
-      const ratio = Math.min(maxWidth / w, maxHeight / h, 1);
-      w = w * ratio;
-      h = h * ratio;
-      const nameX = (1080 - w) / 2;
-      const nameY = 640;
-      ctx.drawImage(nameImg, nameX, nameY, w, h);
+      const ratio = Math.min(
+        maxNameW / nameImg.width,
+        maxNameH / nameImg.height,
+        1
+      );
+      nameW = nameImg.width * ratio;
+      nameH = nameImg.height * ratio;
     }
 
-    // 4. Draw URL in blue color under logo and image on white background
-    if (resultsUrl) {
-      ctx.fillStyle = "#2563eb";
-      ctx.font = "bold 34px monospace, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(resultsUrl, 540, 940);
+    let totalContentHeight = 0;
+    if (logoImg && nameImg) {
+      totalContentHeight = logoSize + gap + nameH;
+    } else if (logoImg) {
+      totalContentHeight = logoSize;
+    } else if (nameImg) {
+      totalContentHeight = nameH;
+    }
+
+    const startY = (1080 - totalContentHeight) / 2;
+
+    if (logoImg) {
+      const logoX = (1080 - logoSize) / 2;
+      const logoY = startY;
+      drawWhiteImage(ctx, logoImg, logoX, logoY, logoSize, logoSize);
+    }
+
+    if (nameImg) {
+      const nameX = (1080 - nameW) / 2;
+      const nameY = logoImg ? startY + logoSize + gap : startY;
+      drawWhiteImage(ctx, nameImg, nameX, nameY, nameW, nameH);
     }
 
     return new Promise((resolve) => {
@@ -148,14 +188,14 @@ export function QRCodeActions({
       ? festivalName.charAt(0).toUpperCase() + festivalName.slice(1)
       : organizationName;
     const shareTitle = `${displayName} Results`;
-    const shareText = `Check out ${displayName} festival results: ${resultsUrl}`;
+    const shareText = `Check out ${displayName} festival results:`;
 
     try {
       if (navigator.share) {
         let shared = false;
         let blob = null;
 
-        // 1. Try fetching the square white background OG image from the server
+        // 1. Try fetching the square OG image from the server
         const year = activeYear ? activeYear.split(" ")[0] : "2026";
         try {
           const res = await fetch(`/api/og/results/${encodeURIComponent(year)}`);
@@ -170,8 +210,7 @@ export function QRCodeActions({
         if (!blob && (festivalLogo || festivalNameImage)) {
           blob = await generateSquareShareImage(
             festivalLogo,
-            festivalNameImage,
-            resultsUrl
+            festivalNameImage
           );
         }
 
@@ -183,7 +222,7 @@ export function QRCodeActions({
           });
 
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            // Try sharing file + title + text + url
+            // Try sharing file + title + text + url (URL is provided once via url field)
             try {
               if (
                 navigator.canShare({
@@ -205,12 +244,12 @@ export function QRCodeActions({
               if (shareErr.name === "AbortError") throw shareErr;
             }
 
-            // Fallback to file + text (contains resultsUrl)
+            // Fallback to file + text with URL appended only if url field failed/unsupported
             if (!shared) {
               try {
                 await navigator.share({
                   title: shareTitle,
-                  text: shareText,
+                  text: `${shareText} ${resultsUrl}`,
                   files: [file],
                 });
                 shared = true;
@@ -221,11 +260,11 @@ export function QRCodeActions({
           }
         }
 
-        // 4. Fallback to standard share if file wasn't shared
+        // 4. Fallback to standard share if file wasn't shared (single URL via url field)
         if (!shared) {
           await navigator.share({
             title: shareTitle,
-            text: `Check out ${displayName} festival results!`,
+            text: shareText,
             url: resultsUrl,
           });
         }
@@ -311,44 +350,43 @@ export function QRCodeActions({
           Share QR Code
         </Button>
 
-        {/* 4. Sharable URL Card (White background square with big logo, name image, and blue URL) */}
-        <div className="py-2">
-          <div className="w-full max-w-[260px] aspect-square mx-auto bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex flex-col items-center justify-between text-center select-none">
-            {/* Upper: Festival Logo in big & Festival Name Image under logo */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-2 w-full">
+        {/* 4. Sharable URL Card (Blue background square with white logo & festival name image, 60% size, no URL) */}
+        <div className="py-2 space-y-1.5">
+          <div className="w-full max-w-[210px] aspect-square mx-auto bg-blue-600 rounded-2xl border border-blue-500 shadow-md shadow-blue-500/20 p-2.5 flex flex-col items-center justify-center text-center select-none">
+            {/* Festival Logo & Festival Name Image in White (60% scale) */}
+            <div className="flex flex-col items-center justify-center gap-1.5 w-full">
               {festivalLogo ? (
                 <img
                   src={festivalLogo}
                   alt={festivalName || "Festival Logo"}
-                  className="w-32 h-32 sm:w-36 sm:h-36 object-contain"
+                  className="w-32 h-32 object-contain brightness-0 invert"
+                  style={{ filter: "brightness(0) invert(1)" }}
                 />
               ) : (
-                <div className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
-                  <QrCode className="w-12 h-12" />
+                <div className="w-20 h-20 rounded-xl bg-blue-500/40 flex items-center justify-center text-white">
+                  <QrCode className="w-10 h-10 text-white" />
                 </div>
               )}
 
-              {festivalNameImage && (
+              {festivalNameImage ? (
                 <img
                   src={festivalNameImage}
                   alt={festivalName || "Festival Name"}
-                  className="max-h-10 w-auto max-w-[180px] object-contain"
+                  className="max-h-7 w-auto max-w-[126px] object-contain brightness-0 invert"
+                  style={{ filter: "brightness(0) invert(1)" }}
                 />
-              )}
-            </div>
-
-            {/* Bottom: URL in blue color under logo and name image on white background */}
-            <div className="w-full pt-2 border-t border-gray-100">
-              <a
-                href={resultsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline break-all font-mono block"
-              >
-                {resultsUrl}
-              </a>
+              ) : festivalName ? (
+                <span className="text-white text-xs font-bold uppercase tracking-wider">
+                  {festivalName}
+                </span>
+              ) : null}
             </div>
           </div>
+          {resultsUrl && (
+            <p className="text-[11px] text-muted-foreground text-center truncate px-2 font-mono">
+              {resultsUrl}
+            </p>
+          )}
         </div>
 
         {/* 5. Copy URL */}

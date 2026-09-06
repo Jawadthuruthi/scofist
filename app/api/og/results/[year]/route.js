@@ -65,53 +65,54 @@ export async function GET(request, { params }) {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "space-between",
-            backgroundColor: "#ffffff",
-            padding: "60px 50px 70px 50px",
+            justifyContent: "center",
+            backgroundColor: "#2563eb",
+            padding: "30px 40px",
           }}
         >
-          {/* Top/Center: Big Festival Logo & Name Image */}
+          {/* Centered Festival Logo & Name Image */}
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              flex: 1,
               width: "100%",
             }}
           >
-            {/* Big Festival Logo */}
+            {/* Festival Logo - 60% size (648px x 648px) in white */}
             {festivalLogoUrl && (
               <img
                 src={festivalLogoUrl}
                 alt="Festival Logo"
                 style={{
-                  width: "540px",
-                  height: "540px",
+                  width: "648px",
+                  height: "648px",
                   objectFit: "contain",
-                  marginBottom: "30px",
+                  marginBottom: "12px",
+                  filter: "brightness(0) invert(1)",
                 }}
               />
             )}
 
-            {/* Festival Name Image Under Logo */}
+            {/* Festival Name Image - 60% size (648px x 110px) in white */}
             {festivalNameImageUrl ? (
               <img
                 src={festivalNameImageUrl}
                 alt="Festival Name"
                 style={{
-                  maxWidth: "860px",
-                  maxHeight: "160px",
+                  maxWidth: "648px",
+                  maxHeight: "110px",
                   objectFit: "contain",
+                  filter: "brightness(0) invert(1)",
                 }}
               />
             ) : (
               <div
                 style={{
-                  fontSize: 64,
+                  fontSize: 54,
                   fontWeight: 900,
-                  color: "#111827",
+                  color: "#ffffff",
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
                 }}
@@ -119,21 +120,6 @@ export async function GET(request, { params }) {
                 {festivalName}
               </div>
             )}
-          </div>
-
-          {/* Under image logo and name image: URL in blue color */}
-          <div
-            style={{
-              fontSize: 34,
-              fontWeight: 700,
-              color: "#2563eb",
-              textAlign: "center",
-              maxWidth: "960px",
-              fontFamily: "monospace",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {displayUrl}
           </div>
         </div>
       ),
