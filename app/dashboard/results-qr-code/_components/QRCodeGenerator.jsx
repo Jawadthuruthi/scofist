@@ -6,7 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QrCode } from "lucide-react";
 import PrintHeader from "@/components/PrintHeader";
 
-export function QRCodeGenerator({ resultsUrl, qrOptions, printRef, apiKey }) {
+export function QRCodeGenerator({
+  resultsUrl,
+  qrOptions,
+  printRef,
+  apiKey,
+  festivalName,
+  festivalNameImage,
+}) {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
@@ -24,8 +31,17 @@ export function QRCodeGenerator({ resultsUrl, qrOptions, printRef, apiKey }) {
           <div className="w-full">
             <PrintHeader apiKey={apiKey} isFestival={true} />
           </div>
-          
+
           <div className="flex flex-col items-center justify-center space-y-4 p-4 sm:px-8 sm:pb-8 sm:pt-4">
+            {festivalNameImage && (
+              <div className="flex items-center justify-center py-2 max-w-[260px]">
+                <img
+                  src={festivalNameImage}
+                  alt={festivalName || "Festival"}
+                  className="max-h-16 w-auto object-contain"
+                />
+              </div>
+            )}
             <QRCodeCanvas
               value={resultsUrl}
               size={qrOptions.width}
@@ -35,8 +51,8 @@ export function QRCodeGenerator({ resultsUrl, qrOptions, printRef, apiKey }) {
               fgColor={qrOptions.color.dark}
               style={{ maxWidth: "100%", height: "auto" }}
             />
-            <p className="text-sm text-center text-muted-foreground mt-4">
-              Scan to view festival results
+            <p className="text-sm text-center text-muted-foreground mt-4 font-medium">
+              Scan to view {festivalName ? `${festivalName.toUpperCase()} ` : ""}festival results
             </p>
           </div>
         </div>

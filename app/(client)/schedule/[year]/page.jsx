@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Trophy,
   Search,
   LogIn,
-  Home,
   Menu,
   X,
-  Award,
-  Users,
-  Star,
   ChevronRight,
+  ChevronDown,
+  Check,
   MapPin,
   Loader2,
   Calendar,
@@ -21,6 +19,7 @@ import {
   Radio,
   Sparkles,
   Flame,
+  Camera,
   CheckCircle2,
 } from "lucide-react";
 import PublicFooter from "@/components/PublicFooter";
@@ -75,7 +74,7 @@ function ScheduleTopBar({
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenSidebar}
-              className="lg:hidden p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition"
+              className="lg:hidden -ml-2 p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
@@ -160,14 +159,10 @@ function ScheduleSidebar({
   const galleryLink = `/gallery/${safeYear}`;
 
   const navItems = [
-    { icon: Home, label: "Home", href: "/" },
     { icon: Trophy, label: "Results", href: resultsLink },
     { icon: Flame, label: "Team Points", href: teamPointsLink },
     { icon: Calendar, label: "Schedule", href: scheduleLink, active: true },
-    { icon: Award, label: "Gallery", href: galleryLink },
-    { icon: Users, label: "Participants", href: "/participant" },
-    { icon: Star, label: "Updates", href: "/updates" },
-    { icon: Award, label: "Articles", href: "/articles" },
+    { icon: Camera, label: "Gallery", href: galleryLink },
   ];
 
   return (
@@ -186,45 +181,31 @@ function ScheduleSidebar({
         }`}
         aria-label="Navigation sidebar"
       >
-        <div className="relative bg-gradient-to-br from-[#3f2720] to-[#1a120e] p-6 pb-8 border-b border-white/10">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-[#1a120e]">
+          <div className="flex items-center gap-3 min-w-0">
+            {festivalNameImage ? (
+              <img
+                src={festivalNameImage}
+                alt={festivalName || "Festival"}
+                className="h-8 sm:h-9 w-auto object-contain max-w-[160px] brightness-0 invert"
+              />
+            ) : (
+              <p className="text-white font-black text-lg capitalize truncate">
+                {festivalName || "Festival"}
+              </p>
+            )}
+          </div>
+
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            className="p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
             aria-label="Close sidebar"
           >
-            <X className="w-4 h-4 text-white" />
+            <X className="w-5 h-5" />
           </button>
-
-          <div className="flex items-center gap-3 mt-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#d4af37]/20 border border-[#d4af37]/30 flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-6 h-6 text-[#d4af37]" />
-            </div>
-            <div>
-              {festivalNameImage ? (
-                <img
-                  src={festivalNameImage}
-                  alt={festivalName || "Festival"}
-                  className="h-10 w-auto object-contain max-w-[160px] brightness-0 invert"
-                />
-              ) : (
-                <p className="text-white font-black text-xl capitalize">
-                  {festivalName || "Festival"}
-                </p>
-              )}
-              {festivalVenue && (
-                <p className="text-white/60 text-xs mt-0.5 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {festivalVenue}
-                </p>
-              )}
-            </div>
-          </div>
         </div>
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-3">
-            Navigation
-          </p>
           <ul className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -270,13 +251,121 @@ function ScheduleSidebar({
   );
 }
 
+/* -------------------- Curved Dropdown Component -------------------- */
+function CurvedDropdown({
+  value,
+  onChange,
+  options,
+  placeholder = "Select...",
+  ariaLabel = "",
+  className = "",
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Close dropdown on Escape key
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape" && isOpen) {
+        setIsOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
+  const selectedOption = options.find((opt) => opt.value === value) || options[0];
+  const isSelectedActive = value !== "all";
+
+  return (
+    <div ref={dropdownRef} className={`relative ${className}`}>
+      {/* Curved Trigger Pill Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={ariaLabel}
+        className={`w-full h-11 flex items-center justify-between rounded-full pl-5 pr-4 text-xs sm:text-sm font-semibold transition-all duration-200 outline-none border ${
+          isSelectedActive
+            ? "bg-[#d4af37]/15 border-[#d4af37]/60 text-[#d4af37] shadow-sm shadow-[#d4af37]/10"
+            : "bg-white/[0.04] border-white/15 text-white/80 hover:border-white/30 hover:text-white"
+        }`}
+      >
+        <span className="truncate pr-2">{selectedOption ? selectedOption.label : placeholder}</span>
+        <ChevronDown
+          className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-[#d4af37]" : isSelectedActive ? "text-[#d4af37]" : "text-white/60"
+          }`}
+        />
+      </button>
+
+      {/* Curved Items Menu / Table Popover */}
+      {isOpen && (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl sm:rounded-3xl bg-[#17110c]/95 border border-white/15 backdrop-blur-xl shadow-2xl shadow-black/80 ring-1 ring-[#d4af37]/20 p-2 max-h-64 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent animate-in fade-in-0 zoom-in-95 duration-150"
+        >
+          <div className="space-y-1">
+            {options.map((opt) => {
+              const isItemActive = opt.value === value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="option"
+                  aria-selected={isItemActive}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm transition-all duration-150 text-left group ${
+                    isItemActive
+                      ? "bg-[#d4af37]/20 text-[#d4af37] font-bold border border-[#d4af37]/40 shadow-sm"
+                      : "text-white/80 hover:bg-white/[0.08] hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {isItemActive && (
+                      <Check className="w-3.5 h-3.5 flex-shrink-0 text-[#d4af37]" />
+                    )}
+                    <span className="truncate font-medium">{opt.label}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* -------------------- Main Schedule Content -------------------- */
-function ScheduleContent() {
+function ScheduleContent({ initialYear }) {
   const [schedules, setSchedules] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedStage, setSelectedStage] = useState("all");
+  const [selectedDivision, setSelectedDivision] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -352,11 +441,61 @@ function ScheduleContent() {
     return Array.from(stages).sort((a, b) => a - b);
   }, [schedules]);
 
-  /* Filter schedules */
+  /* Extract unique divisions */
+  const availableDivisions = useMemo(() => {
+    const divs = new Set();
+    schedules.forEach((s) => {
+      if (s.divisionName && s.divisionName !== "Unknown") {
+        divs.add(s.divisionName.trim());
+      }
+    });
+    return Array.from(divs).sort();
+  }, [schedules]);
+
+  /* Options for Curved Dropdowns (no count badges) */
+  const stageOptions = useMemo(() => {
+    const opts = [
+      {
+        value: "all",
+        label: `All Stages`,
+      },
+    ];
+    availableStages.forEach((stg) => {
+      opts.push({
+        value: stg.toString(),
+        label: `Stage ${stg}`,
+      });
+    });
+    return opts;
+  }, [availableStages]);
+
+  const divisionOptions = useMemo(() => {
+    const opts = [
+      {
+        value: "all",
+        label: `All Divisions`,
+      },
+    ];
+    availableDivisions.forEach((div) => {
+      opts.push({
+        value: div,
+        label: div,
+      });
+    });
+    return opts;
+  }, [availableDivisions]);
+
+  /* Filter and sort schedules: Ongoing first, then Upcoming, then Completed */
   const filteredSchedules = useMemo(() => {
-    return schedules.filter((s) => {
+    const list = schedules.filter((s) => {
       if (selectedStage !== "all" && s.stageNumber !== Number(selectedStage)) {
         return false;
+      }
+      if (selectedDivision !== "all") {
+        const divName = (s.divisionName || "").trim().toLowerCase();
+        if (divName !== selectedDivision.trim().toLowerCase()) {
+          return false;
+        }
       }
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
@@ -366,7 +505,38 @@ function ScheduleContent() {
       }
       return true;
     });
-  }, [schedules, selectedStage, searchQuery]);
+
+    const getStatusRank = (status) => {
+      const s = (status || "").toLowerCase().trim();
+      if (s === "ongoing") return 1;
+      if (s === "upcoming") return 2;
+      if (s === "completed") return 3;
+      return 4;
+    };
+
+    return list.sort((a, b) => {
+      const rankA = getStatusRank(a.status);
+      const rankB = getStatusRank(b.status);
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+
+      // If same status, sort chronologically
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      if (dateA !== dateB) {
+        return dateA - dateB;
+      }
+
+      const timeA = a.startTime || "";
+      const timeB = b.startTime || "";
+      if (timeA !== timeB) {
+        return timeA.localeCompare(timeB);
+      }
+
+      return (a.stageNumber || 0) - (b.stageNumber || 0);
+    });
+  }, [schedules, selectedStage, selectedDivision, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#0d0906] text-white flex flex-col selection:bg-[#d4af37] selection:text-black">
@@ -410,13 +580,13 @@ function ScheduleContent() {
               <Calendar className="w-3.5 h-3.5" />
               <span>Schedule • {festivalName} '{festivalYear.toString().slice(-2)}</span>
             </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight">
-              Programme{" "}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] sm:leading-tight tracking-tight">
+              Program{" "}
               <span className="bg-gradient-to-r from-[#e5c07b] via-[#d4af37] to-[#df6b43] bg-clip-text text-transparent">
                 schedule.
               </span>
             </h1>
-            <p className="mt-3 text-sm sm:text-base text-white/60 max-w-xl">
+            <p className="mt-1.5 sm:mt-3 text-sm sm:text-base text-white/60 max-w-xl">
               Stage-by-stage schedule and timings.
             </p>
           </header>
@@ -444,48 +614,65 @@ function ScheduleContent() {
             </div>
           </div>
 
-          {/* Stage Filter Tabs */}
-          {availableStages.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedStage("all")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  selectedStage === "all"
-                    ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20"
-                    : "bg-white/[0.04] text-white/70 border border-white/10 hover:border-white/20 hover:text-white"
-                }`}
-              >
-                All Stages ({schedules.length})
-              </button>
-              {availableStages.map((stg) => {
-                const count = schedules.filter((s) => s.stageNumber === stg).length;
-                return (
+          {/* Stage & Division Dropdowns (Side by Side, Curved Style) */}
+          {(availableStages.length > 0 || availableDivisions.length > 0) && (
+            <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <div className="flex flex-row items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+                {/* Stage Dropdown */}
+                <CurvedDropdown
+                  ariaLabel="Filter by Stage"
+                  value={selectedStage}
+                  onChange={setSelectedStage}
+                  options={stageOptions}
+                  className="flex-1 sm:w-60 md:w-64"
+                />
+
+                {/* Division Dropdown */}
+                <CurvedDropdown
+                  ariaLabel="Filter by Division"
+                  value={selectedDivision}
+                  onChange={setSelectedDivision}
+                  options={divisionOptions}
+                  className="flex-1 sm:w-60 md:w-64"
+                />
+              </div>
+
+              {/* Count & Clear Filters: after dropdowns on desktop, under dropdowns on mobile */}
+              <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                {/* Program Count Text (no badge) */}
+                <div className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-white/60 whitespace-nowrap">
+                  <span className="text-[#d4af37] font-bold text-sm sm:text-base">{filteredSchedules.length}</span>
+                  <span>{filteredSchedules.length === 1 ? "Program" : "Programs"}</span>
+                </div>
+
+                {/* Clear Filter Button */}
+                {(selectedStage !== "all" || selectedDivision !== "all") && (
                   <button
-                    key={stg}
-                    onClick={() => setSelectedStage(stg.toString())}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                      selectedStage === stg.toString()
-                        ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20"
-                        : "bg-white/[0.04] text-white/70 border border-white/10 hover:border-white/20 hover:text-white"
-                    }`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedStage("all");
+                      setSelectedDivision("all");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/70 hover:text-white bg-white/[0.04] hover:bg-white/10 border border-white/15 transition whitespace-nowrap"
                   >
-                    Stage {stg} ({count})
+                    <X className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Clear filters</span>
                   </button>
-                );
-              })}
+                )}
+              </div>
             </div>
           )}
 
           {/* Error Message */}
           {error && (
-            <div className="mt-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-6 text-center text-red-400 font-medium">
+            <div className="mt-4 sm:mt-8 bg-red-500/10 border border-red-500/30 rounded-2xl p-5 sm:p-6 text-center text-red-400 font-medium">
               ⚠️ {error}
             </div>
           )}
 
           {/* Loading Indicator */}
           {loading && (
-            <div className="flex flex-col items-center justify-center py-24">
+            <div className="flex flex-col items-center justify-center py-14 sm:py-24">
               <Loader2 className="w-10 h-10 animate-spin text-[#d4af37] mb-4" />
               <p className="text-white/60 text-sm font-medium tracking-wide">
                 Loading schedule...
@@ -495,7 +682,7 @@ function ScheduleContent() {
 
           {/* Empty State */}
           {!loading && !error && filteredSchedules.length === 0 && (
-            <div className="mt-12 text-center py-16 bg-white/[0.02] border border-white/10 rounded-3xl p-8 max-w-md mx-auto">
+            <div className="mt-6 sm:mt-12 text-center py-12 sm:py-16 bg-white/[0.02] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md mx-auto">
               <Calendar className="w-14 h-14 text-[#d4af37]/40 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">
                 No Schedule Found
@@ -503,14 +690,29 @@ function ScheduleContent() {
               <p className="text-sm text-white/60 leading-relaxed">
                 {searchQuery
                   ? `No programs match "${searchQuery}"`
+                  : selectedStage !== "all" || selectedDivision !== "all"
+                  ? "No programs match the selected stage and division."
                   : "Program schedules will be published soon. Please check back later."}
               </p>
+              {(selectedStage !== "all" || selectedDivision !== "all" || searchQuery) && (
+                <button
+                  onClick={() => {
+                    setSelectedStage("all");
+                    setSelectedDivision("all");
+                    setSearchQuery("");
+                  }}
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-black bg-[#d4af37] hover:opacity-90 transition"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Reset All Filters
+                </button>
+              )}
             </div>
           )}
 
           {/* Schedules List Cards */}
           {!loading && !error && filteredSchedules.length > 0 && (
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-3.5 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               {filteredSchedules.map((item) => {
                 const isOngoing = item.status === "Ongoing";
                 const isUpcoming = item.status === "Upcoming";

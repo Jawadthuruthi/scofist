@@ -13,6 +13,7 @@ import {
   Share2,
   Check,
   QrCode,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -22,13 +23,16 @@ import { downloadQRCode } from "@/lib/qr-code/download-handler";
 export function QRCodeActions({
   resultsUrl,
   organizationName = "SCOFIST",
+  festivalName,
+  festivalNameImage,
   printRef,
 }) {
   const { isCopied, copyToClipboard } = useClipboard();
+  const [isSharingUrl, setIsSharingUrl] = useState(false);
 
   // Print handler
   const handlePrint = useReactToPrint(
-    createPrintHandler(printRef, { organizationName })
+    createPrintHandler(printRef, { organizationName: festivalName || organizationName })
   );
 
   // Download handler
@@ -36,7 +40,7 @@ export function QRCodeActions({
     try {
       downloadQRCode(
         "#qr-code-canvas canvas",
-        `Results-QR-${organizationName}`
+        `Results-QR-${festivalName || organizationName}`
       );
       toast.success("QR code downloaded!");
     } catch (error) {
@@ -61,21 +65,94 @@ export function QRCodeActions({
 
   // Share URL
   const handleShareUrl = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Festival Results",
-          text: "Check out our festival results!",
-          url: resultsUrl,
-        });
-        toast.success("Shared URL successfully!");
-      } catch (error) {
-        if (error.name !== "AbortError") {
-          toast.error("Failed to share URL");
+    setIsSharingUrl(true);
+    const displayName = festivalName
+      ? festivalName.charAt(0).toUpperCase() + festivalName.slice(1)
+      : organizationName;
+    const shareTitle = `${displayName} Results`;
+    const shareText = `Check out ${displayName} festival results: ${resultsUrl}`;
+
+    try {
+      if (navigator.share) {
+        let shared = false;
+
+        // If festivalNameImage exists, try sharing with the image file
+        if (festivalNameImage) {
+          try {
+            const response = await fetch(festivalNameImage);
+            if (response.ok) {
+              const blob = await response.blob();
+              const ext = blob.type.split("/")[1] || "png";
+              const safeName = displayName.toLowerCase().replace(/\s+/g, "-");
+              const file = new File([blob], `${safeName}-name.${ext}`, {
+                type: blob.type || "image/png",
+              });
+
+              if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                // Try sharing file + title + text + url
+                try {
+                  if (
+                    navigator.canShare({
+                      files: [file],
+                      title: shareTitle,
+                      text: shareText,
+                      url: resultsUrl,
+                    })
+                  ) {
+                    await navigator.share({
+                      title: shareTitle,
+                      text: shareText,
+                      url: resultsUrl,
+                      files: [file],
+                    });
+                    shared = true;
+                  }
+                } catch (shareErr) {
+                  if (shareErr.name === "AbortError") throw shareErr;
+                }
+
+                // If combined files+url was not supported/failed, try files + text (text contains resultsUrl)
+                if (!shared) {
+                  try {
+                    await navigator.share({
+                      title: shareTitle,
+                      text: shareText,
+                      files: [file],
+                    });
+                    shared = true;
+                  } catch (shareErr) {
+                    if (shareErr.name === "AbortError") throw shareErr;
+                  }
+                }
+              }
+            }
+          } catch (fetchErr) {
+            if (fetchErr.name === "AbortError") throw fetchErr;
+            console.warn(
+              "Could not attach festival name image for share:",
+              fetchErr
+            );
+          }
         }
+
+        // Fallback to standard share if file wasn't shared
+        if (!shared) {
+          await navigator.share({
+            title: shareTitle,
+            text: `Check out ${displayName} festival results!`,
+            url: resultsUrl,
+          });
+        }
+        toast.success("Shared URL successfully!");
+      } else {
+        await handleCopyUrl();
       }
-    } else {
-      handleCopyUrl();
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        toast.error("Failed to share URL");
+      }
+    } finally {
+      setIsSharingUrl(false);
     }
   };
 
@@ -94,7 +171,11 @@ export function QRCodeActions({
           return;
         }
         
-        const file = new File([blob], `Results-QR-${organizationName}.png`, { type: "image/png" });
+        const file = new File(
+          [blob],
+          `Results-QR-${festivalName || organizationName}.png`,
+          { type: "image/png" }
+        );
         
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
@@ -144,13 +225,28 @@ export function QRCodeActions({
           Share QR Code
         </Button>
 
-        {/* 4. Result URL (Text display) */}
+        {/* 4. Result URL (Text display & Festival Image preview) */}
         <div className="py-2">
-          <div className="p-3 bg-muted rounded-lg border text-center">
-            <p className="text-xs font-medium mb-1">Results URL:</p>
-            <p className="text-xs text-muted-foreground break-all">
-              {resultsUrl}
-            </p>
+          <div className="p-3 bg-muted rounded-lg border text-center space-y-2">
+            {festivalNameImage && (
+              <div className="flex justify-center items-center py-1">
+                <img
+                  src={festivalNameImage}
+                  alt={festivalName || organizationName}
+                  className="max-h-12 w-auto max-w-[200px] object-contain"
+                />
+              </div>
+            )}
+            <div>
+              <p className="text-xs font-semibold text-foreground">
+                {festivalName
+                  ? `${festivalName.charAt(0).toUpperCase() + festivalName.slice(1)} Results URL:`
+                  : "Results URL:"}
+              </p>
+              <p className="text-xs text-muted-foreground break-all mt-0.5">
+                {resultsUrl}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -165,8 +261,17 @@ export function QRCodeActions({
         </Button>
 
         {/* 6. Share URL */}
-        <Button onClick={handleShareUrl} className="w-full" variant="outline">
-          <Share2 className="mr-2 h-4 w-4" />
+        <Button
+          onClick={handleShareUrl}
+          disabled={isSharingUrl}
+          className="w-full"
+          variant="outline"
+        >
+          {isSharingUrl ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Share2 className="mr-2 h-4 w-4" />
+          )}
           Share URL
         </Button>
 

@@ -20,6 +20,7 @@ import {
   Users,
   Sparkles,
   Flame,
+  Camera,
 } from "lucide-react";
 import { formatOptions } from "@/lib/utils";
 import ResultPostersSection from "@/components/ResultPostersSection";
@@ -78,7 +79,7 @@ function ResultsTopBar({
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenSidebar}
-              className="lg:hidden p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition"
+              className="lg:hidden -ml-2 p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
@@ -165,14 +166,10 @@ function ResultsSidebar({
   const galleryLink = `/gallery/${safeYear}`;
 
   const navItems = [
-    { icon: Home, label: "Home", href: "/" },
     { icon: Trophy, label: "Results", href: resultsLink, active: true },
     { icon: Flame, label: "Team Points", href: teamPointsLink },
     { icon: Calendar, label: "Schedule", href: scheduleLink },
-    { icon: Award, label: "Gallery", href: galleryLink },
-    { icon: Users, label: "Participants", href: "/participant" },
-    { icon: Star, label: "Updates", href: "/updates" },
-    { icon: Award, label: "Articles", href: "/articles" },
+    { icon: Camera, label: "Gallery", href: galleryLink },
   ];
 
   return (
@@ -191,45 +188,31 @@ function ResultsSidebar({
         }`}
         aria-label="Navigation sidebar"
       >
-        <div className="relative bg-gradient-to-br from-[#3f2720] to-[#1a120e] p-6 pb-8 border-b border-white/10">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-[#1a120e]">
+          <div className="flex items-center gap-3 min-w-0">
+            {festivalNameImage ? (
+              <img
+                src={festivalNameImage}
+                alt={festivalName || "Festival"}
+                className="h-8 sm:h-9 w-auto object-contain max-w-[160px] brightness-0 invert"
+              />
+            ) : (
+              <p className="text-white font-black text-lg capitalize truncate">
+                {festivalName || "Festival"}
+              </p>
+            )}
+          </div>
+
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            className="p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
             aria-label="Close sidebar"
           >
-            <X className="w-4 h-4 text-white" />
+            <X className="w-5 h-5" />
           </button>
-
-          <div className="flex items-center gap-3 mt-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#d4af37]/20 border border-[#d4af37]/30 flex items-center justify-center flex-shrink-0">
-              <Trophy className="w-6 h-6 text-[#d4af37]" />
-            </div>
-            <div>
-              {festivalNameImage ? (
-                <img
-                  src={festivalNameImage}
-                  alt={festivalName || "Festival"}
-                  className="h-10 w-auto object-contain max-w-[160px] brightness-0 invert"
-                />
-              ) : (
-                <p className="text-white font-black text-xl capitalize">
-                  {festivalName || "Festival"}
-                </p>
-              )}
-              {festivalVenue && (
-                <p className="text-white/60 text-xs mt-0.5 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {festivalVenue}
-                </p>
-              )}
-            </div>
-          </div>
         </div>
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-3">
-            Navigation
-          </p>
           <ul className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -586,14 +569,14 @@ function PublicResultsContent() {
                     <Trophy className="w-3.5 h-3.5" />
                     <span>{publishedResultsCount} Results Published</span>
                   </div>
-                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] sm:leading-tight tracking-tight">
                     Competition{" "}
                     <span className="bg-gradient-to-r from-[#e5c07b] via-[#d4af37] to-[#df6b43] bg-clip-text text-transparent">
                       results.
                     </span>
                   </h1>
-                  <p className="mt-3 text-sm sm:text-base text-white/60 max-w-xl leading-relaxed">
-                    Search by result number or select a division and program to view declared competition results and podium winners.
+                  <p className="mt-1.5 sm:mt-3 text-sm sm:text-base text-white/60 max-w-xl leading-relaxed">
+                    Search to view declared results and winners.
                   </p>
                 </header>
               </section>
