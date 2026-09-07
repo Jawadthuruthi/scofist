@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useDynamicFormSchema } from "@/hooks/use-dynamic-form-schema";
-import { getDefaultValues } from "@/lib/utils";
+import { cn, getDefaultValues } from "@/lib/utils";
 import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader } from "./ui/card";
@@ -148,14 +148,14 @@ const SectionNavigation = ({
   </div>
 );
 
-const FormFields = ({ form, fields, apiKey, isSubmitting }) =>
+const FormFields = ({ form, fields, apiKey, isSubmitting, itemGap = "space-y-1 sm:space-y-1.5" }) =>
   fields.map((field, idx) => (
     <FormField
       key={idx}
       control={form.control}
       name={field.name}
       render={({ field: formField }) => (
-        <FormItem className={field.className || "col-span-2 md:col-span-1"}>
+        <FormItem className={cn(itemGap, field.className || "col-span-2 md:col-span-1")}>
           {field.label && !field.hideLabel && (
             <FormLabel htmlFor={field.name}>
               {field.label}
@@ -263,6 +263,8 @@ const FormContent = ({
   apiKey,
   hideSubmitOn,
   gridCols = "grid-cols-2 md:grid-cols-2",
+  gridGap = "gap-4",
+  itemGap = "space-y-1 sm:space-y-1.5",
   hideDefaultSubmit = false,
   renderPreview,
   formValues,
@@ -321,7 +323,7 @@ const FormContent = ({
             {sectionOrder.map((section, index) => (
               <div
                 key={section}
-                className={`grid gap-4 ${gridCols} ${activeSectionIndex === index ? "block" : "hidden"
+                className={`grid ${gridGap} ${gridCols} ${activeSectionIndex === index ? "block" : "hidden"
                   }`}
               >
                 {section !== "undefined" && (
@@ -332,9 +334,54 @@ const FormContent = ({
                   fields={sections[section]}
                   apiKey={apiKey}
                   isSubmitting={loading}
+                  itemGap={itemGap}
                 />
               </div>
             ))}
+            {!hideDefaultSubmit && (
+              <div className={`grid ${gridGap} ${gridCols} mt-4 sm:mt-8`}>
+                {activeSectionIndex > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="col-span-2 md:col-span-1 md:col-start-1 w-full"
+                    onClick={() => setActiveSectionIndex((prev) => prev - 1)}
+                  >
+                    Previous
+                  </Button>
+                )}
+                {activeSectionIndex === totalSections - 1 ? (
+                  (!hideSubmitOn ||
+                    form.getValues()[hideSubmitOn.field] !== hideSubmitOn.value ||
+                    form.formState.isDirty) && (
+                    <Button
+                      className="col-span-2 md:col-span-1 md:col-start-2 w-full"
+                      type="submit"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <Loader className="animate-spin mr-2" />
+                      ) : data ? (
+                        "Save changes"
+                      ) : (
+                        "Submit"
+                      )}
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    type="button"
+                    className="col-span-2 md:col-span-1 md:col-start-2 w-full"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveSectionIndex((prev) => prev + 1);
+                    }}
+                  >
+                    Next
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           {renderPreview && (
             <div className="flex-1 flex justify-center items-start">
@@ -342,45 +389,6 @@ const FormContent = ({
             </div>
           )}
         </div>
-        {!hideDefaultSubmit && (
-          <div className="flex gap-3 mt-8">
-            {activeSectionIndex > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setActiveSectionIndex((prev) => prev - 1)}
-              >
-                Previous
-              </Button>
-            )}
-            {activeSectionIndex === totalSections - 1 ? (
-              (!hideSubmitOn ||
-                form.getValues()[hideSubmitOn.field] !== hideSubmitOn.value ||
-                form.formState.isDirty) && (
-                <Button className="ml-auto" type="submit" disabled={loading}>
-                  {loading ? (
-                    <Loader className="animate-spin mr-2" />
-                  ) : data ? (
-                    "Save changes"
-                  ) : (
-                    "Submit"
-                  )}
-                </Button>
-              )
-            ) : (
-              <Button
-                type="button"
-                className="ml-auto"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveSectionIndex((prev) => prev + 1);
-                }}
-              >
-                Next
-              </Button>
-            )}
-          </div>
-        )}
       </form>
     </Form>
   );
@@ -398,6 +406,8 @@ export default function FormComponent({
   hideSubmitOn,
   onSuccess,
   gridCols,
+  gridGap,
+  itemGap,
   removeCardWrapper = false,
   hideDefaultSubmit = false,
   renderPreview,
@@ -499,6 +509,8 @@ export default function FormComponent({
       apiKey={apiKey}
       hideSubmitOn={hideSubmitOn}
       gridCols={gridCols}
+      gridGap={gridGap}
+      itemGap={itemGap}
       hideDefaultSubmit={hideDefaultSubmit}
       renderPreview={renderPreview}
       formValues={formValues}

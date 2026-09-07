@@ -156,6 +156,8 @@ export default async function IndividualLeaveRegisterPage({ params }) {
           title=""
           description=""
           returnBack={true}
+          gridGap="gap-2.5 sm:gap-3 md:gap-4"
+          itemGap="space-y-1 sm:space-y-1.5"
         />
       </>
     );
