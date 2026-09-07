@@ -577,7 +577,7 @@ function ScheduleContent({ initialYear }) {
           className="pointer-events-none absolute -left-48 top-80 h-96 w-96 rounded-full bg-[#9e6237]/[0.08] blur-[120px]"
         />
 
-        <section className="relative mx-auto max-w-7xl px-6 pt-10 pb-12 sm:px-8 md:px-12 sm:pt-7 sm:pb-16">
+        <section className="relative mx-auto max-w-7xl px-6 pt-10 pb-12 sm:px-8 md:px-12 sm:pt-7 md:pt-17 sm:pb-16">
           {/* Hero Header */}
           <header className="max-w-4xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[11px] font-bold uppercase tracking-[0.2em] mb-3">

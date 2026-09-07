@@ -85,6 +85,7 @@ module.exports = {
       },
       spacing: {
         topbar: "var(--topbar-height, 3.5rem)",
+        17: "4.25rem",
       },
     },
     screens: {

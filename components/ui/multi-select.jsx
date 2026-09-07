@@ -52,6 +52,8 @@ export const MultiSelect = React.forwardRef(
       maxCount = Infinity,
       asChild = false,
       className,
+      popoverClassName = "",
+      dark = false,
       disableSearch = false,
       multiSelect = true,
       value,
@@ -529,7 +531,11 @@ export const MultiSelect = React.forwardRef(
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 overflow-hidden"
+          className={cn(
+            "w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 overflow-hidden",
+            dark && "bg-[#0d0906] text-white border-white/20 shadow-2xl",
+            popoverClassName
+          )}
           align="start"
           collisionPadding={12}
           onEscapeKeyDown={() => setIsPopoverOpen(false)}
@@ -537,11 +543,14 @@ export const MultiSelect = React.forwardRef(
           <div className="flex flex-col">
             {/* Search input */}
             {!disableSearch && (
-              <div className="flex flex-col border-b">
+              <div className={cn("flex flex-col border-b", dark && "border-white/15")}>
                 <div className="flex items-center px-3">
-                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <Search className={cn("mr-2 h-4 w-4 shrink-0", dark ? "text-white/50" : "opacity-50")} />
                   <input
-                    className="flex z-40 h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    className={cn(
+                      "flex z-40 h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50",
+                      dark ? "text-white placeholder:text-white/40" : "placeholder:text-muted-foreground"
+                    )}
                     placeholder={freeSolo ? freeSoloPlaceholder : "Search..."}
                     value={searchQuery}
                     onChange={handleSearchChange}
@@ -590,7 +599,7 @@ export const MultiSelect = React.forwardRef(
               )}
 
               {filteredOptions.length === 0 && !canAddNewOption && (
-                <div className="py-6 text-center text-sm">
+                <div className={cn("py-6 text-center text-sm", dark ? "text-white/50" : "")}>
                   No results found.
                 </div>
               )}
@@ -598,19 +607,26 @@ export const MultiSelect = React.forwardRef(
               <div className="p-1">
                 {multiSelect && filteredOptions.length > 0 && (
                   <div
-                    className="flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                    className={cn(
+                      "flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer",
+                      dark ? "hover:bg-white/10 text-white" : "hover:bg-accent hover:text-accent-foreground"
+                    )}
                     onClick={toggleAll}
                   >
                     <div
                       className={cn(
-                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                        selectedValues.length === menuItems.length
-                          ? "bg-primary text-primary-foreground"
-                          : "opacity-50"
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border transition-colors flex-shrink-0",
+                        dark
+                          ? selectedValues.length === menuItems.length
+                            ? "bg-[#d4af37] border-[#d4af37] text-black"
+                            : "border-white/50 bg-black/20"
+                          : selectedValues.length === menuItems.length
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-primary opacity-50"
                       )}
                     >
                       {selectedValues.length === menuItems.length && (
-                        <CheckIcon className="h-4 w-4" />
+                        <CheckIcon className="h-4 w-4 stroke-[3]" />
                       )}
                     </div>
                     <span>(Select All)</span>
@@ -626,9 +642,19 @@ export const MultiSelect = React.forwardRef(
                       id={`multiselect-option-${index}`}
                       key={option.value}
                       className={cn(
-                        "flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground",
-                        option.isCustom && "bg-primary/5 border-l-2 border-primary/20",
-                        focusedIndex === index && "bg-accent text-accent-foreground"
+                        "flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer transition-colors",
+                        dark
+                          ? cn(
+                              "text-white/80",
+                              focusedIndex === index
+                                ? "bg-[#d4af37]/25 text-[#d4af37] font-semibold"
+                                : "hover:bg-white/10 hover:text-white"
+                            )
+                          : cn(
+                              "hover:bg-accent hover:text-accent-foreground",
+                              focusedIndex === index && "bg-accent text-accent-foreground"
+                            ),
+                        option.isCustom && (dark ? "bg-white/5 border-l-2 border-[#d4af37]" : "bg-primary/5 border-l-2 border-primary/20")
                       )}
                       onMouseEnter={() => setFocusedIndex(index)}
                       onClick={() => {
@@ -638,21 +664,25 @@ export const MultiSelect = React.forwardRef(
                     >
                       <div
                         className={cn(
-                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                          isSelected
-                            ? "bg-primary text-primary-foreground"
-                            : "opacity-50"
+                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border transition-colors flex-shrink-0",
+                          dark
+                            ? isSelected
+                              ? "bg-[#d4af37] border-[#d4af37] text-black"
+                              : "border-white/50 bg-black/20"
+                            : isSelected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "border-primary opacity-50"
                         )}
                       >
-                        {isSelected && <CheckIcon className="h-4 w-4" />}
+                        {isSelected && <CheckIcon className="h-4 w-4 stroke-[3]" />}
                       </div>
                       {option.icon && (
-                        <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <option.icon className={cn("mr-2 h-4 w-4", dark ? "text-white/60" : "text-muted-foreground")} />
                       )}
                       <span
                         className={cn(
                           "flex-1",
-                          option.isCustom && "text-primary font-medium"
+                          option.isCustom && (dark ? "text-[#d4af37] font-medium" : "text-primary font-medium")
                         )}
                       >
                         {option.label}

@@ -624,8 +624,8 @@ function PublicResultsContent() {
             </div>
           ) : (
             <>
-              {/* HERO HEADER */}
-              <section className="relative mx-auto max-w-7xl px-6 pt-10 pb-5 sm:px-8 md:px-12 sm:pt-7 sm:pb-6">
+              {/* HERO HEADER & DROPDOWN FILTERS */}
+              <section className="relative mx-auto max-w-7xl px-6 pt-10 pb-4 sm:px-8 md:px-12 sm:pt-7 md:pt-17 sm:pb-6">
                 <header className="max-w-4xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[11px] font-bold uppercase tracking-[0.2em] mb-3">
                     <Trophy className="w-3.5 h-3.5" />
@@ -641,59 +641,57 @@ function PublicResultsContent() {
                     Search to view declared results and winners.
                   </p>
                 </header>
-              </section>
 
-              {/* STICKY FILTER BAR */}
-              <div className="bg-[#120d09]/90 sticky top-16 z-40 backdrop-blur-md border-y border-white/10">
-                <div className="max-w-7xl mx-auto px-6 sm:px-8 md:px-12 py-5 flex items-center justify-center">
-                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full">
-                    {/* Result No. */}
-                    <div className="flex-1 min-w-0">
-                      <Input
-                        type="number"
-                        placeholder="Result No."
-                        value={resultNo}
-                        onChange={(e) => setResultNo(e.target.value)}
-                        className="w-full bg-white/[0.06] border-2 border-white text-white placeholder:!text-white focus-visible:border-white focus-visible:ring-white rounded-xl h-12 text-sm px-4 shadow-sm"
-                      />
-                    </div>
+                {/* Dropdown Filters */}
+                <div className="mt-10 sm:mt-12 md:mt-16 flex flex-col sm:flex-row gap-4 sm:gap-6 w-full">
+                  {/* Result No. */}
+                  <div className="flex-1 min-w-0">
+                    <Input
+                      type="number"
+                      placeholder="Result No."
+                      value={resultNo}
+                      onChange={(e) => setResultNo(e.target.value)}
+                      className="w-full bg-[#0d0906] border-2 border-white text-white placeholder:!text-white focus-visible:border-white focus-visible:ring-white rounded-xl h-12 text-sm px-4 shadow-sm"
+                    />
+                  </div>
 
-                    {/* Division */}
-                    <div className="flex-1 min-w-0">
-                      <MultiSelect
-                        options={formatOptions(divisionOptions)}
-                        value={selectedDivision}
-                        onValueChange={setSelectedDivision}
-                        multiSelect={false}
-                        noBadge={true}
-                        variant="plain"
-                        placeholder="Select Division"
-                        className="bg-white/[0.06] border-2 border-white hover:border-white hover:bg-white/10 text-white rounded-xl h-12 text-sm px-3 shadow-sm [&_span]:!text-white [&_span]:!opacity-100 [&_svg]:!text-white [&_.text-muted-foreground]:!text-white"
-                      />
-                    </div>
+                  {/* Division */}
+                  <div className="flex-1 min-w-0">
+                    <MultiSelect
+                      options={formatOptions(divisionOptions)}
+                      value={selectedDivision}
+                      onValueChange={setSelectedDivision}
+                      multiSelect={false}
+                      noBadge={true}
+                      variant="plain"
+                      placeholder="Select Division"
+                      dark={true}
+                      className="bg-[#0d0906] border-2 border-white hover:border-white hover:bg-[#0d0906]/80 text-white rounded-xl h-12 text-sm px-3 shadow-sm [&_span]:!text-white [&_span]:!opacity-100 [&_svg]:!text-white [&_.text-muted-foreground]:!text-white"
+                    />
+                  </div>
 
-                    {/* Program */}
-                    <div className="flex-1 min-w-0">
-                      <MultiSelect
-                        options={formatOptions(programOptions)}
-                        value={selectedProgram}
-                        onValueChange={setSelectedProgram}
-                        multiSelect={false}
-                        noBadge={true}
-                        variant="plain"
-                        placeholder="Select Program"
-                        className="bg-white/[0.06] border-2 border-white hover:border-white hover:bg-white/10 text-white rounded-xl h-12 text-sm px-3 shadow-sm [&_span]:!text-white [&_span]:!opacity-100 [&_svg]:!text-white [&_.text-muted-foreground]:!text-white"
-                      />
-                    </div>
+                  {/* Program */}
+                  <div className="flex-1 min-w-0">
+                    <MultiSelect
+                      options={formatOptions(programOptions)}
+                      value={selectedProgram}
+                      onValueChange={setSelectedProgram}
+                      multiSelect={false}
+                      noBadge={true}
+                      variant="plain"
+                      placeholder="Select Program"
+                      dark={true}
+                      className="bg-[#0d0906] border-2 border-white hover:border-white hover:bg-[#0d0906]/80 text-white rounded-xl h-12 text-sm px-3 shadow-sm [&_span]:!text-white [&_span]:!opacity-100 [&_svg]:!text-white [&_.text-muted-foreground]:!text-white"
+                    />
                   </div>
                 </div>
-              </div>
+              </section>
 
               {/* MAIN CONTENT AREA */}
-              <div className="max-w-7xl mx-auto px-6 sm:px-8 md:px-12 py-12">
+              <div className="max-w-7xl mx-auto px-6 sm:px-8 md:px-12 pt-2 sm:pt-4 pb-12">
                 {/* Error State */}
                 {error && (
-                  <div className="text-center py-12">
+                  <div className="text-center py-8">
                     <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 max-w-md mx-auto">
                       <p className="text-red-400 font-medium">⚠️ {error}</p>
                     </div>
@@ -702,7 +700,7 @@ function PublicResultsContent() {
 
                 {/* Loading State */}
                 {loading && (
-                  <div className="text-center py-16">
+                  <div className="text-center py-10">
                     <div className="inline-flex items-center gap-3 bg-white/[0.05] border border-white/10 backdrop-blur-md rounded-full px-6 py-3">
                       <Loader2 className="animate-spin text-[#d4af37]" size={22} />
                       <span className="text-white font-medium text-sm">
@@ -714,12 +712,12 @@ function PublicResultsContent() {
 
                 {/* Empty State - No Selection */}
                 {!loading && !error && !selectedProgram && !results && (
-                  <div className="text-center py-16">
+                  <div className="text-center pt-8 pb-12 sm:pt-4 sm:pb-14">
                     <div className="max-w-md mx-auto">
-                      <div className="w-24 h-24 mx-auto mb-6 bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-3xl flex items-center justify-center">
-                        <Trophy size={48} className="text-[#d4af37]" />
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-3xl flex items-center justify-center">
+                        <Trophy size={42} className="text-[#d4af37]" />
                       </div>
-                      <h3 className="text-2xl font-black text-white mb-3">
+                      <h3 className="text-xl sm:text-2xl font-black text-white mb-2 sm:mb-3">
                         Ready to Reveal Champions
                       </h3>
                       <p className="text-white/60 leading-relaxed text-sm">
