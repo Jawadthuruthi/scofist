@@ -29,9 +29,15 @@ export async function POST(req) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error uploading to Cloudinary:", error.message);
+    // Cloudinary SDK errors may nest the message under error.error.message
+    const errorMessage =
+      error?.message ||
+      error?.error?.message ||
+      JSON.stringify(error) ||
+      "Unknown error";
+    console.error("Error uploading to Cloudinary:", errorMessage, error);
     return NextResponse.json(
-      { message: `Error uploading image: ${error.message}` },
+      { message: `Error uploading image: ${errorMessage}` },
       { status: 500 }
     );
   }

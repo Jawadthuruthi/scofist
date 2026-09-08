@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -41,6 +40,7 @@ export const ColorInput = React.forwardRef(
       placeholder = "Select a color",
       showPalette = true,
       customColors = [],
+      layout = "default",
       className,
       ...props
     },
@@ -120,95 +120,198 @@ export const ColorInput = React.forwardRef(
     };
 
     return (
-      <div className={cn("flex items-center space-x-2", className)}>
-        {/* Color Preview */}
-        <div
-          className="w-10 h-10 rounded-md border-2 border-gray-300 flex items-center justify-center cursor-pointer"
-          style={{
-            backgroundColor: isValidColor(inputValue) ? inputValue : "#ffffff",
-          }}
-          onClick={() => !disabled && !readOnly && setOpen(true)}
-        >
-          {!isValidColor(inputValue) && (
-            <Palette className="w-5 h-5 text-gray-400" />
-          )}
-        </div>
+      <>
+        {layout === "split" ? (
+          <div className={cn("grid grid-cols-2 gap-3 w-full", className)}>
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs sm:text-sm">Text Color</Label>
+              {showPalette && !disabled && !readOnly ? (
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full h-8 rounded-md border-2 border-gray-300 dark:border-gray-700 shadow-sm flex items-center justify-center cursor-pointer transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring"
+                      style={{
+                        backgroundColor: isValidColor(inputValue) ? inputValue : "#ffffff",
+                      }}
+                      disabled={disabled}
+                      title="Choose color"
+                    >
+                      {!isValidColor(inputValue) && (
+                        <Palette className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64" align="start">
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Choose a color</Label>
 
-        {/* Text Input */}
-        <Input
-          ref={ref}
-          name={name}
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onBlur={handleInputBlur}
-          placeholder={placeholder}
-          disabled={disabled}
-          readOnly={readOnly}
-          className="flex-1"
-          {...props}
-        />
+                      {/* Native Color Picker */}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={isValidColor(inputValue) ? inputValue : "#000000"}
+                          onChange={(e) => handleColorSelect(e.target.value)}
+                          className="w-12 h-8 rounded border cursor-pointer bg-transparent"
+                        />
+                        <span className="text-sm text-gray-500">Custom color</span>
+                      </div>
 
-        {/* Color Picker Popover */}
-        {showPalette && !disabled && !readOnly && (
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="px-2"
+                      {/* Predefined Color Palette */}
+                      <div>
+                        <Label className="text-xs text-gray-500 mb-2 block">
+                          Preset colors
+                        </Label>
+                        <div className="grid grid-cols-10 gap-1">
+                          {colors.map((color, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              className={cn(
+                                "w-6 h-6 rounded-sm border-2 relative hover:scale-110 transition-transform",
+                                value === color
+                                  ? "border-gray-900 dark:border-white"
+                                  : "border-gray-300 dark:border-gray-700"
+                              )}
+                              style={{ backgroundColor: color }}
+                              onClick={() => handleColorSelect(color)}
+                              title={color}
+                            >
+                              {value === color && (
+                                <Check className="w-3 h-3 text-white absolute inset-0 m-auto drop-shadow-sm" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <div
+                  className="w-full h-8 rounded-md border-2 border-gray-300 dark:border-gray-700 shadow-sm flex items-center justify-center"
+                  style={{
+                    backgroundColor: isValidColor(inputValue) ? inputValue : "#ffffff",
+                  }}
+                >
+                  {!isValidColor(inputValue) && (
+                    <Palette className="w-5 h-5 text-gray-400" />
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs sm:text-sm">Text Code</Label>
+              <Input
+                ref={ref}
+                name={name}
+                type="text"
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={handleInputBlur}
+                placeholder={placeholder}
                 disabled={disabled}
-              >
-                <Palette className="w-4 h-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64" align="end">
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Choose a color</Label>
+                readOnly={readOnly}
+                className="w-full h-8"
+                {...props}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className={cn("flex items-center space-x-2", className)}>
+            {/* Color Preview & Selection Swatch */}
+            {showPalette && !disabled && !readOnly ? (
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-10 h-10 rounded-md border-2 border-gray-300 dark:border-gray-700 shadow-sm flex items-center justify-center cursor-pointer shrink-0 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring"
+                    style={{
+                      backgroundColor: isValidColor(inputValue) ? inputValue : "#ffffff",
+                    }}
+                    disabled={disabled}
+                    title="Choose color"
+                  >
+                    {!isValidColor(inputValue) && (
+                      <Palette className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64" align="start">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Choose a color</Label>
 
-                {/* Native Color Picker */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="color"
-                    value={isValidColor(inputValue) ? inputValue : "#000000"}
-                    onChange={(e) => handleColorSelect(e.target.value)}
-                    className="w-12 h-8 rounded border cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-500">Custom color</span>
-                </div>
+                    {/* Native Color Picker */}
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={isValidColor(inputValue) ? inputValue : "#000000"}
+                        onChange={(e) => handleColorSelect(e.target.value)}
+                        className="w-12 h-8 rounded border cursor-pointer bg-transparent"
+                      />
+                      <span className="text-sm text-gray-500">Custom color</span>
+                    </div>
 
-                {/* Predefined Color Palette */}
-                <div>
-                  <Label className="text-xs text-gray-500 mb-2 block">
-                    Preset colors
-                  </Label>
-                  <div className="grid grid-cols-10 gap-1">
-                    {colors.map((color, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        className={cn(
-                          "w-6 h-6 rounded-sm border-2 relative hover:scale-110 transition-transform",
-                          value === color
-                            ? "border-gray-900"
-                            : "border-gray-300"
-                        )}
-                        style={{ backgroundColor: color }}
-                        onClick={() => handleColorSelect(color)}
-                        title={color}
-                      >
-                        {value === color && (
-                          <Check className="w-3 h-3 text-white absolute inset-0 m-auto drop-shadow-sm" />
-                        )}
-                      </button>
-                    ))}
+                    {/* Predefined Color Palette */}
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-2 block">
+                        Preset colors
+                      </Label>
+                      <div className="grid grid-cols-10 gap-1">
+                        {colors.map((color, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className={cn(
+                              "w-6 h-6 rounded-sm border-2 relative hover:scale-110 transition-transform",
+                              value === color
+                                ? "border-gray-900 dark:border-white"
+                                : "border-gray-300 dark:border-gray-700"
+                            )}
+                            style={{ backgroundColor: color }}
+                            onClick={() => handleColorSelect(color)}
+                            title={color}
+                          >
+                            {value === color && (
+                              <Check className="w-3 h-3 text-white absolute inset-0 m-auto drop-shadow-sm" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <div
+                className="w-10 h-10 rounded-md border-2 border-gray-300 dark:border-gray-700 shadow-sm flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: isValidColor(inputValue) ? inputValue : "#ffffff",
+                }}
+              >
+                {!isValidColor(inputValue) && (
+                  <Palette className="w-5 h-5 text-gray-400" />
+                )}
               </div>
-            </PopoverContent>
-          </Popover>
+            )}
+
+            {/* Text Input */}
+            <Input
+              ref={ref}
+              name={name}
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              onBlur={handleInputBlur}
+              placeholder={placeholder}
+              disabled={disabled}
+              readOnly={readOnly}
+              className="flex-1"
+              {...props}
+            />
+          </div>
         )}
-      </div>
+      </>
     );
   }
 );

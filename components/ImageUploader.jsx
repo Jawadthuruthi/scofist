@@ -403,8 +403,15 @@ const ImageUploader = ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to upload image");
+        let errorMessage = "Failed to upload image";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // Response body is not JSON (e.g., Next.js 413 body-too-large)
+          errorMessage = `Upload failed (HTTP ${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

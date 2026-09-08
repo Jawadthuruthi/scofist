@@ -176,7 +176,7 @@ const FestivalSchema = new Schema({
 
   resultPosters: [
     {
-      name: { type: String, default: "Default Poster" },
+      name: { type: String, default: "Poster 1" },
       backgroundImage: {
         url: String,
         publicId: String,
