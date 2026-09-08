@@ -747,7 +747,7 @@ function PublicResultsContent() {
 
                 {/* Winners Display (Podium) */}
                 {!loading && !error && results && results.length > 0 && (
-                  <div className="space-y-12">
+                  <div className="space-y-5 sm:space-y-6">
                     <div className="text-center">
                       <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
                         Champions Podium
