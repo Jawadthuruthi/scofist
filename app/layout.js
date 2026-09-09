@@ -1,5 +1,13 @@
 import "./globals.css";
-import { Montserrat, Noto_Sans_Malayalam } from "next/font/google";
+import {
+  Montserrat,
+  Noto_Sans_Malayalam,
+  Inter,
+  Poppins,
+  Oswald,
+  Lato,
+  Playfair_Display,
+} from "next/font/google";
 import Providers from "@/components/Providers";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -14,6 +22,41 @@ const notoSansMalayalam = Noto_Sans_Malayalam({
   subsets: ["malayalam"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-noto-malayalam",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
+const oswald = Oswald({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-oswald",
+  display: "swap",
+});
+
+const lato = Lato({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-lato",
+  display: "swap",
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-playfair",
   display: "swap",
 });
 
@@ -149,7 +192,7 @@ export const structuredData = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${montserrat.className} ${montserrat.variable} ${notoSansMalayalam.variable}`}>
+      <body className={`${montserrat.className} ${montserrat.variable} ${notoSansMalayalam.variable} ${inter.variable} ${poppins.variable} ${oswald.variable} ${lato.variable} ${playfairDisplay.variable}`}>
         <Providers>{children}</Providers>
         <Toaster duration={1000} />
       </body>

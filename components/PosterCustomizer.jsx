@@ -243,6 +243,16 @@ const PosterCustomizer = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedElement, setSelectedElement] = useState("programInfo");
+  const [isAddingElement, setIsAddingElement] = useState(false);
+  const [newElementName, setNewElementName] = useState("");
+  const [newElementText, setNewElementText] = useState("");
+  const [divisions, setDivisions] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [selectedPreviewDivision, setSelectedPreviewDivision] = useState("");
+  const [selectedPreviewProgram, setSelectedPreviewProgram] = useState("");
+  const [programSearch, setProgramSearch] = useState("");
+  const [previewResultNumber, setPreviewResultNumber] = useState("");
+  const [previewResultData, setPreviewResultData] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState({
@@ -309,11 +319,93 @@ const PosterCustomizer = ({
     };
   }, [isDragging]);
 
+  useEffect(() => {
+    fetch("/api/divisions?projection=_id,name")
+      .then((res) => res.json())
+      .then((data) => setDivisions(data.divisions || []))
+      .catch((err) => console.error("Failed to fetch divisions:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPreviewDivision) {
+      setPrograms([]);
+      setSelectedPreviewProgram("");
+      return;
+    }
+    fetch(`/api/programs?divisionId=${selectedPreviewDivision}&projection=_id,name`)
+      .then((res) => res.json())
+      .then((data) => setPrograms(data.programs || []))
+      .catch((err) => console.error("Failed to fetch programs:", err));
+  }, [selectedPreviewDivision]);
+
+  useEffect(() => {
+    if (!selectedPreviewProgram && !previewResultNumber) {
+      setPreviewResultData(null);
+      return;
+    }
+    let url = `/api/results?isResultDeclared=true`;
+    if (selectedPreviewProgram) url += `&programId=${selectedPreviewProgram}`;
+    if (previewResultNumber) url += `&resultNumber=${previewResultNumber}`;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        const result = data.results?.[0] || null;
+        setPreviewResultData(result);
+      })
+      .catch((err) => console.error("Failed to fetch result for program:", err));
+  }, [selectedPreviewProgram, previewResultNumber]);
+
   const getCurrentPoster = () => {
     if (isFullPage && currentSettings?.resultPosters) {
       return currentSettings.resultPosters[selectedPosterIndex];
     }
     return poster;
+  };
+
+  const handleAddNewElement = () => {
+    if (!newElementName.trim() || !newElementText.trim()) {
+      toast.error("Please provide both name and text for the new element");
+      return;
+    }
+
+    const customKey = `custom_${Date.now()}`;
+    const newElementConfig = {
+      label: newElementName,
+      text: newElementText,
+      x: 50,
+      y: 50,
+      visible: true,
+      fontSize: 14,
+      responsiveSize: true,
+      minFontSize: 4,
+      maxFontSize: 32,
+      color: "#000000",
+      fontWeight: "bold",
+      textAlign: "center",
+      letterSpacing: 0,
+      textShadow: false,
+      autoFit: true,
+    };
+
+    if (isFullPage) {
+      setCurrentSettings((prev) => {
+        const newSettings = { ...prev };
+        const newPosters = [...newSettings.resultPosters];
+        const layout = { ...newPosters[selectedPosterIndex].layout };
+        layout[customKey] = newElementConfig;
+        newPosters[selectedPosterIndex].layout = layout;
+        newSettings.resultPosters = newPosters;
+        return newSettings;
+      });
+    } else {
+      onLayoutChange?.(customKey, newElementConfig);
+    }
+
+    setNewElementName("");
+    setNewElementText("");
+    setIsAddingElement(false);
+    setSelectedElement(customKey);
+    toast.success("Element added successfully");
   };
 
   const handleFullPageLayoutChange = (elementKey, updates) => {
@@ -646,11 +738,81 @@ const PosterCustomizer = ({
     toast.success(`Applied ${templateType} template`);
   };
 
+  const renderCustomElement = (key, config, isDraggable = false) => {
+    if (!config?.visible) return null;
+
+    const value = (config.text ?? "").trim() || config.label;
+    const baseFontSize = calculateResponsiveFont(
+      config.fontSize,
+      containerSize.width,
+      containerSize.height,
+      config
+    );
+    const textDimensions = calculateTextDimensions(
+      value,
+      baseFontSize,
+      config.fontWeight,
+      containerSize.width * 0.9
+    );
+    const fontSize = config.autoFit
+      ? textDimensions.suggestedFontSize
+      : baseFontSize;
+
+    return (
+      <div
+        key={`${key}-${selectedPosterIndex}-${config.fontSize}`}
+        className={`absolute pointer-events-auto select-none transition-all duration-200 ${
+          isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
+        } ${selectedElement === key && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
+        style={{
+          left: `${config.x}%`,
+          top: `${config.y}%`,
+          transform:
+            config.textAlign === "center"
+              ? "translateX(-50%)"
+              : config.textAlign === "right"
+                ? "translateX(-100%)"
+                : "translateX(0)",
+          fontSize: `${fontSize}px`,
+          fontFamily: config.fontFamily || "inherit",
+          color: config.color,
+          fontWeight: config.fontWeight,
+          textAlign: config.textAlign,
+          lineHeight: config.lineHeight || 1.2,
+          letterSpacing: `${config.letterSpacing || 0}px`,
+          textShadow: config.textShadow
+            ? "2px 2px 4px rgba(0,0,0,0.8)"
+            : "none",
+          maxWidth: "90%",
+          whiteSpace: "nowrap",
+          zIndex: 10,
+        }}
+        onMouseDown={
+          isDraggable ? (e) => handleMouseDown(e, key) : undefined
+        }
+        onTouchStart={
+          isDraggable ? (e) => handleTouchStart(e, key) : undefined
+        }
+        onClick={() => !isPreview && setSelectedElement(key)}
+      >
+        {value}
+      </div>
+    );
+  };
+
   const renderProgramInfo = (config, isDraggable = false) => {
     if (!config?.visible) return null;
 
     const fallback = "SPEECH ENGLISH";
-    const value = (config.text ?? "").trim() || fallback;
+    let value = (config.text ?? "").trim() || fallback;
+
+    if (previewResultData?.programName) {
+      value = previewResultData.programName;
+    } else if (selectedPreviewProgram) {
+      const prog = programs.find((p) => String(p._id) === String(selectedPreviewProgram));
+      if (prog) value = prog.name;
+    }
+
     const baseFontSize = calculateResponsiveFont(
       config.fontSize,
       containerSize.width,
@@ -683,6 +845,7 @@ const PosterCustomizer = ({
                 ? "translateX(-100%)"
                 : "translateX(0)",
           fontSize: `${fontSize}px`,
+          fontFamily: config.fontFamily || "inherit",
           color: config.color,
           fontWeight: config.fontWeight,
           textAlign: config.textAlign,
@@ -712,7 +875,15 @@ const PosterCustomizer = ({
     if (!config?.visible) return null;
 
     const fallback = "Senior Group";
-    const value = (config.text ?? "").trim() || fallback;
+    let value = (config.text ?? "").trim() || fallback;
+
+    if (previewResultData?.divisionName) {
+      value = previewResultData.divisionName;
+    } else if (selectedPreviewDivision) {
+      const div = divisions.find((d) => String(d._id) === String(selectedPreviewDivision));
+      if (div) value = div.name;
+    }
+
     const baseFontSize = calculateResponsiveFont(
       config.fontSize,
       containerSize.width,
@@ -745,6 +916,7 @@ const PosterCustomizer = ({
                 ? "translateX(-100%)"
                 : "translateX(0)",
           fontSize: `${fontSize}px`,
+          fontFamily: config.fontFamily || "inherit",
           color: config.color,
           fontWeight: config.fontWeight,
           textAlign: config.textAlign,
@@ -774,8 +946,13 @@ const PosterCustomizer = ({
     if (!config?.visible) return null;
 
     const fallback = "01";
-    const displayValue =
-      config.prefix + ((config.text ?? "").trim() || fallback);
+    let text = (config.text ?? "").trim() || fallback;
+    
+    if (previewResultData?.resultNumber) {
+      text = previewResultData.resultNumber;
+    }
+
+    const displayValue = config.prefix + text;
     const baseFontSize = calculateResponsiveFont(
       config.fontSize,
       containerSize.width,
@@ -803,6 +980,7 @@ const PosterCustomizer = ({
           top: `${config.y}%`,
           transform: "translateX(0)",
           fontSize: `${fontSize}px`,
+          fontFamily: config.fontFamily || "inherit",
           color: config.color,
           fontWeight: config.fontWeight,
           textAlign: config.textAlign,
@@ -884,6 +1062,7 @@ const PosterCustomizer = ({
                     ? `${config.nameSpacing || 4}px`
                     : "0",
                 fontSize: `${baseFontSize}px`,
+                fontFamily: config.fontFamily || "inherit",
                 color: config.color,
                 fontWeight: config.fontWeight,
                 textAlign: config.textAlign,
@@ -895,7 +1074,7 @@ const PosterCustomizer = ({
                 whiteSpace: "nowrap",
               }}
             >
-              {config.showRank && `${index + 1}. `}
+              {config.showRank && `${elementKey === "firstPlace" ? 1 : elementKey === "secondPlace" ? 2 : elementKey === "thirdPlace" ? 3 : index + 1}. `}
               {displayName}
               {teamDisplay && (
                 <div
@@ -994,30 +1173,59 @@ const PosterCustomizer = ({
                     <Card
                       key={selectedElement}
                     >
-                      <CardHeader className="pb-0 sm:pb-1">
+                      <CardHeader className="pb-1">
                         <div className="flex items-center justify-between">
-                          <div className="flex flex-col gap-2 flex-1">
-                            {!isPreview && (
-                              <Select
-                                value={selectedElement || "programInfo"}
-                                onValueChange={(value) => setSelectedElement(value)}
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Choose element to edit" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="programInfo">Program Name</SelectItem>
-                                  <SelectItem value="divisionInfo">Division Name</SelectItem>
-                                  <SelectItem value="resultNumber">Result Number</SelectItem>
-                                  <SelectItem value="firstPlace">First Place</SelectItem>
-                                  <SelectItem value="secondPlace">Second Place</SelectItem>
-                                  <SelectItem value="thirdPlace">Third Place</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            )}
-                            <div className="flex items-center justify-between gap-3">
-                              <CardTitle className="text-base sm:text-lg">
-                                {selectedElement === "programInfo"
+                          <CardTitle className="flex items-center gap-2">
+                            <Settings className="h-5 w-5" />
+                            Element Settings
+                          </CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3 p-3 pt-2 sm:p-4 sm:pt-2 md:p-6 md:pt-2">
+                        {!isPreview && (
+                          <div>
+                            <Label className="text-sm sm:text-base">Select Element</Label>
+                            <Select
+                              value={selectedElement || "programInfo"}
+                              onValueChange={(value) => {
+                                if (value === "addNew") {
+                                  setIsAddingElement(true);
+                                } else {
+                                  setSelectedElement(value);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-full mt-1">
+                                <SelectValue placeholder="Choose element to edit" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="addNew" className="font-semibold text-primary">
+                                  + Add New Element
+                                </SelectItem>
+                                <SelectItem value="programInfo">Program Name</SelectItem>
+                                <SelectItem value="divisionInfo">Division Name</SelectItem>
+                                <SelectItem value="resultNumber">Result Number</SelectItem>
+                                <SelectItem value="firstPlace">First Place</SelectItem>
+                                <SelectItem value="secondPlace">Second Place</SelectItem>
+                                <SelectItem value="thirdPlace">Third Place</SelectItem>
+                                {Object.entries(currentPoster?.layout || {})
+                                  .filter(([key]) => key.startsWith("custom_"))
+                                  .map(([key, config]) => (
+                                    <SelectItem key={key} value={key}>
+                                      {config.label || "Custom Element"}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        {/* Program Name + Shadow — same layout as X/Y position */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Col 1: element name label left, its toggle right */}
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm sm:text-base">
+                              {config.label ||
+                                (selectedElement === "programInfo"
                                   ? "Program Name"
                                   : selectedElement === "divisionInfo"
                                     ? "Division Name"
@@ -1027,39 +1235,40 @@ const PosterCustomizer = ({
                                         ? "First Place"
                                         : selectedElement === "secondPlace"
                                           ? "Second Place"
-                                          : "Third Place"}
-                              </CardTitle>
-                              <div className="flex items-center gap-3 shrink-0">
-                                <div className="flex items-center gap-1.5">
-                                  <Switch
-                                    id={`${selectedElement}-text-shadow-header`}
-                                    checked={config.textShadow || false}
-                                    onCheckedChange={(textShadow) => {
-                                      if (isFullPage) {
-                                        handleFullPageLayoutChange(selectedElement, { textShadow });
-                                      } else {
-                                        onLayoutChange?.(selectedElement, { textShadow });
-                                      }
-                                    }}
-                                  />
-                                  <Label htmlFor={`${selectedElement}-text-shadow-header`} className="text-sm cursor-pointer">Shadow</Label>
-                                </div>
-                                <Switch
-                                  checked={config.visible}
-                                  onCheckedChange={(visible) => {
-                                    if (isFullPage) {
-                                      handleFullPageLayoutChange(selectedElement, { visible });
-                                    } else {
-                                      onLayoutChange?.(selectedElement, { visible });
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </div>
+                                          : "Third Place")}
+                            </Label>
+                            <Switch
+                              checked={config.visible}
+                              onCheckedChange={(visible) => {
+                                if (isFullPage) {
+                                  handleFullPageLayoutChange(selectedElement, { visible });
+                                } else {
+                                  onLayoutChange?.(selectedElement, { visible });
+                                }
+                              }}
+                            />
+                          </div>
+                          {/* Col 2: shadow label left, its toggle right */}
+                          <div className="flex items-center justify-between">
+                            <Label
+                              htmlFor={`${selectedElement}-text-shadow-header`}
+                              className="text-sm sm:text-base cursor-pointer"
+                            >
+                              Shadow
+                            </Label>
+                            <Switch
+                              id={`${selectedElement}-text-shadow-header`}
+                              checked={config.textShadow || false}
+                              onCheckedChange={(textShadow) => {
+                                if (isFullPage) {
+                                  handleFullPageLayoutChange(selectedElement, { textShadow });
+                                } else {
+                                  onLayoutChange?.(selectedElement, { textShadow });
+                                }
+                              }}
+                            />
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="space-y-2 sm:space-y-3 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
                         {/* Hidden Warning */}
                         {!config.visible && (
                           <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -1115,6 +1324,7 @@ const PosterCustomizer = ({
                         </div>
 
                         {/* Font Controls */}
+                        {/* Size & Spacing */}
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label className="text-sm sm:text-base">
@@ -1144,52 +1354,67 @@ const PosterCustomizer = ({
                           </div>
                           <div>
                             <Label className="text-sm sm:text-base">
-                              Line Height
+                              Letter Spacing
                             </Label>
                             <Slider
-                              value={[config.lineHeight || 1.2]}
-                              onValueChange={([lineHeight]) => {
+                              value={[config.letterSpacing || 0]}
+                              onValueChange={([letterSpacing]) => {
                                 if (isFullPage) {
                                   handleFullPageLayoutChange(
                                     selectedElement,
-                                    { lineHeight }
+                                    { letterSpacing }
                                   );
                                 } else {
                                   onLayoutChange?.(selectedElement, {
-                                    lineHeight,
+                                    letterSpacing,
                                   });
                                 }
                               }}
-                              min={0.8}
-                              max={2.0}
+                              min={-2}
+                              max={5}
                               step={0.1}
                               className="mt-1"
                             />
                             <span className="text-sm text-muted-foreground">
-                              {config.lineHeight || 1.2}
+                              {config.letterSpacing || 0}px
                             </span>
                           </div>
                         </div>
 
-                        {/* Color Controls */}
-                        <div className="w-full">
-                          <ColorInput
-                            layout="split"
-                            value={config.color || "#ffffff"}
-                            onChange={(color) => {
-                              if (isFullPage) {
-                                handleFullPageLayoutChange(selectedElement, {
-                                  color,
-                                });
-                              } else {
-                                onLayoutChange?.(selectedElement, { color });
-                              }
-                            }}
-                          />
-                        </div>
-
-                        {/* Style Controls */}
+                        {/* Font Style */}
                         <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm sm:text-base">
+                              Font Family
+                            </Label>
+                            <Select
+                              value={config.fontFamily || "inherit"}
+                              onValueChange={(fontFamily) => {
+                                if (isFullPage) {
+                                  handleFullPageLayoutChange(selectedElement, { fontFamily });
+                                } else {
+                                  onLayoutChange?.(selectedElement, { fontFamily });
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-sm mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="inherit">Default</SelectItem>
+                                <SelectItem value="Montserrat, sans-serif">Montserrat</SelectItem>
+                                <SelectItem value="var(--font-inter), sans-serif">Inter</SelectItem>
+                                <SelectItem value="var(--font-poppins), sans-serif">Poppins</SelectItem>
+                                <SelectItem value="var(--font-oswald), sans-serif">Oswald</SelectItem>
+                                <SelectItem value="var(--font-lato), sans-serif">Lato</SelectItem>
+                                <SelectItem value="var(--font-playfair), serif">Playfair Display</SelectItem>
+                                <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                                <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                                <SelectItem value="Times New Roman, serif">Times New Roman</SelectItem>
+                                <SelectItem value="Courier New, monospace">Courier New</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <div>
                             <Label className="text-sm sm:text-base">
                               Font Weight
@@ -1218,6 +1443,29 @@ const PosterCustomizer = ({
                               </SelectContent>
                             </Select>
                           </div>
+                        </div>
+
+                        {/* Color Controls */}
+                        <div className="w-full">
+                        <div className="w-full">
+                          <ColorInput
+                            layout="split"
+                            value={config.color || "#ffffff"}
+                            onChange={(color) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, {
+                                  color,
+                                });
+                              } else {
+                                onLayoutChange?.(selectedElement, { color });
+                              }
+                            }}
+                          />
+                        </div>
+                        </div>
+
+                        {/* Alignment & Element-Specific Options */}
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label className="text-sm sm:text-base">
                               Text Align
@@ -1246,162 +1494,82 @@ const PosterCustomizer = ({
                               </SelectContent>
                             </Select>
                           </div>
+
+                          {/* Col 2: Prefix Text or Team Name Spacing */}
+                          {selectedElement === "resultNumber" && (
+                            <div>
+                              <Label className="text-sm sm:text-base">
+                                Prefix Text
+                              </Label>
+                              <Input
+                                value={config.prefix || ""}
+                                onChange={(e) => {
+                                  if (isFullPage) {
+                                    handleFullPageLayoutChange(
+                                      selectedElement,
+                                      { prefix: e.target.value }
+                                    );
+                                  } else {
+                                    onLayoutChange?.(selectedElement, {
+                                      prefix: e.target.value,
+                                    });
+                                  }
+                                }}
+                                placeholder="e.g., R-"
+                                className="mt-1 h-8 text-sm"
+                              />
+                            </div>
+                          )}
+
+                          {(selectedElement === "firstPlace" ||
+                            selectedElement === "secondPlace" ||
+                            selectedElement === "thirdPlace") && (
+                            <div>
+                              <Label className="text-sm sm:text-base">
+                                Team Name Spacing
+                              </Label>
+                              <Slider
+                                value={[config.teamNameSpacing || 0]}
+                                onValueChange={([teamNameSpacing]) => {
+                                  if (isFullPage) {
+                                    handleFullPageLayoutChange(
+                                      selectedElement,
+                                      { teamNameSpacing }
+                                    );
+                                  } else {
+                                    onLayoutChange?.(selectedElement, {
+                                      teamNameSpacing,
+                                    });
+                                  }
+                                }}
+                                min={-5}
+                                max={10}
+                                step={1}
+                                className="mt-1"
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {config.teamNameSpacing || 0}px
+                              </span>
+                            </div>
+                          )}
                         </div>
 
 
                         {/* Advanced Options — always visible */}
                         <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                              {(selectedElement === "resultNumber" ||
-                                selectedElement === "firstPlace" ||
-                                selectedElement === "secondPlace" ||
-                                selectedElement === "thirdPlace") && (
-                                <div>
-                                  <Label className="text-sm sm:text-base">
-                                    Letter Spacing
-                                  </Label>
-                                  <Slider
-                                    value={[config.letterSpacing || 0]}
-                                    onValueChange={([letterSpacing]) => {
-                                      if (isFullPage) {
-                                        handleFullPageLayoutChange(
-                                          selectedElement,
-                                          { letterSpacing }
-                                        );
-                                      } else {
-                                        onLayoutChange?.(selectedElement, {
-                                          letterSpacing,
-                                        });
-                                      }
-                                    }}
-                                    min={-2}
-                                    max={5}
-                                    step={0.1}
-                                    className="mt-1"
-                                  />
-                                  <span className="text-sm text-muted-foreground">
-                                    {config.letterSpacing || 0}px
-                                  </span>
-                                </div>
-                              )}
-                            </div>
 
-                            {/* Result Number Prefix */}
-                            {selectedElement === "resultNumber" && (
-                              <div>
-                                <Label className="text-sm sm:text-base">
-                                  Prefix Text
-                                </Label>
-                                <Input
-                                  value={config.prefix || ""}
-                                  onChange={(e) => {
-                                    if (isFullPage) {
-                                      handleFullPageLayoutChange(
-                                        selectedElement,
-                                        { prefix: e.target.value }
-                                      );
-                                    } else {
-                                      onLayoutChange?.(selectedElement, {
-                                        prefix: e.target.value,
-                                      });
-                                    }
-                                  }}
-                                  placeholder="e.g., R-"
-                                  className="mt-1 h-8 text-sm"
-                                />
-                              </div>
-                            )}
+
+                            {/* Prefix Text moved to Alignment grid */}
 
                             {/* Winner-specific options */}
                             {(selectedElement === "firstPlace" ||
                               selectedElement === "secondPlace" ||
                               selectedElement === "thirdPlace") && (
                               <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <Label className="text-sm sm:text-base">
-                                      Max Winners
-                                    </Label>
-                                    <Slider
-                                      value={[config.maxWinners || 1]}
-                                      onValueChange={([maxWinners]) => {
-                                        if (isFullPage) {
-                                          handleFullPageLayoutChange(
-                                            selectedElement,
-                                            { maxWinners }
-                                          );
-                                        } else {
-                                          onLayoutChange?.(selectedElement, {
-                                            maxWinners,
-                                          });
-                                        }
-                                      }}
-                                      min={1}
-                                      max={5}
-                                      step={1}
-                                      className="mt-1"
-                                    />
-                                    <span className="text-sm text-muted-foreground">
-                                      {config.maxWinners || 1}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <Label className="text-sm sm:text-base">
-                                      Name Spacing
-                                    </Label>
-                                    <Slider
-                                      value={[config.nameSpacing || 4]}
-                                      onValueChange={([nameSpacing]) => {
-                                        if (isFullPage) {
-                                          handleFullPageLayoutChange(
-                                            selectedElement,
-                                            { nameSpacing }
-                                          );
-                                        } else {
-                                          onLayoutChange?.(selectedElement, {
-                                            nameSpacing,
-                                          });
-                                        }
-                                      }}
-                                      min={-5}
-                                      max={20}
-                                      step={1}
-                                      className="mt-1"
-                                    />
-                                    <span className="text-sm text-muted-foreground">
-                                      {config.nameSpacing || 4}px
-                                    </span>
-                                  </div>
-                                </div>
 
-                                <div>
-                                  <Label className="text-sm sm:text-base">
-                                    Team Name Spacing
-                                  </Label>
-                                  <Slider
-                                    value={[config.teamNameSpacing || 0]}
-                                    onValueChange={([teamNameSpacing]) => {
-                                      if (isFullPage) {
-                                        handleFullPageLayoutChange(
-                                          selectedElement,
-                                          { teamNameSpacing }
-                                        );
-                                      } else {
-                                        onLayoutChange?.(selectedElement, {
-                                          teamNameSpacing,
-                                        });
-                                      }
-                                    }}
-                                    min={-5}
-                                    max={10}
-                                    step={1}
-                                    className="mt-1"
-                                  />
-                                  <span className="text-sm text-muted-foreground">
-                                    {config.teamNameSpacing || 0}px
-                                  </span>
-                                </div>
+                                {/* Team Name Spacing moved to Alignment grid */}
 
+                                {/* Show Rank + Show Team */}
                                 <div className="grid grid-cols-2 gap-3">
                                   <div className="flex items-center space-x-2">
                                     <Switch
@@ -1502,130 +1670,257 @@ const PosterCustomizer = ({
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4 pt-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Poster Number Dropdown */}
-                  <div>
-                    <Label className="text-sm sm:text-base mb-1 block">Select Poster</Label>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={String(selectedPosterIndex)}
-                        onValueChange={(val) => setSelectedPosterIndex(Number(val))}
+              <CardContent className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {/* Left Column: Controls */}
+                  <div className="space-y-4 flex flex-col h-full">
+                    {/* 1. Select Poster */}
+                    <div>
+                      <Label className="text-sm sm:text-base mb-1 block">Select Poster</Label>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={String(selectedPosterIndex)}
+                          onValueChange={(val) => setSelectedPosterIndex(Number(val))}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Select a poster" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {currentSettings?.resultPosters?.map((p, index) => (
+                              <SelectItem key={index} value={String(index)}>
+                                {p.name === "Default Poster" || !p.name ? `Poster ${index + 1}` : p.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={addNewPoster}
+                          variant="outline"
+                          size="icon"
+                          title="Add new poster"
+                          className="shrink-0"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        {currentSettings?.resultPosters?.length > 1 && (
+                          <Button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            variant="outline"
+                            size="icon"
+                            title="Remove selected poster"
+                            className="shrink-0 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Background Upload */}
+                    {!isPreview && (
+                      <div>
+                        <Label className="text-sm sm:text-base mb-1 block">Poster Background</Label>
+                        <input
+                          type="file"
+                          ref={bgFileInputRef}
+                          accept="image/jpeg,image/png"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast.error("File too large. Max 5MB.");
+                              return;
+                            }
+                            try {
+                              setBgUploading(true);
+                              const reader = new FileReader();
+                              reader.onloadend = async () => {
+                                try {
+                                  const res = await fetch("/api/cloudinary", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ image: reader.result }),
+                                  });
+                                  if (!res.ok) throw new Error("Upload failed");
+                                  const data = await res.json();
+                                  const imageData = { url: data.url, publicId: data.publicId };
+                                  if (isFullPage) {
+                                    handleFullPageBackgroundChange(imageData);
+                                  } else {
+                                    onBackgroundChange?.(imageData);
+                                  }
+                                  toast.success("Background uploaded!");
+                                } catch (err) {
+                                  toast.error(err.message || "Upload failed");
+                                } finally {
+                                  setBgUploading(false);
+                                  e.target.value = "";
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            } catch {
+                              setBgUploading(false);
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          className="w-full flex items-center gap-2 bg-foreground text-background hover:bg-foreground/90"
+                          disabled={bgUploading}
+                          onClick={() => bgFileInputRef.current?.click()}
+                        >
+                          {bgUploading ? (
+                            <Loader className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                          {bgUploading
+                            ? "Uploading..."
+                            : currentPoster?.backgroundImage?.url
+                            ? "Change Background"
+                            : "Select Background"}
+                        </Button>
+                        {currentPoster?.backgroundImage?.url && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              const empty = { url: "", publicId: "" };
+                              if (isFullPage) handleFullPageBackgroundChange(empty);
+                              else onBackgroundChange?.(empty);
+                            }}
+                            className="w-full flex items-center justify-center gap-2 mt-1 border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                          >
+                            <Trash2 className="h-4 w-4" /> Remove Background
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 3. Save */}
+                    {isFullPage && (
+                      <Button
+                        onClick={handleFullPageSave}
+                        disabled={isSaving}
+                        variant="outline"
+                        className="w-full flex items-center justify-center gap-2"
                       >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Select a poster" />
+                        {isSaving ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                        {isSaving ? "Saving..." : "Save Poster"}
+                      </Button>
+                    )}
+
+                    <hr className="border-border" />
+
+                    {/* Result Number Input */}
+                    <div>
+                      <Label className="text-sm sm:text-base mb-1 block">Result Number</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 42"
+                        value={previewResultNumber}
+                        onChange={(e) => {
+                          setPreviewResultNumber(e.target.value);
+                          if (e.target.value) {
+                            setSelectedPreviewDivision("");
+                            setSelectedPreviewProgram("");
+                          }
+                        }}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+
+                    {/* 4. Division Dropdown */}
+                    <div>
+                      <Label className="text-sm sm:text-base mb-1 block">Preview Division</Label>
+                      <Select value={selectedPreviewDivision} onValueChange={setSelectedPreviewDivision}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a division" />
                         </SelectTrigger>
                         <SelectContent>
-                          {currentSettings?.resultPosters?.map((p, index) => (
-                            <SelectItem key={index} value={String(index)}>
-                              {p.name === "Default Poster" || !p.name ? `Poster ${index + 1}` : p.name}
-                            </SelectItem>
+                          <SelectItem value="none">None</SelectItem>
+                          {divisions.map((d) => (
+                            <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button
-                        onClick={addNewPoster}
-                        variant="outline"
-                        size="icon"
-                        title="Add new poster"
-                        className="shrink-0"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                      {currentSettings?.resultPosters?.length > 1 && (
-                        <Button
-                          onClick={() => setShowDeleteConfirm(true)}
-                          variant="outline"
-                          size="icon"
-                          title="Remove selected poster"
-                          className="shrink-0 text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
                     </div>
+
+                    {/* 5. Program Dropdown */}
+                    <div>
+                      <Label className="text-sm sm:text-base mb-1 block">Preview Program</Label>
+                      <Select value={selectedPreviewProgram} onValueChange={setSelectedPreviewProgram} disabled={!selectedPreviewDivision || selectedPreviewDivision === "none"}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a program" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="px-2 py-1.5 sticky top-0 bg-popover z-10">
+                            <input
+                              type="text"
+                              placeholder="Search program..."
+                              value={programSearch}
+                              onChange={(e) => setProgramSearch(e.target.value)}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background outline-none focus:ring-1 focus:ring-primary"
+                            />
+                          </div>
+                          <SelectItem value="none">None</SelectItem>
+                          {programs
+                            .filter((p) =>
+                              p.name.toLowerCase().includes(programSearch.toLowerCase())
+                            )
+                            .map((p) => (
+                              <SelectItem key={p._id} value={p._id}>{p.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                   </div>
 
-                  {/* Background Upload */}
-                  {!isPreview && (
-                    <div>
-                      <Label className="text-sm sm:text-base mb-1 block">Poster Background</Label>
-                      <input
-                        type="file"
-                        ref={bgFileInputRef}
-                        accept="image/jpeg,image/png"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          if (file.size > 5 * 1024 * 1024) {
-                            toast.error("File too large. Max 5MB.");
-                            return;
-                          }
-                          try {
-                            setBgUploading(true);
-                            const reader = new FileReader();
-                            reader.onloadend = async () => {
-                              try {
-                                const res = await fetch("/api/cloudinary", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ image: reader.result }),
-                                });
-                                if (!res.ok) throw new Error("Upload failed");
-                                const data = await res.json();
-                                const imageData = { url: data.url, publicId: data.publicId };
-                                if (isFullPage) {
-                                  handleFullPageBackgroundChange(imageData);
-                                } else {
-                                  onBackgroundChange?.(imageData);
-                                }
-                                toast.success("Background uploaded!");
-                              } catch (err) {
-                                toast.error(err.message || "Upload failed");
-                              } finally {
-                                setBgUploading(false);
-                                e.target.value = "";
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          } catch {
-                            setBgUploading(false);
-                          }
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        className="w-full flex items-center gap-2 bg-foreground text-background hover:bg-foreground/90"
-                        disabled={bgUploading}
-                        onClick={() => bgFileInputRef.current?.click()}
-                      >
-                        {bgUploading ? (
-                          <Loader className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
-                        {bgUploading
-                          ? "Uploading..."
-                          : currentPoster?.backgroundImage?.url
-                          ? "Change Background"
-                          : "Select Background"}
-                      </Button>
-                      {currentPoster?.backgroundImage?.url && (
-                        <button
-                          onClick={() => {
-                            const empty = { url: "", publicId: "" };
-                            if (isFullPage) handleFullPageBackgroundChange(empty);
-                            else onBackgroundChange?.(empty);
-                          }}
-                          className="mt-1 text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-                        >
-                          <Trash2 className="h-3 w-3" /> Remove background
-                        </button>
-                      )}
+                  {/* Right Column: Canvas */}
+                  <div className="w-full flex flex-col items-center">
+
+                {/* Add New Element Dialog */}
+                <AlertDialog open={isAddingElement} onOpenChange={setIsAddingElement}>
+                  <AlertDialogContent className="sm:max-w-md">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Add New Element</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Provide a name and default text for the new element.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-4 py-2">
+                      <div>
+                        <Label>Element Name</Label>
+                        <Input
+                          value={newElementName}
+                          onChange={(e) => setNewElementName(e.target.value)}
+                          placeholder="e.g. Subtitle"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Element Text</Label>
+                        <Input
+                          value={newElementText}
+                          onChange={(e) => setNewElementText(e.target.value)}
+                          placeholder="e.g. Special Guest"
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setIsAddingElement(false)}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleAddNewElement}>Save Element</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
                 {/* Delete Poster Confirmation Dialog */}
                 <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
@@ -1660,11 +1955,11 @@ const PosterCustomizer = ({
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <div className="w-full">
+                <div className="w-full max-w-md">
                   <div className="w-full">
                     <div
                       ref={posterRef}
-                      className="relative w-full mx-auto aspect-square bg-card overflow-hidden shadow-lg"
+                      className="relative w-full mx-auto aspect-[3/4] bg-card overflow-hidden shadow-lg"
                     >
                       <div
                         ref={canvasRef}
@@ -1679,6 +1974,11 @@ const PosterCustomizer = ({
                           backgroundRepeat: "no-repeat",
                         }}
                       >
+                        {Object.entries(currentPoster?.layout || {})
+                          .filter(([key]) => key.startsWith("custom_"))
+                          .map(([key, config]) =>
+                            renderCustomElement(key, config, !isPreview)
+                          )}
                         {renderProgramInfo(
                           currentPoster?.layout?.programInfo,
                           !isPreview
@@ -1691,39 +1991,51 @@ const PosterCustomizer = ({
                           currentPoster?.layout?.resultNumber,
                           !isPreview
                         )}
-                        {renderWinnersList(
-                          currentPoster?.layout?.firstPlace,
-                          [
-                            {
-                              studentName: "1st Ranker",
-                              teamName: "Team Alpha",
-                            },
-                          ],
-                          "firstPlace",
-                          !isPreview
-                        )}
-                        {renderWinnersList(
-                          currentPoster?.layout?.secondPlace,
-                          [
-                            {
-                              studentName: "2nd Ranker",
-                              teamName: "Team Beta",
-                            },
-                          ],
-                          "secondPlace",
-                          !isPreview
-                        )}
-                        {renderWinnersList(
-                          currentPoster?.layout?.thirdPlace,
-                          [
-                            {
-                              studentName: "3rd Ranker",
-                              teamName: "Team Gamma",
-                            },
-                          ],
-                          "thirdPlace",
-                          !isPreview
-                        )}
+                        {(() => {
+                          const normalize = (p) => ({
+                            studentName:
+                              p.participantDetails?.name ||
+                              p.studentName ||
+                              "Winner",
+                            teamName:
+                              p.participantDetails?.teamId?.name ||
+                              p.teamName ||
+                              "",
+                          });
+
+                          const firstPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 1).length
+                            ? previewResultData.participants.filter(p => p.rank === 1).map(normalize)
+                            : [{ studentName: "1st Ranker", teamName: "Team Alpha" }];
+                          const secondPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 2).length
+                            ? previewResultData.participants.filter(p => p.rank === 2).map(normalize)
+                            : [{ studentName: "2nd Ranker", teamName: "Team Beta" }];
+                          const thirdPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 3).length
+                            ? previewResultData.participants.filter(p => p.rank === 3).map(normalize)
+                            : [{ studentName: "3rd Ranker", teamName: "Team Gamma" }];
+
+                          return (
+                            <>
+                              {renderWinnersList(
+                                currentPoster?.layout?.firstPlace,
+                                firstPlaceWinners,
+                                "firstPlace",
+                                !isPreview
+                              )}
+                              {renderWinnersList(
+                                currentPoster?.layout?.secondPlace,
+                                secondPlaceWinners,
+                                "secondPlace",
+                                !isPreview
+                              )}
+                              {renderWinnersList(
+                                currentPoster?.layout?.thirdPlace,
+                                thirdPlaceWinners,
+                                "thirdPlace",
+                                !isPreview
+                              )}
+                            </>
+                          );
+                        })()}
 
                         {!isPreview && isMobile && !selectedElement && (
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1736,41 +2048,25 @@ const PosterCustomizer = ({
                     </div>
                   </div>
                 </div>
-
-                <div className="flex gap-2 mt-4">
-                  {isFullPage && (
-                    <Button
-                      onClick={handleFullPageSave}
-                      disabled={isSaving}
-                      variant="outline"
-                      className="flex-1 flex items-center justify-center gap-2"
-                    >
-                      {isSaving ? (
-                        <Loader className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      {isSaving ? "Saving..." : "Save"}
-                    </Button>
+                <Button
+                  onClick={handleDownloadPoster}
+                  disabled={isLoading}
+                  className="w-full max-w-md mt-3 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Download Poster
+                    </>
                   )}
-                  <Button
-                    onClick={handleDownloadPoster}
-                    disabled={isLoading}
-                    className="flex-1 flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader className="w-4 h-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        Download
-                      </>
-                    )}
-                  </Button>
-                </div>
+                </Button>
+                  </div> {/* End Right Column */}
+                </div> {/* End Grid */}
               </CardContent>
             </Card>
           </div>
