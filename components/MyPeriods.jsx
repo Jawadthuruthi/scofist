@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 // Hooks and Utils
-import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, cn, getISTDate } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import { fetchItems } from "@/lib/api";
 import Header from "./Header";
@@ -89,7 +89,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [hifzLoadingEnroll, setHifzLoadingEnroll] = useState(true);
   const [hifzSelectedClassId, setHifzSelectedClassId] = useState("");
   const [hifzDialogOpen, setHifzDialogOpen] = useState(false);
-  const [hifzDate, setHifzDate] = useState(formatDate(new Date()));
+  const [hifzDate, setHifzDate] = useState(formatDate(getISTDate()));
   const [hifzPageInputs, setHifzPageInputs] = useState({});  // { studentId: pagesCount }
   const [hifzSaving, setHifzSaving] = useState(false);
   const [hifzLoadingRecords, setHifzLoadingRecords] = useState(false);
@@ -134,9 +134,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     ],
     []
   );
-  const today = useMemo(() => days[new Date().getDay()], [days]);
-  const date = useMemo(() => formatDateForDisplay(new Date()), []);
-  const formattedDate = useMemo(() => formatDate(new Date()), []);
+  const today = useMemo(() => days[getISTDate().getDay()], [days]);
+  const date = useMemo(() => formatDateForDisplay(getISTDate()), []);
+  const formattedDate = useMemo(() => formatDate(getISTDate()), []);
 
   const { useFetchItems } = useCrud("timeTables", apiKey);
   const { useFetchItems: useFetchPeriods } = useCrud("periods", apiKey);
@@ -207,7 +207,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const settings = settingsQuery.data?.settings;
   const { useFetchItems: useFetchCalendarEvents } = useCrud("academic-calendar", apiKey);
 
-  const currentYear = new Date().getFullYear();
+  const currentYear = getISTDate().getFullYear();
   const calendarEventsQuery = useFetchCalendarEvents(
     0, 0,
     { year: currentYear },
@@ -218,7 +218,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     const events = calendarEventsQuery.data?.["academic-calendar"];
     if (!events || events.length === 0) return null;
 
-    const now = new Date();
+    const now = getISTDate();
 
     const parseEndTime = (ev) => {
       const d = new Date(ev.date);
@@ -246,7 +246,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     return validEvents.length > 0 ? validEvents[0] : null;
   }, [calendarEventsQuery.data]);
 
-  const dateISO = useMemo(() => new Date().toISOString(), []);
+  const dateISO = useMemo(() => getISTDate().toISOString(), []);
 
   const leaveRecordQuery = useFetchTeachersLeaveRecord(
     0,
@@ -373,7 +373,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             teacherId,
             classId: slot.classId._id,
             periodNumber: slot.periodNumber,
-            date: new Date(),
+            date: getISTDate(),
             leaveReason: bulkReason,
           })
         )
@@ -422,7 +422,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         teacherId,
         classId,
         periodNumber,
-        date: new Date(),
+        date: getISTDate(),
         leaveReason: reason,
       });
       toast.success("Leave reason submitted successfully.");
@@ -784,7 +784,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col items-center justify-center bg-yellow-200/60 text-yellow-800 rounded-md px-3 py-1.5 text-xs font-bold leading-tight whitespace-nowrap">
-                      <span>{new Date(upcomingEvent.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                      <span>{new Date(upcomingEvent.date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}</span>
                       {upcomingEvent.time && <span className="mt-0.5">{upcomingEvent.time}</span>}
                     </div>
                     <span className="text-sm font-semibold">{upcomingEvent.title}</span>
@@ -1247,7 +1247,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                                     <TableCell className="text-center text-muted-foreground font-medium">{idx + 1}</TableCell>
                                     <TableCell className="text-sm">
                                       {rec.date
-                                        ? new Date(rec.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                                        ? new Date(rec.date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })
                                         : "—"}
                                     </TableCell>
                                     <TableCell className="text-center">
@@ -1292,7 +1292,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                                 </TableCell>
                                 <TableCell className="text-center text-sm text-muted-foreground">
                                   {entry.lastDate
-                                    ? new Date(entry.lastDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                                    ? new Date(entry.lastDate).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })
                                     : "—"}
                                 </TableCell>
                               </TableRow>
@@ -1358,8 +1358,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                             const pagesCount = todayRecord?.pagesCount ?? 0;
 
                             const dateLabel = hifzDate
-                              ? new Date(hifzDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
-                              : new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+                              ? new Date(hifzDate).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric" })
+                              : new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric" });
 
                             const msg = `*Hifz & Doura Progress Report*
 Date: ${dateLabel}
@@ -1473,7 +1473,7 @@ Teacher: ${teacherName || "Teacher"}`;
                         ...evs.map(ev => (
                           <TableRow key={ev._id}>
                             <TableCell className="text-xs whitespace-nowrap">
-                              <div>{new Date(ev.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                              <div>{new Date(ev.date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}</div>
                               {ev.time && <div className="text-muted-foreground mt-0.5">{ev.time}</div>}
                             </TableCell>
                             <TableCell>

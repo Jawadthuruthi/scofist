@@ -62,8 +62,10 @@ export async function POST(req) {
   try {
     await connectToDB();
     const data = await req.json();
-    const date = new Date(data.date);
-    date.setUTCHours(0, 0, 0, 0);
+    const inputDate = new Date(data.date);
+    const istString = inputDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const date = new Date(Date.UTC(istDate.getFullYear(), istDate.getMonth(), istDate.getDate()));
     const teachersLeaveRecord = await TeachersLeaveRecord.updateOne(
       {
         teacherId: data.teacherId,
