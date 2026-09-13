@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
+// Dialog removed for full screen layout
 import { X, Play, Pause, ChevronLeft, ChevronRight, Trophy, Crown, Medal, User as UserIcon, Sun, Moon } from "lucide-react";
 import DashboardTopBar from "./DashboardTopBar";
 
@@ -112,12 +113,10 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
   };
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none transition-colors duration-500 overflow-hidden flex flex-col data-[state=open]:duration-500 [&>button]:hidden ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black'}`}>
-        <DialogTitle className="sr-only">Champions Posters Viewer</DialogTitle>
-        <DialogDescription className="sr-only">Displays full screen posters with champions and leader photos</DialogDescription>
+  return createPortal(
+    <div className={`fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 transition-colors duration-500 overflow-hidden flex flex-col ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black'}`}>
         
         <DashboardTopBar 
           currentView="champions"
@@ -314,7 +313,7 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+    </div>,
+    document.body
   );
 }

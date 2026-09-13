@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { X, TrendingUp, BarChart3, Info, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,12 +98,10 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
   };
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none transition-colors duration-500 overflow-hidden flex flex-col data-[state=open]:duration-500 [&>button]:hidden ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black'}`}>
-        <DialogTitle className="sr-only">Team Point Progression Graph</DialogTitle>
-        <DialogDescription className="sr-only">Displays full screen timeline displaying analytical charting cumulative metric histories per active team strictly dynamically.</DialogDescription>
+  return createPortal(
+    <div className={`fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 transition-colors duration-500 overflow-hidden flex flex-col ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black'}`}>
 
         <DashboardTopBar 
           currentView="graph"
@@ -262,7 +260,7 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
             )}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </div>,
+    document.body
   );
 }

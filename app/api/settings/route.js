@@ -192,26 +192,12 @@ export async function POST(req, res) {
           backgroundImage:
             data.participantsCard ??
             existingSettings?.festival?.participantsCard?.backgroundImage,
-          textColor:
-            data.textColor ??
-            existingSettings?.festival?.participantsCard?.textColor,
-          textPositions: {
-            top:
-              data.top ??
-              existingSettings?.festival?.participantsCard?.textPositions
-                ?.top,
-            right:
-              data.right ??
-              existingSettings?.festival?.participantsCard?.textPositions
-                ?.right,
-            bottom:
-              data.bottom ??
-              existingSettings?.festival?.participantsCard?.textPositions
-                ?.bottom,
-            left:
-              data.left ??
-              existingSettings?.festival?.participantsCard?.textPositions?.left,
-          },
+          teamBackgrounds:
+            data.teamBackgrounds ??
+            existingSettings?.festival?.participantsCard?.teamBackgrounds,
+          layout:
+            data.participantsCardLayout ??
+            existingSettings?.festival?.participantsCard?.layout,
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
@@ -767,6 +753,7 @@ export async function PUT(req) {
       data.printHeader ||
       data.registrationDeadline ||
       data.participantsCard ||
+      data.teamBackgrounds ||
       data.textColor ||
       data.top !== undefined ||
       data.right !== undefined ||
@@ -836,23 +823,12 @@ export async function PUT(req) {
           backgroundImage:
             data.participantsCard ??
             existingFestivalForYear.participantsCard?.backgroundImage,
-          textColor:
-            data.textColor ??
-            existingFestivalForYear.participantsCard?.textColor,
-          textPositions: {
-            top:
-              data.top ??
-              existingFestivalForYear.participantsCard?.textPositions?.top,
-            right:
-              data.right ??
-              existingFestivalForYear.participantsCard?.textPositions?.right,
-            bottom:
-              data.bottom ??
-              existingFestivalForYear.participantsCard?.textPositions?.bottom,
-            left:
-              data.left ??
-              existingFestivalForYear.participantsCard?.textPositions?.left,
-          },
+          teamBackgrounds:
+            data.teamBackgrounds ??
+            existingFestivalForYear.participantsCard?.teamBackgrounds,
+          layout:
+            data.participantsCardLayout ??
+            existingFestivalForYear.participantsCard?.layout,
         },
         instructions:
           data.instructions ?? existingFestivalForYear.instructions,

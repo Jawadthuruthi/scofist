@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { X, Monitor, Loader2 } from "lucide-react";
 import DashboardTopBar from "./DashboardTopBar";
 
@@ -66,10 +66,11 @@ export default function GeneralDisplayViewer({ isOpen, onClose, apiKey, onNaviga
 
   const words = displayText.trim() ? displayText.split(/\s+/) : [];
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none overflow-hidden flex flex-col font-sans transition-colors duration-500 ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black text-white'}`}>
-        <DialogTitle className="sr-only">Live Display</DialogTitle>
+  if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className={`fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 overflow-hidden flex flex-col font-sans transition-colors duration-500 ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black text-white'}`}>
         
         <DashboardTopBar 
           currentView="display"
@@ -215,7 +216,7 @@ export default function GeneralDisplayViewer({ isOpen, onClose, apiKey, onNaviga
             border-radius: 10px;
           }
         ` }} />
-      </DialogContent>
-    </Dialog>
+    </div>,
+    document.body
   );
 }

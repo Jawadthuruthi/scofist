@@ -128,40 +128,79 @@ const FestivalSchema = new Schema({
         type: String,
       },
     },
-    textColor: {
-      type: String,
-      default: "#000000",
-      trim: true,
-      validate: {
-        validator: (v) =>
-          !v || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
-        message: "Invalid hex color format",
-      },
+    teamBackgrounds: {
+      type: Schema.Types.Mixed,
+      default: {}
     },
-    textPositions: {
-      top: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0,
+    layout: {
+      chestNumber: {
+        x: { type: Number, default: 50 },
+        y: { type: Number, default: 40 },
+        visible: { type: Boolean, default: true },
+        fontSize: { type: Number, default: 24 },
+        fontFamily: { type: String, default: "sans-serif" },
+        color: { type: String, default: "#000000" },
+        fontWeight: { type: String, default: "bold" },
+        textAlign: { type: String, default: "center" },
       },
-      right: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0,
+      participantName: {
+        x: { type: Number, default: 50 },
+        y: { type: Number, default: 50 },
+        visible: { type: Boolean, default: true },
+        fontSize: { type: Number, default: 18 },
+        fontFamily: { type: String, default: "sans-serif" },
+        color: { type: String, default: "#000000" },
+        fontWeight: { type: String, default: "bold" },
+        textAlign: { type: String, default: "center" },
       },
-      bottom: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0,
+      team: {
+        x: { type: Number, default: 50 },
+        y: { type: Number, default: 60 },
+        visible: { type: Boolean, default: true },
+        fontSize: { type: Number, default: 12 },
+        fontFamily: { type: String, default: "sans-serif" },
+        color: { type: String, default: "#000000" },
+        fontWeight: { type: String, default: "600" },
+        textAlign: { type: String, default: "center" },
       },
-      left: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0,
+      division: {
+        x: { type: Number, default: 50 },
+        y: { type: Number, default: 65 },
+        visible: { type: Boolean, default: true },
+        fontSize: { type: Number, default: 12 },
+        fontFamily: { type: String, default: "sans-serif" },
+        color: { type: String, default: "#000000" },
+        fontWeight: { type: String, default: "600" },
+        textAlign: { type: String, default: "center" },
+      },
+      programQR: {
+        x: { type: Number, default: 15 },
+        y: { type: Number, default: 85 },
+        visible: { type: Boolean, default: true },
+        size: { type: Number, default: 45 },
+      },
+      resultQR: {
+        x: { type: Number, default: 85 },
+        y: { type: Number, default: 85 },
+        visible: { type: Boolean, default: true },
+        size: { type: Number, default: 45 },
+      },
+      barcode: {
+        x: { type: Number, default: 50 },
+        y: { type: Number, default: 75 },
+        visible: { type: Boolean, default: true },
+        width: { type: Number, default: 1.2 },
+        height: { type: Number, default: 25 },
+      },
+      festivalName: {
+        x: { type: Number, default: 50 },
+        y: { type: Number, default: 10 },
+        visible: { type: Boolean, default: true },
+        fontSize: { type: Number, default: 16 },
+        fontFamily: { type: String, default: "sans-serif" },
+        color: { type: String, default: "#000000" },
+        fontWeight: { type: String, default: "bold" },
+        textAlign: { type: String, default: "center" },
       },
     },
   },
@@ -590,7 +629,7 @@ const SettingsSchema = new Schema(
 SettingsSchema.index({}, { unique: true });
 
 // Check if model exists but is missing the new fields (Hot Reload fix)
-if (models.Settings && (!models.Settings.schema.path("idCard.sealImage") || !models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog"))) {
+if (models.Settings && (!models.Settings.schema.path("idCard.sealImage") || !models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog") || !models.Settings.schema.path("participantsCard.layout"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }

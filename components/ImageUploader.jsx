@@ -64,6 +64,7 @@ const ImageUploader = ({
   maxHeight = null,
   hasSubmitButton = false,
   isSubmitting = false,
+  hidePreview = false,
 }) => {
   const [preview, setPreview] = React.useState(value?.url || "");
   const [loading, setLoading] = React.useState(false);
@@ -710,84 +711,108 @@ const ImageUploader = ({
         disabled={disabled || loading}
       />
 
-      <div
-        className={`w-full h-48 border-2 border-dashed rounded-md flex flex-col items-center justify-center relative ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-          } transition-colors`}
-      >
-        {loading && (
-          <div className="absolute inset-0 backdrop-blur-md bg-white/50 border border-white/30 shadow-lg flex flex-col items-center justify-center z-10">
-            <Loader className="animate-spin text-primary mb-4" size={32} />
+      {!hidePreview && (
+        <div
+          className={`w-full h-48 border-2 border-dashed rounded-md flex flex-col items-center justify-center relative ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+            } transition-colors`}
+        >
+          {loading && (
+            <div className="absolute inset-0 backdrop-blur-md bg-white/50 border border-white/30 shadow-lg flex flex-col items-center justify-center z-10">
+              <Loader className="animate-spin text-primary mb-4" size={32} />
 
-            {uploadProgress > 0 && (
-              <div className="w-2/3 flex flex-col items-center">
-                <Progress value={uploadProgress} className="h-2 w-full mb-2" />
-                <span className="text-xs text-gray-800 font-medium drop-shadow-sm">
-                  {Math.round(uploadProgress)}%
-                </span>
-              </div>
+              {uploadProgress > 0 && (
+                <div className="w-2/3 flex flex-col items-center">
+                  <Progress value={uploadProgress} className="h-2 w-full mb-2" />
+                  <span className="text-xs text-gray-800 font-medium drop-shadow-sm">
+                    {Math.round(uploadProgress)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {displayedImage ? (
+            <div className="relative w-full h-full flex items-center justify-center">
+              <img
+                src={displayedImage}
+                alt="Image preview"
+                className="max-h-full max-w-full object-contain"
+              />
+
+              {!disabled && !loading && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveImage();
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div onClick={handleSelectClick} className="text-center p-4">
+              <Image className="h-10 w-10 text-gray-400 mb-2 mx-auto" />
+              <p className="text-sm text-gray-500">Click to select an image</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {getConstraintMessage()}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload, Change Image, and optional Submit buttons */}
+      <div className={`grid gap-2 w-full ${hasSubmitButton ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {selectedFile && (
+          <Button
+            type="button"
+            className="flex-1"
+            onClick={handleUpload}
+            disabled={disabled || loading}
+          >
+            {loading ? (
+              <>
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Image
+              </>
             )}
-          </div>
+          </Button>
         )}
 
-        {displayedImage ? (
-          <div className="relative w-full h-full flex items-center justify-center">
-            <img
-              src={displayedImage}
-              alt="Image preview"
-              className="max-h-full max-w-full object-contain"
-            />
-
-            {!disabled && !loading && (
+        {displayedImage && !selectedFile && !loading && (
+          <div className="flex gap-2 w-full">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={handleSelectClick}
+              disabled={disabled}
+            >
+              <Image className="h-4 w-4 mr-2" />
+              Change Image
+            </Button>
+            {hidePreview && (
               <Button
                 type="button"
                 variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveImage();
-                }}
+                className="px-3"
+                onClick={handleRemoveImage}
+                disabled={disabled}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
-        ) : (
-          <div onClick={handleSelectClick} className="text-center p-4">
-            <Image className="h-10 w-10 text-gray-400 mb-2 mx-auto" />
-            <p className="text-sm text-gray-500">Click to select an image</p>
-            <p className="text-xs text-gray-400 mt-1">
-              {getConstraintMessage()}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Upload, Change Image, and optional Submit buttons */}
-      <div className={`grid gap-2 w-full ${hasSubmitButton ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        {selectedFile && !loading && (
-          <Button
-            type="button"
-            className="flex-1"
-            onClick={handleUpload}
-            disabled={disabled}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Image
-          </Button>
-        )}
-
-        {displayedImage && !selectedFile && !loading && (
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            onClick={handleSelectClick}
-            disabled={disabled}
-          >
-            <Image className="h-4 w-4 mr-2" />
-            Change Image
-          </Button>
         )}
 
         {!displayedImage && !selectedFile && (

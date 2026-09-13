@@ -631,12 +631,12 @@ export async function GET(req, res) {
       const userId = String(participant._id).split("-")[0];
       const user = userMap[userId];
 
-      // Filter programs to only include declared results
+      // Filter out duplicate programs
       const seenProgIds = new Set();
       const validPrograms = [];
       (participant.programs || []).forEach((p) => {
         const pIdStr = (p?.id?._id || p?.id)?.toString();
-        if (pIdStr && declaredProgramIdsStr.has(pIdStr)) {
+        if (pIdStr) {
           if (!seenProgIds.has(pIdStr)) {
             seenProgIds.add(pIdStr);
             validPrograms.push(p);

@@ -24,11 +24,26 @@ const ParticipantsCard = ({
   participants = [],
   divisions = [],
   teams = [],
-  festivalSettings = {},
+  festivalSettings: initialFestivalSettings = {},
   activeRole,
   activeTeamId,
   apiKey,
 }) => {
+  const [festivalSettings, setFestivalSettings] = useState(initialFestivalSettings);
+
+  useEffect(() => {
+    setFestivalSettings(initialFestivalSettings);
+  }, [initialFestivalSettings]);
+
+  const handleSettingsSaved = (updatedCardData) => {
+    setFestivalSettings(prev => ({
+      ...prev,
+      participantsCard: {
+        ...prev?.participantsCard,
+        ...updatedCardData
+      }
+    }));
+  };
   const isProgramLeader = activeRole === "Program Leader";
 
   const [selectedDivision, setSelectedDivision] = useState("");
@@ -170,7 +185,9 @@ const ParticipantsCard = ({
             activeRole === "Program Committee" ? (
               <ParticipantCardSettings 
                 festivalSettings={festivalSettings} 
-                apiKey={apiKey} 
+                apiKey={apiKey}
+                teams={teams}
+                onSaveSuccess={handleSettingsSaved}
               />
             ) : null
           }
@@ -193,7 +210,9 @@ const ParticipantsCard = ({
           activeRole === "Program Committee" ? (
             <ParticipantCardSettings 
               festivalSettings={festivalSettings} 
-              apiKey={apiKey} 
+              apiKey={apiKey}
+              teams={teams}
+              onSaveSuccess={handleSettingsSaved}
             />
           ) : null
         }
@@ -334,9 +353,6 @@ const ParticipantsCard = ({
               print-color-adjust: exact !important;
               color-adjust: exact !important;
             }
-            .force-print-color {
-              color: var(--print-text-color, #ffffff) !important;
-            }
             .force-print-bg-white {
               background-color: #ffffff !important;
             }
@@ -444,8 +460,9 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
   const [currentPage, setCurrentPage] = useState(0);
   
   const participantsCardSettings = festivalSettings?.participantsCard || {};
-  const participantsCardBackgroundUrl =
-    participantsCardSettings?.backgroundImage?.url || "";
+  const defaultBg = participantsCardSettings?.backgroundImage?.url || "";
+  const teamBg = participantsCardSettings?.teamBackgrounds?.[String(participant?.teamId || "")]?.url;
+  const participantsCardBackgroundUrl = teamBg || defaultBg;
 
   // Single text color for all elements
   const textColor = participantsCardSettings?.textColor || "#000000";
@@ -499,78 +516,163 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
                   className="absolute inset-0 w-full h-full object-cover -z-10"
                 />
               )}
-              {/* Participant Details */}
-              <div
-                className="absolute text-center"
-                style={{
-                  left: `${participantsCardSettings?.textPositions?.left || 0}%`,
-                  right: `${participantsCardSettings?.textPositions?.right || 0}%`,
-                  bottom: `${participantsCardSettings?.textPositions?.bottom || 0}%`,
-                }}
-              >
-                {/* Chest Number with enhanced visibility */}
-                <div className="">
-                  <h2
-                    className="text-lg font-bold text-shadow-strong"
-                    style={{ color: textColor }}
-                  >
-                    {participant.chestNumber || "N/A"}
-                  </h2>
-                </div>
+              
+              {(() => {
+                const rawLayout = participantsCardSettings?.layout || {};
+                const layout = {
+                  chestNumber: { x: 50, y: 40, visible: true, fontSize: 24, fontFamily: "sans-serif", color: "#000000", fontWeight: "bold", textAlign: "center", ...rawLayout.chestNumber },
+                  participantName: { x: 50, y: 50, visible: true, fontSize: 18, fontFamily: "sans-serif", color: "#000000", fontWeight: "bold", textAlign: "center", ...rawLayout.participantName },
+                  team: { x: 50, y: 60, visible: true, fontSize: 12, fontFamily: "sans-serif", color: "#000000", fontWeight: "600", textAlign: "center", ...rawLayout.team },
+                  division: { x: 50, y: 65, visible: true, fontSize: 12, fontFamily: "sans-serif", color: "#000000", fontWeight: "600", textAlign: "center", ...rawLayout.division },
+                  programQR: { x: 15, y: 85, visible: true, size: 45, ...rawLayout.programQR },
+                  resultQR: { x: 85, y: 85, visible: true, size: 45, ...rawLayout.resultQR },
+                  barcode: { x: 50, y: 75, visible: true, width: 1.2, height: 25, ...rawLayout.barcode },
+                  festivalName: { x: 50, y: 10, visible: true, fontSize: 16, fontFamily: "sans-serif", color: "#000000", fontWeight: "bold", textAlign: "center", ...rawLayout.festivalName },
+                };
 
-                {/* Participant Name with enhanced visibility */}
-                <div className="">
-                  <h3
-                    className="font-bold text-base text-shadow-strong"
-                    style={{ color: textColor }}
-                  >
-                    {participant.name}
-                  </h3>
-                </div>
+                return (
+                  <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
+                    {/* Festival Name */}
+                    {layout.festivalName.visible && (
+                      <div 
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                        style={{
+                          left: `${layout.festivalName.x}%`,
+                          top: `${layout.festivalName.y}%`,
+                          fontSize: `${layout.festivalName.fontSize}px`,
+                          fontFamily: layout.festivalName.fontFamily,
+                          color: layout.festivalName.color,
+                          fontWeight: layout.festivalName.fontWeight,
+                          textAlign: layout.festivalName.textAlign,
+                          textShadow: '-2px -2px 0 rgba(255,255,255,0.5), 2px -2px 0 rgba(255,255,255,0.5), -2px 2px 0 rgba(255,255,255,0.5), 2px 2px 0 rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        {festivalSettings?.festival?.festivalInfo?.name?.toUpperCase() || "ESPERANZA '25"}
+                      </div>
+                    )}
+                    
+                    {/* Chest Number */}
+                    {layout.chestNumber.visible && (
+                      <div 
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                        style={{
+                          left: `${layout.chestNumber.x}%`,
+                          top: `${layout.chestNumber.y}%`,
+                          fontSize: `${layout.chestNumber.fontSize}px`,
+                          fontFamily: layout.chestNumber.fontFamily,
+                          color: layout.chestNumber.color,
+                          fontWeight: layout.chestNumber.fontWeight,
+                          textAlign: layout.chestNumber.textAlign,
+                        }}
+                      >
+                        {participant.chestNumber || "N/A"}
+                      </div>
+                    )}
 
-                {/* Team and Division with enhanced visibility */}
-                <div className="text-xs text-center flex flex-col items-center">
-                  <div className="backdrop-enhanced">
-                    <p
-                      className="font-semibold text-shadow-strong"
-                      style={{ color: textColor }}
-                    >
-                      TEAM: {participant.teamName}
-                    </p>
+                    {/* Participant Name */}
+                    {layout.participantName.visible && (
+                      <div 
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 w-[95%] whitespace-normal leading-tight break-words text-center"
+                        style={{
+                          left: `${layout.participantName.x}%`,
+                          top: `${layout.participantName.y}%`,
+                          fontSize: `${layout.participantName.fontSize}px`,
+                          fontFamily: layout.participantName.fontFamily,
+                          color: layout.participantName.color,
+                          fontWeight: layout.participantName.fontWeight,
+                          textAlign: layout.participantName.textAlign,
+                        }}
+                      >
+                        {participant.name?.toUpperCase() || "UNKNOWN"}
+                      </div>
+                    )}
+
+                    {/* Team */}
+                    {layout.team.visible && (
+                      <div 
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap backdrop-enhanced rounded px-1"
+                        style={{
+                          left: `${layout.team.x}%`,
+                          top: `${layout.team.y}%`,
+                          fontSize: `${layout.team.fontSize}px`,
+                          fontFamily: layout.team.fontFamily,
+                          color: layout.team.color,
+                          fontWeight: layout.team.fontWeight,
+                          textAlign: layout.team.textAlign,
+                        }}
+                      >
+                        {participant.teamName?.toUpperCase()}
+                      </div>
+                    )}
+
+                    {/* Division */}
+                    {layout.division.visible && (
+                      <div 
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap backdrop-enhanced rounded px-1"
+                        style={{
+                          left: `${layout.division.x}%`,
+                          top: `${layout.division.y}%`,
+                          fontSize: `${layout.division.fontSize}px`,
+                          fontFamily: layout.division.fontFamily,
+                          color: layout.division.color,
+                          fontWeight: layout.division.fontWeight,
+                          textAlign: layout.division.textAlign,
+                        }}
+                      >
+                        {participant.divisionName?.toUpperCase()}
+                      </div>
+                    )}
+
+                    {/* Barcode */}
+                    {layout.barcode.visible && (
+                      <div 
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-white px-2 py-0.5 rounded shadow-sm inline-block"
+                        style={{
+                          left: `${layout.barcode.x}%`,
+                          top: `${layout.barcode.y}%`,
+                        }}
+                      >
+                        <Barcode
+                          value={participant.chestNumber || "000"}
+                          width={layout.barcode.width || 1.2}
+                          height={layout.barcode.height || 25}
+                          displayValue={false}
+                          margin={0}
+                          background="transparent"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Program QR */}
+                    {layout.programQR.visible && (
+                      <div 
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center pointer-events-auto"
+                        style={{
+                          left: `${layout.programQR.x}%`,
+                          top: `${layout.programQR.y}%`,
+                        }}
+                      >
+                        <QRCodeSVG value={`${baseUrl}/participant/${participant.originalId || participant._id}`} size={layout.programQR.size || 45} />
+                        <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight" style={{ fontSize: (layout.programQR.size || 45) * 0.2 }}>Programs</span>
+                      </div>
+                    )}
+
+                    {/* Result QR */}
+                    {layout.resultQR.visible && (
+                      <div 
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center pointer-events-auto"
+                        style={{
+                          left: `${layout.resultQR.x}%`,
+                          top: `${layout.resultQR.y}%`,
+                        }}
+                      >
+                        <QRCodeSVG value={`${baseUrl}/results/2025`} size={layout.resultQR.size || 45} />
+                        <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight" style={{ fontSize: (layout.resultQR.size || 45) * 0.2 }}>Results</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="backdrop-enhanced mb-1">
-                    <p
-                      className="font-semibold text-shadow-strong"
-                      style={{ color: textColor }}
-                    >
-                      DIVISION: {participant.divisionName}
-                    </p>
-                  </div>
-                  {/* Barcode encoding Chest Number */}
-                  <div className="bg-white px-2 py-0.5 rounded shadow-sm inline-block">
-                    <Barcode
-                      value={participant.chestNumber || "000"}
-                      width={1.2}
-                      height={25}
-                      displayValue={false}
-                      margin={0}
-                      background="transparent"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Left QR Code: Participant Programs */}
-              <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center">
-                <QRCodeSVG value={`${baseUrl}/participant/${participant.originalId || participant._id}`} size={45} />
-                <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Programs</span>
-              </div>
-
-              {/* Bottom Right QR Code: Results Page */}
-              <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center">
-                <QRCodeSVG value={`${baseUrl}/results/2025`} size={45} />
-                <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Results</span>
-              </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -606,7 +708,7 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
 };
 
 // Helper component to render a program group
-const ProgramGroup = ({ title, items }) => {
+const ProgramGroup = ({ title, items, onItemClick }) => {
   if (!items || items.length === 0) return null;
   return (
     <div className="mb-2 last:mb-0">
@@ -614,7 +716,11 @@ const ProgramGroup = ({ title, items }) => {
         {title}
       </h2>
       {items.map((program, index) => (
-        <div key={`${program._id || program.id || index}`} className="ml-2">
+        <div 
+          key={`${program._id || program.id || index}`} 
+          className={`ml-2 ${onItemClick ? 'cursor-pointer' : ''}`}
+          onClick={() => onItemClick && onItemClick(program.id || program._id)}
+        >
           <div className="font-semibold text-gray-800 text-[11px] leading-tight dark:text-gray-200 truncate">
             {program.displayIndex || index + 1}. {program.name || "Unknown Program"}
           </div>
@@ -770,14 +876,30 @@ const ParticipantPrograms = ({ participant, onNextPage, onPrevPage, divisions = 
       <div className="relative z-10 flex-grow">
         {programs.length > 0 ? (
           <div>
-            <ProgramGroup title="Stage Programs" items={stagePrograms} />
-            <ProgramGroup title="Off Stage Programs" items={offStagePrograms} />
+            <ProgramGroup 
+              title="Stage Programs" 
+              items={stagePrograms} 
+              onItemClick={(id) => { setSelectedProgramId(id); setIsModalOpen(true); }} 
+            />
+            <ProgramGroup 
+              title="Off Stage Programs" 
+              items={offStagePrograms} 
+              onItemClick={(id) => { setSelectedProgramId(id); setIsModalOpen(true); }} 
+            />
 
             {/* Dynamically render secondary divisions with exact division name */}
             {secondaryDivisions.map(secDiv => (
               <div key={secDiv.id}>
-                <ProgramGroup title={`${secDiv.name} Stage Programs`} items={secDiv.stagePrograms} />
-                <ProgramGroup title={`${secDiv.name} Off Stage Programs`} items={secDiv.offStagePrograms} />
+                <ProgramGroup 
+                  title={`${secDiv.name} Stage Programs`} 
+                  items={secDiv.stagePrograms} 
+                  onItemClick={(id) => { setSelectedProgramId(id); setIsModalOpen(true); }} 
+                />
+                <ProgramGroup 
+                  title={`${secDiv.name} Off Stage Programs`} 
+                  items={secDiv.offStagePrograms} 
+                  onItemClick={(id) => { setSelectedProgramId(id); setIsModalOpen(true); }} 
+                />
               </div>
             ))}
           </div>
@@ -815,6 +937,11 @@ const ParticipantPrograms = ({ participant, onNextPage, onPrevPage, divisions = 
           )}
         </div>
       </div>
+      <ProgramDetailsModal 
+        programId={selectedProgramId} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </div>
   );
 };
@@ -828,8 +955,9 @@ const PrintableParticipantCard = ({
   divisions = []
 }) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
-  const participantsCardBackgroundUrl =
-    participantsCardSettings?.backgroundImage?.url || "";
+  const defaultBg = participantsCardSettings?.backgroundImage?.url || "";
+  const teamBg = participantsCardSettings?.teamBackgrounds?.[String(participant?.teamId || "")]?.url;
+  const participantsCardBackgroundUrl = teamBg || defaultBg;
 
   // Single text color for all elements
   const textColor = participantsCardSettings?.textColor || "#000000";
@@ -873,86 +1001,162 @@ const PrintableParticipantCard = ({
                 className="absolute inset-0 w-full h-full object-cover -z-10 print:block"
               />
             )}
-            {/* Participant Details */}
-            <div
-              className="absolute text-center"
-              style={{
-                left: `${participantsCardSettings?.textPositions?.left || 0}%`,
-                right: `${participantsCardSettings?.textPositions?.right || 0}%`,
-                bottom: `${participantsCardSettings?.textPositions?.bottom || 0}%`,
-              }}
-            >
-              {/* Chest Number - Print Version */}
-              <div className="">
-                <h2
-                  className="font-bold text-lg force-print-color"
-                  style={{
-                    color: textColor,
-                  }}
-                >
-                  {participant.chestNumber || "N/A"}
-                </h2>
-              </div>
+            
+            {(() => {
+              const rawLayout = participantsCardSettings?.layout || {};
+              const layout = {
+                chestNumber: { x: 50, y: 40, visible: true, fontSize: 24, fontFamily: "sans-serif", color: "#000000", fontWeight: "bold", textAlign: "center", ...rawLayout.chestNumber },
+                participantName: { x: 50, y: 50, visible: true, fontSize: 18, fontFamily: "sans-serif", color: "#000000", fontWeight: "bold", textAlign: "center", ...rawLayout.participantName },
+                team: { x: 50, y: 60, visible: true, fontSize: 12, fontFamily: "sans-serif", color: "#000000", fontWeight: "600", textAlign: "center", ...rawLayout.team },
+                division: { x: 50, y: 65, visible: true, fontSize: 12, fontFamily: "sans-serif", color: "#000000", fontWeight: "600", textAlign: "center", ...rawLayout.division },
+                programQR: { x: 15, y: 85, visible: true, size: 45, ...rawLayout.programQR },
+                resultQR: { x: 85, y: 85, visible: true, size: 45, ...rawLayout.resultQR },
+                barcode: { x: 50, y: 75, visible: true, width: 1.2, height: 25, ...rawLayout.barcode },
+                festivalName: { x: 50, y: 10, visible: true, fontSize: 16, fontFamily: "sans-serif", color: "#000000", fontWeight: "bold", textAlign: "center", ...rawLayout.festivalName },
+              };
 
-              {/* Name - Print Version */}
-              <div className="">
-                <h3
-                  className="font-bold text-base force-print-color"
-                  style={{
-                    color: textColor,
-                  }}
-                >
-                  {participant.name}
-                </h3>
-              </div>
+              return (
+                <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
+                  {/* Festival Name */}
+                  {layout.festivalName.visible && (
+                    <div 
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                      style={{
+                        left: `${layout.festivalName.x}%`,
+                        top: `${layout.festivalName.y}%`,
+                        fontSize: `${layout.festivalName.fontSize}px`,
+                        fontFamily: layout.festivalName.fontFamily,
+                        color: layout.festivalName.color,
+                        fontWeight: layout.festivalName.fontWeight,
+                        textAlign: layout.festivalName.textAlign,
+                      }}
+                    >
+                      {festivalSettings?.festival?.festivalInfo?.name?.toUpperCase() || "ESPERANZA '25"}
+                    </div>
+                  )}
+                  
+                  {/* Chest Number */}
+                  {layout.chestNumber.visible && (
+                    <div 
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                      style={{
+                        left: `${layout.chestNumber.x}%`,
+                        top: `${layout.chestNumber.y}%`,
+                        fontSize: `${layout.chestNumber.fontSize}px`,
+                        fontFamily: layout.chestNumber.fontFamily,
+                        color: layout.chestNumber.color,
+                        fontWeight: layout.chestNumber.fontWeight,
+                        textAlign: layout.chestNumber.textAlign,
+                      }}
+                    >
+                      {participant.chestNumber || "N/A"}
+                    </div>
+                  )}
 
-              {/* Team and Division - Print Version */}
-              <div className="text-xs flex flex-col items-center">
-                <div className="">
-                  <p
-                    className="font-semibold force-print-color"
-                    style={{
-                      color: textColor,
-                    }}
-                  >
-                    TEAM: {participant.teamName}
-                  </p>
+                  {/* Participant Name */}
+                  {layout.participantName.visible && (
+                    <div 
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 w-[95%] whitespace-normal leading-tight break-words text-center"
+                      style={{
+                        left: `${layout.participantName.x}%`,
+                        top: `${layout.participantName.y}%`,
+                        fontSize: `${layout.participantName.fontSize}px`,
+                        fontFamily: layout.participantName.fontFamily,
+                        color: layout.participantName.color,
+                        fontWeight: layout.participantName.fontWeight,
+                        textAlign: layout.participantName.textAlign,
+                      }}
+                    >
+                      {participant.name?.toUpperCase() || "UNKNOWN"}
+                    </div>
+                  )}
+
+                  {/* Team */}
+                  {layout.team.visible && (
+                    <div 
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                      style={{
+                        left: `${layout.team.x}%`,
+                        top: `${layout.team.y}%`,
+                        fontSize: `${layout.team.fontSize}px`,
+                        fontFamily: layout.team.fontFamily,
+                        color: layout.team.color,
+                        fontWeight: layout.team.fontWeight,
+                        textAlign: layout.team.textAlign,
+                      }}
+                    >
+                      {participant.teamName?.toUpperCase()}
+                    </div>
+                  )}
+
+                  {/* Division */}
+                  {layout.division.visible && (
+                    <div 
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                      style={{
+                        left: `${layout.division.x}%`,
+                        top: `${layout.division.y}%`,
+                        fontSize: `${layout.division.fontSize}px`,
+                        fontFamily: layout.division.fontFamily,
+                        color: layout.division.color,
+                        fontWeight: layout.division.fontWeight,
+                        textAlign: layout.division.textAlign,
+                      }}
+                    >
+                      {participant.divisionName?.toUpperCase()}
+                    </div>
+                  )}
+
+                  {/* Barcode */}
+                  {layout.barcode.visible && (
+                    <div 
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-white force-print-bg-white px-2 py-0.5 rounded shadow-sm inline-block"
+                      style={{
+                        left: `${layout.barcode.x}%`,
+                        top: `${layout.barcode.y}%`,
+                      }}
+                    >
+                      <Barcode
+                        value={participant.chestNumber || "000"}
+                        width={layout.barcode.width || 1.2}
+                        height={layout.barcode.height || 25}
+                        displayValue={false}
+                        margin={0}
+                        background="transparent"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Program QR */}
+                  {layout.programQR.visible && (
+                    <div 
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-white force-print-bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center pointer-events-auto"
+                      style={{
+                        left: `${layout.programQR.x}%`,
+                        top: `${layout.programQR.y}%`,
+                      }}
+                    >
+                      <QRCodeSVG value={`${baseUrl}/participant/${participant.originalId || participant._id}`} size={layout.programQR.size || 45} />
+                      <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight" style={{ fontSize: (layout.programQR.size || 45) * 0.2 }}>Programs</span>
+                    </div>
+                  )}
+
+                  {/* Result QR */}
+                  {layout.resultQR.visible && (
+                    <div 
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-white force-print-bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center pointer-events-auto"
+                      style={{
+                        left: `${layout.resultQR.x}%`,
+                        top: `${layout.resultQR.y}%`,
+                      }}
+                    >
+                      <QRCodeSVG value={`${baseUrl}/results/2025`} size={layout.resultQR.size || 45} />
+                      <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight" style={{ fontSize: (layout.resultQR.size || 45) * 0.2 }}>Results</span>
+                    </div>
+                  )}
                 </div>
-                <div className="mb-1">
-                  <p
-                    className="font-semibold force-print-color"
-                    style={{
-                      color: textColor,
-                    }}
-                  >
-                    DIV: {participant.divisionName}
-                  </p>
-                </div>
-                {/* Barcode encoding Chest Number */}
-                <div className="bg-white force-print-bg-white px-2 py-0.5 rounded shadow-sm inline-block">
-                  <Barcode
-                    value={participant.chestNumber || "000"}
-                    width={1.2}
-                    height={25}
-                    displayValue={false}
-                    margin={0}
-                    background="transparent"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Left QR Code: Participant Programs */}
-            <div className="absolute bottom-3 left-3 bg-white force-print-bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
-              <QRCodeSVG value={`${baseUrl}/participant/${participant.originalId || participant._id}`} size={45} />
-              <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Programs</span>
-            </div>
-
-            {/* Bottom Right QR Code: Results Page */}
-            <div className="absolute bottom-3 right-3 bg-white force-print-bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
-              <QRCodeSVG value={`${baseUrl}/results/2025`} size={45} />
-              <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Results</span>
-            </div>
+              );
+            })()}
           </div>
         </div>
       )}

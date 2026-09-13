@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { Search, Loader2, RotateCcw, Layout, X } from "lucide-react";
 import Image from "next/image";
 import DashboardTopBar from "./DashboardTopBar";
@@ -241,12 +241,11 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [isOpen, step, isDaisVisible]);
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
-        className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none overflow-hidden flex flex-col font-sans transition-colors duration-500 ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black text-white'}`}
-      >
-        <DialogTitle className="sr-only">Code Letters Announcement</DialogTitle>
+  if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className={`fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 overflow-hidden flex flex-col font-sans transition-colors duration-500 ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black text-white'}`}>
         
         {/* Background Effects */}
         <div className="absolute inset-0 pointer-events-none opacity-30">
@@ -464,7 +463,7 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
                 50% { transform: scale(1.05); opacity: 1; }
             }
         `}</style>
-      </DialogContent>
-    </Dialog>
+    </div>,
+    document.body
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { X, Trophy, BarChart3, Info, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardTopBar from "./DashboardTopBar";
@@ -200,14 +200,13 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
   };
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const maxPoints = teams.length > 0 ? Math.max(...teams.map(t => t.points), 1) : 1;
   const highestPoints = teams.length > 0 ? teams[0].points : 0;
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none transition-colors duration-500 overflow-hidden flex flex-col font-sans ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black'}`}>
-        <DialogTitle className="sr-only">Team Points Poster</DialogTitle>
+  return createPortal(
+    <div className={`fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 overflow-hidden flex flex-col font-sans transition-colors duration-500 ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black'}`}>
         
         {/* Dynamic Background */}
         <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${isWhiteTheme ? 'opacity-10' : 'opacity-30'}`}>
@@ -378,7 +377,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
             100% { transform: translate(-2%, -2%) scale(1); }
           }
         ` }} />
-      </DialogContent>
-    </Dialog>
+    </div>,
+    document.body
   );
 }

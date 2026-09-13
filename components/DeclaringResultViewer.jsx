@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { X, Sparkles, Trophy, Sun, Moon, RotateCcw, Layout, Search, Loader2, Award, User, Users, TrendingUp, Star, Crown, BarChart3, MonitorPlay } from "lucide-react";
 import DashboardTopBar from "./DashboardTopBar";
 
@@ -241,13 +241,14 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, nextStep, step, resultData]);
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
-        className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none overflow-hidden flex flex-col font-sans transition-colors duration-500 cursor-pointer ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black text-white'}`}
+  if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+        className={`fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 overflow-hidden flex flex-col font-sans transition-colors duration-500 cursor-pointer ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black text-white'}`}
         onClick={() => step !== STEPS.INPUT && nextStep()}
-      >
-        <DialogTitle className="sr-only">Declaring Result</DialogTitle>
+    >
         
         {/* Background Effects */}
         <div className="absolute inset-0 pointer-events-none opacity-30">
@@ -461,8 +462,8 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
             .scrollbar-hide::-webkit-scrollbar { display: none; }
             .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         ` }} />
-      </DialogContent>
-    </Dialog>
+    </div>,
+    document.body
   );
 }
 
