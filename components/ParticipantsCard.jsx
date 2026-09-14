@@ -286,35 +286,16 @@ const ParticipantsCard = ({
               <span className="text-xs sm:text-sm font-medium hidden sm:inline">
                 View:
               </span>
-              <div className="flex rounded-md border">
-                <Button
-                  variant={viewMode === "both" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => handleViewModeChange("both")}
-                  className="rounded-r-none text-xs sm:text-sm px-2 sm:px-3"
-                >
-                  <span className="hidden sm:inline">Both</span>
-                  <span className="sm:hidden">All</span>
-                </Button>
-                <Button
-                  variant={viewMode === "front" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => handleViewModeChange("front")}
-                  className="rounded-none border-x-0 text-xs sm:text-sm px-2 sm:px-3"
-                >
-                  <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Front</span>
-                </Button>
-                <Button
-                  variant={viewMode === "back" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => handleViewModeChange("back")}
-                  className="rounded-l-none text-xs sm:text-sm px-2 sm:px-3"
-                >
-                  <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Back</span>
-                </Button>
-              </div>
+              <Select value={viewMode} onValueChange={handleViewModeChange}>
+                <SelectTrigger className="w-20 sm:w-24 h-8 sm:h-9 text-xs sm:text-sm rounded-md border" id="view-mode-select">
+                  <SelectValue placeholder="View" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="both">Both</SelectItem>
+                  <SelectItem value="front">Front</SelectItem>
+                  <SelectItem value="back">Back</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
           {/* Paper Size Filter */}
