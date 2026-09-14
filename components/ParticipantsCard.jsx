@@ -50,6 +50,7 @@ const ParticipantsCard = ({
   const [selectedTeam, setSelectedTeam] = useState(isProgramLeader && activeTeamId ? activeTeamId : "");
   const [selectedParticipant, setSelectedParticipant] = useState([]);
   const [viewMode, setViewMode] = useState(isProgramLeader ? "back" : "both"); // Force back for program leaders
+  const [paperSize, setPaperSize] = useState("A4");
   const [baseUrl, setBaseUrl] = useState("");
 
   const pageRef = useRef(null);
@@ -316,6 +317,21 @@ const ParticipantsCard = ({
               </div>
             </div>
           )}
+          {/* Paper Size Filter */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-medium hidden sm:inline">
+              Size:
+            </span>
+            <Select value={paperSize} onValueChange={setPaperSize}>
+              <SelectTrigger className="w-16 sm:w-20 h-8 sm:h-9 text-xs sm:text-sm rounded-md border" id="paper-size-select">
+                <SelectValue placeholder="Size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A4">A4</SelectItem>
+                <SelectItem value="A3">A3</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {/* Print Button */}
           <Button
             onClick={handlePrint}
@@ -348,6 +364,10 @@ const ParticipantsCard = ({
       <div ref={pageRef} className="hidden print:block">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
+            @page {
+              size: ${paperSize === "A3" ? "A3 portrait" : "A4 landscape"};
+              margin: 0;
+            }
             * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
@@ -360,7 +380,7 @@ const ParticipantsCard = ({
         `}} />
         {Array.from({
           length: Math.ceil(
-            printParticipants.length / (viewMode === "both" ? 4 : 8)
+            printParticipants.length / (paperSize === "A3" ? (viewMode === "both" ? 8 : 16) : (viewMode === "both" ? 4 : 8))
           ),
         }).map((_, pageIndex) => (
           <div
@@ -368,7 +388,7 @@ const ParticipantsCard = ({
             className={`print-page w-full p-4 flex flex-wrap ${viewMode === 'back' ? 'flex-row-reverse' : ''}`}
             style={{
               width: "297mm",
-              height: "210mm",
+              height: paperSize === "A3" ? "420mm" : "210mm",
               pageBreakAfter: "always",
               pageBreakInside: "avoid",
               breakAfter: "page",
@@ -381,8 +401,8 @@ const ParticipantsCard = ({
 
             {printParticipants
               .slice(
-                pageIndex * (viewMode === "both" ? 4 : 8),
-                (pageIndex + 1) * (viewMode === "both" ? 4 : 8)
+                pageIndex * (paperSize === "A3" ? (viewMode === "both" ? 8 : 16) : (viewMode === "both" ? 4 : 8)),
+                (pageIndex + 1) * (paperSize === "A3" ? (viewMode === "both" ? 8 : 16) : (viewMode === "both" ? 4 : 8))
               )
               .map((participant) => (
                 <PrintableParticipantCard
@@ -392,6 +412,7 @@ const ParticipantsCard = ({
                   viewMode={viewMode}
                   baseUrl={baseUrl}
                   divisions={divisions}
+                  paperSize={paperSize}
                 />
               ))}
           </div>
@@ -401,17 +422,6 @@ const ParticipantsCard = ({
       {/* Enhanced CSS for print and display */}
       <style jsx>{`
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 0;
-          }
-
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-
           body {
             margin: 0;
             padding: 0;
@@ -952,7 +962,8 @@ const PrintableParticipantCard = ({
   festivalSettings,
   viewMode,
   baseUrl,
-  divisions = []
+  divisions = [],
+  paperSize = "A4"
 }) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
   const defaultBg = participantsCardSettings?.backgroundImage?.url || "";
@@ -966,12 +977,12 @@ const PrintableParticipantCard = ({
   const getCardLayout = () => {
     if (viewMode === "both") {
       return {
-        containerClass: "w-1/2 h-1/2 p-2 flex space-x-2",
+        containerClass: `w-1/2 ${paperSize === "A3" ? "h-1/4" : "h-1/2"} p-2 flex space-x-2`,
         cardClass: "w-full",
       };
     } else {
       return {
-        containerClass: "w-1/4 h-1/2 p-2 flex",
+        containerClass: `w-1/4 ${paperSize === "A3" ? "h-1/4" : "h-1/2"} p-2 flex`,
         cardClass: "w-full",
       };
     }

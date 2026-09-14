@@ -277,17 +277,20 @@ export async function POST(request) {
     // Sort by total marks (descending)
     allParticipants.sort((a, b) => b.totalMarks - a.totalMarks);
 
-    // Calculate final results with grades and points
+    let currentRank = 1;
     const participants = allParticipants.map((p, index) => {
+      if (index > 0 && p.totalMarks < allParticipants[index - 1].totalMarks) {
+        currentRank = index + 1;
+      }
       const { grade, points } = calculateGrade(p.totalMarks, gradeSchemes);
-      const positionBonus = pointsScheme[index] || 0;
+      const positionBonus = pointsScheme[currentRank - 1] || 0;
 
       return {
         id: p.id,
         codeLetter: p.codeLetter,
         grade,
         points: points + positionBonus,
-        rank: index + 1,
+        rank: currentRank,
       };
     });
 

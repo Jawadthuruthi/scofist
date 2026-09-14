@@ -427,7 +427,7 @@ function PublicResultsContent() {
 
   /* --------------- render winner card --------------- */
   const renderWinnerCard = useCallback(
-    (participant) => {
+    (participant, index) => {
       const rank = participant.rank;
       const name = participant.participantDetails?.name || "Unknown";
       const team = participant.participantDetails?.teamId?.name || "Unknown";
@@ -454,7 +454,7 @@ function PublicResultsContent() {
 
       return (
         <Card
-          key={participant._id}
+          key={participant._id ? `${participant._id}-${index}` : `winner-${index}`}
           className={`${medal.bg} ${medal.border} border-2 rounded-3xl transition-all duration-500 transform ${
             showResults
               ? "translate-y-0 opacity-100"
@@ -765,7 +765,7 @@ function PublicResultsContent() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {results.map((participant) => renderWinnerCard(participant))}
+                      {results.map((participant, index) => renderWinnerCard(participant, index))}
                     </div>
                   </div>
                 )}

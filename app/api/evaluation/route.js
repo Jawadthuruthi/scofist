@@ -305,14 +305,18 @@ export async function PUT(request) {
 
         allParticipants.sort((a, b) => b.totalMarks - a.totalMarks);
 
+        let currentRank = 1;
         const participants = allParticipants.map((p, index) => {
+          if (index > 0 && p.totalMarks < allParticipants[index - 1].totalMarks) {
+            currentRank = index + 1;
+          }
           const { grade, points } = calculateGrade(p.totalMarks, gradeSchemes);
           return {
             id: p.id,
             codeLetter: p.codeLetter,
             grade,
-            points: points + (pointsScheme[index] ? pointsScheme[index] : 0),
-            rank: index + 1,
+            points: points + (pointsScheme[currentRank - 1] ? pointsScheme[currentRank - 1] : 0),
+            rank: currentRank,
           };
         });
 

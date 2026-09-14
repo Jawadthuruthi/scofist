@@ -1029,7 +1029,7 @@ const PosterCustomizer = ({
   ) => {
     if (!config?.visible || !winners?.length) return null;
 
-    const maxWinners = Math.min(winners.length, config.maxWinners || 1);
+    const maxWinners = winners.length;
     const displayWinners = winners.slice(0, maxWinners);
     const baseFontSize = calculateResponsiveFont(
       config.fontSize,

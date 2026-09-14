@@ -239,7 +239,7 @@ export default function ResultPoster({
 
   const renderWinnersList = (config, winners = [], elementKey) => {
     if (!config?.visible || !winners?.length) return null;
-    const maxWinners = Math.min(winners.length, config.maxWinners || 1);
+    const maxWinners = winners.length;
     const displayWinners = winners.slice(0, maxWinners);
     const baseFontSize = calculateResponsiveFont(config.fontSize, containerSize.width, containerSize.height, config);
     const scaledFontSize = `${(baseFontSize / 300) * 100}cqw`;
