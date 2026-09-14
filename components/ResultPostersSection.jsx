@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, ImageIcon, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { domToPng } from "modern-screenshot";
 
 export default function ResultPostersSection({ resultData, settings }) {
   const [winners, setWinners] = useState([]);
@@ -67,64 +68,28 @@ export default function ResultPostersSection({ resultData, settings }) {
       const element = document.getElementById(`poster-${posterNumber}`);
       if (!element) return;
 
-      if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
-        try {
-          await document.fonts.ready;
-        } catch (_) {}
-      }
-
-      const images = Array.from(element.querySelectorAll("img"));
-      if (images.length > 0) {
-        await Promise.all(
-          images.map(async (img) => {
-            if (!img.crossOrigin && img.src && !img.src.startsWith("data:")) {
-              img.crossOrigin = "anonymous";
-            }
-            if (!img.complete) {
-              await new Promise((resolve) => {
-                img.onload = resolve;
-                img.onerror = resolve;
-              });
-            }
-            if (img.decode) {
-              try {
-                await img.decode();
-              } catch (_) {}
-            }
-          })
-        );
-      }
-
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(element, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null,
-        logging: false,
-        imageTimeout: 15000,
-        onclone: async (clonedDoc) => {
-          const style = clonedDoc.createElement("style");
-          style.innerHTML = `
-            *, *::before, *::after {
-              animation: none !important;
-              animation-duration: 0s !important;
-              transition: none !important;
-              transition-duration: 0s !important;
-            }
-          `;
-          clonedDoc.head.appendChild(style);
+      const targetWidth = 1080;
+      const scale = targetWidth / element.offsetWidth;
+      
+      const dataUrl = await domToPng(element, {
+        quality: 1,
+        scale: scale,
+        backgroundColor: "#ffffff",
+        style: {
+          fontFamily: "'Montserrat', Arial, sans-serif",
         },
       });
 
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = `Result-${resultData.resultNumber}-Poster-${posterNumber}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = url;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Failed to download poster:", error);
     }
@@ -160,34 +125,24 @@ export default function ResultPostersSection({ resultData, settings }) {
 
       <CardContent className="pt-0 px-3 sm:px-4 md:px-6">
         {/* Posters Grid - Mobile Optimized */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
           {posterConfigs.map((posterConfig, index) => (
-            <div key={index} className="flex-1 relative group">
-              <div id={`poster-${index + 1}`}>
+            <div key={index} className="flex flex-col items-center gap-4">
+              <div id={`poster-${index + 1}`} className="w-full max-w-md mx-auto relative">
                 <ResultPoster
                   result={posterResult}
                   posterConfig={posterConfig}
                   posterNumber={index + 1}
                 />
               </div>
-
-              {/* Download Button Overlay - Mobile Optimized */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center rounded-lg">
-                <Button
-                  onClick={() => downloadPoster(index + 1)}
-                  variant="secondary"
-                  size="sm"
-                  className="shadow-xl text-xs sm:text-sm"
-                >
-                  <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                  Download
-                </Button>
-              </div>
-
-              {/* Poster Number Badge - Mobile Optimized */}
-              <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 bg-white/90 backdrop-blur-sm px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-semibold text-gray-800 shadow-lg">
-                Poster {index + 1}
-              </div>
+              <Button
+                onClick={() => downloadPoster(index + 1)}
+                variant="outline"
+                className="w-full max-w-md shadow-sm hover:shadow-md transition-shadow font-semibold border-yellow-300 text-yellow-800 hover:bg-yellow-50 hover:text-yellow-900"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Poster {posterConfigs.length > 1 ? index + 1 : ""}
+              </Button>
             </div>
           ))}
         </div>

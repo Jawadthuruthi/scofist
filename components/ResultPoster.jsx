@@ -1,125 +1,341 @@
 // components/ResultPoster.jsx
 "use client";
 
+import React, { useState, useEffect, useRef } from "react";
+
+const calculateResponsiveFont = (
+  baseSize,
+  containerWidth,
+  containerHeight,
+  config
+) => {
+  let finalSize = baseSize;
+  if (config.minFontSize) finalSize = Math.max(finalSize, config.minFontSize);
+  if (config.maxFontSize) finalSize = Math.min(finalSize, config.maxFontSize);
+  return Math.round(finalSize);
+};
+
+const calculateTextDimensions = (
+  text,
+  fontSize,
+  fontWeight = "normal",
+  maxWidth = 200
+) => {
+  if (typeof window === "undefined")
+    return {
+      width: 0,
+      height: fontSize,
+      suggestedFontSize: fontSize,
+      requiresResize: false,
+    };
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  context.font = `${fontWeight} ${fontSize}px Arial, sans-serif`;
+  const metrics = context.measureText(text);
+  const textWidth = metrics.width;
+
+  if (textWidth > maxWidth && maxWidth > 0) {
+    const suggestedSize = Math.floor((maxWidth / textWidth) * fontSize);
+    return {
+      width: textWidth,
+      height: fontSize * 1.2,
+      suggestedFontSize: Math.max(4, suggestedSize),
+      requiresResize: true,
+    };
+  }
+
+  return {
+    width: textWidth,
+    height: fontSize * 1.2,
+    suggestedFontSize: fontSize,
+    requiresResize: false,
+  };
+};
+
+const truncateText = (text, maxLength) => {
+  if (!maxLength || text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3) + "...";
+};
+
 export default function ResultPoster({
   result,
   posterConfig,
   posterNumber = 1,
 }) {
+  const containerRef = useRef(null);
+  const [containerSize, setContainerSize] = useState({ width: 300, height: 300 });
+
+  useEffect(() => {
+    // Keep it 300 to match PosterCustomizer's default for text size
+    setContainerSize({ width: 300, height: 300 });
+  }, []);
+
   if (!posterConfig) return null;
 
-  const { backgroundImage, layout, name } = posterConfig;
+  const renderCustomElement = (key, config) => {
+    if (!config?.visible) return null;
 
-  // Get winners
-  const winners = result?.winners || [];
-  const firstPlace = winners.find((w) => w.rank === 1);
-  const secondPlace = winners.find((w) => w.rank === 2);
-  const thirdPlace = winners.find((w) => w.rank === 3);
+    const value = (config.text ?? "").trim() || config.label;
+    const baseFontSize = calculateResponsiveFont(
+      config.fontSize,
+      containerSize.width,
+      containerSize.height,
+      config
+    );
+    const textDimensions = calculateTextDimensions(
+      value,
+      baseFontSize,
+      config.fontWeight,
+      containerSize.width * 0.9
+    );
+    const fontSize = config.autoFit
+      ? textDimensions.suggestedFontSize
+      : baseFontSize;
 
-  // Render text element with layout config
-  const renderElement = (elementKey, content, config) => {
-    if (!config?.visible || !content) return null;
-
-    const style = {
-      position: "absolute",
-      left: `${config.x}%`,
-      top: `${config.y}%`,
-      transform: "translate(-50%, -50%)",
-      color: `#${config.color}`,
-      fontSize: `${config.fontSize}px`,
-      fontWeight: config.fontWeight || "normal",
-      textAlign: config.textAlign || "center",
-      lineHeight: config.lineHeight || 1.2,
-      whiteSpace: "pre-wrap",
-      width: "90%",
-      maxWidth: "90%",
-      textShadow: config.textShadow ? "2px 2px 4px rgba(0,0,0,0.5)" : "none",
-    };
+    const scaledFontSize = `${(fontSize / 300) * 100}cqw`;
 
     return (
-      <div key={elementKey} style={style}>
-        {content}
+      <div
+        key={key}
+        className="absolute pointer-events-none select-none"
+        style={{
+          left: `${config.x}%`,
+          top: `${config.y}%`,
+          transform:
+            config.textAlign === "center"
+              ? "translateX(-50%)"
+              : config.textAlign === "right"
+                ? "translateX(-100%)"
+                : "translateX(0)",
+          fontSize: scaledFontSize,
+          fontFamily: config.fontFamily || "inherit",
+          color: config.color,
+          fontWeight: config.fontWeight,
+          textAlign: config.textAlign,
+          lineHeight: config.lineHeight || 1.2,
+          letterSpacing: `${(config.letterSpacing || 0) / 300 * 100}cqw`,
+          textShadow: config.textShadow
+            ? "2px 2px 4px rgba(0,0,0,0.8)"
+            : "none",
+          maxWidth: "90%",
+          whiteSpace: "nowrap",
+          zIndex: 10,
+        }}
+      >
+        {value}
       </div>
     );
   };
 
-  return (
-    <div className="relative w-full aspect-square overflow-hidden rounded-lg shadow-xl">
-      {/* Background Image */}
+  const renderProgramInfo = (config) => {
+    if (!config?.visible) return null;
+    const value = result?.programName || "Program Name";
+    const baseFontSize = calculateResponsiveFont(config.fontSize, containerSize.width, containerSize.height, config);
+    const textDimensions = calculateTextDimensions(value, baseFontSize, config.fontWeight, containerSize.width * 0.9);
+    const fontSize = config.autoFit ? textDimensions.suggestedFontSize : baseFontSize;
+    const scaledFontSize = `${(fontSize / 300) * 100}cqw`;
+
+    return (
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute pointer-events-none select-none"
         style={{
-          backgroundImage: backgroundImage?.url
-            ? `url("${backgroundImage.url}")`
-            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          left: `${config.x}%`,
+          top: `${config.y}%`,
+          transform:
+            config.textAlign === "center"
+              ? "translateX(-50%)"
+              : config.textAlign === "right"
+                ? "translateX(-100%)"
+                : "translateX(0)",
+          fontSize: scaledFontSize,
+          fontFamily: config.fontFamily || "inherit",
+          color: config.color,
+          fontWeight: config.fontWeight,
+          textAlign: config.textAlign,
+          lineHeight: config.lineHeight,
+          letterSpacing: `${(config.letterSpacing || 0) / 300 * 100}cqw`,
+          textShadow: config.textShadow ? "2px 2px 4px rgba(0,0,0,0.8)" : "none",
+          maxWidth: "90%",
+          whiteSpace: "nowrap",
+          zIndex: 10,
         }}
-      />
-
-      {/* Overlay for better text visibility */}
-      <div className="absolute inset-0 bg-black/10" />
-
-      {/* Text Elements */}
-      <div className="relative w-full h-full">
-        {/* Program Info */}
-        {renderElement("programInfo", result.programName, layout?.programInfo)}
-
-        {/* Division Info */}
-        {renderElement(
-          "divisionInfo",
-          result.divisionName,
-          layout?.divisionInfo
-        )}
-
-        {/* Result Number */}
-        {renderElement(
-          "resultNumber",
-          `Result #${String(result.resultNumber).padStart(2, "0")}`,
-          layout?.resultNumber
-        )}
-
-        {/* First Place */}
-        {renderElement(
-          "firstPlace",
-          firstPlace
-            ? `🥇 ${firstPlace.name}${
-                layout?.firstPlace?.showTeamName && firstPlace.teamName
-                  ? `\n${firstPlace.teamName}`
-                  : ""
-              }`
-            : null,
-          layout?.firstPlace
-        )}
-
-        {/* Second Place */}
-        {renderElement(
-          "secondPlace",
-          secondPlace
-            ? `🥈 ${secondPlace.name}${
-                layout?.secondPlace?.showTeamName && secondPlace.teamName
-                  ? `\n${secondPlace.teamName}`
-                  : ""
-              }`
-            : null,
-          layout?.secondPlace
-        )}
-
-        {/* Third Place */}
-        {renderElement(
-          "thirdPlace",
-          thirdPlace
-            ? `🥉 ${thirdPlace.name}${
-                layout?.thirdPlace?.showTeamName && thirdPlace.teamName
-                  ? `\n${thirdPlace.teamName}`
-                  : ""
-              }`
-            : null,
-          layout?.thirdPlace
-        )}
+      >
+        {value}
       </div>
+    );
+  };
 
-      {/* Poster Label */}
-      <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-xs backdrop-blur-sm">
-        {name || `Poster ${posterNumber}`}
+  const renderDivisionInfo = (config) => {
+    if (!config?.visible) return null;
+    const value = result?.divisionName || "Division";
+    const baseFontSize = calculateResponsiveFont(config.fontSize, containerSize.width, containerSize.height, config);
+    const textDimensions = calculateTextDimensions(value, baseFontSize, config.fontWeight, containerSize.width * 0.9);
+    const fontSize = config.autoFit ? textDimensions.suggestedFontSize : baseFontSize;
+    const scaledFontSize = `${(fontSize / 300) * 100}cqw`;
+
+    return (
+      <div
+        className="absolute pointer-events-none select-none"
+        style={{
+          left: `${config.x}%`,
+          top: `${config.y}%`,
+          transform:
+            config.textAlign === "center"
+              ? "translateX(-50%)"
+              : config.textAlign === "right"
+                ? "translateX(-100%)"
+                : "translateX(0)",
+          fontSize: scaledFontSize,
+          fontFamily: config.fontFamily || "inherit",
+          color: config.color,
+          fontWeight: config.fontWeight,
+          textAlign: config.textAlign,
+          lineHeight: config.lineHeight,
+          letterSpacing: `${(config.letterSpacing || 0) / 300 * 100}cqw`,
+          textShadow: config.textShadow ? "2px 2px 4px rgba(0,0,0,0.8)" : "none",
+          maxWidth: "90%",
+          whiteSpace: "nowrap",
+          zIndex: 10,
+        }}
+      >
+        {value}
+      </div>
+    );
+  };
+
+  const renderResultNumber = (config) => {
+    if (!config?.visible) return null;
+    const value = config.prefix + (result?.resultNumber || "01");
+    const baseFontSize = calculateResponsiveFont(config.fontSize, containerSize.width, containerSize.height, config);
+    const textDimensions = calculateTextDimensions(value, baseFontSize, config.fontWeight, containerSize.width * 0.9);
+    const fontSize = config.autoFit ? textDimensions.suggestedFontSize : baseFontSize;
+    const scaledFontSize = `${(fontSize / 300) * 100}cqw`;
+
+    return (
+      <div
+        className="absolute pointer-events-none select-none"
+        style={{
+          left: `${config.x}%`,
+          top: `${config.y}%`,
+          transform: "translateX(0)", 
+          fontSize: scaledFontSize,
+          fontFamily: config.fontFamily || "inherit",
+          color: config.color,
+          fontWeight: config.fontWeight,
+          textAlign: config.textAlign,
+          lineHeight: config.lineHeight,
+          letterSpacing: `${(config.letterSpacing || 0) / 300 * 100}cqw`,
+          textShadow: config.textShadow ? "2px 2px 4px rgba(0,0,0,0.8)" : "none",
+          maxWidth: "90%",
+          whiteSpace: "nowrap",
+          zIndex: 10,
+        }}
+      >
+        {value}
+      </div>
+    );
+  };
+
+  const renderWinnersList = (config, winners = [], elementKey) => {
+    if (!config?.visible || !winners?.length) return null;
+    const maxWinners = Math.min(winners.length, config.maxWinners || 1);
+    const displayWinners = winners.slice(0, maxWinners);
+    const baseFontSize = calculateResponsiveFont(config.fontSize, containerSize.width, containerSize.height, config);
+    const scaledFontSize = `${(baseFontSize / 300) * 100}cqw`;
+
+    return (
+      <div
+        className="absolute pointer-events-none select-none"
+        style={{
+          left: `${config.x}%`,
+          top: `${config.y}%`,
+          transform: "translateX(0)",
+          maxWidth: "90%",
+          zIndex: 10,
+          padding: `${((config.containerPadding || 10) / 300) * 100}cqw`,
+        }}
+      >
+        {displayWinners.map((winner, index) => {
+          const displayName = config.maxNameLength
+            ? truncateText(winner.studentName || winner.name || "Winner", config.maxNameLength)
+            : winner.studentName || winner.name || "Winner";
+          const teamDisplay =
+            config.showTeamName && winner.teamName ? winner.teamName : "";
+
+          return (
+            <div
+              key={index}
+              className="block"
+              style={{
+                marginBottom:
+                  index < displayWinners.length - 1
+                    ? `${((config.nameSpacing || 4) / 300) * 100}cqw`
+                    : "0",
+                fontSize: scaledFontSize,
+                fontFamily: config.fontFamily || "inherit",
+                color: config.color,
+                fontWeight: config.fontWeight,
+                textAlign: config.textAlign,
+                lineHeight: config.lineHeight,
+                letterSpacing: `${(config.letterSpacing || 0) / 300 * 100}cqw`,
+                textShadow: config.textShadow ? "2px 2px 4px rgba(0,0,0,0.8)" : "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {config.showRank && `${elementKey === "firstPlace" ? 1 : elementKey === "secondPlace" ? 2 : elementKey === "thirdPlace" ? 3 : index + 1}. `}
+              {displayName}
+              {teamDisplay && (
+                <div
+                  style={{
+                    fontSize: `${(Math.max(8, baseFontSize * 0.8) / 300) * 100}cqw`,
+                    opacity: 0.8,
+                    marginTop: `${((config.teamNameSpacing || 0) / 300) * 100}cqw`,
+                  }}
+                >
+                  {teamDisplay}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const layout = posterConfig.layout;
+  const firstPlaceWinners = result?.winners?.filter((w) => w.rank === 1) || [];
+  const secondPlaceWinners = result?.winners?.filter((w) => w.rank === 2) || [];
+  const thirdPlaceWinners = result?.winners?.filter((w) => w.rank === 3) || [];
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full mx-auto aspect-[3/4] bg-card overflow-hidden shadow-lg"
+      style={{ containerType: "inline-size" }}
+    >
+      <div
+        className="relative w-full h-full bg-gray-100 overflow-hidden"
+        style={{
+          backgroundImage: posterConfig?.backgroundImage?.url
+            ? `url(${posterConfig.backgroundImage.url})`
+            : "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        {Object.entries(layout || {})
+          .filter(([key]) => key.startsWith("custom_"))
+          .map(([key, config]) => renderCustomElement(key, config))}
+        
+        {renderProgramInfo(layout?.programInfo)}
+        {renderDivisionInfo(layout?.divisionInfo)}
+        {renderResultNumber(layout?.resultNumber)}
+        
+        {renderWinnersList(layout?.firstPlace, firstPlaceWinners, "firstPlace")}
+        {renderWinnersList(layout?.secondPlace, secondPlaceWinners, "secondPlace")}
+        {renderWinnersList(layout?.thirdPlace, thirdPlaceWinners, "thirdPlace")}
       </div>
     </div>
   );

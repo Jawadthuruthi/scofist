@@ -289,17 +289,34 @@ const PosterCustomizer = ({
   }, []);
 
   useEffect(() => {
-    if (
-      isFullPage &&
-      (!currentSettings?.resultPosters ||
-        currentSettings.resultPosters.length === 0)
-    ) {
-      setCurrentSettings((prev) => ({
-        ...prev,
-        resultPosters: [createDefaultPoster()],
-      }));
+    if (isFullPage) {
+      fetch("/api/settings")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.settings?.festival?.resultPosters?.length > 0) {
+            setCurrentSettings((prev) => ({
+              ...prev,
+              ...data.settings,
+              resultPosters: data.settings.festival.resultPosters,
+            }));
+          } else if (!currentSettings?.resultPosters || currentSettings.resultPosters.length === 0) {
+            setCurrentSettings((prev) => ({
+              ...prev,
+              resultPosters: [createDefaultPoster()],
+            }));
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch settings:", err);
+          if (!currentSettings?.resultPosters || currentSettings.resultPosters.length === 0) {
+            setCurrentSettings((prev) => ({
+              ...prev,
+              resultPosters: [createDefaultPoster()],
+            }));
+          }
+        });
     }
-  }, [isFullPage, currentSettings]);
+  }, [isFullPage]);
 
   useEffect(() => {
     setContainerSize({ width: 300, height: 300 });
@@ -555,13 +572,12 @@ const PosterCustomizer = ({
     try {
       setIsSaving(true);
       const response = await fetch("/api/settings", {
-        method: currentSettings.id ? "PUT" : "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...currentSettings,
-          tenantId: tenantId,
-          updatedBy: user?.id,
-          updatedAt: new Date().toISOString(),
+          festival: {
+            resultPosters: currentSettings.resultPosters,
+          }
         }),
       });
 
@@ -570,8 +586,7 @@ const PosterCustomizer = ({
         throw new Error(error.message || "Failed to save settings");
       }
 
-      const result = await response.json();
-      setCurrentSettings(result.data);
+      await response.json();
       toast.success("Poster layout saved successfully!");
     } catch (error) {
       console.error("Error saving poster layout:", error);
@@ -1103,9 +1118,12 @@ const PosterCustomizer = ({
     setIsLoading(true);
     try {
       const element = posterRef.current;
+      const targetWidth = 1080;
+      const scale = targetWidth / element.offsetWidth;
+      
       const dataUrl = await domToPng(element, {
         quality: 1,
-        scale: 6 * window.devicePixelRatio,
+        scale: scale,
         backgroundColor: "#ffffff",
         style: {
           fontFamily: "'Montserrat', Arial, sans-serif",
