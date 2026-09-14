@@ -93,6 +93,7 @@ export default function ResultsQRCodeView({
             apiKey={apiKey}
             festivalName={festivalName}
             organizationName="SCOFIST"
+            festivalLogo={festivalLogo}
           />
         </div>
 

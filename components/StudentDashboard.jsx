@@ -1975,7 +1975,6 @@ export default function StudentDashboard({
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Year (Batch)</TableHead>
                             <TableHead>Role Holder</TableHead>
                             <TableHead className="text-right">Balance</TableHead>
                           </TableRow>
@@ -1983,9 +1982,8 @@ export default function StudentDashboard({
                         <TableBody>
                           {(selectedStandardFund?.records || []).map((record, i) => (
                             <TableRow key={i}>
-                              <TableCell className="font-medium">{record.year}</TableCell>
                               <TableCell>{record.holder}</TableCell>
-                              <TableCell className="text-right font-bold text-orange-600">
+                              <TableCell className={`text-right font-bold ${(record.value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                                 {(record.value || 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
@@ -2005,7 +2003,7 @@ export default function StudentDashboard({
                           <TableHeader className="bg-muted/50">
                             <TableRow>
                               <TableHead className="py-2">Date</TableHead>
-                              <TableHead className="py-2 text-right">Addition / Deduction</TableHead>
+                              <TableHead className="py-2 text-right">Transactions</TableHead>
                               <TableHead className="py-2 text-right">Balance</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -2015,7 +2013,7 @@ export default function StudentDashboard({
                                 .sort((a, b) => new Date(b.date) - new Date(a.date)) // Newest first for display
                                 .map((t, idx) => (
                                   <TableRow key={idx}>
-                                    <TableCell className="py-2 text-[10px] leading-tight">
+                                    <TableCell className="py-2 text-xs leading-tight">
                                       <div className="flex flex-col">
                                         <span className="font-medium">{formatDateShort(t.date)}</span>
                                         <span className="text-muted-foreground">

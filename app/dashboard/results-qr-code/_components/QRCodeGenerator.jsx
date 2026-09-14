@@ -1,7 +1,7 @@
 // app/dashboard/results-qr-code/_components/QRCodeGenerator.jsx
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,76 @@ export function QRCodeGenerator({
   apiKey,
   festivalName,
   organizationName = "SCOFIST",
+  festivalLogo,
 }) {
   const localPrintRef = useRef(null);
   const printRef = externalPrintRef || localPrintRef;
+
+  const [tintedLogo, setTintedLogo] = useState(null);
+
+  useEffect(() => {
+    if (!festivalLogo) {
+      setTintedLogo(null);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      // Use original resolution for crispness, but cap size to prevent memory issues if image is huge
+      const maxDim = 500;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w *= ratio;
+        h *= ratio;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      
+      const ctx = canvas.getContext("2d");
+      
+      // Draw white background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const targetColorHex = qrOptions?.color?.dark || "#1d4ed8";
+      const hexToRgb = (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+        } : { r: 29, g: 78, b: 216 };
+      };
+      
+      const targetColor = hexToRgb(targetColorHex);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < data.data.length; i += 4) {
+        const r = data.data[i];
+        const g = data.data[i+1];
+        const b = data.data[i+2];
+        const a = data.data[i+3];
+
+        if (a > 0) {
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          data.data[i] = targetColor.r + (255 - targetColor.r) * (gray / 255);
+          data.data[i+1] = targetColor.g + (255 - targetColor.g) * (gray / 255);
+          data.data[i+2] = targetColor.b + (255 - targetColor.b) * (gray / 255);
+        }
+      }
+      ctx.putImageData(data, 0, 0);
+      setTintedLogo(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => {
+      setTintedLogo(null);
+    };
+    img.src = festivalLogo;
+  }, [festivalLogo, qrOptions?.color?.dark]);
 
   // Print handler
   const handlePrint = useReactToPrint(
@@ -115,6 +182,14 @@ export function QRCodeGenerator({
               bgColor={qrOptions?.color?.light || "#ffffff"}
               fgColor={qrOptions?.color?.dark || "#1d4ed8"}
               style={{ width: "100%", height: "100%", display: "block" }}
+              imageSettings={festivalLogo ? {
+                src: tintedLogo || festivalLogo,
+                x: undefined,
+                y: undefined,
+                height: 60,
+                width: 60,
+                excavate: false,
+              } : undefined}
             />
           </div>
           <p className="text-xs text-center text-muted-foreground truncate max-w-full px-2 font-mono">
