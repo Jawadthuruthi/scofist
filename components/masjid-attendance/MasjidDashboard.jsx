@@ -117,7 +117,7 @@ const CategoryCombobox = ({ value, onChange, categories, onAddCategory, onRemove
                         <button
                             type="button"
                             onClick={handleAdd}
-                            className="flex items-center justify-center h-6 w-6 rounded-sm hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                            className="flex items-center justify-center h-6 w-6 rounded-sm hover:bg-accent text-muted-foreground hover:text-foreground transition-colors mr-2 sm:mr-0"
                             title="Add custom category"
                         >
                             <Plus className="h-3.5 w-3.5" />
@@ -155,7 +155,7 @@ const CategoryCombobox = ({ value, onChange, categories, onAddCategory, onRemove
                                                 onRemoveCategory(cat);
                                                 if (value === cat) onChange("");
                                             }}
-                                            className="opacity-0 group-hover:opacity-100 ml-1 text-muted-foreground hover:text-destructive transition-all"
+                                            className="ml-1 text-muted-foreground hover:text-destructive transition-all"
                                             title="Remove category"
                                         >
                                             <X className="h-3 w-3" />
@@ -288,6 +288,74 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
         document.body.removeChild(a);
     };
 
+    const handleSendAllWhatsApp = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!attendanceData?.attendances || attendanceData.attendances.length === 0) {
+            toast.error("No attendance data found.");
+            return;
+        }
+
+        let msg = `*Absentees - ${selectedCategory} (${displayDate})*\n\n`;
+        let hasAbsentees = false;
+
+        classes.forEach((cls) => {
+            const record = attendanceData.attendances.find((att) => att.classId._id === cls._id);
+            if (record && record.attendanceData) {
+                const absentees = record.attendanceData.filter((r) => r.status === "ABSENT" || r.status === "LEAVE");
+                if (absentees.length > 0) {
+                    hasAbsentees = true;
+                    msg += `*${cls.name}*\n`;
+                    absentees.forEach((r, idx) => {
+                        const leaveText = r.status === "LEAVE" ? " (Leave)" : "";
+                        msg += `${idx + 1}. ${r.studentId?.name || "Unknown Student"}${leaveText}\n`;
+                    });
+                    msg += `\n`;
+                }
+            }
+        });
+
+        if (!hasAbsentees) {
+            toast.info("No absentees to send.");
+            return;
+        }
+
+        const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
+    const handleSendClassWhatsApp = (e, cls, absentees) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (absentees.length === 0) {
+            toast.info(`No absentees in ${cls.name}.`);
+            return;
+        }
+
+        let msg = `*Absentees - ${selectedCategory} - ${cls.name} (${displayDate})*\n\n`;
+        absentees.forEach((r, idx) => {
+            const leaveText = r.status === "LEAVE" ? " (Leave)" : "";
+            msg += `${idx + 1}. ${r.studentId?.name || "Unknown Student"}${leaveText}\n`;
+        });
+
+        const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
     return (
         <>
             <div className="overflow-x-auto border rounded-md">
@@ -295,7 +363,20 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
                     <TableHeader>
                         <TableRow className="h-10 sm:h-11">
                             <TableHead className="py-2.5 px-4 sm:px-5 font-semibold text-xs sm:text-sm">Class</TableHead>
-                            <TableHead className="py-2.5 px-4 sm:px-5 text-right font-semibold text-xs sm:text-sm">Status</TableHead>
+                            <TableHead className="py-2.5 px-4 sm:px-5 text-right font-semibold text-xs sm:text-sm">
+                                <div className="flex items-center justify-end gap-2">
+                                    <span>WhatsApp</span>
+                                    <button
+                                        onClick={handleSendAllWhatsApp}
+                                        className="p-1.5 rounded-full text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-950/40 transition-colors focus:outline-none cursor-pointer"
+                                        title="Send all absentees"
+                                    >
+                                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -377,10 +458,17 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
                                     </TableCell>
                                     <TableCell className="text-right py-3 px-4 sm:py-3.5 sm:px-5">
                                         {isMarked ? (
-                                            <span className="inline-flex items-center gap-1.5 text-green-600 text-xs sm:text-sm font-semibold">
-                                                <CheckCircle2 className="h-4 w-4" />
-                                                Marked
-                                            </span>
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <button
+                                                    onClick={(e) => handleSendClassWhatsApp(e, cls, absentees)}
+                                                    className="p-1.5 rounded-full text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-950/40 transition-colors focus:outline-none cursor-pointer"
+                                                    title={`Send absentees for ${cls.name}`}
+                                                >
+                                                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         ) : (
                                             <span className="text-muted-foreground text-sm">
                                                 –
@@ -619,15 +707,82 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
         } catch (_) {}
     }, [categories]);
 
+    // Sync from server on mount and window focus
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const headers = apiKey ? { "api-key": apiKey } : {};
+                const res = await fetch("/api/masjid/attendance/categories", { 
+                    headers, 
+                    cache: "no-store" 
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.categories && Array.isArray(data.categories)) {
+                        setCategories((prev) => {
+                            let localCats = [];
+                            try {
+                                const stored = localStorage.getItem(STORAGE_KEY);
+                                if (stored) {
+                                    localCats = JSON.parse(stored);
+                                }
+                            } catch (_) {}
+                            
+                            const merged = Array.from(new Set([...prev, ...localCats, ...data.categories]));
+                            if (merged.length > data.categories.length) {
+                                updateServerCategories(merged);
+                            }
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                            return merged;
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching categories:", err);
+            }
+        };
+
+        fetchCategories();
+        
+        window.addEventListener("focus", fetchCategories);
+        const pollInterval = setInterval(fetchCategories, 5000);
+        
+        return () => {
+            window.removeEventListener("focus", fetchCategories);
+            clearInterval(pollInterval);
+        };
+    }, []);
+
+    // Helper to update server
+    const updateServerCategories = async (newCategories) => {
+        try {
+            const headers = { "Content-Type": "application/json" };
+            if (apiKey) headers["api-key"] = apiKey;
+            await fetch("/api/masjid/attendance/categories", {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ categories: newCategories }),
+            });
+        } catch (err) {
+            console.error("Error updating categories on server:", err);
+        }
+    };
+
     const handleAddCategory = useCallback((cat) => {
         setCategories((prev) => {
             if (prev.find((c) => c.toLowerCase() === cat.toLowerCase())) return prev;
-            return [...prev, cat];
+            const newCategories = [...prev, cat];
+            updateServerCategories(newCategories);
+            return newCategories;
         });
     }, []);
 
     const handleRemoveCategory = useCallback((cat) => {
-        setCategories((prev) => prev.filter((c) => c !== cat));
+        setCategories((prev) => {
+            const newCategories = prev.filter((c) => c !== cat);
+            updateServerCategories(newCategories);
+            return newCategories;
+        });
     }, []);
 
     const handleCategoryChange = (cat) => {
@@ -655,7 +810,7 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <div className={cn(
                         "inline-flex items-center justify-between gap-1 bg-background border border-border rounded-lg p-1 shadow-sm h-10",
-                        !isToday ? "flex-1 sm:flex-initial sm:w-[310px]" : "w-full sm:w-[310px]"
+                        !isToday ? "flex-1 sm:flex-initial sm:min-w-[350px] sm:w-auto" : "w-full sm:min-w-[350px] sm:w-auto"
                     )}>
                         <Button
                             type="button"

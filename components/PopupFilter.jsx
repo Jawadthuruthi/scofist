@@ -74,6 +74,15 @@ const normalizeValue = (val) => {
   return String(val).trim();
 };
 
+const getNormalizedValues = (val) => {
+  if (val === undefined || val === null) return [];
+  if (Array.isArray(val)) {
+    return val.map(v => normalizeValue(v)).filter(v => v !== "");
+  }
+  const norm = normalizeValue(val);
+  return norm !== "" ? [norm] : [];
+};
+
 export default function PopupFilter({
   filterConfig = [],
   filters = {},
@@ -111,22 +120,21 @@ export default function PopupFilter({
           localFilters[dependentFieldName]?.value ||
           localFilters[dependentFieldName];
 
-        if (!valueToMatch) {
+        if (!valueToMatch || (Array.isArray(valueToMatch) && valueToMatch.length === 0)) {
           return filterItem.options || [];
         }
 
-        const normalizedValue = normalizeValue(valueToMatch);
+        const valuesToMatch = getNormalizedValues(valueToMatch);
 
         return (filterItem.options || []).filter((option) => {
           const rawOptionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
 
           if (Array.isArray(rawOptionValue)) {
-            return rawOptionValue.some(val => normalizeValue(val) === normalizedValue);
+            return rawOptionValue.some(val => valuesToMatch.includes(normalizeValue(val)));
           }
 
           const normalizedOption = normalizeValue(rawOptionValue);
-          const isMatch = normalizedOption === normalizedValue;
-          return isMatch;
+          return valuesToMatch.includes(normalizedOption);
         });
       }
 
@@ -146,13 +154,18 @@ export default function PopupFilter({
             localFilters[dependentFieldName]?.value ||
             localFilters[dependentFieldName];
 
-          if (valueToMatch) {
-            const normalizedValue = normalizeValue(valueToMatch);
+          if (valueToMatch && (!Array.isArray(valueToMatch) || valueToMatch.length > 0)) {
+            const valuesToMatch = getNormalizedValues(valueToMatch);
 
             filteredOptions = filteredOptions.filter((option) => {
               const rawOptionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
+              
+              if (Array.isArray(rawOptionValue)) {
+                return rawOptionValue.some(val => valuesToMatch.includes(normalizeValue(val)));
+              }
+              
               const normalizedOption = normalizeValue(rawOptionValue);
-              return normalizedOption === normalizedValue;
+              return valuesToMatch.includes(normalizedOption);
             });
           }
         });
@@ -264,11 +277,11 @@ export default function PopupFilter({
           currentFilters[dependentFieldName]?.value ||
           currentFilters[dependentFieldName];
 
-        if (!dependentValue) {
+        if (!dependentValue || (Array.isArray(dependentValue) && dependentValue.length === 0)) {
           return filterItem.options || [];
         }
 
-        const normalizedDependentValue = normalizeValue(dependentValue);
+        const valuesToMatch = getNormalizedValues(dependentValue);
 
         return (filterItem.options || []).filter((option) => {
           const rawOptionValue = key
@@ -277,11 +290,11 @@ export default function PopupFilter({
 
           if (Array.isArray(rawOptionValue)) {
             return rawOptionValue.some(
-              (val) => normalizeValue(val) === normalizedDependentValue
+              (val) => valuesToMatch.includes(normalizeValue(val))
             );
           }
 
-          return normalizeValue(rawOptionValue) === normalizedDependentValue;
+          return valuesToMatch.includes(normalizeValue(rawOptionValue));
         });
       }
 
@@ -296,8 +309,8 @@ export default function PopupFilter({
             currentFilters[dependentFieldName]?.value ||
             currentFilters[dependentFieldName];
 
-          if (valueToMatch) {
-            const normalizedValue = normalizeValue(valueToMatch);
+          if (valueToMatch && (!Array.isArray(valueToMatch) || valueToMatch.length > 0)) {
+            const valuesToMatch = getNormalizedValues(valueToMatch);
             filteredOptions = filteredOptions.filter((option) => {
               const rawOptionValue = key
                 ? option?.[dependentFieldName]?.[key]
@@ -305,11 +318,11 @@ export default function PopupFilter({
 
               if (Array.isArray(rawOptionValue)) {
                 return rawOptionValue.some(
-                  (val) => normalizeValue(val) === normalizedValue
+                  (val) => valuesToMatch.includes(normalizeValue(val))
                 );
               }
 
-              return normalizeValue(rawOptionValue) === normalizedValue;
+              return valuesToMatch.includes(normalizeValue(rawOptionValue));
             });
           }
         });

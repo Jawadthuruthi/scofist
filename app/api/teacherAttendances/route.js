@@ -265,6 +265,15 @@ export async function GET(req, res) {
       // 1. First, include ALL actual marked attendance records for this teacher in the range
       // This ensures history is visible even if the TimeTable was reset/deleted.
       Object.entries(teacherLookups).forEach(([key, actual]) => {
+        if (filterParams.classId) {
+           const classIds = String(filterParams.classId).split(',').map(s => s.trim());
+           if (!classIds.includes(String(actual.classId))) return;
+        }
+        if (filterParams.subjectId) {
+           const subjectIds = String(filterParams.subjectId).split(',').map(s => s.trim());
+           if (!subjectIds.includes(String(actual.subjectId))) return;
+        }
+
         const actualDate = new Date(actual.date);
         if (actualDate >= startDate && actualDate <= endDate) {
           const dateString = getDS(actualDate);
@@ -291,6 +300,15 @@ export async function GET(req, res) {
 
       // 1.5. Add present:true records directly from Attendance (student attendance).
       (conductedClassesByTeacher[teacherId] || []).forEach(att => {
+        if (filterParams.classId) {
+           const classIds = String(filterParams.classId).split(',').map(s => s.trim());
+           if (!classIds.includes(String(att.classId))) return;
+        }
+        if (filterParams.subjectId) {
+           const subjectIds = String(filterParams.subjectId).split(',').map(s => s.trim());
+           if (!subjectIds.includes(String(att.subjectId))) return;
+        }
+
         const ds = getDS(att.date);
         const key = `${ds}_${String(att.classId)}_${String(att.subjectId)}_${att.periodNumber}`;
         
@@ -345,6 +363,15 @@ export async function GET(req, res) {
         const subjectId = matchingSlot?.subjectId
           ?? conductedSlotSubjectMap[fallbackSlotKey]
           ?? null;
+
+        if (filterParams.classId) {
+           const classIds = String(filterParams.classId).split(',').map(s => s.trim());
+           if (!classIds.includes(lrClassId)) return;
+        }
+        if (filterParams.subjectId) {
+           const subjectIds = String(filterParams.subjectId).split(',').map(s => s.trim());
+           if (!subjectIds.includes(String(subjectId))) return;
+        }
 
         const key = `${ds}_${lrClassId}_${String(subjectId)}_${lr.periodNumber}`;
         const slotSection = classSectionMap[lrClassId] || "";

@@ -440,6 +440,10 @@ const SettingsSchema = new Schema(
           type: String,
         },
       },
+      attendanceCategories: {
+        type: [String],
+        default: ["Masjid", "Haddad", "Programs", "Spot"],
+      },
     },
     institution: {
       name: { type: String, required: true, trim: true },
@@ -629,7 +633,7 @@ const SettingsSchema = new Schema(
 SettingsSchema.index({}, { unique: true });
 
 // Check if model exists but is missing the new fields (Hot Reload fix)
-if (models.Settings && (!models.Settings.schema.path("idCard.sealImage") || !models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog") || !models.Settings.schema.path("participantsCard.layout"))) {
+if (models.Settings && (!models.Settings.schema.path("idCard.sealImage") || !models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog") || !models.Settings.schema.path("participantsCard.layout") || !models.Settings.schema.path("general.attendanceCategories"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }
