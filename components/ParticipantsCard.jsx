@@ -488,8 +488,8 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
     >
       {/* Front Side Preview */}
       {(viewMode === "both" || viewMode === "front") && (
-        <Card className={`border-border border overflow-hidden border-none ${layout === 'row' ? 'flex-1 mb-4 md:mb-0 w-full' : 'mb-4'}`}>
-          <CardContent className="p-0">
+        <Card className={`bg-transparent shadow-none border-border border overflow-hidden border-none ${layout === 'row' ? 'flex-1 mb-4 md:mb-0 w-full' : 'mb-4'}`}>
+          <CardContent className="p-0 flex justify-center">
             <div
               style={{
                 backgroundColor: participantsCardBackgroundUrl
@@ -571,7 +571,6 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
                           fontFamily: layout.participantName.fontFamily,
                           color: layout.participantName.color,
                           fontWeight: layout.participantName.fontWeight,
-                          textAlign: layout.participantName.textAlign,
                         }}
                       >
                         {participant.name?.toUpperCase() || "UNKNOWN"}
@@ -581,7 +580,7 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
                     {/* Team */}
                     {layout.team.visible && (
                       <div 
-                        className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap backdrop-enhanced rounded px-1"
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 w-[95%] whitespace-normal leading-tight break-words backdrop-enhanced rounded px-1 flex justify-center text-center"
                         style={{
                           left: `${layout.team.x}%`,
                           top: `${layout.team.y}%`,
@@ -589,7 +588,6 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
                           fontFamily: layout.team.fontFamily,
                           color: layout.team.color,
                           fontWeight: layout.team.fontWeight,
-                          textAlign: layout.team.textAlign,
                         }}
                       >
                         {participant.teamName?.toUpperCase()}
@@ -599,7 +597,7 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
                     {/* Division */}
                     {layout.division.visible && (
                       <div 
-                        className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap backdrop-enhanced rounded px-1"
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 w-[95%] whitespace-normal leading-tight break-words backdrop-enhanced rounded px-1 flex justify-center text-center"
                         style={{
                           left: `${layout.division.x}%`,
                           top: `${layout.division.y}%`,
@@ -607,7 +605,6 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
                           fontFamily: layout.division.fontFamily,
                           color: layout.division.color,
                           fontWeight: layout.division.fontWeight,
-                          textAlign: layout.division.textAlign,
                         }}
                       >
                         {participant.divisionName?.toUpperCase()}

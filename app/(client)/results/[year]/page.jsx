@@ -45,6 +45,8 @@ function ResultsTopBar({
   festivalNameImage,
   yearParam,
   onLoginClick,
+  onLogoutClick,
+  authParticipant,
   onOpenSidebar,
 }) {
   const [scrolled, setScrolled] = useState(false);
@@ -75,17 +77,9 @@ function ResultsTopBar({
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between h-16">
-          {/* Left: Mobile menu button + Festival Name Image */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onOpenSidebar}
-              className="lg:hidden -ml-2 p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition"
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            <Link href={resultsLink} className="flex items-center gap-3 group">
+          {/* Left: Festival Name Image */}
+          <div className="flex items-center">
+            <Link href={resultsLink} className="flex items-center group">
               {festivalNameImage ? (
                 <img
                   src={festivalNameImage}
@@ -134,16 +128,42 @@ function ResultsTopBar({
             </Link>
           </nav>
 
-          {/* Right: Participant Login */}
-          <button
-            onClick={onLoginClick}
-            id="participant-login-btn"
-            className="flex items-center gap-2 bg-gradient-to-r from-[#d4af37] via-[#f4c96d] to-[#df6b43] text-[#120d09] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 group"
-          >
-            <LogIn className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            <span className="hidden sm:inline">Participant Login</span>
-            <span className="sm:hidden">Login</span>
-          </button>
+          {authParticipant ? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Photo */}
+              <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-[#d4af37]/40 bg-black/50">
+                {(authParticipant.participantDetails?.profilePic?.url || (typeof authParticipant.participantDetails?.profilePic === 'string' ? authParticipant.participantDetails?.profilePic : null) || authParticipant.profilePic?.url || (typeof authParticipant.profilePic === 'string' ? authParticipant.profilePic : null)) ? (
+                  <img
+                    src={authParticipant.participantDetails?.profilePic?.url || (typeof authParticipant.participantDetails?.profilePic === 'string' ? authParticipant.participantDetails?.profilePic : null) || authParticipant.profilePic?.url || (typeof authParticipant.profilePic === 'string' ? authParticipant.profilePic : null)}
+                    alt="Participant"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-white/10 text-white/50">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={onLogoutClick}
+                className="shrink-0 flex items-center gap-2 bg-gradient-to-r from-[#d4af37] via-[#f4c96d] to-[#df6b43] text-[#120d09] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 group"
+              >
+                <LogIn className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                <span className="hidden sm:inline">Logout</span>
+                <span className="sm:hidden">Logout</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLoginClick}
+              id="participant-login-btn"
+              className="shrink-0 flex items-center gap-2 bg-gradient-to-r from-[#d4af37] via-[#f4c96d] to-[#df6b43] text-[#120d09] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 group"
+            >
+              <LogIn className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <span className="hidden sm:inline">Participant Login</span>
+              <span className="sm:hidden">Login</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
@@ -159,6 +179,8 @@ function ResultsSidebar({
   festivalNameImage,
   yearParam,
   onLoginClick,
+  onLogoutClick,
+  authParticipant,
 }) {
   const safeYear = yearParam || "2026";
   const resultsLink = `/results/${safeYear}`;
@@ -245,16 +267,28 @@ function ResultsSidebar({
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <button
-            onClick={() => {
-              onClose();
-              onLoginClick?.();
-            }}
-            className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-[#d4af37] to-[#df6b43] text-[#120d09] py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow hover:opacity-90 transition-opacity"
-          >
-            <LogIn className="w-4 h-4" />
-            Participant Login
-          </button>
+          {authParticipant ? (
+            <button
+              onClick={() => {
+                onClose();
+                onLogoutClick?.();
+              }}
+              className="flex items-center justify-center gap-2 w-full bg-white/10 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow border border-white/20 hover:bg-white/20 transition-colors"
+            >
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                onClose();
+                onLoginClick?.();
+              }}
+              className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-[#d4af37] to-[#df6b43] text-[#120d09] py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow hover:opacity-90 transition-opacity"
+            >
+              <LogIn className="w-4 h-4" />
+              Participant Login
+            </button>
+          )}
         </div>
       </aside>
     </>
@@ -573,7 +607,9 @@ function PublicResultsContent() {
         festivalLogo={festivalLogo}
         festivalNameImage={festivalNameImage}
         yearParam={yearParam}
+        authParticipant={authParticipant}
         onLoginClick={() => setShowLoginModal(true)}
+        onLogoutClick={handleLogout}
         onOpenSidebar={() => setIsSidebarOpen(true)}
       />
 
@@ -585,7 +621,9 @@ function PublicResultsContent() {
         festivalVenue={festivalVenue}
         festivalNameImage={festivalNameImage}
         yearParam={yearParam}
+        authParticipant={authParticipant}
         onLoginClick={() => setShowLoginModal(true)}
+        onLogoutClick={handleLogout}
       />
 
       {/* ── MAIN CONTENT ── */}
@@ -603,16 +641,10 @@ function PublicResultsContent() {
         <main className="flex-1 overflow-y-auto relative w-full">
           {authParticipant ? (
             <div className="p-4 pt-8 md:p-8 max-w-5xl mx-auto min-h-screen">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-black text-white">My Participant Card</h2>
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-white/10 text-white border border-white/20 hover:bg-white/20 rounded-xl font-semibold shadow-sm transition-colors"
-                >
-                  Logout
-                </button>
+              <div className="flex justify-center items-center mb-6">
+                <h2 className="text-2xl font-black text-white text-center">My Participant Card</h2>
               </div>
-              <div className="w-full max-w-2xl mx-auto flex justify-center">
+              <div className="w-full max-w-xl mx-auto flex justify-center">
                 <ParticipantCard
                   participant={authParticipant}
                   festivalSettings={settings?.festival}

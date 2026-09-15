@@ -81,8 +81,8 @@ export default function ParticipantLoginModal({
         }
       }}
     >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
-        <div className="p-8">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="p-6 sm:p-8">
           {/* Header */}
           <div className="flex flex-col items-center mb-8">
             {resolvedFestivalNameImage ? (
@@ -116,7 +116,7 @@ export default function ParticipantLoginModal({
                 value={chestNumber}
                 onChange={(e) => setChestNumber(e.target.value)}
                 required
-                className="w-full text-lg py-6 rounded-xl"
+                className="w-full text-lg py-6 rounded-xl text-gray-900 placeholder:text-gray-400 border-gray-300 focus:border-[#d4af37] focus:ring-[#d4af37]"
               />
             </div>
 
@@ -129,7 +129,7 @@ export default function ParticipantLoginModal({
                 value={dateOfBirth}
                 onChange={(e) => setDateOfBirth(e.target.value)}
                 required
-                className="w-full text-lg py-6 rounded-xl"
+                className="w-full text-lg py-6 rounded-xl text-gray-900 border-gray-300 focus:border-[#d4af37] focus:ring-[#d4af37]"
               />
             </div>
 
