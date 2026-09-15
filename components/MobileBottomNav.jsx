@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
-import { Trophy, Flame, Calendar, Camera } from "lucide-react";
+import { usePathname, useParams, useSearchParams } from "next/navigation";
+import { Trophy, Flame, Calendar, Camera, User } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
@@ -18,13 +19,30 @@ export default function MobileBottomNav() {
   if (!isTargetPage) return null;
 
   const safeYear = params?.year ? decodeURIComponent(params.year) : "2026";
+  const searchParams = useSearchParams();
+  const viewParam = searchParams?.get("view");
 
-  const navItems = [
+  const [authParticipant, setAuthParticipant] = useState(null);
+
+  useEffect(() => {
+    const loadAuth = () => {
+      try {
+        const stored = localStorage.getItem("scofist_auth_participant");
+        setAuthParticipant(stored ? JSON.parse(stored) : null);
+      } catch (err) {}
+    };
+
+    loadAuth();
+    window.addEventListener("auth-change", loadAuth);
+    return () => window.removeEventListener("auth-change", loadAuth);
+  }, []);
+
+  const baseNavItems = [
     {
       icon: Trophy,
       label: "Results",
-      href: `/results/${safeYear}`,
-      active: pathname?.startsWith("/results"),
+      href: `/results/${safeYear}?view=results`,
+      active: pathname?.startsWith("/results") && (viewParam === "results" || !authParticipant),
     },
     {
       icon: Flame,
@@ -45,6 +63,18 @@ export default function MobileBottomNav() {
       active: pathname?.startsWith("/gallery"),
     },
   ];
+
+  const navItems = authParticipant 
+    ? [
+        {
+          icon: User,
+          label: "Profile",
+          href: `/results/${safeYear}?view=profile`,
+          active: pathname?.startsWith("/results") && viewParam !== "results",
+        },
+        ...baseNavItems,
+      ]
+    : baseNavItems;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#120d09]/95 backdrop-blur-md border-t border-white/10 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">

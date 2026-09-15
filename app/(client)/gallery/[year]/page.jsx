@@ -22,6 +22,7 @@ import {
   Video,
   Film,
   ExternalLink,
+  User,
 } from "lucide-react";
 import PublicFooter from "@/components/PublicFooter";
 import ParticipantLoginModal from "@/components/ParticipantLoginModal";
@@ -42,6 +43,8 @@ function GalleryTopBar({
   festivalNameImage,
   yearParam,
   onLoginClick,
+  onLogoutClick,
+  authParticipant,
   onOpenSidebar,
 }) {
   const [scrolled, setScrolled] = useState(false);
@@ -72,16 +75,9 @@ function GalleryTopBar({
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onOpenSidebar}
-              className="lg:hidden -ml-2 p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition"
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            <Link href={galleryLink} className="flex items-center gap-3 group">
+          {/* Left: Festival Name Image */}
+          <div className="flex items-center">
+            <Link href={galleryLink} className="flex items-center group">
               {festivalNameImage ? (
                 <img
                   src={festivalNameImage}
@@ -129,15 +125,41 @@ function GalleryTopBar({
             </Link>
           </nav>
 
-          <button
-            onClick={onLoginClick}
-            id="participant-login-btn"
-            className="flex items-center gap-2 bg-gradient-to-r from-[#d4af37] via-[#f4c96d] to-[#df6b43] text-[#120d09] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 group"
-          >
-            <LogIn className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            <span className="hidden sm:inline">Participant Login</span>
-            <span className="sm:hidden">Login</span>
-          </button>
+          {authParticipant ? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-[#d4af37]/40 bg-black/50">
+                {(authParticipant.participantDetails?.profilePic?.url || (typeof authParticipant.participantDetails?.profilePic === 'string' ? authParticipant.participantDetails?.profilePic : null) || authParticipant.profilePic?.url || (typeof authParticipant.profilePic === 'string' ? authParticipant.profilePic : null)) ? (
+                  <img
+                    src={authParticipant.participantDetails?.profilePic?.url || (typeof authParticipant.participantDetails?.profilePic === 'string' ? authParticipant.participantDetails?.profilePic : null) || authParticipant.profilePic?.url || (typeof authParticipant.profilePic === 'string' ? authParticipant.profilePic : null)}
+                    alt="Participant"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-white/10 text-white/50">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={onLogoutClick}
+                className="shrink-0 flex items-center gap-2 bg-gradient-to-r from-[#d4af37] via-[#f4c96d] to-[#df6b43] text-[#120d09] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 group"
+              >
+                <LogIn className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                <span className="hidden sm:inline">Logout</span>
+                <span className="sm:hidden">Logout</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLoginClick}
+              id="participant-login-btn"
+              className="flex items-center gap-2 bg-gradient-to-r from-[#d4af37] via-[#f4c96d] to-[#df6b43] text-[#120d09] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 group"
+            >
+              <LogIn className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <span className="hidden sm:inline">Participant Login</span>
+              <span className="sm:hidden">Login</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
@@ -153,6 +175,8 @@ function GallerySidebar({
   festivalNameImage,
   yearParam,
   onLoginClick,
+  onLogoutClick,
+  authParticipant,
 }) {
   const safeYear = yearParam || "2026";
   const resultsLink = `/results/${safeYear}`;
@@ -239,16 +263,28 @@ function GallerySidebar({
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <button
-            onClick={() => {
-              onClose();
-              onLoginClick?.();
-            }}
-            className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-[#d4af37] to-[#df6b43] text-[#120d09] py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow hover:opacity-90 transition-opacity"
-          >
-            <LogIn className="w-4 h-4" />
-            Participant Login
-          </button>
+          {authParticipant ? (
+            <button
+              onClick={() => {
+                onClose();
+                onLogoutClick?.();
+              }}
+              className="flex items-center justify-center gap-2 w-full bg-white/10 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow border border-white/20 hover:bg-white/20 transition-colors"
+            >
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                onClose();
+                onLoginClick?.();
+              }}
+              className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-[#d4af37] to-[#df6b43] text-[#120d09] py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow hover:opacity-90 transition-opacity"
+            >
+              <LogIn className="w-4 h-4" />
+              Participant Login
+            </button>
+          )}
         </div>
       </aside>
     </>
@@ -270,6 +306,37 @@ function GalleryContent({ initialYear }) {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [authParticipant, setAuthParticipant] = useState(null);
+
+  useEffect(() => {
+    const loadAuth = () => {
+      try {
+        const stored = localStorage.getItem("scofist_auth_participant");
+        setAuthParticipant(stored ? JSON.parse(stored) : null);
+      } catch (err) {}
+    };
+
+    loadAuth();
+    window.addEventListener("auth-change", loadAuth);
+    return () => window.removeEventListener("auth-change", loadAuth);
+  }, []);
+
+  const handleLoginSuccess = (participant) => {
+    setAuthParticipant(participant);
+    try {
+      localStorage.setItem("scofist_auth_participant", JSON.stringify(participant));
+      window.dispatchEvent(new Event("auth-change"));
+    } catch (err) {}
+    setShowLoginModal(false);
+  };
+
+  const handleLogout = () => {
+    setAuthParticipant(null);
+    try {
+      localStorage.removeItem("scofist_auth_participant");
+      window.dispatchEvent(new Event("auth-change"));
+    } catch (err) {}
+  };
 
   const params = useParams();
   const searchParams = useSearchParams();
@@ -385,7 +452,9 @@ function GalleryContent({ initialYear }) {
         festivalLogo={festivalLogo}
         festivalNameImage={festivalNameImage}
         yearParam={yearParam}
+        authParticipant={authParticipant}
         onLoginClick={() => setShowLoginModal(true)}
+        onLogoutClick={handleLogout}
         onOpenSidebar={() => setIsSidebarOpen(true)}
       />
 
@@ -397,7 +466,9 @@ function GalleryContent({ initialYear }) {
         festivalVenue={festivalVenue}
         festivalNameImage={festivalNameImage}
         yearParam={yearParam}
+        authParticipant={authParticipant}
         onLoginClick={() => setShowLoginModal(true)}
+        onLogoutClick={handleLogout}
       />
 
       {/* ── MAIN CONTENT ── */}
@@ -881,7 +952,7 @@ function GalleryContent({ initialYear }) {
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         festivalNameImage={festivalNameImage}
-        onLoginSuccess={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );

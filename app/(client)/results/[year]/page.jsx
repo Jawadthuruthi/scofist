@@ -44,6 +44,7 @@ function ResultsTopBar({
   festivalLogo,
   festivalNameImage,
   yearParam,
+  viewParam,
   onLoginClick,
   onLogoutClick,
   authParticipant,
@@ -102,9 +103,25 @@ function ResultsTopBar({
 
           {/* Center Navigation Links (Desktop) */}
           <nav className="hidden lg:flex items-center gap-8">
+            {authParticipant && (
+              <Link
+                href={`${resultsLink}?view=profile`}
+                className={`text-xs font-bold uppercase tracking-[0.18em] pb-0.5 transition-colors ${
+                  viewParam !== "results"
+                    ? "text-[#d4af37] border-b-2 border-[#d4af37]"
+                    : "text-white/70 hover:text-[#d4af37]"
+                }`}
+              >
+                Profile
+              </Link>
+            )}
             <Link
-              href={resultsLink}
-              className="text-xs font-bold uppercase tracking-[0.18em] text-[#d4af37] border-b-2 border-[#d4af37] pb-0.5"
+              href={`${resultsLink}?view=results`}
+              className={`text-xs font-bold uppercase tracking-[0.18em] pb-0.5 transition-colors ${
+                viewParam === "results" || !authParticipant
+                  ? "text-[#d4af37] border-b-2 border-[#d4af37]"
+                  : "text-white/70 hover:text-[#d4af37]"
+              }`}
             >
               Results
             </Link>
@@ -178,6 +195,7 @@ function ResultsSidebar({
   festivalVenue,
   festivalNameImage,
   yearParam,
+  viewParam,
   onLoginClick,
   onLogoutClick,
   authParticipant,
@@ -188,12 +206,19 @@ function ResultsSidebar({
   const scheduleLink = `/schedule/${safeYear}`;
   const galleryLink = `/gallery/${safeYear}`;
 
-  const navItems = [
-    { icon: Trophy, label: "Results", href: resultsLink, active: true },
+  const baseNavItems = [
+    { icon: Trophy, label: "Results", href: `${resultsLink}?view=results`, active: viewParam === "results" || !authParticipant },
     { icon: Flame, label: "Team Points", href: teamPointsLink },
     { icon: Calendar, label: "Schedule", href: scheduleLink },
     { icon: Camera, label: "Gallery", href: galleryLink },
   ];
+
+  const navItems = authParticipant
+    ? [
+        { icon: User, label: "Profile", href: `${resultsLink}?view=profile`, active: viewParam !== "results" },
+        ...baseNavItems,
+      ]
+    : baseNavItems;
 
   return (
     <>
@@ -314,7 +339,20 @@ function PublicResultsContent() {
   const [authParticipant, setAuthParticipant] = useState(null);
   const [publishedResultsCount, setPublishedResultsCount] = useState(0);
 
+  // Load auth participant from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("scofist_auth_participant");
+      if (stored) {
+        setAuthParticipant(JSON.parse(stored));
+      }
+    } catch (err) {
+      console.error("Failed to load auth participant", err);
+    }
+  }, []);
+
   const searchParams = useSearchParams();
+  const viewParam = searchParams.get("view");
   const params = useParams();
   const yearParam =
     (params?.year ? decodeURIComponent(params.year) : null) ||
@@ -583,11 +621,23 @@ function PublicResultsContent() {
 
   const handleLoginSuccess = (participant) => {
     setAuthParticipant(participant);
+    try {
+      localStorage.setItem("scofist_auth_participant", JSON.stringify(participant));
+      window.dispatchEvent(new Event("auth-change"));
+    } catch (err) {
+      console.error("Failed to save auth participant", err);
+    }
     setShowLoginModal(false);
   };
 
   const handleLogout = () => {
     setAuthParticipant(null);
+    try {
+      localStorage.removeItem("scofist_auth_participant");
+      window.dispatchEvent(new Event("auth-change"));
+    } catch (err) {
+      console.error("Failed to remove auth participant", err);
+    }
   };
 
   if (isSettingsLoading) {
@@ -607,6 +657,7 @@ function PublicResultsContent() {
         festivalLogo={festivalLogo}
         festivalNameImage={festivalNameImage}
         yearParam={yearParam}
+        viewParam={viewParam}
         authParticipant={authParticipant}
         onLoginClick={() => setShowLoginModal(true)}
         onLogoutClick={handleLogout}
@@ -621,6 +672,7 @@ function PublicResultsContent() {
         festivalVenue={festivalVenue}
         festivalNameImage={festivalNameImage}
         yearParam={yearParam}
+        viewParam={viewParam}
         authParticipant={authParticipant}
         onLoginClick={() => setShowLoginModal(true)}
         onLogoutClick={handleLogout}
@@ -639,12 +691,12 @@ function PublicResultsContent() {
         />
 
         <main className="flex-1 overflow-y-auto relative w-full">
-          {authParticipant ? (
+          {authParticipant && searchParams.get("view") !== "results" ? (
             <div className="p-4 pt-8 md:p-8 max-w-5xl mx-auto min-h-screen">
               <div className="flex justify-center items-center mb-6">
                 <h2 className="text-2xl font-black text-white text-center">My Participant Card</h2>
               </div>
-              <div className="w-full max-w-xl mx-auto flex justify-center">
+              <div className="w-full max-w-[400px] md:max-w-2xl mx-auto flex justify-center">
                 <ParticipantCard
                   participant={authParticipant}
                   festivalSettings={settings?.festival}
