@@ -44,6 +44,7 @@ import {
   ScanBarcode,
   Monitor,
   Camera,
+  Layers2,
 } from "lucide-react";
 
 import {
@@ -569,6 +570,12 @@ const items = [
     url: "/dashboard/gallery",
     allowedRoles: ["Program Committee"],
     icon: Camera,
+  },
+  {
+    title: "Frames",
+    url: "/dashboard/frame",
+    allowedRoles: ["Program Committee"],
+    icon: Layers2,
   },
 
   {

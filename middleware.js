@@ -350,6 +350,11 @@ const pages = [
     allowedRoles: ["Program Committee", "College Admin"],
   },
   {
+    title: "Frame",
+    path: "/dashboard/frame",
+    allowedRoles: ["Program Committee"],
+  },
+  {
     title: "Code Letters",
     path: "/dashboard/code-letters",
     allowedRoles: ["Program Committee"],
