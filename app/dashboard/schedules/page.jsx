@@ -24,6 +24,8 @@ const columnsConfig = [
   {
     accessorKey: "dateFormatted",
     header: "Date",
+    type: ["sortablePrefix"],
+    sortingFn: "scheduleDate",
     width: 120,
     minWidth: 120,
   },

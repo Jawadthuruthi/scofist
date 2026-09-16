@@ -932,6 +932,24 @@ const DataTableComponent = ({
   const table = useReactTable({
     data: tableDataForTable,
     columns,
+    sortingFns: {
+      scheduleDate: (rowA, rowB) => {
+        const a = rowA.original;
+        const b = rowB.original;
+        
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        if (dateA !== dateB) return dateA - dateB;
+        
+        const timeA = a.startTime || "";
+        const timeB = b.startTime || "";
+        if (timeA !== timeB) return timeA.localeCompare(timeB);
+        
+        const stageA = a.stageNumber || 0;
+        const stageB = b.stageNumber || 0;
+        return stageA - stageB;
+      }
+    },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),

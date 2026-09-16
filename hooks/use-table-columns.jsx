@@ -96,18 +96,30 @@ const useTableColumns = (columnConfig, onCellClick) => {
     }
 
     // Apply sorting if type includes "sortable"
-    if (col.type?.includes("sortable")) {
+    if (col.type?.includes("sortable") || col.type?.includes("sortablePrefix")) {
+      const isPrefix = col.type?.includes("sortablePrefix");
       columnDefinition.sortingFn = col.sortingFn || "alphanumeric";
       columnDefinition.header = ({ column }) => (
         <div className="flex items-center ">
+          {isPrefix && (
+            <Button
+              className="px-0 mr-1 print:hidden"
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            >
+              <ArrowUpDown className="h-4 w-4" />
+            </Button>
+          )}
           <span>{col.header}</span>
-          <Button
-            className="px-0 ml-1 print:hidden"
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <ArrowUpDown className="h-4 w-4" />
-          </Button>
+          {!isPrefix && (
+            <Button
+              className="px-0 ml-1 print:hidden"
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            >
+              <ArrowUpDown className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       );
     }
