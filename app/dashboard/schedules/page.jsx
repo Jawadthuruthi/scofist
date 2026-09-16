@@ -195,6 +195,7 @@ export default async function SchedulePage() {
         label: "Date",
         inputType: "date",
         type: "date",
+        operator: "startsWith",
         className: "col-span-1",
       },
       {
