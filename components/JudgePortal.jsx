@@ -281,6 +281,8 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       }
       if (active && active._id !== currentAssignmentIdRef.current) {
         setSubmitted(false);
+        setShowPreviewModal(false);
+        setSubmittedMarksPreview(null);
       }
 
       // Fetch registrations for this program
