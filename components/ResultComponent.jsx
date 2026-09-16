@@ -28,6 +28,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   Trophy,
@@ -41,12 +48,14 @@ import {
   TrendingUp,
   ArrowUpDown,
   AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
 import { MultiSelect } from "./ui/multi-select";
 import { formatOptions, cn } from "@/lib/utils";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 const ResultComponent = ({
   programs = [],
@@ -65,11 +74,18 @@ const ResultComponent = ({
   const [declaring, setDeclaring] = useState({});
   const [generating, setGenerating] = useState({});
   const [teams, setTeams] = useState([]);
+  const [viewPointsResult, setViewPointsResult] = useState(null);
 
   const printRef = useRef();
   const downloadCardRef = useRef(null);
+  const viewPointsPopupRef = useRef(null);
   const [downloadingResult, setDownloadingResult] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+
+  const { handleDownload: handleViewPointsDownload } = useDownloadPopup(
+    viewPointsPopupRef,
+    `Expected_Team_Points.jpeg`
+  );
 
   // Use CRUD operations
   const { useFetchItems } = useCrud("results", apiKey);
@@ -227,6 +243,68 @@ const ResultComponent = ({
       return teamTotals.get(teamId) || 0;
     },
     [teamTotals]
+  );
+
+  // Helper: Compute expected team points if a result is declared
+  const computeExpectedTeamPoints = useCallback(
+    (result) => {
+      // Accumulate points-per-team from this result's participants
+      const additions = new Map(); // teamId -> { name, pointsGained }
+
+      (result.participants || []).forEach((participant) => {
+        if (!participant.points || participant.points <= 0) return;
+
+        const teamId =
+          participant.participantDetails?.teamId?._id ||
+          participant.participantDetails?.teamId;
+        const teamName =
+          participant.participantDetails?.teamId?.name || "Unknown Team";
+
+        if (!teamId) return;
+
+        const teamIdStr = teamId?.toString();
+        if (!additions.has(teamIdStr)) {
+          additions.set(teamIdStr, { name: teamName, pointsGained: 0 });
+        }
+        additions.get(teamIdStr).pointsGained += participant.points;
+      });
+
+      // Build rows for ALL teams
+      const gaining = [];
+      const unchanged = [];
+
+      teams.forEach((team) => {
+        const teamIdStr = team._id?.toString();
+        const currentTotal = (team.stagePoints || 0) + (team.offStagePoints || 0);
+        const addition = additions.get(teamIdStr);
+
+        if (addition) {
+          gaining.push({
+            teamId: teamIdStr,
+            name: team.name || addition.name,
+            currentTotal,
+            pointsGained: addition.pointsGained,
+            newTotal: currentTotal + addition.pointsGained,
+          });
+        } else {
+          unchanged.push({
+            teamId: teamIdStr,
+            name: team.name,
+            currentTotal,
+            pointsGained: 0,
+            newTotal: currentTotal,
+          });
+        }
+      });
+
+      // Sort gaining: by points gained desc, then new total desc
+      gaining.sort((a, b) => b.pointsGained - a.pointsGained || b.newTotal - a.newTotal);
+      // Sort unchanged: by current total desc
+      unchanged.sort((a, b) => b.currentTotal - a.currentTotal);
+
+      return { gaining, unchanged };
+    },
+    [teams]
   );
 
   // Fixed helper: Get average team points for a result
@@ -716,9 +794,9 @@ const ResultComponent = ({
       <div className="no-print">
         <div className="flex flex-col gap-3">
           {/* Controls Row */}
-          <div className="flex flex-col lg:flex-row lg:items-center gap-2 sm:gap-3">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-2 sm:gap-3 w-full">
             {/* Division */}
-            <div className="w-full lg:w-36 xl:w-44 shrink-0">
+            <div className="w-full lg:w-36 xl:w-40 shrink-0">
               <Select
                 value={selectedDivision || "all"}
                 onValueChange={(val) => {
@@ -740,8 +818,8 @@ const ResultComponent = ({
               </Select>
             </div>
 
-            {/* Program */}
-            <div className="w-full lg:flex-1 lg:max-w-[220px] xl:max-w-[280px]">
+            {/* Program — grows to fill remaining space */}
+            <div className="w-full lg:flex-1 min-w-0">
               <MultiSelect
                 value={selectedProgram}
                 onValueChange={setSelectedProgram}
@@ -755,7 +833,7 @@ const ResultComponent = ({
 
             {/* Categories & Status - side by side on mobile, adjusted width on desktop */}
             <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-2 shrink-0">
-              <div className="w-full lg:w-36 xl:w-44">
+              <div className="w-full lg:w-32 xl:w-36">
                 <Select
                   value={selectedCategory || "all"}
                   onValueChange={(val) =>
@@ -773,7 +851,7 @@ const ResultComponent = ({
                 </Select>
               </div>
 
-              <div className="w-full lg:w-32 xl:w-36">
+              <div className="w-full lg:w-28 xl:w-32">
                 <Select
                   value={selectedStatus}
                   onValueChange={setSelectedStatus}
@@ -790,9 +868,9 @@ const ResultComponent = ({
               </div>
             </div>
 
-            {/* Team Priority, Close, Print - in a row on mobile and desktop */}
+            {/* Sort + Clear + Print */}
             <div className="flex items-center gap-2 shrink-0 lg:flex-none">
-              <div className="flex-1 min-w-0 lg:w-44 xl:w-52 flex items-center gap-1.5">
+              <div className="flex-1 min-w-0 lg:w-40 xl:w-48 flex items-center gap-1.5">
                 <ArrowUpDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="h-10 w-full text-sm">
@@ -920,7 +998,7 @@ const ResultComponent = ({
 
                   {/* Result Header - Attached directly to table below */}
                   <div className="result-info relative flex items-center justify-between gap-1.5 sm:gap-3 bg-muted/60 border border-border rounded-t-lg px-2 sm:px-4 py-2 print:bg-gray-200 print:border print:border-black print:rounded-none">
-                    {/* Left: Result Number Badge (hidden download button) */}
+                    {/* Left: Result Number Badge (declared) or View Points icon (undeclared, mobile only) */}
                     <div className="shrink-0 flex items-center no-print">
                       {result.isResultDeclared && result.resultNumber ? (
                         <Badge
@@ -936,6 +1014,20 @@ const ResultComponent = ({
                             result.resultNumber
                           )}
                         </Badge>
+                      ) : result._id && !result.isResultDeclared ? (
+                        /* Mobile: View Points button on left side */
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const maxNum = results.reduce((max, r) => r.resultNumber > max ? r.resultNumber : max, 0);
+                            setViewPointsResult({ ...result, _nextResultNumber: maxNum + 1 });
+                          }}
+                          className="sm:hidden h-7 w-7 p-0 border-blue-300 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+                          title="Preview team points if declared"
+                        >
+                          <BarChart3 className="h-3.5 w-3.5" />
+                        </Button>
                       ) : (
                         <div className="w-8 sm:w-0" />
                       )}
@@ -988,7 +1080,7 @@ const ResultComponent = ({
                     </div>
 
                     {/* Right: Action button (Declare / Undeclare / Generate) */}
-                    <div className="shrink-0 flex items-center no-print z-10">
+                    <div className="shrink-0 flex items-center gap-1.5 no-print z-10">
                       {!result._id && (
                         <Button
                           onClick={() =>
@@ -1005,6 +1097,23 @@ const ResultComponent = ({
                             <TrendingUp className="h-3 w-3 mr-1" />
                           )}
                           Generate
+                        </Button>
+                      )}
+
+                      {/* View Points button — desktop only (mobile is on left side) */}
+                      {result._id && !result.isResultDeclared && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const maxNum = results.reduce((max, r) => r.resultNumber > max ? r.resultNumber : max, 0);
+                            setViewPointsResult({ ...result, _nextResultNumber: maxNum + 1 });
+                          }}
+                          className="hidden sm:flex h-7 sm:h-8 px-2 sm:px-2.5 text-xs border-blue-300 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+                          title="Preview team points if declared"
+                        >
+                          <BarChart3 className="h-3 w-3 mr-1" />
+                          View
                         </Button>
                       )}
 
@@ -1235,6 +1344,105 @@ const ResultComponent = ({
           </div>
         )}
       </div>
+
+      {/* View Points Preview Dialog */}
+      <Dialog open={!!viewPointsResult} onOpenChange={(open) => !open && setViewPointsResult(null)}>
+        <DialogContent
+          ref={viewPointsPopupRef}
+          data-html2canvas-popup="true"
+          className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden"
+        >
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 sticky top-0 z-20 bg-blue-50/80 dark:bg-blue-950/40 backdrop-blur-md shrink-0">
+            <button
+              type="button"
+              className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-400 transition-colors focus:outline-none cursor-pointer shrink-0"
+              onClick={handleViewPointsDownload}
+              title="Download Image"
+              data-html2canvas-ignore="true"
+            >
+              <BarChart3 className="h-5 w-5" />
+            </button>
+            <div className="flex-1 min-w-0 text-left">
+              <DialogTitle className="text-base font-bold text-foreground truncate text-left">
+                Expected Team Points
+                {viewPointsResult?._nextResultNumber && (
+                  <span className="sm:hidden font-normal text-muted-foreground ml-1">(#{viewPointsResult._nextResultNumber})</span>
+                )}
+              </DialogTitle>
+              {viewPointsResult && (
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                  {viewPointsResult.programName} · {viewPointsResult.divisionName} · {viewPointsResult.programCategory}
+                </p>
+              )}
+            </div>
+            {viewPointsResult?._nextResultNumber && (
+              <div className="hidden sm:flex shrink-0 p-1.5 rounded-lg border border-border bg-background items-center justify-center h-8 w-8 text-sm font-bold text-foreground">
+                {viewPointsResult._nextResultNumber}
+              </div>
+            )}
+            <DialogClose
+              onClick={() => setViewPointsResult(null)}
+              className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+              data-html2canvas-ignore="true"
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 px-4 py-3 space-y-3">
+            {viewPointsResult && (() => {
+              const { gaining, unchanged } = computeExpectedTeamPoints(viewPointsResult);
+              const allRows = [...gaining, ...unchanged];
+              if (!allRows.length) {
+                return (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    <Users className="mx-auto h-8 w-8 mb-2 opacity-40" />
+                    <p>No team data available.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {/* Column header */}
+                  <div className="grid grid-cols-[1fr_3rem_2.5rem_3rem] gap-x-2 items-center px-3 pb-1">
+                    <span />
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground text-right">Current</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-green-600 dark:text-green-400 text-right">+Add</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400 text-right">Total</span>
+                  </div>
+
+                  {/* All teams — gaining first, then unchanged */}
+                  <div className="space-y-1.5">
+                    {gaining.map((row) => (
+                      <div
+                        key={row.teamId}
+                        className="grid grid-cols-[1fr_3rem_2.5rem_3rem] gap-x-2 items-center rounded-lg border border-border bg-card px-3 py-2.5"
+                      >
+                        <span className="font-medium text-sm text-foreground truncate min-w-0">{row.name}</span>
+                        <span className="text-xs text-muted-foreground text-right tabular-nums">{row.currentTotal}</span>
+                        <span className="text-xs font-semibold text-green-600 dark:text-green-400 text-right tabular-nums">+{row.pointsGained}</span>
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400 text-right tabular-nums">{row.newTotal}</span>
+                      </div>
+                    ))}
+                    {unchanged.map((row) => (
+                      <div
+                        key={row.teamId}
+                        className="grid grid-cols-[1fr_3rem_2.5rem_3rem] gap-x-2 items-center rounded-lg border border-border bg-muted/30 px-3 py-2.5"
+                      >
+                        <span className="font-medium text-sm text-muted-foreground truncate min-w-0">{row.name}</span>
+                        <span className="text-xs text-muted-foreground text-right tabular-nums">{row.currentTotal}</span>
+                        <span className="text-xs text-muted-foreground text-right">—</span>
+                        <span className="text-sm font-semibold text-foreground text-right tabular-nums">{row.currentTotal}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Offscreen Download Card for downloading full result image */}
       <div
