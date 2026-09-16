@@ -5,6 +5,7 @@ import Participant from "@/models/Participant";
 import Team from "@/models/Team";
 import Division from "@/models/Division";
 import User from "@/models/User";
+import Program from "@/models/Program";
 import { getYear } from "@/lib/getYear";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +14,26 @@ export async function GET(request) {
   try {
     await connectToDB();
 
-    // 1. Fetch all fully declared programmatic results and safely extract all active point awards
     const activeYear = await getYear(request);
-    const declaredResults = await Result.find({ isResultDeclared: true, year: activeYear }).lean();
+
+    // 1. Fetch primary division individual programs only
+    const primaryDivisions = await Division.find({ type: "Primary", year: activeYear }).select("_id").lean();
+    const primaryDivisionIds = primaryDivisions.map(d => d._id);
+
+    const individualPrograms = await Program.find({
+      type: "Individual",
+      divisionId: { $in: primaryDivisionIds },
+      year: activeYear
+    }).select("_id").lean();
+    
+    const primaryIndividualProgramIds = individualPrograms.map(p => p._id.toString());
+
+    // 2. Fetch fully declared programmatic results for those programs
+    const declaredResults = await Result.find({ 
+      isResultDeclared: true, 
+      year: activeYear,
+      programId: { $in: primaryIndividualProgramIds }
+    }).lean();
 
     // Mapping Dictionary (Participant ID -> total accrued points)
     const pointsMap = {};
@@ -40,7 +58,8 @@ export async function GET(request) {
       .lean();
 
     // 2.5 Hydrate User photos manually by cross-referencing generic IDs directly
-    const users = await User.find({ _id: { $in: activeParticipantIds } }, "profilePic").lean();
+    const userIds = activeParticipantIds.map(id => id.split("-")[0]);
+    const users = await User.find({ _id: { $in: userIds } }, "profilePic").lean();
     const userPhotoMap = {};
     users.forEach(u => {
       userPhotoMap[u._id.toString()] = u.profilePic?.url || null;
@@ -55,6 +74,7 @@ export async function GET(request) {
       
       const divName = p.divisionId.name;
       const points = pointsMap[p._id.toString()];
+      const userId = p._id.toString().split("-")[0];
 
       if (!divisionBuckets[divName]) {
         divisionBuckets[divName] = [];
@@ -68,7 +88,7 @@ export async function GET(request) {
         teamColor: p.teamId?.color || "#808080",
         points: points,
         divisionName: divName,
-        photo: userPhotoMap[p._id.toString()] || null
+        photo: userPhotoMap[userId] || null
       });
     });
 

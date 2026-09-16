@@ -548,6 +548,12 @@ const items = [
     icon: ListChecks,
   },
   {
+    title: "Results",
+    url: "/dashboard/results",
+    allowedRoles: ["Program Committee"],
+    icon: Trophy,
+  },
+  {
     title: "Judges",
     url: "/dashboard/judges",
     allowedRoles: ["Program Committee"],
@@ -566,23 +572,16 @@ const items = [
     icon: LayoutGrid,
   },
   {
-    title: "Gallery",
-    url: "/dashboard/gallery",
-    allowedRoles: ["Program Committee"],
-    icon: Camera,
-  },
-  {
     title: "Frames",
     url: "/dashboard/frame",
     allowedRoles: ["Program Committee"],
     icon: Layers2,
   },
-
   {
-    title: "Results",
-    url: "/dashboard/results",
+    title: "Gallery",
+    url: "/dashboard/gallery",
     allowedRoles: ["Program Committee"],
-    icon: Trophy,
+    icon: Camera,
   },
   {
     title: "Points",

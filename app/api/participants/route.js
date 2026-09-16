@@ -101,9 +101,23 @@ export async function GET(req, res) {
 
     // Get declared program IDs for filtering
     const activeYear = await getYear(req);
-    const declaredResults = await Result.find({ isResultDeclared: true, year: activeYear }).select("programId").lean();
-    const declaredProgramObjectIds = declaredResults.map(r => r.programId);
+    const declaredResults = await Result.find({ isResultDeclared: true, year: activeYear })
+      .populate({
+        path: "programId",
+        select: "divisionId",
+        populate: {
+          path: "divisionId",
+          select: "type"
+        }
+      })
+      .lean();
+      
+    const declaredProgramObjectIds = declaredResults.map(r => r.programId?._id || r.programId);
     const declaredProgramIdsStr = new Set(declaredProgramObjectIds.map(id => id.toString()));
+    
+    const primaryDeclaredProgramObjectIds = declaredResults
+      .filter(r => r.programId?.divisionId?.type === "Primary")
+      .map(r => r.programId?._id || r.programId);
 
     if (projectionParam) {
       const fields = projectionParam.split(",");
@@ -442,7 +456,7 @@ export async function GET(req, res) {
               $filter: {
                 input: { $ifNull: ["$programs", []] },
                 as: "program",
-                cond: { $in: ["$$program.id", declaredProgramObjectIds] }
+                cond: { $in: ["$$program.id", primaryDeclaredProgramObjectIds] }
               }
             }
           }
@@ -532,7 +546,8 @@ export async function GET(req, res) {
         const validPrograms = [];
         (participant.programs || []).forEach((p) => {
           const pIdStr = (p?.id?._id || p?.id)?.toString();
-          if (pIdStr && declaredProgramIdsStr.has(pIdStr)) {
+          const isPrimary = p?.id?.divisionId?.type === "Primary" || p?.divisionType === "Primary";
+          if (isPrimary && pIdStr && declaredProgramIdsStr.has(pIdStr)) {
             if (!seenProgIds.has(pIdStr)) {
               seenProgIds.add(pIdStr);
               validPrograms.push(p);

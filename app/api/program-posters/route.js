@@ -40,7 +40,7 @@ export async function GET(request) {
     registrations.forEach((reg) => {
       reg.participants.forEach((p) => {
         if (p.id && p.id._id) {
-          userIds.add(p.id._id);
+          userIds.add(String(p.id._id).split("-")[0]);
         }
       });
     });
@@ -53,7 +53,7 @@ export async function GET(request) {
 
     const userProfileMap = {};
     users.forEach((u) => {
-      userProfileMap[u._id] = u.profilePic?.url || null;
+      userProfileMap[String(u._id)] = u.profilePic?.url || null;
     });
 
     // Group participants by program
@@ -80,13 +80,14 @@ export async function GET(request) {
       reg.participants.forEach((p) => {
         if (!p.id) return;
         const participantObj = p.id;
+        const userId = String(participantObj._id).split("-")[0];
         
         programData.participants.push({
           _id: participantObj._id,
           name: participantObj.name,
           chestNumber: participantObj.chestNumber || "N/A",
           teamName: participantObj.teamId?.name || "Unknown",
-          profilePic: userProfileMap[participantObj._id] || null,
+          profilePic: userProfileMap[userId] || null,
         });
       });
     });

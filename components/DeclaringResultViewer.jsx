@@ -357,7 +357,7 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
                         {resultData.participants
                             .filter(p => parseRank(p.rank) === (step === STEPS.FIRST_PLACE ? 1 : step === STEPS.SECOND_PLACE ? 2 : 3))
                             .map((p, idx) => (
-                                <SequentialWinnerCard key={p._id || idx} p={p} rank={p.rank} isWhiteTheme={isWhiteTheme} />
+                                <SequentialWinnerCard key={`${step}-${p._id || idx}`} p={p} rank={p.rank} isWhiteTheme={isWhiteTheme} />
                             ))
                         }
                     </div>

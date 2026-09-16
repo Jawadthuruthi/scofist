@@ -93,6 +93,17 @@ const JudgesManagement = ({
   const [alertAssignment, setAlertAssignment] = useState(null);
   const [alertMessage, setAlertMessage] = useState("");
 
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAssignmentTarget, setDeleteAssignmentTarget] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+  const openDeleteDialog = (assignment) => {
+    setDeleteAssignmentTarget(assignment);
+    setDeleteConfirmText("");
+    setDeleteDialogOpen(true);
+  };
+
   const filteredPrograms = programs.filter(
     (p) => !selectedDivision || p.divisionId === selectedDivision
   );
@@ -516,38 +527,15 @@ const JudgesManagement = ({
                           >
                             <Bell className="h-4 w-4" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden rounded-2xl">
-                              <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
-                                <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
-                                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                                </div>
-                                <div className="flex-1 text-left space-y-0.5">
-                                  <AlertDialogTitle className="text-xl font-bold m-0 text-destructive">Remove Judge Assignment?</AlertDialogTitle>
-                                  <AlertDialogDescription className="m-0 text-sm text-muted-foreground pt-1">
-                                    This will remove{" "}
-                                    <strong>{assignment.judgeName}</strong> as Judge{" "}
-                                    {assignment.judgeNumber} from this program. Any marks
-                                    already submitted will remain.
-                                  </AlertDialogDescription>
-                                </div>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter className="p-5 border-t bg-muted/20 flex justify-between gap-4 sm:space-x-0">
-                                <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-destructive hover:bg-destructive/90 flex-1"
-                                  onClick={() => handleDelete(assignment._id)}
-                                >
-                                  Remove
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => openDeleteDialog(assignment)}
+                            title="Remove assignment"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -818,6 +806,64 @@ const JudgesManagement = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden rounded-2xl">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <AlertDialogTitle className="text-xl font-bold m-0 text-destructive">Remove Judge Assignment?</AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-sm text-muted-foreground pt-1">
+                This will remove{" "}
+                <strong>{deleteAssignmentTarget?.judgeName}</strong> as Judge{" "}
+                {deleteAssignmentTarget?.judgeNumber} from this program. Any marks
+                already submitted will remain.
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+
+          {deleteAssignmentTarget?.isCompleted && (
+            <div className="px-5 py-4 space-y-3">
+              <div className="rounded-md bg-amber-50 dark:bg-amber-950/50 p-3 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
+                <p className="font-semibold mb-1">Warning: Marks Already Completed</p>
+                <p>This judge has already completed their mark entry. To proceed with deletion, please type <strong>DELETE</strong> below.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="delete-confirm">Confirm Deletion</Label>
+                <Input
+                  id="delete-confirm"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="p-5 border-t bg-muted/20 flex justify-between gap-4 sm:space-x-0">
+            <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 flex-1"
+              disabled={deleteAssignmentTarget?.isCompleted && deleteConfirmText !== "DELETE"}
+              onClick={(e) => {
+                if (deleteAssignmentTarget?.isCompleted && deleteConfirmText !== "DELETE") {
+                  e.preventDefault();
+                  return;
+                }
+                if (deleteAssignmentTarget) {
+                  handleDelete(deleteAssignmentTarget._id);
+                }
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
