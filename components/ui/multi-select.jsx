@@ -366,6 +366,7 @@ export const MultiSelect = React.forwardRef(
         <PopoverTrigger asChild>
           <Button
             ref={ref}
+            variant="outline"
             {...props}
             onClick={() => {
               if (!readOnly) setIsPopoverOpen(!isPopoverOpen);

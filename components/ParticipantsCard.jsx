@@ -28,6 +28,7 @@ const ParticipantsCard = ({
   activeRole,
   activeTeamId,
   apiKey,
+  activeYear,
 }) => {
   const [festivalSettings, setFestivalSettings] = useState(initialFestivalSettings);
 
@@ -337,6 +338,7 @@ const ParticipantsCard = ({
             baseUrl={baseUrl}
             divisions={divisions}
             maxPrograms={MAX_PROGRAMS}
+            activeYear={activeYear}
           />
         ))}
       </div>
@@ -394,6 +396,7 @@ const ParticipantsCard = ({
                   baseUrl={baseUrl}
                   divisions={divisions}
                   paperSize={paperSize}
+                  activeYear={activeYear}
                 />
               ))}
           </div>
@@ -447,7 +450,7 @@ const ParticipantsCard = ({
 export default ParticipantsCard;
 
 // Extracted component for participant card preview
-export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, maxPrograms = 16, divisions = [], layout = "col" }) => {
+export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, maxPrograms = 16, divisions = [], layout = "col", activeYear }) => {
   const [currentPage, setCurrentPage] = useState(0);
   
   const participantsCardSettings = festivalSettings?.participantsCard || {};
@@ -654,7 +657,7 @@ export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseU
                           top: `${layout.resultQR.y}%`,
                         }}
                       >
-                        <QRCodeSVG value={`${baseUrl}/results/2025`} size={layout.resultQR.size || 45} />
+                        <QRCodeSVG value={`${baseUrl}/results/${activeYear || new Date().getFullYear()}`} size={layout.resultQR.size || 45} />
                         <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight" style={{ fontSize: (layout.resultQR.size || 45) * 0.2 }}>Results</span>
                       </div>
                     )}
@@ -941,7 +944,8 @@ const PrintableParticipantCard = ({
   viewMode,
   baseUrl,
   divisions = [],
-  paperSize = "A4"
+  paperSize = "A4",
+  activeYear
 }) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
   const defaultBg = participantsCardSettings?.backgroundImage?.url || "";
@@ -1139,7 +1143,7 @@ const PrintableParticipantCard = ({
                         top: `${layout.resultQR.y}%`,
                       }}
                     >
-                      <QRCodeSVG value={`${baseUrl}/results/2025`} size={layout.resultQR.size || 45} />
+                      <QRCodeSVG value={`${baseUrl}/results/${activeYear || new Date().getFullYear()}`} size={layout.resultQR.size || 45} />
                       <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight" style={{ fontSize: (layout.resultQR.size || 45) * 0.2 }}>Results</span>
                     </div>
                   )}

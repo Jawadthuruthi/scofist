@@ -55,10 +55,29 @@ export async function POST(req) {
 
         // Validate date of birth
         const storedDob = new Date(user.dateOfBirth);
-        const dobMatches =
-            storedDob.getUTCDate() === parseInt(day, 10) &&
-            storedDob.getUTCMonth() + 1 === parseInt(month, 10) &&
-            storedDob.getUTCFullYear() === parseInt(year, 10);
+        const formattedProvidedDob = `${year}-${month}-${day}`;
+        
+        // 1. UTC Date String
+        const actualDobUtc = storedDob.toISOString().split('T')[0];
+        
+        // 2. IST Date String
+        const actualDobIST = new Intl.DateTimeFormat('en-CA', { 
+          timeZone: 'Asia/Kolkata', 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit' 
+        }).format(storedDob);
+        
+        // 3. Local Server Date String
+        const localYear = storedDob.getFullYear();
+        const localMonth = String(storedDob.getMonth() + 1).padStart(2, '0');
+        const localDay = String(storedDob.getDate()).padStart(2, '0');
+        const actualDobLocal = `${localYear}-${localMonth}-${localDay}`;
+        
+        const dobMatches = 
+            formattedProvidedDob === actualDobUtc || 
+            formattedProvidedDob === actualDobIST || 
+            formattedProvidedDob === actualDobLocal;
 
         if (!dobMatches) {
             return NextResponse.json(

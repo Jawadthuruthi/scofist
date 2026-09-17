@@ -294,7 +294,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
                       const revealDuration = announcementValue !== "" ? 15000 : 3000;
      
                       return (
-                        <div key={team._id} className="flex flex-col items-center justify-end h-full w-24 md:w-32 lg:w-44 group cursor-pointer" onClick={() => toggleReveal(team._id)}>
+                        <div key={team._id} className="flex flex-col items-center justify-end h-full w-32 md:w-48 lg:w-64 group cursor-pointer" onClick={() => toggleReveal(team._id)}>
                           
                           <div className="relative w-full flex-1 flex flex-col justify-end items-center">
                             <div 

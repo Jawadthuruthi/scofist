@@ -769,9 +769,7 @@ const PosterCustomizer = ({
       config.fontWeight,
       containerSize.width * 0.9
     );
-    const fontSize = config.autoFit
-      ? textDimensions.suggestedFontSize
-      : baseFontSize;
+    const fontSize = baseFontSize;
 
     return (
       <div
@@ -798,8 +796,16 @@ const PosterCustomizer = ({
           textShadow: config.textShadow
             ? "2px 2px 4px rgba(0,0,0,0.8)"
             : "none",
-          maxWidth: "90%",
-          whiteSpace: "nowrap",
+          width: "max-content",
+          maxWidth:
+            config.textAlign === "center"
+              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              : config.textAlign === "right"
+                ? `${config.x}%`
+                : `${100 - config.x}%`,
+          boxSizing: "border-box",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
           zIndex: 10,
         }}
         onMouseDown={
@@ -840,9 +846,7 @@ const PosterCustomizer = ({
       config.fontWeight,
       containerSize.width * 0.9
     );
-    const fontSize = config.autoFit
-      ? textDimensions.suggestedFontSize
-      : baseFontSize;
+    const fontSize = baseFontSize;
 
     return (
       <div
@@ -869,8 +873,16 @@ const PosterCustomizer = ({
           textShadow: config.textShadow
             ? "2px 2px 4px rgba(0,0,0,0.8)"
             : "none",
-          maxWidth: "90%",
-          whiteSpace: "nowrap",
+          width: "max-content",
+          maxWidth:
+            config.textAlign === "center"
+              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              : config.textAlign === "right"
+                ? `${config.x}%`
+                : `${100 - config.x}%`,
+          boxSizing: "border-box",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
           zIndex: 10,
         }}
         onMouseDown={
@@ -911,9 +923,7 @@ const PosterCustomizer = ({
       config.fontWeight,
       containerSize.width * 0.9
     );
-    const fontSize = config.autoFit
-      ? textDimensions.suggestedFontSize
-      : baseFontSize;
+    const fontSize = baseFontSize;
 
     return (
       <div
@@ -940,8 +950,16 @@ const PosterCustomizer = ({
           textShadow: config.textShadow
             ? "2px 2px 4px rgba(0,0,0,0.8)"
             : "none",
-          maxWidth: "90%",
-          whiteSpace: "nowrap",
+          width: "max-content",
+          maxWidth:
+            config.textAlign === "center"
+              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              : config.textAlign === "right"
+                ? `${config.x}%`
+                : `${100 - config.x}%`,
+          boxSizing: "border-box",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
           zIndex: 10,
         }}
         onMouseDown={
@@ -980,9 +998,7 @@ const PosterCustomizer = ({
       config.fontWeight,
       containerSize.width * 0.9
     );
-    const fontSize = config.autoFit
-      ? textDimensions.suggestedFontSize
-      : baseFontSize;
+    const fontSize = baseFontSize;
 
     return (
       <div
@@ -993,7 +1009,12 @@ const PosterCustomizer = ({
         style={{
           left: `${config.x}%`,
           top: `${config.y}%`,
-          transform: "translateX(0)",
+          transform:
+            config.textAlign === "center"
+              ? "translateX(-50%)"
+              : config.textAlign === "right"
+                ? "translateX(-100%)"
+                : "translateX(0)",
           fontSize: `${fontSize}px`,
           fontFamily: config.fontFamily || "inherit",
           color: config.color,
@@ -1004,8 +1025,16 @@ const PosterCustomizer = ({
           textShadow: config.textShadow
             ? "2px 2px 4px rgba(0,0,0,0.8)"
             : "none",
-          maxWidth: "90%",
-          whiteSpace: "nowrap",
+          width: "max-content",
+          maxWidth:
+            config.textAlign === "center"
+              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              : config.textAlign === "right"
+                ? `${config.x}%`
+                : `${100 - config.x}%`,
+          boxSizing: "border-box",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
           zIndex: 10,
         }}
         onMouseDown={
@@ -1047,8 +1076,20 @@ const PosterCustomizer = ({
         style={{
           left: `${config.x}%`,
           top: `${config.y}%`,
-          transform: "translateX(0)",
-          maxWidth: "90%",
+          transform:
+            config.textAlign === "center"
+              ? "translateX(-50%)"
+              : config.textAlign === "right"
+                ? "translateX(-100%)"
+                : "translateX(0)",
+          width: "max-content",
+          maxWidth:
+            config.textAlign === "center"
+              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              : config.textAlign === "right"
+                ? `${config.x}%`
+                : `${100 - config.x}%`,
+          boxSizing: "border-box",
           zIndex: 10,
           padding: `${config.containerPadding || 10}px`,
         }}
@@ -1086,7 +1127,8 @@ const PosterCustomizer = ({
                 textShadow: config.textShadow
                   ? "2px 2px 4px rgba(0,0,0,0.8)"
                   : "none",
-                whiteSpace: "nowrap",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
               }}
             >
               {config.showRank && `${elementKey === "firstPlace" ? 1 : elementKey === "secondPlace" ? 2 : elementKey === "thirdPlace" ? 3 : index + 1}. `}

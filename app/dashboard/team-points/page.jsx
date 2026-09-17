@@ -4,6 +4,7 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData } from "@/lib/utils";
 import { cookies } from "next/headers";
+import PublishTeamPointsButton from "./PublishTeamPointsButton";
 
 const columnsConfig = [
   {
@@ -57,6 +58,7 @@ export default async function TeamPointsPage() {
     const apiKey = process.env.API_KEY;
     const cookiesStore = await cookies();
     const activeYear = cookiesStore.get("active-year")?.value;
+    const activeRole = cookiesStore.get("active-role")?.value;
     const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
     const results = await fetchData(
@@ -85,6 +87,7 @@ export default async function TeamPointsPage() {
           readOnly={true}
           apiFilters={{ sortByPoints: "true" }}
         />
+        <PublishTeamPointsButton activeRole={activeRole} />
       </>
     );
   } catch (error) {

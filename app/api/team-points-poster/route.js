@@ -30,8 +30,10 @@ export async function GET(request) {
     });
 
     // 2. Fetch declared results chronologically
-    // 2. Fetch declared results chronologically
-    const resultsQuery = Result.find({ isResultDeclared: true, year: activeYear })
+    const apiKey = request.headers.get("api-key");
+    const isDashboard = !!apiKey;
+    const queryCondition = isDashboard ? { isResultDeclared: true, year: activeYear } : { isTeamPointsPublished: true, year: activeYear };
+    const resultsQuery = Result.find(queryCondition)
       .populate("participants.id")
       .sort({ updatedAt: 1 }); // Sorted oldest to newest
 

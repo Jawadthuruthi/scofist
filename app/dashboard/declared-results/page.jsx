@@ -2,12 +2,13 @@ import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
+import { cookies } from "next/headers";
 
 const columnsConfig = [
   {
     accessorKey: "resultNumber",
     header: "Result No",
-    type: "number",
+    type: "number, sortablePrefix",
     width: 80,
     maxWidth: 80,
     minWidth: 80,
@@ -25,8 +26,12 @@ const columnsConfig = [
 export default async function DeclaredResultsPage() {
   try {
     const apiKey = process.env.API_KEY;
+    const cookieStore = cookies();
+    const activeYear = cookieStore.get("active-year")?.value || "";
 
     const divisions = await fetchData("divisions", "projection=_id,name", 0);
+    const declaredResults = await fetchData("results", `isResultDeclared=true&projection=_id&year=${encodeURIComponent(activeYear)}`, 0);
+    const resultsCount = declaredResults?.length || 0;
 
     const filterConfig = [
       {
@@ -41,7 +46,7 @@ export default async function DeclaredResultsPage() {
       <>
         <Header
           title="DECLARED RESULTS"
-          subTitle="View and Manage Declared Results"
+          subTitle={`View Declared Results [${resultsCount}]`}
         />
         <DynamicDataTable
           resource="results"
@@ -57,6 +62,7 @@ export default async function DeclaredResultsPage() {
           isFestival={true}
           enableSearch={true}
           desktopSearchPlaceholder="Search program name..."
+          defaultSorting={[{ id: "resultNumber", desc: false }]}
         />
       </>
     );

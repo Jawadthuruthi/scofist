@@ -49,11 +49,30 @@ export async function POST(request) {
       );
     }
 
-    // Compare date of birth (strip time from both for reliable comparison)
-    const providedDob = new Date(dateOfBirth).toISOString().split('T')[0];
-    const actualDob = new Date(user.dateOfBirth).toISOString().split('T')[0];
+    // Compare date of birth
+    // Try multiple possible date formats due to timezone offsets when storing DB dates
+    const providedDob = String(dateOfBirth).trim();
+    
+    const dbDate = new Date(user.dateOfBirth);
+    
+    // 1. UTC Date String
+    const actualDobUtc = dbDate.toISOString().split('T')[0];
+    
+    // 2. IST Date String
+    const actualDobIST = new Intl.DateTimeFormat('en-CA', { 
+      timeZone: 'Asia/Kolkata', 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    }).format(dbDate);
+    
+    // 3. Local Server Date String
+    const localYear = dbDate.getFullYear();
+    const localMonth = String(dbDate.getMonth() + 1).padStart(2, '0');
+    const localDay = String(dbDate.getDate()).padStart(2, '0');
+    const actualDobLocal = `${localYear}-${localMonth}-${localDay}`;
 
-    if (providedDob !== actualDob) {
+    if (providedDob !== actualDobUtc && providedDob !== actualDobIST && providedDob !== actualDobLocal) {
       return NextResponse.json(
         { success: false, message: "Incorrect date of birth" },
         { status: 401 }

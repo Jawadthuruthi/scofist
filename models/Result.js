@@ -46,6 +46,10 @@ const resultSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    isTeamPointsPublished: {
+      type: Boolean,
+      default: false,
+    },
     resultNumber: {
       type: Number,
       default: null,
