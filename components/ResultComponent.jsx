@@ -383,102 +383,106 @@ const ResultComponent = ({
     }
 
     // Apply sorting
-    switch (sortBy) {
-      case "team-points":
-        // New global pointsbased sorting logic
-        filtered = filtered.sort((a, b) => {
-          const aDecl = a.isResultDeclared ? 1 : 0;
-          const bDecl = b.isResultDeclared ? 1 : 0;
-
-          // Group by declaration status: pending (false) first, then declared (true)
-          if (aDecl !== bDecl) {
-            return aDecl - bDecl; // pending (0) comes before declared (1)
-          }
-
-          if (!aDecl) {
-            // Both pending - sort by how well the globally weakest team performs compared to other teams
-            const { weakestTeamId: aWeakest, weakestPresence: aPresence } =
-              getWeakestTeamAndPresence(a);
-            const { weakestTeamId: bWeakest, weakestPresence: bPresence } =
-              getWeakestTeamAndPresence(b);
-
-            // Get global ranks for comparison
-            const aRank = aWeakest
-              ? (teamRanks.get(aWeakest) ?? Number.MAX_SAFE_INTEGER)
-              : Number.MAX_SAFE_INTEGER;
-            const bRank = bWeakest
-              ? (teamRanks.get(bWeakest) ?? Number.MAX_SAFE_INTEGER)
-              : Number.MAX_SAFE_INTEGER;
-
-            // Primary: Compare by weakest team's global rank (ascending - lower rank first)
-            if (aRank !== bRank) {
-              return aRank - bRank;
+    if (selectedStatus === "declared") {
+      filtered = filtered.sort((a, b) => (b.resultNumber || 0) - (a.resultNumber || 0));
+    } else {
+      switch (sortBy) {
+        case "team-points":
+          // New global pointsbased sorting logic
+          filtered = filtered.sort((a, b) => {
+            const aDecl = a.isResultDeclared ? 1 : 0;
+            const bDecl = b.isResultDeclared ? 1 : 0;
+  
+            // Group by declaration status: pending (false) first, then declared (true)
+            if (aDecl !== bDecl) {
+              return aDecl - bDecl; // pending (0) comes before declared (1)
             }
-
-            // Secondary: Calculate performance score (weakest vs other teams within each result)
-            const aTeamSums = buildResultTeamSums(a);
-            const bTeamSums = buildResultTeamSums(b);
-
-            // Get max presence of other teams in result A
-            let aMaxOtherPresence = 0;
-            for (const [teamId, presence] of aTeamSums) {
-              if (teamId !== aWeakest && presence > aMaxOtherPresence) {
-                aMaxOtherPresence = presence;
+  
+            if (!aDecl) {
+              // Both pending - sort by how well the globally weakest team performs compared to other teams
+              const { weakestTeamId: aWeakest, weakestPresence: aPresence } =
+                getWeakestTeamAndPresence(a);
+              const { weakestTeamId: bWeakest, weakestPresence: bPresence } =
+                getWeakestTeamAndPresence(b);
+  
+              // Get global ranks for comparison
+              const aRank = aWeakest
+                ? (teamRanks.get(aWeakest) ?? Number.MAX_SAFE_INTEGER)
+                : Number.MAX_SAFE_INTEGER;
+              const bRank = bWeakest
+                ? (teamRanks.get(bWeakest) ?? Number.MAX_SAFE_INTEGER)
+                : Number.MAX_SAFE_INTEGER;
+  
+              // Primary: Compare by weakest team's global rank (ascending - lower rank first)
+              if (aRank !== bRank) {
+                return aRank - bRank;
               }
-            }
-
-            // Get max presence of other teams in result B
-            let bMaxOtherPresence = 0;
-            for (const [teamId, presence] of bTeamSums) {
-              if (teamId !== bWeakest && presence > bMaxOtherPresence) {
-                bMaxOtherPresence = presence;
+  
+              // Secondary: Calculate performance score (weakest vs other teams within each result)
+              const aTeamSums = buildResultTeamSums(a);
+              const bTeamSums = buildResultTeamSums(b);
+  
+              // Get max presence of other teams in result A
+              let aMaxOtherPresence = 0;
+              for (const [teamId, presence] of aTeamSums) {
+                if (teamId !== aWeakest && presence > aMaxOtherPresence) {
+                  aMaxOtherPresence = presence;
+                }
               }
+  
+              // Get max presence of other teams in result B
+              let bMaxOtherPresence = 0;
+              for (const [teamId, presence] of bTeamSums) {
+                if (teamId !== bWeakest && presence > bMaxOtherPresence) {
+                  bMaxOtherPresence = presence;
+                }
+              }
+  
+              // Calculate performance scores
+              const aScore = aMaxOtherPresence
+                ? aPresence / aMaxOtherPresence
+                : aPresence;
+              const bScore = bMaxOtherPresence
+                ? bPresence / bMaxOtherPresence
+                : bPresence;
+  
+              // Compare by score (higher first - better performance)
+              if (aScore !== bScore) {
+                return bScore - aScore;
+              }
+  
+              // Tertiary: Compare by weakest team presence (higher first)
+              if (aPresence !== bPresence) {
+                return bPresence - aPresence;
+              }
+  
+              // Final: Deterministic tie-breaker
+              return a.programName.localeCompare(b.programName);
+            } else {
+              // Both declared - sort by result number descending
+              return (b.resultNumber || 0) - (a.resultNumber || 0);
             }
-
-            // Calculate performance scores
-            const aScore = aMaxOtherPresence
-              ? aPresence / aMaxOtherPresence
-              : aPresence;
-            const bScore = bMaxOtherPresence
-              ? bPresence / bMaxOtherPresence
-              : bPresence;
-
-            // Compare by score (higher first - better performance)
-            if (aScore !== bScore) {
-              return bScore - aScore;
+          });
+          break;
+  
+        case "status":
+          // Sort by declaration status, then by program name
+          filtered = filtered.sort((a, b) => {
+            if (a.isResultDeclared !== b.isResultDeclared) {
+              return b.isResultDeclared - a.isResultDeclared;
             }
-
-            // Tertiary: Compare by weakest team presence (higher first)
-            if (aPresence !== bPresence) {
-              return bPresence - aPresence;
-            }
-
-            // Final: Deterministic tie-breaker
             return a.programName.localeCompare(b.programName);
-          } else {
-            // Both declared - sort by result number ascending
-            return (b.resultNumber || 0) - (a.resultNumber || 0);
-          }
-        });
-        break;
-
-      case "status":
-        // Sort by declaration status, then by program name
-        filtered = filtered.sort((a, b) => {
-          if (a.isResultDeclared !== b.isResultDeclared) {
-            return b.isResultDeclared - a.isResultDeclared;
-          }
-          return a.programName.localeCompare(b.programName);
-        });
-        break;
-
-      case "program":
-      default:
-        // Sort alphabetically by program name
-        filtered = filtered.sort((a, b) =>
-          a.programName.localeCompare(b.programName)
-        );
-        break;
+          });
+          break;
+  
+        case "program":
+        default:
+          // Sort alphabetically by program name
+          filtered = filtered.sort((a, b) =>
+            a.programName.localeCompare(b.programName)
+          );
+          break;
+      }
     }
 
     setFilteredResults(filtered);
@@ -793,46 +797,52 @@ const ResultComponent = ({
       {/* Controls */}
       <div className="no-print">
         <div className="flex flex-col gap-3">
+          {/* Status Tabs */}
+          <div className="flex w-full sm:w-auto bg-muted/50 p-1 rounded-lg self-start">
+            {["all", "declared", "pending"].map((status) => (
+              <button
+                key={status}
+                onClick={() => setSelectedStatus(status)}
+                className={cn(
+                  "flex-1 sm:flex-none px-6 py-2 text-sm font-medium rounded-md transition-all capitalize",
+                  selectedStatus === status
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                {status === "pending" ? "Undeclared" : status}
+              </button>
+            ))}
+          </div>
+
           {/* Controls Row */}
           <div className="flex flex-col lg:flex-row lg:items-center gap-2 sm:gap-3 w-full">
-            {/* Division */}
-            <div className="w-full lg:w-36 xl:w-40 shrink-0">
-              <Select
-                value={selectedDivision || "all"}
-                onValueChange={(val) => {
-                  setSelectedDivision(val === "all" ? "" : val);
-                  setSelectedProgram("");
-                }}
-              >
-                <SelectTrigger className="h-10 w-full text-sm">
-                  <SelectValue placeholder="All Divisions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Divisions</SelectItem>
-                  {divisions.map((division) => (
-                    <SelectItem key={division._id} value={division._id}>
-                      {division.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Division and Category - side by side on mobile */}
+            <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-3 shrink-0 w-full lg:w-auto">
+              {/* Division */}
+              <div className="w-full lg:w-36 xl:w-40">
+                <Select
+                  value={selectedDivision || "all"}
+                  onValueChange={(val) => {
+                    setSelectedDivision(val === "all" ? "" : val);
+                    setSelectedProgram("");
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-full text-sm">
+                    <SelectValue placeholder="All Divisions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Divisions</SelectItem>
+                    {divisions.map((division) => (
+                      <SelectItem key={division._id} value={division._id}>
+                        {division.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Program — grows to fill remaining space */}
-            <div className="w-full lg:flex-1 min-w-0">
-              <MultiSelect
-                value={selectedProgram}
-                onValueChange={setSelectedProgram}
-                options={formatOptions(availablePrograms)}
-                placeholder="All Programs"
-                multiSelect={false}
-                noBadge={true}
-                className="h-10 min-h-10 w-full text-sm"
-              />
-            </div>
-
-            {/* Categories & Status - side by side on mobile, adjusted width on desktop */}
-            <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-2 shrink-0">
+              {/* Category */}
               <div className="w-full lg:w-32 xl:w-36">
                 <Select
                   value={selectedCategory || "all"}
@@ -850,22 +860,19 @@ const ResultComponent = ({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              <div className="w-full lg:w-28 xl:w-32">
-                <Select
-                  value={selectedStatus}
-                  onValueChange={setSelectedStatus}
-                >
-                  <SelectTrigger className="h-10 w-full text-sm">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="declared">Declared</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Program — grows to fill remaining space */}
+            <div className="w-full lg:flex-1 min-w-0">
+              <MultiSelect
+                value={selectedProgram}
+                onValueChange={setSelectedProgram}
+                options={formatOptions(availablePrograms)}
+                placeholder="All Programs"
+                multiSelect={false}
+                noBadge={true}
+                className="h-10 min-h-10 w-full text-sm"
+              />
             </div>
 
             {/* Sort + Clear + Print */}
