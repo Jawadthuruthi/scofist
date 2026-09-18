@@ -563,6 +563,78 @@ const PosterCustomizer = ({
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!selectedElement || isPreview) return;
+      
+      // Ignore if typing in an input
+      if (
+        e.target.tagName === "INPUT" ||
+        e.target.tagName === "TEXTAREA" ||
+        e.target.isContentEditable
+      ) {
+        return;
+      }
+
+      let dx = 0;
+      let dy = 0;
+      const step = e.shiftKey ? 5 : 0.5;
+
+      if (e.key === "ArrowUp") dy = -step;
+      else if (e.key === "ArrowDown") dy = step;
+      else if (e.key === "ArrowLeft") dx = -step;
+      else if (e.key === "ArrowRight") dx = step;
+
+      if (dx !== 0 || dy !== 0) {
+        e.preventDefault();
+
+        const currentPoster = isFullPage && currentSettings?.resultPosters
+          ? currentSettings.resultPosters[selectedPosterIndex]
+          : poster;
+
+        const currentLayout = currentPoster?.layout?.[selectedElement];
+        if (!currentLayout) return;
+
+        const newX = Math.max(0, Math.min(100, currentLayout.x + dx));
+        const newY = Math.max(0, Math.min(100, currentLayout.y + dy));
+
+        if (isFullPage) {
+          setCurrentSettings((prev) => ({
+            ...prev,
+            resultPosters: prev.resultPosters.map((p, index) =>
+              index === selectedPosterIndex
+                ? {
+                    ...p,
+                    layout: {
+                      ...p.layout,
+                      [selectedElement]: {
+                        ...p.layout[selectedElement],
+                        x: newX,
+                        y: newY,
+                      },
+                    },
+                  }
+                : p
+            ),
+          }));
+        } else {
+          onLayoutChange?.(selectedElement, { x: newX, y: newY });
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    selectedElement,
+    isPreview,
+    isFullPage,
+    currentSettings,
+    selectedPosterIndex,
+    poster,
+    onLayoutChange,
+  ]);
+
   const handleFullPageSave = async () => {
     if (!isFullPage) {
       onSave?.();
