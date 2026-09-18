@@ -19,7 +19,7 @@ export async function GET(request) {
 
     // 1. Fetch all teams purely to bootstrap our initial 0-point mapping
     const activeYear = await getYear(request);
-    const teams = await Team.find({ year: activeYear }).lean();
+    const teams = await Team.find({ year: activeYear }).sort({ name: 1 }).lean();
     const activeTeamsArray = teams.map(t => t.name);
 
     // Initial state mapping dictionary

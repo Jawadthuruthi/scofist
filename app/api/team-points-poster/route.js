@@ -66,8 +66,7 @@ export async function GET(request) {
       });
     }
 
-    // ── DASHBOARD REQUEST ── always recalculate live from declared results
-    const teams = await Team.find({ year: activeYear }).lean();
+    const teams = await Team.find({ year: activeYear }).sort({ name: 1 }).lean();
     const teamMap = {};
     teams.forEach((team) => {
       teamMap[team._id.toString()] = {
@@ -118,9 +117,7 @@ export async function GET(request) {
       });
     });
 
-    const teamPointsArray = Object.values(teamMap).sort(
-      (a, b) => b.points - a.points
-    );
+    const teamPointsArray = teams.map(team => teamMap[team._id.toString()]);
 
     const teamColors = {};
     teams.forEach((t) => {

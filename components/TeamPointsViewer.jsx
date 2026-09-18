@@ -203,7 +203,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
   if (typeof document === 'undefined') return null;
 
   const maxPoints = teams.length > 0 ? Math.max(...teams.map(t => t.points), 1) : 1;
-  const highestPoints = teams.length > 0 ? teams[0].points : 0;
+  const highestPoints = teams.length > 0 ? Math.max(...teams.map(t => t.points)) : 0;
 
   return createPortal(
     <div className={`fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 overflow-hidden flex flex-col font-sans transition-colors duration-500 ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black'}`}>

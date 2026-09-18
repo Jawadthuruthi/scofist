@@ -81,6 +81,7 @@ export async function GET(req) {
     const total = await Team.countDocuments(query);
     const teams = await Team.find(query, projections)
       .populate("leaderId", "name")
+      .sort({ name: 1 })
       .skip(page * limit)
       .limit(limit)
       .lean();

@@ -18,7 +18,7 @@ export async function POST(req) {
     console.log("[team-points-publish] Publishing snapshot for year:", activeYear);
 
     // 1. Fetch all teams for this year
-    const teams = await Team.find({ year: activeYear }).lean();
+    const teams = await Team.find({ year: activeYear }).sort({ name: 1 }).lean();
     const teamMap = {};
     teams.forEach((team) => {
       teamMap[team._id.toString()] = {
@@ -69,9 +69,7 @@ export async function POST(req) {
       });
     });
 
-    const teamsArray = Object.values(teamMap).sort(
-      (a, b) => b.points - a.points
-    );
+    const teamsArray = teams.map(team => teamMap[team._id.toString()]);
 
     const newSnapshot = {
       year: activeYear,

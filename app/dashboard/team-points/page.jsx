@@ -83,7 +83,6 @@ export default async function TeamPointsPage() {
           filterConfig={filterConfig}
           limit={100}
           readOnly={true}
-          apiFilters={{ sortByPoints: "true" }}
         />
         <PublishTeamPointsButton activeRole={activeRole} activeYear={activeYear} />
       </>
