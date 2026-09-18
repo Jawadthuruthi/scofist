@@ -80,21 +80,26 @@ export async function POST(req) {
       teams: teamsArray,
     };
 
-    // 6. Use raw MongoDB driver to save snapshot — bypasses Mongoose model
-    //    caching / schema issues entirely.
-    const db = mongoose.connection.db;
-    const settingsCol = db.collection("settings");
-
-    // Remove existing snapshot for this year, then push the new one
-    await settingsCol.updateOne(
-      {},
-      { $pull: { teamPointsSnapshot: { year: activeYear } } }
-    );
-    await settingsCol.updateOne(
-      {},
-      { $push: { teamPointsSnapshot: newSnapshot } },
-      { upsert: true }
-    );
+    // 6. Save snapshot deterministically using Mongoose
+    const settingsDoc = await mongoose.models.Settings.findOne({});
+    if (settingsDoc) {
+      // Initialize if missing
+      if (!settingsDoc.teamPointsSnapshot) {
+        settingsDoc.teamPointsSnapshot = [];
+      }
+      
+      // Filter out old snapshot for this year
+      settingsDoc.teamPointsSnapshot = settingsDoc.teamPointsSnapshot.filter(
+        (s) => s.year !== activeYear
+      );
+      
+      // Add new snapshot
+      settingsDoc.teamPointsSnapshot.push(newSnapshot);
+      await settingsDoc.save();
+    } else {
+      // Create new settings doc if none exists
+      await mongoose.models.Settings.create({ teamPointsSnapshot: [newSnapshot] });
+    }
 
     console.log(
       `[team-points-publish] Snapshot saved: ${totalResults} results, ${teamsArray.length} teams`

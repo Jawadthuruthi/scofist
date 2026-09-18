@@ -67,15 +67,13 @@ export default async function TeamPointsPage() {
       0
     );
 
-    const maxResultNumber = results?.length > 0 
-      ? Math.max(...results.map(r => r.resultNumber || 0)) 
-      : 0;
+    const totalDeclaredResults = results?.length || 0;
 
     return (
       <>
         <Header
           title="TEAM POINTS"
-          subTitle={`Team result after ${maxResultNumber} results. (Note: You must click Publish below to update the public page)`}
+          subTitle={`Team result after ${totalDeclaredResults} results. (Note: You must click Publish below to update the public page)`}
         />
         <DynamicDataTable
           resource="teams"

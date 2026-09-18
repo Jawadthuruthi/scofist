@@ -465,28 +465,7 @@ function TeamPointsContent() {
           className="pointer-events-none absolute -right-40 top-40 h-[30rem] w-[30rem] rounded-full bg-[#df6b43]/[0.06] blur-[120px]"
         />
 
-        {authParticipant ? (
-          <div className="p-4 pt-8 md:p-8 max-w-5xl mx-auto min-h-screen">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-white">My Participant Card</h2>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-white/10 text-white border border-white/20 hover:bg-white/20 rounded-xl font-semibold shadow-sm transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-            <div className="w-full max-w-2xl mx-auto flex justify-center">
-              <ParticipantCard
-                participant={authParticipant}
-                festivalSettings={settings?.festival}
-                viewMode="both"
-                layout="row"
-                baseUrl={typeof window !== "undefined" ? window.location.origin : ""}
-              />
-            </div>
-          </div>
-        ) : (
+
           <section className="relative mx-auto max-w-7xl px-6 pt-10 pb-12 sm:px-8 md:px-12 sm:pt-7 md:pt-17 sm:pb-16">
             {/* Header / Hero Title */}
             <header className="max-w-4xl">
@@ -758,7 +737,7 @@ function TeamPointsContent() {
               </div>
             )}
           </section>
-        )}
+
       </main>
 
       {/* ── FOOTER ── */}
