@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import ConfirmationPopup from "@/components/ConfirmationPopup";
 
-export default function PublishTeamPointsButton({ activeRole }) {
+export default function PublishTeamPointsButton({ activeRole, activeYear }) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Only render for Program Committee
@@ -15,7 +15,8 @@ export default function PublishTeamPointsButton({ activeRole }) {
   const handlePublish = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/team-points-publish", {
+      const url = activeYear ? `/api/team-points-publish?year=${encodeURIComponent(activeYear)}` : "/api/team-points-publish";
+      const response = await fetch(url, {
         method: "POST",
       });
 

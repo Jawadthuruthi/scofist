@@ -625,6 +625,26 @@ const SettingsSchema = new Schema(
       type: String,
       default: "2025 november",
     },
+    // Snapshot of published team points per year.
+    // Written by the publish action; read by the public /team-points page.
+    teamPointsSnapshot: {
+      type: [
+        {
+          year: { type: String },
+          publishedAt: { type: Date },
+          totalResults: { type: Number, default: 0 },
+          teams: [
+            {
+              _id: { type: String },
+              name: { type: String },
+              points: { type: Number, default: 0 },
+              color: { type: String, default: "#808080" },
+            },
+          ],
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true }
 );
@@ -633,7 +653,7 @@ const SettingsSchema = new Schema(
 SettingsSchema.index({}, { unique: true });
 
 // Check if model exists but is missing the new fields (Hot Reload fix)
-if (models.Settings && (!models.Settings.schema.path("idCard.sealImage") || !models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog") || !models.Settings.schema.path("participantsCard.layout") || !models.Settings.schema.path("general.attendanceCategories"))) {
+if (models.Settings && (!models.Settings.schema.path("idCard.sealImage") || !models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog") || !models.Settings.schema.path("participantsCard.layout") || !models.Settings.schema.path("general.attendanceCategories") || !models.Settings.schema.path("teamPointsSnapshot"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }

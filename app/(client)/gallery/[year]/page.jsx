@@ -342,7 +342,6 @@ function GalleryContent({ initialYear }) {
   const searchParams = useSearchParams();
   const yearParam =
     (params?.year ? decodeURIComponent(params.year) : null) ||
-    initialYear ||
     searchParams.get("year") ||
     "2026";
 

@@ -4,6 +4,7 @@ import Result from "@/models/Result";
 import Team from "@/models/Team";
 import Participant from "@/models/Participant";
 import { getYear } from "@/lib/getYear";
+import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
@@ -11,61 +12,118 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const limitParam = searchParams.get("limit");
-    // Parse limit if provided
     const limit = limitParam ? parseInt(limitParam, 10) : null;
 
     await connectToDB();
 
-    // 1. Fetch all teams for the active year to initialize points
     const activeYear = await getYear(request);
+    const apiKey = request.headers.get("api-key");
+    const isDashboard = !!apiKey;
+
+    // ── PUBLIC REQUEST ── serve from the stored snapshot
+    if (!isDashboard) {
+      // Use raw MongoDB driver to read snapshot — avoids Mongoose schema cache issues
+      const db = mongoose.connection.db;
+      const settingsDoc = await db
+        .collection("settings")
+        .findOne({}, { projection: { teamPointsSnapshot: 1 } });
+
+      const snapshot = (settingsDoc?.teamPointsSnapshot || []).find(
+        (s) => s.year === activeYear
+      );
+
+      if (!snapshot) {
+        return NextResponse.json({
+          success: true,
+          teams: [],
+          teamColors: {},
+          totalResultsAvailable: 0,
+          appliedLimit: 0,
+          published: false,
+        });
+      }
+
+      let teams = snapshot.teams || [];
+      const totalResultsAvailable = snapshot.totalResults || 0;
+
+      if (limit !== null && !isNaN(limit) && limit >= 0) {
+        teams = teams.slice(0, limit);
+      }
+
+      const teamColors = {};
+      teams.forEach((t) => {
+        teamColors[t.name] = t.color || "#808080";
+      });
+
+      return NextResponse.json({
+        success: true,
+        teams,
+        teamColors,
+        totalResultsAvailable,
+        appliedLimit: limit !== null ? limit : totalResultsAvailable,
+        publishedAt: snapshot.publishedAt,
+        published: true,
+      });
+    }
+
+    // ── DASHBOARD REQUEST ── always recalculate live from declared results
     const teams = await Team.find({ year: activeYear }).lean();
     const teamMap = {};
-    teams.forEach(team => {
+    teams.forEach((team) => {
       teamMap[team._id.toString()] = {
         _id: team._id.toString(),
         name: team.name,
         points: 0,
-        color: team.color || "#808080"
+        color: team.color || "#808080",
       };
     });
 
-    // 2. Fetch declared results chronologically
-    const apiKey = request.headers.get("api-key");
-    const isDashboard = !!apiKey;
-    const queryCondition = isDashboard ? { isResultDeclared: true, year: activeYear } : { isTeamPointsPublished: true, year: activeYear };
-    const resultsQuery = Result.find(queryCondition)
-      .populate("participants.id")
-      .sort({ updatedAt: 1 }); // Sorted oldest to newest
-
-    let declaredResults = await resultsQuery.lean();
+    const declaredResults = await Result.find({
+      isResultDeclared: true,
+      year: activeYear,
+    }).lean();
 
     const totalResultsAvailable = declaredResults.length;
 
-    // 3. Apply chronological limit if specified ("After X Results")
+    const participantIds = new Set();
+    declaredResults.forEach((res) => {
+      (res.participants || []).forEach((p) => {
+        if (p.id) participantIds.add(p.id.toString());
+      });
+    });
+
+    const participantDocs = await Participant.find({
+      _id: { $in: Array.from(participantIds) },
+    })
+      .select("_id teamId")
+      .lean();
+
+    const participantTeamMap = {};
+    participantDocs.forEach((p) => {
+      participantTeamMap[p._id.toString()] = p.teamId?.toString();
+    });
+
+    let filteredResults = declaredResults;
     if (limit !== null && !isNaN(limit) && limit >= 0) {
-      declaredResults = declaredResults.slice(0, limit);
+      filteredResults = filteredResults.slice(0, limit);
     }
 
-    // 4. Calculate total points across the filtered results
-    declaredResults.forEach(res => {
-      if (!res.participants) return;
-      res.participants.forEach(p => {
-        // Validation check for ID and points presence
-        if (!p.id || !p.id.teamId || !p.points) return;
-        
-        const teamIdStr = p.id.teamId.toString();
-        
-        if (teamMap[teamIdStr]) {
-          teamMap[teamIdStr].points += p.points;
+    filteredResults.forEach((res) => {
+      (res.participants || []).forEach((p) => {
+        if (!p.id || !p.points) return;
+        const teamId = participantTeamMap[p.id.toString()];
+        if (teamId && teamMap[teamId]) {
+          teamMap[teamId].points += p.points;
         }
       });
     });
 
-    // 5. Build final array mapped by points
-    const teamPointsArray = Object.values(teamMap).sort((a, b) => b.points - a.points);
+    const teamPointsArray = Object.values(teamMap).sort(
+      (a, b) => b.points - a.points
+    );
 
     const teamColors = {};
-    teams.forEach(t => {
+    teams.forEach((t) => {
       teamColors[t.name] = t.color || "#808080";
     });
 
@@ -74,9 +132,8 @@ export async function GET(request) {
       teams: teamPointsArray,
       teamColors,
       totalResultsAvailable,
-      appliedLimit: limit !== null ? limit : totalResultsAvailable
+      appliedLimit: limit !== null ? limit : totalResultsAvailable,
     });
-
   } catch (error) {
     console.error("Error fetching team points poster:", error);
     return NextResponse.json(

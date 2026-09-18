@@ -444,7 +444,6 @@ function ScheduleContent({ initialYear }) {
   const searchParams = useSearchParams();
   const yearParam =
     (params?.year ? decodeURIComponent(params.year) : null) ||
-    initialYear ||
     searchParams.get("year") ||
     "2026";
 
@@ -810,13 +809,13 @@ function ScheduleContent({ initialYear }) {
 
                     <div className="pl-3">
                       {/* Top row: Stage & Status */}
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#d4af37]">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="flex-shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#d4af37]">
                             Stage {item.stageNumber || 1}
                           </span>
                           {item.divisionName && (
-                            <span className="text-[11px] text-white/50 font-medium">
+                            <span className="text-[11px] text-white/50 font-medium truncate">
                               {item.divisionName}
                             </span>
                           )}
@@ -824,7 +823,7 @@ function ScheduleContent({ initialYear }) {
 
                         {/* Status Badge */}
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                          className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
                             isOngoing
                               ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 animate-pulse"
                               : isUpcoming
@@ -832,7 +831,7 @@ function ScheduleContent({ initialYear }) {
                               : "bg-white/5 border-white/10 text-white/40"
                           }`}
                         >
-                          {isOngoing && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                          {isOngoing && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />}
                           {item.status || "Scheduled"}
                         </span>
                       </div>

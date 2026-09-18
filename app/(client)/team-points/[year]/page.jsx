@@ -320,7 +320,6 @@ function TeamPointsContent() {
   const searchParams = useSearchParams();
   const yearParam =
     (params?.year ? decodeURIComponent(params.year) : null) ||
-    initialYear ||
     searchParams.get("year") ||
     "2026";
 
@@ -335,8 +334,8 @@ function TeamPointsContent() {
     setError("");
 
     Promise.all([
-      fetchJSON(`/api/settings?${yearQuery}`).catch(() => ({ settings: null })),
-      fetchJSON(`/api/team-points-poster?${yearQuery}`).catch(() => ({
+      fetchJSON(`/api/settings?${yearQuery}&t=${Date.now()}`).catch(() => ({ settings: null })),
+      fetchJSON(`/api/team-points-poster?${yearQuery}&t=${Date.now()}`).catch(() => ({
         success: false,
         teams: [],
       })),

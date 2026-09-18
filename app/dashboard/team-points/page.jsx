@@ -75,7 +75,7 @@ export default async function TeamPointsPage() {
       <>
         <Header
           title="TEAM POINTS"
-          subTitle={`Team result after ${maxResultNumber} results.`}
+          subTitle={`Team result after ${maxResultNumber} results. (Note: You must click Publish below to update the public page)`}
         />
         <DynamicDataTable
           resource="teams"
@@ -87,7 +87,7 @@ export default async function TeamPointsPage() {
           readOnly={true}
           apiFilters={{ sortByPoints: "true" }}
         />
-        <PublishTeamPointsButton activeRole={activeRole} />
+        <PublishTeamPointsButton activeRole={activeRole} activeYear={activeYear} />
       </>
     );
   } catch (error) {
