@@ -87,6 +87,7 @@ export async function GET(request) {
           category: res.programId.category,
           type: res.programId.type,
           division: res.programId.divisionId?.name || "Unknown",
+          resultNumber: res.resultNumber,
           winners: [],
         });
       }
@@ -123,9 +124,9 @@ export async function GET(request) {
         (p) => p.winners.length > 0
     );
 
-    // Convert map to array and sort alphabetically by program name
+    // Convert map to array and sort by resultNumber descending
     const finalResult = activePrograms.sort((a, b) => 
-      a.name.localeCompare(b.name)
+      (b.resultNumber || 0) - (a.resultNumber || 0)
     );
 
     return NextResponse.json({ success: true, programs: finalResult });

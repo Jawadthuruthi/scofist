@@ -57,6 +57,52 @@ import {
 } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { formatOptions } from "@/lib/utils";
+import { useRef } from "react";
+
+const JudgeNameInput = ({ value, onChange, placeholder, savedNames, onRemove }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const inputRef = useRef(null);
+
+  return (
+    <div className="relative">
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={onChange}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        placeholder={placeholder}
+      />
+      {isOpen && savedNames.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border shadow-md rounded-md max-h-60 overflow-auto">
+          {savedNames.map((name) => (
+            <div
+              key={name}
+              className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-muted"
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent blur
+                onChange({ target: { value: name } });
+                setIsOpen(false);
+              }}
+            >
+              <span className="text-sm">{name}</span>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-destructive p-1 rounded-md"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onRemove(name, e);
+                }}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const JudgesManagement = ({
   programs = [],
@@ -72,6 +118,35 @@ const JudgesManagement = ({
   const [selectedProgram, setSelectedProgram] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savedJudgeNames, setSavedJudgeNames] = useState([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("savedJudgeNames");
+    if (saved) {
+      try {
+        setSavedJudgeNames(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, []);
+
+  const addSavedName = useCallback((name) => {
+    if (!name || !name.trim()) return;
+    setSavedJudgeNames((prev) => {
+      if (prev.includes(name.trim())) return prev;
+      const newSaved = [...prev, name.trim()];
+      localStorage.setItem("savedJudgeNames", JSON.stringify(newSaved));
+      return newSaved;
+    });
+  }, []);
+
+  const removeSavedName = useCallback((nameToRemove, e) => {
+    if (e) e.stopPropagation();
+    setSavedJudgeNames((prev) => {
+      const newSaved = prev.filter((n) => n !== nameToRemove);
+      localStorage.setItem("savedJudgeNames", JSON.stringify(newSaved));
+      return newSaved;
+    });
+  }, []);
 
   // Row selection state
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -173,6 +248,7 @@ const JudgesManagement = ({
       });
       const data = await res.json();
       if (data.success) {
+        addSavedName(newJudgeName);
         toast.success("Judge assigned successfully!");
         setAddDialogOpen(false);
         setNewJudgeId("");
@@ -264,6 +340,7 @@ const JudgesManagement = ({
       });
       const data = await res.json();
       if (data.success) {
+        addSavedName(editJudgeName);
         toast.success("Judge assignment updated!");
         setEditDialogOpen(false);
         setEditingAssignment(null);
@@ -586,10 +663,12 @@ const JudgesManagement = ({
 
             <div className="space-y-2">
               <Label>Judge Name (Optional)</Label>
-              <Input
+              <JudgeNameInput
                 value={editJudgeName}
                 onChange={(e) => setEditJudgeName(e.target.value)}
                 placeholder="Enter custom judge name..."
+                savedNames={savedJudgeNames}
+                onRemove={removeSavedName}
               />
               <p className="text-xs text-muted-foreground">
                 Leave blank to use the user&apos;s default name.
@@ -749,10 +828,12 @@ const JudgesManagement = ({
 
             <div className="space-y-2">
               <Label>Judge Name (Optional)</Label>
-              <Input
+              <JudgeNameInput
                 value={newJudgeName}
                 onChange={(e) => setNewJudgeName(e.target.value)}
                 placeholder="Enter custom judge name..."
+                savedNames={savedJudgeNames}
+                onRemove={removeSavedName}
               />
               <p className="text-xs text-muted-foreground">
                 Leave blank to use the user's default name.

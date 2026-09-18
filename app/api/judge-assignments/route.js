@@ -22,7 +22,7 @@ export async function GET(request) {
     if (year) query.year = year;
 
     const rawAssignments = await JudgeAssignment.find(query)
-      .sort({ judgeNumber: 1 })
+      .sort({ createdAt: -1 })
       .populate("programId", "name rules topics criteria")
       .populate("divisionId", "name");
 

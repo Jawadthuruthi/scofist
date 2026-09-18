@@ -211,7 +211,7 @@ export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKe
                       <span>{programs[currentIndex].type}</span>
                    </div>
                    <h1 className={`text-4xl md:text-6xl lg:text-[4.5rem] leading-[1] font-black uppercase tracking-tight drop-shadow-lg break-words whitespace-normal text-balance w-full max-w-[95vw] mx-auto px-4 ${isWhiteTheme ? 'text-black' : 'text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400'}`}>
-                      {programs[currentIndex].name}
+                      {programs[currentIndex].resultNumber ? `${programs[currentIndex].resultNumber}- ` : ""}{programs[currentIndex].name}
                    </h1>
                    <h2 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-yellow-200 to-yellow-600 uppercase tracking-widest mt-1 md:mt-2">
                       WINNERS
