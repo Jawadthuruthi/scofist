@@ -2105,9 +2105,9 @@ const PosterCustomizer = ({
                           >
                             {currentPoster?.backgroundImage?.url && (
                               <img
+                                key={currentPoster.backgroundImage.url}
                                 src={currentPoster.backgroundImage.url}
                                 alt="Poster Background"
-                                crossOrigin="anonymous"
                                 className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                                 style={{ zIndex: 0 }}
                               />
