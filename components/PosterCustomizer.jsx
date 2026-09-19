@@ -46,7 +46,7 @@ import {
 import ColorInput from "@/components/ColorInput";
 // ImageUploader replaced with inline compact background uploader
 import { toast } from "sonner";
-import { domToPng } from "modern-screenshot";
+import html2canvas from "html2canvas";
 
 // Calculate responsive font
 const calculateResponsiveFont = (
@@ -870,7 +870,7 @@ const PosterCustomizer = ({
           width: "max-content",
           maxWidth:
             config.textAlign === "center"
-              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              ? `${Math.min(config.x, 100 - config.x) * 2}%`
               : config.textAlign === "right"
                 ? `${config.x}%`
                 : `${100 - config.x}%`,
@@ -946,7 +946,7 @@ const PosterCustomizer = ({
           width: "max-content",
           maxWidth:
             config.textAlign === "center"
-              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              ? `${Math.min(config.x, 100 - config.x) * 2}%`
               : config.textAlign === "right"
                 ? `${config.x}%`
                 : `${100 - config.x}%`,
@@ -1022,7 +1022,7 @@ const PosterCustomizer = ({
           width: "max-content",
           maxWidth:
             config.textAlign === "center"
-              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              ? `${Math.min(config.x, 100 - config.x) * 2}%`
               : config.textAlign === "right"
                 ? `${config.x}%`
                 : `${100 - config.x}%`,
@@ -1096,7 +1096,7 @@ const PosterCustomizer = ({
           width: "max-content",
           maxWidth:
             config.textAlign === "center"
-              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              ? `${Math.min(config.x, 100 - config.x) * 2}%`
               : config.textAlign === "right"
                 ? `${config.x}%`
                 : `${100 - config.x}%`,
@@ -1152,7 +1152,7 @@ const PosterCustomizer = ({
           width: "max-content",
           maxWidth:
             config.textAlign === "center"
-              ? `calc(min(${config.x}%, 100% - ${config.x}%) * 2)`
+              ? `${Math.min(config.x, 100 - config.x) * 2}%`
               : config.textAlign === "right"
                 ? `${config.x}%`
                 : `${100 - config.x}%`,
@@ -1238,14 +1238,14 @@ const PosterCustomizer = ({
       const targetWidth = 1080;
       const scale = targetWidth / element.offsetWidth;
 
-      const dataUrl = await domToPng(element, {
-        quality: 1,
+      const canvas = await html2canvas(element, {
         scale: scale,
         backgroundColor: "#ffffff",
-        style: {
-          fontFamily: "'Montserrat', Arial, sans-serif",
-        },
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
+      const dataUrl = canvas.toDataURL("image/png", 1.0);
 
       const response = await fetch(dataUrl);
       const blob = await response.blob();
