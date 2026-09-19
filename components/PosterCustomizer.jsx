@@ -436,15 +436,15 @@ const PosterCustomizer = ({
       resultPosters: prev.resultPosters.map((p, index) =>
         index === selectedPosterIndex
           ? {
-              ...p,
-              layout: {
-                ...p.layout,
-                [elementKey]: {
-                  ...p.layout[elementKey],
-                  ...updates,
-                },
+            ...p,
+            layout: {
+              ...p.layout,
+              [elementKey]: {
+                ...p.layout[elementKey],
+                ...updates,
               },
-            }
+            },
+          }
           : p
       ),
     }));
@@ -566,7 +566,7 @@ const PosterCustomizer = ({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!selectedElement || isPreview) return;
-      
+
       // Ignore if typing in an input
       if (
         e.target.tagName === "INPUT" ||
@@ -604,16 +604,16 @@ const PosterCustomizer = ({
             resultPosters: prev.resultPosters.map((p, index) =>
               index === selectedPosterIndex
                 ? {
-                    ...p,
-                    layout: {
-                      ...p.layout,
-                      [selectedElement]: {
-                        ...p.layout[selectedElement],
-                        x: newX,
-                        y: newY,
-                      },
+                  ...p,
+                  layout: {
+                    ...p.layout,
+                    [selectedElement]: {
+                      ...p.layout[selectedElement],
+                      x: newX,
+                      y: newY,
                     },
-                  }
+                  },
+                }
                 : p
             ),
           }));
@@ -846,9 +846,8 @@ const PosterCustomizer = ({
     return (
       <div
         key={`${key}-${selectedPosterIndex}-${config.fontSize}`}
-        className={`absolute pointer-events-auto select-none transition-all duration-200 ${
-          isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
-        } ${selectedElement === key && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
+        className={`absolute pointer-events-auto select-none transition-all duration-200 ${isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
+          } ${selectedElement === key && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
         style={{
           left: `${config.x}%`,
           top: `${config.y}%`,
@@ -923,9 +922,8 @@ const PosterCustomizer = ({
     return (
       <div
         key={`programInfo-${selectedPosterIndex}-${config.fontSize}`}
-        className={`absolute pointer-events-auto select-none transition-all duration-200 ${
-          isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
-        } ${selectedElement === "programInfo" && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
+        className={`absolute pointer-events-auto select-none transition-all duration-200 ${isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
+          } ${selectedElement === "programInfo" && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
         style={{
           left: `${config.x}%`,
           top: `${config.y}%`,
@@ -1000,9 +998,8 @@ const PosterCustomizer = ({
     return (
       <div
         key={`divisionInfo-${selectedPosterIndex}-${config.fontSize}`}
-        className={`absolute pointer-events-auto select-none transition-all duration-200 ${
-          isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
-        } ${selectedElement === "divisionInfo" && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
+        className={`absolute pointer-events-auto select-none transition-all duration-200 ${isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
+          } ${selectedElement === "divisionInfo" && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
         style={{
           left: `${config.x}%`,
           top: `${config.y}%`,
@@ -1052,7 +1049,7 @@ const PosterCustomizer = ({
 
     const fallback = "01";
     let text = (config.text ?? "").trim() || fallback;
-    
+
     if (previewResultData?.resultNumber) {
       text = previewResultData.resultNumber;
     }
@@ -1075,9 +1072,8 @@ const PosterCustomizer = ({
     return (
       <div
         key={`resultNumber-${selectedPosterIndex}-${config.fontSize}`}
-        className={`absolute pointer-events-auto select-none transition-all duration-200 ${
-          isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
-        } ${selectedElement === "resultNumber" && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
+        className={`absolute pointer-events-auto select-none transition-all duration-200 ${isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
+          } ${selectedElement === "resultNumber" && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
         style={{
           left: `${config.x}%`,
           top: `${config.y}%`,
@@ -1142,9 +1138,8 @@ const PosterCustomizer = ({
     return (
       <div
         key={`${elementKey}-${selectedPosterIndex}-${config.fontSize}`}
-        className={`absolute pointer-events-auto select-none transition-all duration-200 ${
-          isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
-        } ${selectedElement === elementKey && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
+        className={`absolute pointer-events-auto select-none transition-all duration-200 ${isDraggable && !isPreview ? "cursor-move hover:scale-105" : ""
+          } ${selectedElement === elementKey && !isPreview ? "ring-2 ring-primary ring-offset-2" : ""}`}
         style={{
           left: `${config.x}%`,
           top: `${config.y}%`,
@@ -1230,19 +1225,19 @@ const PosterCustomizer = ({
     }
 
     setIsLoading(true);
-    
+
     // Clear selected element so the outline box is removed in the downloaded image
     const prevSelected = selectedElement;
     setSelectedElement(null);
-    
-    // Wait for state to reflect in DOM
-    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Wait for state to reflect in DOM and transitions (duration-200) to finish
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     try {
       const element = posterRef.current;
       const targetWidth = 1080;
       const scale = targetWidth / element.offsetWidth;
-      
+
       const dataUrl = await domToPng(element, {
         quality: 1,
         scale: scale,
@@ -1308,287 +1303,287 @@ const PosterCustomizer = ({
 
             {selectedElement
               ? (() => {
-                  const config = currentPoster.layout?.[selectedElement];
-                  if (!config) return null;
+                const config = currentPoster.layout?.[selectedElement];
+                if (!config) return null;
 
-                  return (
-                    <Card
-                      key={selectedElement}
-                    >
-                      <CardHeader className="pb-1">
+                return (
+                  <Card
+                    key={selectedElement}
+                  >
+                    <CardHeader className="pb-1">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                          <Settings className="h-5 w-5" />
+                          Element Settings
+                        </CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3 p-3 pt-2 sm:p-4 sm:pt-2 md:p-6 md:pt-2">
+                      {!isPreview && (
+                        <div>
+                          <Label className="text-sm sm:text-base">Select Element</Label>
+                          <Select
+                            value={selectedElement || "programInfo"}
+                            onValueChange={(value) => {
+                              if (value === "addNew") {
+                                setIsAddingElement(true);
+                              } else {
+                                setSelectedElement(value);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-full mt-1">
+                              <SelectValue placeholder="Choose element to edit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="addNew" className="font-semibold text-primary">
+                                + Add New Element
+                              </SelectItem>
+                              <SelectItem value="programInfo">Program Name</SelectItem>
+                              <SelectItem value="divisionInfo">Division Name</SelectItem>
+                              <SelectItem value="resultNumber">Result Number</SelectItem>
+                              <SelectItem value="firstPlace">First Place</SelectItem>
+                              <SelectItem value="secondPlace">Second Place</SelectItem>
+                              <SelectItem value="thirdPlace">Third Place</SelectItem>
+                              {Object.entries(currentPoster?.layout || {})
+                                .filter(([key]) => key.startsWith("custom_"))
+                                .map(([key, config]) => (
+                                  <SelectItem key={key} value={key}>
+                                    {config.label || "Custom Element"}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {/* Program Name + Shadow — same layout as X/Y position */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Col 1: element name label left, its toggle right */}
                         <div className="flex items-center justify-between">
-                          <CardTitle className="flex items-center gap-2">
-                            <Settings className="h-5 w-5" />
-                            Element Settings
-                          </CardTitle>
+                          <Label className="text-sm sm:text-base">
+                            {config.label ||
+                              (selectedElement === "programInfo"
+                                ? "Program Name"
+                                : selectedElement === "divisionInfo"
+                                  ? "Division Name"
+                                  : selectedElement === "resultNumber"
+                                    ? "Result Number"
+                                    : selectedElement === "firstPlace"
+                                      ? "First Place"
+                                      : selectedElement === "secondPlace"
+                                        ? "Second Place"
+                                        : "Third Place")}
+                          </Label>
+                          <Switch
+                            checked={config.visible}
+                            onCheckedChange={(visible) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, { visible });
+                              } else {
+                                onLayoutChange?.(selectedElement, { visible });
+                              }
+                            }}
+                          />
                         </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3 p-3 pt-2 sm:p-4 sm:pt-2 md:p-6 md:pt-2">
-                        {!isPreview && (
-                          <div>
-                            <Label className="text-sm sm:text-base">Select Element</Label>
-                            <Select
-                              value={selectedElement || "programInfo"}
-                              onValueChange={(value) => {
-                                if (value === "addNew") {
-                                  setIsAddingElement(true);
-                                } else {
-                                  setSelectedElement(value);
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="w-full mt-1">
-                                <SelectValue placeholder="Choose element to edit" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="addNew" className="font-semibold text-primary">
-                                  + Add New Element
-                                </SelectItem>
-                                <SelectItem value="programInfo">Program Name</SelectItem>
-                                <SelectItem value="divisionInfo">Division Name</SelectItem>
-                                <SelectItem value="resultNumber">Result Number</SelectItem>
-                                <SelectItem value="firstPlace">First Place</SelectItem>
-                                <SelectItem value="secondPlace">Second Place</SelectItem>
-                                <SelectItem value="thirdPlace">Third Place</SelectItem>
-                                {Object.entries(currentPoster?.layout || {})
-                                  .filter(([key]) => key.startsWith("custom_"))
-                                  .map(([key, config]) => (
-                                    <SelectItem key={key} value={key}>
-                                      {config.label || "Custom Element"}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                        {/* Program Name + Shadow — same layout as X/Y position */}
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* Col 1: element name label left, its toggle right */}
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm sm:text-base">
-                              {config.label ||
-                                (selectedElement === "programInfo"
-                                  ? "Program Name"
-                                  : selectedElement === "divisionInfo"
-                                    ? "Division Name"
-                                    : selectedElement === "resultNumber"
-                                      ? "Result Number"
-                                      : selectedElement === "firstPlace"
-                                        ? "First Place"
-                                        : selectedElement === "secondPlace"
-                                          ? "Second Place"
-                                          : "Third Place")}
-                            </Label>
-                            <Switch
-                              checked={config.visible}
-                              onCheckedChange={(visible) => {
-                                if (isFullPage) {
-                                  handleFullPageLayoutChange(selectedElement, { visible });
-                                } else {
-                                  onLayoutChange?.(selectedElement, { visible });
-                                }
-                              }}
-                            />
-                          </div>
-                          {/* Col 2: shadow label left, its toggle right */}
-                          <div className="flex items-center justify-between">
-                            <Label
-                              htmlFor={`${selectedElement}-text-shadow-header`}
-                              className="text-sm sm:text-base cursor-pointer"
-                            >
-                              Shadow
-                            </Label>
-                            <Switch
-                              id={`${selectedElement}-text-shadow-header`}
-                              checked={config.textShadow || false}
-                              onCheckedChange={(textShadow) => {
-                                if (isFullPage) {
-                                  handleFullPageLayoutChange(selectedElement, { textShadow });
-                                } else {
-                                  onLayoutChange?.(selectedElement, { textShadow });
-                                }
-                              }}
-                            />
-                          </div>
+                        {/* Col 2: shadow label left, its toggle right */}
+                        <div className="flex items-center justify-between">
+                          <Label
+                            htmlFor={`${selectedElement}-text-shadow-header`}
+                            className="text-sm sm:text-base cursor-pointer"
+                          >
+                            Shadow
+                          </Label>
+                          <Switch
+                            id={`${selectedElement}-text-shadow-header`}
+                            checked={config.textShadow || false}
+                            onCheckedChange={(textShadow) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, { textShadow });
+                              } else {
+                                onLayoutChange?.(selectedElement, { textShadow });
+                              }
+                            }}
+                          />
                         </div>
-                        {/* Hidden Warning */}
-                        {!config.visible && (
-                          <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
-                              <EyeOff className="h-4 w-4" />
-                              This element is currently hidden on the poster
-                            </p>
-                          </div>
-                        )}
+                      </div>
+                      {/* Hidden Warning */}
+                      {!config.visible && (
+                        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                          <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                            <EyeOff className="h-4 w-4" />
+                            This element is currently hidden on the poster
+                          </p>
+                        </div>
+                      )}
 
-                        {/* Position Controls */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label className="text-sm sm:text-base">
-                              X Position
-                            </Label>
-                            <Slider
-                              value={[config.x || 50]}
-                              onValueChange={([x]) => {
-                                if (isFullPage) {
-                                  handleFullPageLayoutChange(selectedElement, {
-                                    x,
-                                  });
-                                } else {
-                                  onLayoutChange?.(selectedElement, { x });
-                                }
-                              }}
-                              max={100}
-                              step={0.5}
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm sm:text-base">
-                              Y Position
-                            </Label>
-                            <Slider
-                              value={[config.y || 50]}
-                              onValueChange={([y]) => {
-                                if (isFullPage) {
-                                  handleFullPageLayoutChange(selectedElement, {
-                                    y,
-                                  });
-                                } else {
-                                  onLayoutChange?.(selectedElement, { y });
-                                }
-                              }}
-                              max={100}
-                              step={0.5}
-                              className="mt-1"
-                            />
-                          </div>
+                      {/* Position Controls */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm sm:text-base">
+                            X Position
+                          </Label>
+                          <Slider
+                            value={[config.x || 50]}
+                            onValueChange={([x]) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, {
+                                  x,
+                                });
+                              } else {
+                                onLayoutChange?.(selectedElement, { x });
+                              }
+                            }}
+                            max={100}
+                            step={0.5}
+                            className="mt-1"
+                          />
                         </div>
-
-                        {/* Font Controls */}
-                        {/* Size & Spacing */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label className="text-sm sm:text-base">
-                              Font Size
-                            </Label>
-                            <Slider
-                              value={[config.fontSize || 12]}
-                              onValueChange={([fontSize]) => {
-                                if (isFullPage) {
-                                  handleFullPageLayoutChange(selectedElement, {
-                                    fontSize,
-                                  });
-                                } else {
-                                  onLayoutChange?.(selectedElement, {
-                                    fontSize,
-                                  });
-                                }
-                              }}
-                              min={8}
-                              max={48}
-                              step={1}
-                              className="mt-1"
-                            />
-                            <span className="text-sm text-muted-foreground">
-                              {config.fontSize || 12}px
-                            </span>
-                          </div>
-                          <div>
-                            <Label className="text-sm sm:text-base">
-                              Letter Spacing
-                            </Label>
-                            <Slider
-                              value={[config.letterSpacing || 0]}
-                              onValueChange={([letterSpacing]) => {
-                                if (isFullPage) {
-                                  handleFullPageLayoutChange(
-                                    selectedElement,
-                                    { letterSpacing }
-                                  );
-                                } else {
-                                  onLayoutChange?.(selectedElement, {
-                                    letterSpacing,
-                                  });
-                                }
-                              }}
-                              min={-2}
-                              max={5}
-                              step={0.1}
-                              className="mt-1"
-                            />
-                            <span className="text-sm text-muted-foreground">
-                              {config.letterSpacing || 0}px
-                            </span>
-                          </div>
+                        <div>
+                          <Label className="text-sm sm:text-base">
+                            Y Position
+                          </Label>
+                          <Slider
+                            value={[config.y || 50]}
+                            onValueChange={([y]) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, {
+                                  y,
+                                });
+                              } else {
+                                onLayoutChange?.(selectedElement, { y });
+                              }
+                            }}
+                            max={100}
+                            step={0.5}
+                            className="mt-1"
+                          />
                         </div>
+                      </div>
 
-                        {/* Font Style */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label className="text-sm sm:text-base">
-                              Font Family
-                            </Label>
-                            <Select
-                              value={config.fontFamily || "inherit"}
-                              onValueChange={(fontFamily) => {
-                                if (isFullPage) {
-                                  handleFullPageLayoutChange(selectedElement, { fontFamily });
-                                } else {
-                                  onLayoutChange?.(selectedElement, { fontFamily });
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="h-8 text-sm mt-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="inherit">Default</SelectItem>
-                                <SelectItem value="Montserrat, sans-serif">Montserrat</SelectItem>
-                                <SelectItem value="var(--font-inter), sans-serif">Inter</SelectItem>
-                                <SelectItem value="var(--font-poppins), sans-serif">Poppins</SelectItem>
-                                <SelectItem value="var(--font-oswald), sans-serif">Oswald</SelectItem>
-                                <SelectItem value="var(--font-lato), sans-serif">Lato</SelectItem>
-                                <SelectItem value="var(--font-playfair), serif">Playfair Display</SelectItem>
-                                <SelectItem value="Arial, sans-serif">Arial</SelectItem>
-                                <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                                <SelectItem value="Times New Roman, serif">Times New Roman</SelectItem>
-                                <SelectItem value="Courier New, monospace">Courier New</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-sm sm:text-base">
-                              Font Weight
-                            </Label>
-                            <Select
-                              value={config.fontWeight || "normal"}
-                              onValueChange={(fontWeight) => {
-                                if (isFullPage) {
-                                  handleFullPageLayoutChange(selectedElement, {
-                                    fontWeight,
-                                  });
-                                } else {
-                                  onLayoutChange?.(selectedElement, {
-                                    fontWeight,
-                                  });
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="h-8 text-sm">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="normal">Normal</SelectItem>
-                                <SelectItem value="bold">Bold</SelectItem>
-                                <SelectItem value="600">Semi Bold</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                      {/* Font Controls */}
+                      {/* Size & Spacing */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm sm:text-base">
+                            Font Size
+                          </Label>
+                          <Slider
+                            value={[config.fontSize || 12]}
+                            onValueChange={([fontSize]) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, {
+                                  fontSize,
+                                });
+                              } else {
+                                onLayoutChange?.(selectedElement, {
+                                  fontSize,
+                                });
+                              }
+                            }}
+                            min={8}
+                            max={48}
+                            step={1}
+                            className="mt-1"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {config.fontSize || 12}px
+                          </span>
                         </div>
+                        <div>
+                          <Label className="text-sm sm:text-base">
+                            Letter Spacing
+                          </Label>
+                          <Slider
+                            value={[config.letterSpacing || 0]}
+                            onValueChange={([letterSpacing]) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(
+                                  selectedElement,
+                                  { letterSpacing }
+                                );
+                              } else {
+                                onLayoutChange?.(selectedElement, {
+                                  letterSpacing,
+                                });
+                              }
+                            }}
+                            min={-2}
+                            max={5}
+                            step={0.1}
+                            className="mt-1"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {config.letterSpacing || 0}px
+                          </span>
+                        </div>
+                      </div>
 
-                        {/* Color Controls */}
-                        <div className="w-full">
+                      {/* Font Style */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm sm:text-base">
+                            Font Family
+                          </Label>
+                          <Select
+                            value={config.fontFamily || "inherit"}
+                            onValueChange={(fontFamily) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, { fontFamily });
+                              } else {
+                                onLayoutChange?.(selectedElement, { fontFamily });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-sm mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="inherit">Default</SelectItem>
+                              <SelectItem value="Montserrat, sans-serif">Montserrat</SelectItem>
+                              <SelectItem value="var(--font-inter), sans-serif">Inter</SelectItem>
+                              <SelectItem value="var(--font-poppins), sans-serif">Poppins</SelectItem>
+                              <SelectItem value="var(--font-oswald), sans-serif">Oswald</SelectItem>
+                              <SelectItem value="var(--font-lato), sans-serif">Lato</SelectItem>
+                              <SelectItem value="var(--font-playfair), serif">Playfair Display</SelectItem>
+                              <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                              <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                              <SelectItem value="Times New Roman, serif">Times New Roman</SelectItem>
+                              <SelectItem value="Courier New, monospace">Courier New</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-sm sm:text-base">
+                            Font Weight
+                          </Label>
+                          <Select
+                            value={config.fontWeight || "normal"}
+                            onValueChange={(fontWeight) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, {
+                                  fontWeight,
+                                });
+                              } else {
+                                onLayoutChange?.(selectedElement, {
+                                  fontWeight,
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="normal">Normal</SelectItem>
+                              <SelectItem value="bold">Bold</SelectItem>
+                              <SelectItem value="600">Semi Bold</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Color Controls */}
+                      <div className="w-full">
                         <div className="w-full">
                           <ColorInput
                             layout="split"
@@ -1604,68 +1599,68 @@ const PosterCustomizer = ({
                             }}
                           />
                         </div>
+                      </div>
+
+                      {/* Alignment & Element-Specific Options */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm sm:text-base">
+                            Text Align
+                          </Label>
+                          <Select
+                            value={config.textAlign || "left"}
+                            onValueChange={(textAlign) => {
+                              if (isFullPage) {
+                                handleFullPageLayoutChange(selectedElement, {
+                                  textAlign,
+                                });
+                              } else {
+                                onLayoutChange?.(selectedElement, {
+                                  textAlign,
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="left">Left</SelectItem>
+                              <SelectItem value="center">Center</SelectItem>
+                              <SelectItem value="right">Right</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
 
-                        {/* Alignment & Element-Specific Options */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* Col 2: Prefix Text or Team Name Spacing */}
+                        {selectedElement === "resultNumber" && (
                           <div>
                             <Label className="text-sm sm:text-base">
-                              Text Align
+                              Prefix Text
                             </Label>
-                            <Select
-                              value={config.textAlign || "left"}
-                              onValueChange={(textAlign) => {
+                            <Input
+                              value={config.prefix || ""}
+                              onChange={(e) => {
                                 if (isFullPage) {
-                                  handleFullPageLayoutChange(selectedElement, {
-                                    textAlign,
-                                  });
+                                  handleFullPageLayoutChange(
+                                    selectedElement,
+                                    { prefix: e.target.value }
+                                  );
                                 } else {
                                   onLayoutChange?.(selectedElement, {
-                                    textAlign,
+                                    prefix: e.target.value,
                                   });
                                 }
                               }}
-                            >
-                              <SelectTrigger className="h-8 text-sm">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="left">Left</SelectItem>
-                                <SelectItem value="center">Center</SelectItem>
-                                <SelectItem value="right">Right</SelectItem>
-                              </SelectContent>
-                            </Select>
+                              placeholder="e.g., R-"
+                              className="mt-1 h-8 text-sm"
+                            />
                           </div>
+                        )}
 
-                          {/* Col 2: Prefix Text or Team Name Spacing */}
-                          {selectedElement === "resultNumber" && (
-                            <div>
-                              <Label className="text-sm sm:text-base">
-                                Prefix Text
-                              </Label>
-                              <Input
-                                value={config.prefix || ""}
-                                onChange={(e) => {
-                                  if (isFullPage) {
-                                    handleFullPageLayoutChange(
-                                      selectedElement,
-                                      { prefix: e.target.value }
-                                    );
-                                  } else {
-                                    onLayoutChange?.(selectedElement, {
-                                      prefix: e.target.value,
-                                    });
-                                  }
-                                }}
-                                placeholder="e.g., R-"
-                                className="mt-1 h-8 text-sm"
-                              />
-                            </div>
-                          )}
-
-                          {(selectedElement === "firstPlace" ||
-                            selectedElement === "secondPlace" ||
-                            selectedElement === "thirdPlace") && (
+                        {(selectedElement === "firstPlace" ||
+                          selectedElement === "secondPlace" ||
+                          selectedElement === "thirdPlace") && (
                             <div>
                               <Label className="text-sm sm:text-base">
                                 Team Name Spacing
@@ -1694,93 +1689,93 @@ const PosterCustomizer = ({
                               </span>
                             </div>
                           )}
-                        </div>
+                      </div>
 
 
-                        {/* Advanced Options — always visible */}
-                        <div className="space-y-3">
+                      {/* Advanced Options — always visible */}
+                      <div className="space-y-3">
 
 
-                            {/* Prefix Text moved to Alignment grid */}
+                        {/* Prefix Text moved to Alignment grid */}
 
-                            {/* Winner-specific options */}
-                            {(selectedElement === "firstPlace" ||
-                              selectedElement === "secondPlace" ||
-                              selectedElement === "thirdPlace") && (
-                              <div className="space-y-3">
+                        {/* Winner-specific options */}
+                        {(selectedElement === "firstPlace" ||
+                          selectedElement === "secondPlace" ||
+                          selectedElement === "thirdPlace") && (
+                            <div className="space-y-3">
 
-                                {/* Team Name Spacing moved to Alignment grid */}
+                              {/* Team Name Spacing moved to Alignment grid */}
 
-                                {/* Show Rank + Show Team */}
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div className="flex items-center space-x-2">
-                                    <Switch
-                                      id={`${selectedElement}-show-rank`}
-                                      checked={config.showRank || false}
-                                      onCheckedChange={(showRank) => {
-                                        if (isFullPage) {
-                                          handleFullPageLayoutChange(
-                                            selectedElement,
-                                            { showRank }
-                                          );
-                                        } else {
-                                          onLayoutChange?.(selectedElement, {
-                                            showRank,
-                                          });
-                                        }
-                                      }}
-                                    />
-                                    <Label
-                                      htmlFor={`${selectedElement}-show-rank`}
-                                      className="text-sm"
-                                    >
-                                      Show Rank Number
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <Switch
-                                      id={`${selectedElement}-show-team`}
-                                      checked={config.showTeamName !== false}
-                                      onCheckedChange={(showTeamName) => {
-                                        if (isFullPage) {
-                                          handleFullPageLayoutChange(
-                                            selectedElement,
-                                            { showTeamName }
-                                          );
-                                        } else {
-                                          onLayoutChange?.(selectedElement, {
-                                            showTeamName,
-                                          });
-                                        }
-                                      }}
-                                    />
-                                    <Label
-                                      htmlFor={`${selectedElement}-show-team`}
-                                      className="text-sm"
-                                    >
-                                      Show Team
-                                    </Label>
-                                  </div>
+                              {/* Show Rank + Show Team */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    id={`${selectedElement}-show-rank`}
+                                    checked={config.showRank || false}
+                                    onCheckedChange={(showRank) => {
+                                      if (isFullPage) {
+                                        handleFullPageLayoutChange(
+                                          selectedElement,
+                                          { showRank }
+                                        );
+                                      } else {
+                                        onLayoutChange?.(selectedElement, {
+                                          showRank,
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`${selectedElement}-show-rank`}
+                                    className="text-sm"
+                                  >
+                                    Show Rank Number
+                                  </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    id={`${selectedElement}-show-team`}
+                                    checked={config.showTeamName !== false}
+                                    onCheckedChange={(showTeamName) => {
+                                      if (isFullPage) {
+                                        handleFullPageLayoutChange(
+                                          selectedElement,
+                                          { showTeamName }
+                                        );
+                                      } else {
+                                        onLayoutChange?.(selectedElement, {
+                                          showTeamName,
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`${selectedElement}-show-team`}
+                                    className="text-sm"
+                                  >
+                                    Show Team
+                                  </Label>
                                 </div>
                               </div>
-                            )}
-                          </div>
-                        </CardContent>
-                    </Card>
-                  );
-                })()
-              : !isPreview && (
-                  <Card className="border-dashed border-2 border-border">
-                    <CardContent className="p-6 text-center text-muted-foreground">
-                      <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">
-                        {isMobile
-                          ? "Select an element above or tap elements in the preview"
-                          : "Click elements in the preview to customize"}
-                      </p>
+                            </div>
+                          )}
+                      </div>
                     </CardContent>
                   </Card>
-                )}
+                );
+              })()
+              : !isPreview && (
+                <Card className="border-dashed border-2 border-border">
+                  <CardContent className="p-6 text-center text-muted-foreground">
+                    <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">
+                      {isMobile
+                        ? "Select an element above or tap elements in the preview"
+                        : "Click elements in the preview to customize"}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
 
 
@@ -1920,8 +1915,8 @@ const PosterCustomizer = ({
                           {bgUploading
                             ? "Uploading..."
                             : currentPoster?.backgroundImage?.url
-                            ? "Change Background"
-                            : "Select Background"}
+                              ? "Change Background"
+                              : "Select Background"}
                         </Button>
                         {currentPoster?.backgroundImage?.url && (
                           <Button
@@ -2028,185 +2023,185 @@ const PosterCustomizer = ({
                   {/* Right Column: Canvas */}
                   <div className="w-full flex flex-col items-center">
 
-                {/* Add New Element Dialog */}
-                <AlertDialog open={isAddingElement} onOpenChange={setIsAddingElement}>
-                  <AlertDialogContent className="sm:max-w-md">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Add New Element</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Provide a name and default text for the new element.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="space-y-4 py-2">
-                      <div>
-                        <Label>Element Name</Label>
-                        <Input
-                          value={newElementName}
-                          onChange={(e) => setNewElementName(e.target.value)}
-                          placeholder="e.g. Subtitle"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Element Text</Label>
-                        <Input
-                          value={newElementText}
-                          onChange={(e) => setNewElementText(e.target.value)}
-                          placeholder="e.g. Special Guest"
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel onClick={() => setIsAddingElement(false)}>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleAddNewElement}>Save Element</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                {/* Delete Poster Confirmation Dialog */}
-                <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                  <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden rounded-2xl">
-                    <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                      <div className="flex flex-col flex-1">
-                        <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
-                          Delete Poster?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="text-muted-foreground mt-0.5 text-sm">
-                          This will permanently remove &ldquo;{(currentPoster?.name === "Default Poster" || !currentPoster?.name) ? `Poster ${selectedPosterIndex + 1}` : currentPoster.name}&rdquo;. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </div>
-                      <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
-                        ✕
-                      </AlertDialogCancel>
-                    </AlertDialogHeader>
-                    <div className="px-5 py-4">
-                      <AlertDialogFooter className="flex justify-between gap-4 mt-2 sm:justify-between w-full">
-                        <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => {
-                            removePoster(selectedPosterIndex);
-                            setShowDeleteConfirm(false);
-                          }}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground flex-1"
-                        >
-                          Delete Poster
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </div>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                <div className="w-full max-w-md">
-                  <div className="w-full">
-                    <div
-                      ref={posterRef}
-                      className="relative w-full mx-auto aspect-[3/4] bg-card overflow-hidden shadow-lg"
-                    >
-                      <div
-                        ref={canvasRef}
-                        key={`canvas-${selectedPosterIndex}`}
-                        className={`relative w-full h-full bg-gray-100 border-2 border-border overflow-hidden ${!isPreview ? "hover:border-primary/50" : ""}`}
-                        style={{
-                          backgroundImage: currentPoster?.backgroundImage?.url
-                            ? `url(${currentPoster.backgroundImage.url})`
-                            : "none",
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                          backgroundRepeat: "no-repeat",
-                        }}
-                      >
-                        {Object.entries(currentPoster?.layout || {})
-                          .filter(([key]) => key.startsWith("custom_"))
-                          .map(([key, config]) =>
-                            renderCustomElement(key, config, !isPreview)
-                          )}
-                        {renderProgramInfo(
-                          currentPoster?.layout?.programInfo,
-                          !isPreview
-                        )}
-                        {renderDivisionInfo(
-                          currentPoster?.layout?.divisionInfo,
-                          !isPreview
-                        )}
-                        {renderResultNumber(
-                          currentPoster?.layout?.resultNumber,
-                          !isPreview
-                        )}
-                        {(() => {
-                          const normalize = (p) => ({
-                            studentName:
-                              p.participantDetails?.name ||
-                              p.studentName ||
-                              "Winner",
-                            teamName:
-                              p.participantDetails?.teamId?.name ||
-                              p.teamName ||
-                              "",
-                          });
-
-                          const firstPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 1).length
-                            ? previewResultData.participants.filter(p => p.rank === 1).map(normalize)
-                            : [{ studentName: "1st Ranker", teamName: "Team Alpha" }];
-                          const secondPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 2).length
-                            ? previewResultData.participants.filter(p => p.rank === 2).map(normalize)
-                            : [{ studentName: "2nd Ranker", teamName: "Team Beta" }];
-                          const thirdPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 3).length
-                            ? previewResultData.participants.filter(p => p.rank === 3).map(normalize)
-                            : [{ studentName: "3rd Ranker", teamName: "Team Gamma" }];
-
-                          return (
-                            <>
-                              {renderWinnersList(
-                                currentPoster?.layout?.firstPlace,
-                                firstPlaceWinners,
-                                "firstPlace",
-                                !isPreview
-                              )}
-                              {renderWinnersList(
-                                currentPoster?.layout?.secondPlace,
-                                secondPlaceWinners,
-                                "secondPlace",
-                                !isPreview
-                              )}
-                              {renderWinnersList(
-                                currentPoster?.layout?.thirdPlace,
-                                thirdPlaceWinners,
-                                "thirdPlace",
-                                !isPreview
-                              )}
-                            </>
-                          );
-                        })()}
-
-                        {!isPreview && isMobile && !selectedElement && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="bg-black/50 text-white px-3 py-2 rounded text-sm">
-                              Tap elements to edit
-                            </div>
+                    {/* Add New Element Dialog */}
+                    <AlertDialog open={isAddingElement} onOpenChange={setIsAddingElement}>
+                      <AlertDialogContent className="sm:max-w-md">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Add New Element</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Provide a name and default text for the new element.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="space-y-4 py-2">
+                          <div>
+                            <Label>Element Name</Label>
+                            <Input
+                              value={newElementName}
+                              onChange={(e) => setNewElementName(e.target.value)}
+                              placeholder="e.g. Subtitle"
+                              className="mt-1"
+                            />
                           </div>
-                        )}
+                          <div>
+                            <Label>Element Text</Label>
+                            <Input
+                              value={newElementText}
+                              onChange={(e) => setNewElementText(e.target.value)}
+                              placeholder="e.g. Special Guest"
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => setIsAddingElement(false)}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleAddNewElement}>Save Element</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    {/* Delete Poster Confirmation Dialog */}
+                    <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                      <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden rounded-2xl">
+                        <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                          <div className="flex flex-col flex-1">
+                            <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
+                              Delete Poster?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-muted-foreground mt-0.5 text-sm">
+                              This will permanently remove &ldquo;{(currentPoster?.name === "Default Poster" || !currentPoster?.name) ? `Poster ${selectedPosterIndex + 1}` : currentPoster.name}&rdquo;. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </div>
+                          <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
+                            ✕
+                          </AlertDialogCancel>
+                        </AlertDialogHeader>
+                        <div className="px-5 py-4">
+                          <AlertDialogFooter className="flex justify-between gap-4 mt-2 sm:justify-between w-full">
+                            <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => {
+                                removePoster(selectedPosterIndex);
+                                setShowDeleteConfirm(false);
+                              }}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground flex-1"
+                            >
+                              Delete Poster
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </div>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    <div className="w-full max-w-md">
+                      <div className="w-full">
+                        <div
+                          ref={posterRef}
+                          className="relative w-full mx-auto aspect-[3/4] bg-card overflow-hidden shadow-lg"
+                        >
+                          <div
+                            ref={canvasRef}
+                            key={`canvas-${selectedPosterIndex}`}
+                            className={`relative w-full h-full bg-gray-100 overflow-hidden border-2 ${isLoading ? 'border-transparent' : 'border-border'} ${!isPreview && !isLoading ? "hover:border-primary/50" : ""}`}
+                            style={{
+                              backgroundImage: currentPoster?.backgroundImage?.url
+                                ? `url(${currentPoster.backgroundImage.url})`
+                                : "none",
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                              backgroundRepeat: "no-repeat",
+                            }}
+                          >
+                            {Object.entries(currentPoster?.layout || {})
+                              .filter(([key]) => key.startsWith("custom_"))
+                              .map(([key, config]) =>
+                                renderCustomElement(key, config, !isPreview)
+                              )}
+                            {renderProgramInfo(
+                              currentPoster?.layout?.programInfo,
+                              !isPreview
+                            )}
+                            {renderDivisionInfo(
+                              currentPoster?.layout?.divisionInfo,
+                              !isPreview
+                            )}
+                            {renderResultNumber(
+                              currentPoster?.layout?.resultNumber,
+                              !isPreview
+                            )}
+                            {(() => {
+                              const normalize = (p) => ({
+                                studentName:
+                                  p.participantDetails?.name ||
+                                  p.studentName ||
+                                  "Winner",
+                                teamName:
+                                  p.participantDetails?.teamId?.name ||
+                                  p.teamName ||
+                                  "",
+                              });
+
+                              const firstPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 1).length
+                                ? previewResultData.participants.filter(p => p.rank === 1).map(normalize)
+                                : [{ studentName: "1st Ranker", teamName: "Team Alpha" }];
+                              const secondPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 2).length
+                                ? previewResultData.participants.filter(p => p.rank === 2).map(normalize)
+                                : [{ studentName: "2nd Ranker", teamName: "Team Beta" }];
+                              const thirdPlaceWinners = previewResultData?.participants?.filter(p => p.rank === 3).length
+                                ? previewResultData.participants.filter(p => p.rank === 3).map(normalize)
+                                : [{ studentName: "3rd Ranker", teamName: "Team Gamma" }];
+
+                              return (
+                                <>
+                                  {renderWinnersList(
+                                    currentPoster?.layout?.firstPlace,
+                                    firstPlaceWinners,
+                                    "firstPlace",
+                                    !isPreview
+                                  )}
+                                  {renderWinnersList(
+                                    currentPoster?.layout?.secondPlace,
+                                    secondPlaceWinners,
+                                    "secondPlace",
+                                    !isPreview
+                                  )}
+                                  {renderWinnersList(
+                                    currentPoster?.layout?.thirdPlace,
+                                    thirdPlaceWinners,
+                                    "thirdPlace",
+                                    !isPreview
+                                  )}
+                                </>
+                              );
+                            })()}
+
+                            {!isPreview && isMobile && !selectedElement && (
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="bg-black/50 text-white px-3 py-2 rounded text-sm">
+                                  Tap elements to edit
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleDownloadPoster}
-                  disabled={isLoading}
-                  className="w-full max-w-md mt-3 flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader className="w-4 h-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4" />
-                      Download Poster
-                    </>
-                  )}
-                </Button>
+                    <Button
+                      onClick={handleDownloadPoster}
+                      disabled={isLoading}
+                      className="w-full max-w-md mt-3 flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Download Poster
+                        </>
+                      )}
+                    </Button>
                   </div> {/* End Right Column */}
                 </div> {/* End Grid */}
               </CardContent>
