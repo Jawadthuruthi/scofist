@@ -2102,15 +2102,16 @@ const PosterCustomizer = ({
                             ref={canvasRef}
                             key={`canvas-${selectedPosterIndex}`}
                             className={`relative w-full h-full bg-gray-100 overflow-hidden border-2 ${isLoading ? 'border-transparent' : 'border-border'} ${!isPreview && !isLoading ? "hover:border-primary/50" : ""}`}
-                            style={{
-                              backgroundImage: currentPoster?.backgroundImage?.url
-                                ? `url(${currentPoster.backgroundImage.url})`
-                                : "none",
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                              backgroundRepeat: "no-repeat",
-                            }}
                           >
+                            {currentPoster?.backgroundImage?.url && (
+                              <img
+                                src={currentPoster.backgroundImage.url}
+                                alt="Poster Background"
+                                crossOrigin="anonymous"
+                                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                                style={{ zIndex: 0 }}
+                              />
+                            )}
                             {Object.entries(currentPoster?.layout || {})
                               .filter(([key]) => key.startsWith("custom_"))
                               .map(([key, config]) =>
