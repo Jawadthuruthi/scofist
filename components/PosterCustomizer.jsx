@@ -1230,6 +1230,14 @@ const PosterCustomizer = ({
     }
 
     setIsLoading(true);
+    
+    // Clear selected element so the outline box is removed in the downloaded image
+    const prevSelected = selectedElement;
+    setSelectedElement(null);
+    
+    // Wait for state to reflect in DOM
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     try {
       const element = posterRef.current;
       const targetWidth = 1080;
@@ -1260,6 +1268,8 @@ const PosterCustomizer = ({
       console.error("Download error:", error);
       toast.error("Failed to download poster template. Please try again.");
     } finally {
+      // Restore selected element after download completes
+      setSelectedElement(prevSelected);
       setIsLoading(false);
     }
   };
