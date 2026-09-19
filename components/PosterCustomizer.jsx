@@ -48,6 +48,46 @@ import ColorInput from "@/components/ColorInput";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 
+// Smart compressor to bypass Vercel 4.5MB limit while keeping 2K crispness
+const compressImageForUpload = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_DIM = 2160; // 2x 1080p, ultra sharp for poster
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > MAX_DIM) {
+          height = Math.round((height *= MAX_DIM / width));
+          width = MAX_DIM;
+        } else if (height > MAX_DIM) {
+          width = Math.round((width *= MAX_DIM / height));
+          height = MAX_DIM;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL("image/webp", 0.95);
+        if (dataUrl.length > 4 * 1024 * 1024) {
+           resolve(canvas.toDataURL("image/webp", 0.85)); // fallback
+        } else {
+           resolve(dataUrl);
+        }
+      };
+      img.onerror = reject;
+      img.src = event.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 // Calculate responsive font
 const calculateResponsiveFont = (
   baseSize,
@@ -1871,33 +1911,29 @@ const PosterCustomizer = ({
                             }
                             try {
                               setBgUploading(true);
-                              const reader = new FileReader();
-                              reader.onloadend = async () => {
-                                try {
-                                  const res = await fetch("/api/cloudinary", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ image: reader.result }),
-                                  });
-                                  if (!res.ok) throw new Error("Upload failed");
-                                  const data = await res.json();
-                                  const imageData = { url: data.url, publicId: data.publicId };
-                                  if (isFullPage) {
-                                    handleFullPageBackgroundChange(imageData);
-                                  } else {
-                                    onBackgroundChange?.(imageData);
-                                  }
-                                  toast.success("Background uploaded!");
-                                } catch (err) {
-                                  toast.error(err.message || "Upload failed");
-                                } finally {
-                                  setBgUploading(false);
-                                  e.target.value = "";
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                            } catch {
+                              const compressedBase64 = await compressImageForUpload(file);
+                              
+                              const res = await fetch("/api/cloudinary", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ image: compressedBase64 }),
+                              });
+                              
+                              if (!res.ok) throw new Error("Upload failed (Payload too large?)");
+                              const data = await res.json();
+                              const imageData = { url: data.url, publicId: data.publicId };
+                              
+                              if (isFullPage) {
+                                handleFullPageBackgroundChange(imageData);
+                              } else {
+                                onBackgroundChange?.(imageData);
+                              }
+                              toast.success("Background uploaded!");
+                            } catch (err) {
+                              toast.error(err.message || "Upload failed");
+                            } finally {
                               setBgUploading(false);
+                              e.target.value = "";
                             }
                           }}
                         />
