@@ -255,14 +255,14 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
       color: "#22c55e",
       isLoading: declaredResultsCountQuery.isLoading || declaredResultsCountQuery.isFetching,
     },
-    {
+    ...(activeRole !== "Program Leader" ? [{
       id: "teampoints",
       title: "Total Team Points",
       value: totalTeamPoints,
       icon: Trophy,
       color: "#f59e0b",
       isLoading: teamsAllQuery.isLoading || teamsAllQuery.isFetching,
-    },
+    }] : []),
   ];
 
   // ===== DIALOG CONTENT =====
