@@ -22,15 +22,22 @@ const calculateScheduleStatus = (date, startTime, endTime) => {
   const now = new Date();
   const scheduleDate = new Date(date);
 
-  // Create datetime objects for comparison
-  const [startHours, startMinutes] = startTime.split(":").map(Number);
-  const [endHours, endMinutes] = endTime.split(":").map(Number);
+  // Get the year, month, date of the scheduleDate in IST
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  
+  const formatted = formatter.format(scheduleDate); // "MM/DD/YYYY"
+  const [month, day, year] = formatted.split('/');
 
-  const startDateTime = new Date(scheduleDate);
-  startDateTime.setHours(startHours, startMinutes, 0, 0);
+  const [startHours, startMinutes] = startTime.split(":");
+  const [endHours, endMinutes] = endTime.split(":");
 
-  const endDateTime = new Date(scheduleDate);
-  endDateTime.setHours(endHours, endMinutes, 0, 0);
+  const startDateTime = new Date(`${year}-${month}-${day}T${startHours.padStart(2, '0')}:${startMinutes.padStart(2, '0')}:00.000+05:30`);
+  const endDateTime = new Date(`${year}-${month}-${day}T${endHours.padStart(2, '0')}:${endMinutes.padStart(2, '0')}:00.000+05:30`);
 
   if (now < startDateTime) {
     return "Upcoming";
