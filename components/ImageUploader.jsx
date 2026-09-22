@@ -701,7 +701,7 @@ const ImageUploader = ({
   };
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3 h-full w-full">
       <input
         type="file"
         ref={fileInputRef}
@@ -713,7 +713,7 @@ const ImageUploader = ({
 
       {!hidePreview && (
         <div
-          className={`w-full h-48 border-2 border-dashed rounded-md flex flex-col items-center justify-center relative ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+          className={`w-full flex-1 min-h-48 border-2 border-dashed rounded-md overflow-hidden flex flex-col items-center justify-center relative ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
             } transition-colors`}
         >
           {loading && (
