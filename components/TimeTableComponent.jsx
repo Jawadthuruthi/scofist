@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X } from "lucide-react";
+import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X, Columns, Rows } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -288,9 +288,9 @@ const EditLeaveReasonDialog = ({ open, onOpenChange, leaveRecord, apiKey, onSucc
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
         <DialogHeader>
-          <DialogTitle>Edit Leave Reason</DialogTitle>
+          <DialogTitle>{leaveRecord._id ? "Edit Leave Reason" : "Add Leave Reason"}</DialogTitle>
           <DialogDescription>
-            Edit the leave reason for <span className="font-semibold">{leaveRecord.teacherName || "this teacher"}</span> — Period {leaveRecord.periodNumber}
+            {leaveRecord._id ? "Edit" : "Add"} the leave reason for <span className="font-semibold">{leaveRecord.teacherName || "this teacher"}</span> — Period {leaveRecord.periodNumber}
           </DialogDescription>
         </DialogHeader>
         <div className="relative">
@@ -374,7 +374,151 @@ const EditLeaveReasonDialog = ({ open, onOpenChange, leaveRecord, apiKey, onSucc
   );
 };
 
+// Bulk Leave Reason Dialog (for College Admin — column heading or row heading click)
+const BulkLeaveReasonDialog = ({ open, onOpenChange, mode, label, slots, apiKey, onSuccess }) => {
+  // mode: "period" (column) or "class" (row)
+  // slots: array of { classId, classLabel, periodNumber, teacherId, teacherName, existingLeaveRecord }
+  const [reason, setReason] = useState("");
+  const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [error, setError] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const { useAddItem } = useCrud("teachers-leave-record", apiKey);
+  const addLeaveRecord = useAddItem();
+
+  useEffect(() => {
+    if (open) {
+      setReason("");
+      setError(false);
+    }
+  }, [open]);
+
+  const eligibleSlots = useMemo(() => {
+    return (slots || []).filter(s => s.teacherId);
+  }, [slots]);
+
+  const handleSubmit = async () => {
+    if (reason.trim() !== "" && reason.length > 20) {
+      setError(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      await Promise.all(
+        eligibleSlots.map(slot =>
+          addLeaveRecord.mutateAsync({
+            teacherId: slot.teacherId,
+            classId: slot.classId,
+            periodNumber: slot.periodNumber,
+            date: new Date().toISOString(),
+            leaveReason: reason,
+          })
+        )
+      );
+      toast.success(`Leave reason saved for ${eligibleSlots.length} slot(s).`);
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (err) {
+      console.error("Error saving bulk leave reason:", err);
+      toast.error(err.message || "Error saving leave reason");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
+        <DialogHeader>
+          <DialogTitle>{eligibleSlots.some(s => s.existingLeaveRecord) ? "Edit Leave Reason" : "Add Leave Reason"}</DialogTitle>
+          <DialogDescription>
+            {eligibleSlots.some(s => s.existingLeaveRecord) ? "Edit" : "Add"} the leave reason for {mode === "period" ? `all classes in Period ${label}` : `all periods of ${label}`}
+          </DialogDescription>
+        </DialogHeader>
+
+        {eligibleSlots.length > 0 ? (
+          <>
+            <div className="relative">
+              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
+              <div className="relative">
+                <Input
+                  placeholder="Select or type a reason..."
+                  value={reason}
+                  onChange={(e) => {
+                    if (e.target.value.length > 20) setError(true);
+                    else setError(false);
+                    setReason(e.target.value);
+                  }}
+                  className="pl-10 pr-10"
+                />
+                <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    >
+                      <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="end">
+                    <Command>
+                      <CommandList>
+                        <CommandGroup>
+                          {leaveReasons.map((r) => (
+                            <CommandItem
+                              key={r}
+                              value={r}
+                              onSelect={(currentValue) => {
+                                setReason(currentValue);
+                                setComboboxOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  reason === r ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {r}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {error && (
+                <p className="text-destructive text-xs p-1">
+                  Leave reason should not exceed 20 characters.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <Button
+                disabled={saving || error}
+                onClick={handleSubmit}
+                className="w-full"
+              >
+                {saving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="text-sm text-muted-foreground text-center py-4">
+            No eligible slots found (attendance may already be marked).
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const TimeTableComponent = ({
+
   apiKey,
   teacherId,
   hidePrintButton = false,
@@ -395,6 +539,13 @@ const TimeTableComponent = ({
   // Edit Leave Reason state (College Admin)
   const [editLeaveOpen, setEditLeaveOpen] = useState(false);
   const [editLeaveRecord, setEditLeaveRecord] = useState(null);
+
+  // Bulk Leave Reason state (College Admin — column/row heading click)
+  const [bulkLeaveOpen, setBulkLeaveOpen] = useState(false);
+  const [bulkLeaveMode, setBulkLeaveMode] = useState("period"); // "period" | "class"
+  const [bulkLeaveLabel, setBulkLeaveLabel] = useState("");
+  const [bulkLeaveSlots, setBulkLeaveSlots] = useState([]);
+
 
   const { useFetchItems: useFetchLeaveRecords } = useCrud("teachers-leave-record", apiKey);
   const todayDateStr = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -549,21 +700,71 @@ const TimeTableComponent = ({
           <TableHeader>
             <TableRow>
               <TableHead className="border bg-accent sticky left-0 rig z-10"></TableHead>
-              {periods.map((period) => (
-                <TableHead
-                  key={period?._id}
-                  className="text-center border-t font-bold whitespace-nowrap"
-                >
-                  <div className="flex flex-col items-center text-xxs">
-                    <span>{getPeriodTime(period.periodNumber)}</span>
-                    <span className="text-xxs text-muted-foreground">
-                      Period {period.periodNumber}
-                    </span>
-                  </div>
-                </TableHead>
-              ))}
+              {periods.map((period) => {
+                // For College Admin: clicking the column heading opens bulk leave for that period
+                const isColAdmin = role === "College Admin" && !teacherId;
+                const handleColumnHeadingClick = isColAdmin ? () => {
+                  // Collect all eligible slots for this period across all classes
+                  const slots = filteredClasses.map(classItem => {
+                    const cellData = getCellData(period.periodNumber, currentDay, classItem._id);
+                    if (!cellData?.teacherId) return null;
+                    // Check if attendance is already marked — skip those
+                    const attended = attendances.some(
+                      a =>
+                        a.periodNumber === period.periodNumber &&
+                        a.day === currentDay &&
+                        (a.classId?._id || a.classId)?.toString() === classItem._id?.toString() &&
+                        (!cellData.subjectId || (a.subjectId?._id || a.subjectId) === (cellData.subjectId?._id || cellData.subjectId)) &&
+                        (!cellData.teacherId || (a.teacherId?._id || a.teacherId) === (cellData.teacherId?._id || cellData.teacherId))
+                    );
+                    if (attended) return null;
+                    const existingLeaveRecord = liveLeaveRecords.find(record => {
+                      const recordDate = new Date(record.date);
+                      const recordDay = recordDate.toLocaleDateString("en-US", { weekday: "long" });
+                      const recordDateStr = recordDate.toISOString().split('T')[0];
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      return (
+                        record.periodNumber === period.periodNumber &&
+                        (record.teacherId?._id || record.teacherId) === (cellData?.teacherId?._id || cellData?.teacherId) &&
+                        recordDay === currentDay &&
+                        recordDateStr === todayStr
+                      );
+                    });
+                    return {
+                      classId: classItem._id,
+                      classLabel: useShortName ? (classItem.shortname || classItem.name) : classItem.name,
+                      periodNumber: period.periodNumber,
+                      teacherId: cellData.teacherId?._id || cellData.teacherId,
+                      teacherName: cellData.teacherId?.name || "",
+                      existingLeaveRecord: existingLeaveRecord || null,
+                    };
+                  }).filter(Boolean);
+                  if (!slots.length) return;
+                  setBulkLeaveMode("period");
+                  setBulkLeaveLabel(period.periodNumber);
+                  setBulkLeaveSlots(slots);
+                  setBulkLeaveOpen(true);
+                } : undefined;
+
+                return (
+                  <TableHead
+                    key={period?._id}
+                    className={`text-center border-t font-bold whitespace-nowrap${isColAdmin ? " cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors select-none" : ""}`}
+                    onClick={handleColumnHeadingClick}
+                    title={isColAdmin ? `Click to set leave reason for all classes in Period ${period.periodNumber}` : undefined}
+                  >
+                    <div className="flex flex-col items-center text-xxs">
+                      <span>{getPeriodTime(period.periodNumber)}</span>
+                      <span className="text-xxs text-muted-foreground">
+                        Period {period.periodNumber}
+                      </span>
+                    </div>
+                  </TableHead>
+                );
+              })}
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {teacherId
               ? DAYS.map((day) => (
@@ -666,9 +867,59 @@ const TimeTableComponent = ({
                   })}
                 </TableRow>
               ))
-              : filteredClasses.map((classItem) => (
+              : filteredClasses.map((classItem) => {
+                // For College Admin: clicking the row heading opens bulk leave for that class
+                const isRowAdmin = role === "College Admin" && !teacherId;
+                const handleRowHeadingClick = isRowAdmin ? () => {
+                  // Collect all eligible slots for this class across all periods
+                  const slots = periods.map(period => {
+                    const cellData = getCellData(period.periodNumber, currentDay, classItem._id);
+                    if (!cellData?.teacherId) return null;
+                    // Check if attendance is already marked
+                    const attended = attendances.some(
+                      a =>
+                        a.periodNumber === period.periodNumber &&
+                        a.day === currentDay &&
+                        (a.classId?._id || a.classId)?.toString() === classItem._id?.toString() &&
+                        (!cellData.subjectId || (a.subjectId?._id || a.subjectId) === (cellData.subjectId?._id || cellData.subjectId)) &&
+                        (!cellData.teacherId || (a.teacherId?._id || a.teacherId) === (cellData.teacherId?._id || cellData.teacherId))
+                    );
+                    if (attended) return null; // already marked — skip
+                    const existingLeaveRecord = liveLeaveRecords.find(record => {
+                      const recordDate = new Date(record.date);
+                      const recordDay = recordDate.toLocaleDateString("en-US", { weekday: "long" });
+                      const recordDateStr = recordDate.toISOString().split('T')[0];
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      return (
+                        record.periodNumber === period.periodNumber &&
+                        (record.teacherId?._id || record.teacherId) === (cellData?.teacherId?._id || cellData?.teacherId) &&
+                        recordDay === currentDay &&
+                        recordDateStr === todayStr
+                      );
+                    });
+                    return {
+                      classId: classItem._id,
+                      classLabel: useShortName ? (classItem.shortname || classItem.name) : classItem.name,
+                      periodNumber: period.periodNumber,
+                      teacherId: cellData.teacherId?._id || cellData.teacherId,
+                      teacherName: cellData.teacherId?.name || "",
+                      existingLeaveRecord: existingLeaveRecord || null,
+                    };
+                  }).filter(Boolean);
+                  if (!slots.length) return;
+                  setBulkLeaveMode("class");
+                  setBulkLeaveLabel(useShortName ? (classItem.shortname || classItem.name) : classItem.name);
+                  setBulkLeaveSlots(slots);
+                  setBulkLeaveOpen(true);
+                } : undefined;
+
+                return (
                 <TableRow key={classItem?._id} className="hover:bg-accent/50">
-                  <TableCell className="border font-medium bg-accent sticky left-0 z-10 text-center align-middle">
+                  <TableCell
+                    className={`border font-medium bg-accent sticky left-0 z-10 text-center align-middle${isRowAdmin ? " cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors select-none" : ""}`}
+                    onClick={handleRowHeadingClick}
+                    title={isRowAdmin ? `Click to set leave reason for all periods of ${classItem.name}` : undefined}
+                  >
                     <div className="flex justify-center items-center font-bold text-xs whitespace-nowrap gap-2">
                       {useShortName ? (classItem.shortname || classItem.name) : classItem.name}
                     </div>
@@ -802,7 +1053,8 @@ const TimeTableComponent = ({
                     );
                   })}
                 </TableRow>
-              ))}
+                );
+              })}
           </TableBody>
         </Table>
       </div>
@@ -824,6 +1076,17 @@ const TimeTableComponent = ({
         open={editLeaveOpen}
         onOpenChange={setEditLeaveOpen}
         leaveRecord={editLeaveRecord}
+        apiKey={apiKey}
+        onSuccess={() => liveLeaveQuery.refetch()}
+      />
+
+      {/* Bulk Leave Reason Dialog (College Admin — column/row heading) */}
+      <BulkLeaveReasonDialog
+        open={bulkLeaveOpen}
+        onOpenChange={setBulkLeaveOpen}
+        mode={bulkLeaveMode}
+        label={bulkLeaveLabel}
+        slots={bulkLeaveSlots}
         apiKey={apiKey}
         onSuccess={() => liveLeaveQuery.refetch()}
       />
