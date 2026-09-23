@@ -347,6 +347,7 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
                         ))}
                     </ul>
                   </div>
+                  <ResultPostersSection resultData={result} settings={settings} />
                 </div>
               ) : (
                 <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-200">

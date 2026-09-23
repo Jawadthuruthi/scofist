@@ -74,6 +74,7 @@ export default async function WinnersListPage() {
         <Header title="WINNERS LIST" subTitle="View Winners List" />
         <DynamicDataTable
           resource="results"
+          printTitle="WINNERS LIST"
           initialData={[]}
           columnsConfig={columnsConfig}
           apiKey={apiKey}

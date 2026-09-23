@@ -65,6 +65,7 @@ export default async function NonWinnersPage() {
         <Header title="NON-WINNERS" subTitle="View Non-Winning Participants" />
         <DynamicDataTable
           resource="participants"
+          printTitle="NON-WINNERS"
           initialData={[]}
           columnsConfig={columnsConfig}
           apiKey={apiKey}

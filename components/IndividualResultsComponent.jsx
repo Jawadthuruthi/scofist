@@ -73,7 +73,7 @@ const IndividualResultsComponent = ({ divisions = [], apiKey }) => {
     {
       retry: 2,
       retryDelay: 1000,
-      enabled: !!selectedDivision,
+      enabled: !!selectedDivision || searchByChestNumber,
     }
   );
 
@@ -458,11 +458,11 @@ const IndividualResultsComponent = ({ divisions = [], apiKey }) => {
                       <TableHead className="border-r border-border print:border-black text-xs sm:text-sm">
                         Category
                       </TableHead>
-                      <TableHead className="w-16 sm:w-20 text-center border-r border-border print:border-black text-xs sm:text-sm">
-                        Points
-                      </TableHead>
                       <TableHead className="w-12 sm:w-16 text-center border-r border-border print:border-black text-xs sm:text-sm">
                         Rank
+                      </TableHead>
+                      <TableHead className="w-16 sm:w-20 text-center border-r border-border print:border-black text-xs sm:text-sm">
+                        Points
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -489,17 +489,6 @@ const IndividualResultsComponent = ({ divisions = [], apiKey }) => {
                             {program.category}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center points-cell border-r border-border print:border-black text-xs sm:text-sm">
-                          <Badge
-                            variant="secondary"
-                            className="print:hidden text-xs"
-                          >
-                            {program.points}
-                          </Badge>
-                          <span className="hidden print:inline font-bold">
-                            {program.points}
-                          </span>
-                        </TableCell>
                         <TableCell className="text-center rank-cell border-r border-border print:border-black text-xs sm:text-sm">
                           <div className="flex items-center justify-center gap-1">
                             {getPositionIcon(program.rank)}
@@ -513,6 +502,17 @@ const IndividualResultsComponent = ({ divisions = [], apiKey }) => {
                               {program.rank}
                             </span>
                           </div>
+                        </TableCell>
+                        <TableCell className="text-center points-cell border-r border-border print:border-black text-xs sm:text-sm">
+                          <Badge
+                            variant="secondary"
+                            className="print:hidden text-xs"
+                          >
+                            {program.points}
+                          </Badge>
+                          <span className="hidden print:inline font-bold">
+                            {program.points}
+                          </span>
                         </TableCell>
                       </TableRow>
                     ))}

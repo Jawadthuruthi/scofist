@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState, use } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, Trophy, X } from "lucide-react";
 import ProgramDetailsModal from "@/components/ProgramDetailsModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 
 export default function ParticipantPage({ params }) {
   const unwrappedParams = use(params);
@@ -13,6 +14,7 @@ export default function ParticipantPage({ params }) {
   const [error, setError] = useState("");
   const [selectedProgramId, setSelectedProgramId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPointsModalOpen, setIsPointsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,8 +93,8 @@ export default function ParticipantPage({ params }) {
   });
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-start p-4 pt-10 pb-10">
-      <div className="w-full max-w-md rounded-2xl sm:rounded-2xl overflow-hidden max-h-[70vh] sm:max-h-[80vh] flex flex-col p-0 gap-0 border border-gray-200 shadow-xl bg-white">
+    <div className="min-h-screen bg-gray-100 flex flex-col lg:flex-row justify-center items-start lg:items-stretch gap-6 p-4 pt-10 pb-10">
+      <div className="w-full max-w-md rounded-2xl sm:rounded-2xl overflow-hidden max-h-[70vh] sm:max-h-[80vh] flex flex-col p-0 gap-0 border border-gray-200 shadow-xl bg-white mx-auto lg:mx-0">
         
         {/* Festival Name Image */}
         {settings?.festival?.festivalNameImage?.url && (
@@ -129,7 +131,7 @@ export default function ParticipantPage({ params }) {
           </div>
         </div>
 
-        <div className="text-sm border-0 p-5 overflow-y-auto bg-muted/5 space-y-4 flex-1">
+        <div className="text-sm border-0 p-5 pt-3 overflow-y-auto bg-muted/5 space-y-4 flex-1">
           <h3 className="text-sm font-bold text-gray-800 bg-gray-100 p-2 rounded text-center mb-2 uppercase">
             Assigned Programs
           </h3>
@@ -239,11 +241,78 @@ export default function ParticipantPage({ params }) {
         </div>
       </div>
 
+      {/* My Points Section Card */}
+      <div 
+        onClick={() => setIsPointsModalOpen(true)}
+        className="w-full max-w-md rounded-2xl overflow-hidden border border-gray-200 shadow-xl bg-gradient-to-br from-white to-amber-50/30 flex flex-col items-center justify-center p-8 cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 group"
+      >
+        <div className="bg-amber-100 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
+          <Trophy className="w-12 h-12 text-amber-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">My Points</h2>
+        <div className="flex items-baseline gap-2 mb-4">
+          <span className="text-5xl font-black text-amber-600 tracking-tight">{participant.totalPoints || 0}</span>
+          <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Pts</span>
+        </div>
+        <div className="px-6 py-2 bg-white rounded-full border border-amber-200 shadow-sm text-sm font-semibold text-amber-700">
+          Click to view breakdown
+        </div>
+      </div>
+
       <ProgramDetailsModal 
         programId={selectedProgramId} 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
       />
+
+      <Dialog open={isPointsModalOpen} onOpenChange={setIsPointsModalOpen}>
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md overflow-hidden flex flex-col p-0 gap-0 [&>button.absolute]:hidden max-h-[80vh]">
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-amber-50/50 sticky top-0 z-20 shrink-0">
+            <div className="p-2 rounded-lg bg-amber-100 shrink-0">
+              <Trophy className="h-6 w-6 text-amber-600" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-lg font-bold m-0 text-gray-800">
+                My Points
+              </DialogTitle>
+              <p className="text-xs text-gray-500 m-0">
+                Total: <span className="font-bold text-amber-600">{participant.totalPoints || 0}</span> Points
+              </p>
+            </div>
+            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+              <X className="h-5 w-5" />
+            </DialogClose>
+          </DialogHeader>
+
+          <div className="p-5 overflow-y-auto space-y-3 bg-muted/5">
+            {programs.length > 0 ? (
+              programs.map((prog, idx) => (
+                <div key={idx} className="bg-white border rounded-lg p-3 shadow-sm flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-800 text-sm truncate">{prog.name || "Unknown Program"}</p>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                      {prog.grade && prog.grade !== "—" && (
+                        <span className="bg-gray-100 px-1.5 py-0.5 rounded font-medium">{prog.grade}</span>
+                      )}
+                      {prog.rank && prog.rank !== "—" && (
+                        <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Rank {prog.rank}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex flex-col items-end justify-center bg-gray-50 rounded p-2 min-w-[3.5rem] border border-gray-100 text-center">
+                    <span className="text-lg font-bold text-gray-800 leading-none">{prog.points || 0}</span>
+                    <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wide mt-0.5">Pts</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 text-sm py-8 bg-white rounded border border-dashed border-gray-200">
+                No programs assigned yet.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

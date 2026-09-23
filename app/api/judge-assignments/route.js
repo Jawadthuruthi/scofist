@@ -24,7 +24,8 @@ export async function GET(request) {
     const rawAssignments = await JudgeAssignment.find(query)
       .sort({ createdAt: -1 })
       .populate("programId", "name rules topics criteria")
-      .populate("divisionId", "name");
+      .populate("divisionId", "name")
+      .populate("judgeId", "name");
 
     const assignments = rawAssignments.map(a => {
       const doc = a.toObject();
@@ -34,6 +35,10 @@ export async function GET(request) {
       if (doc.divisionId && typeof doc.divisionId === 'object') {
         doc.divisionName = doc.divisionId.name || doc.divisionName;
         doc.divisionId = doc.divisionId._id; // Restore to string ID just in case client needs it
+      }
+      if (doc.judgeId && typeof doc.judgeId === 'object') {
+        doc.userName = doc.judgeId.name;
+        doc.judgeId = doc.judgeId._id; // Restore to string ID
       }
       return doc;
     });

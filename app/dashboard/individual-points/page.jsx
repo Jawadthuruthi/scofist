@@ -115,6 +115,7 @@ export default async function IndividualPointsPage() {
         />
         <DynamicDataTable
           resource="participants"
+          printTitle="INDIVIDUAL POINTS"
           initialData={[]}
           columnsConfig={columnsConfig}
           apiKey={apiKey}

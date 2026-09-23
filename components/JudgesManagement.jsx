@@ -159,9 +159,14 @@ const JudgesManagement = ({
   const [editJudgeNumber, setEditJudgeNumber] = useState("");
 
   // Add form state
-  const [newJudgeId, setNewJudgeId] = useState("");
-  const [newJudgeName, setNewJudgeName] = useState("");
-  const [newJudgeNumber, setNewJudgeNumber] = useState("");
+  const [newJudges, setNewJudges] = useState([{ id: "", name: "", number: "" }]);
+  const [currentJudgeIndex, setCurrentJudgeIndex] = useState(0);
+
+  const updateNewJudge = (index, field, value) => {
+    const updated = [...newJudges];
+    updated[index] = { ...updated[index], [field]: value };
+    setNewJudges(updated);
+  };
 
   // Alert dialog state
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
@@ -223,43 +228,56 @@ const JudgesManagement = ({
   }, [selectedDivision]);
 
   const handleAdd = async () => {
-    if (!newJudgeId || !newJudgeNumber || !selectedProgram) {
-      toast.error("Please select a judge and a judge number");
+    const validJudges = newJudges.filter((j) => j.id && j.number);
+    if (validJudges.length === 0 || !selectedProgram) {
+      toast.error("Please select at least one judge and a judge number");
       return;
     }
 
     setSaving(true);
     try {
-      const res = await fetch("/api/judge-assignments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": apiKey,
-        },
-        body: JSON.stringify({
-          judgeId: newJudgeId,
-          judgeName: newJudgeName,
-          programId: selectedProgram,
-          divisionId: selectedDivision || undefined,
-          judgeNumber: parseInt(newJudgeNumber),
-          year: activeYear,
-          createdBy: userId,
-        }),
+      const promises = validJudges.map((judge) =>
+        fetch("/api/judge-assignments", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "api-key": apiKey,
+          },
+          body: JSON.stringify({
+            judgeId: judge.id,
+            judgeName: judge.name,
+            programId: selectedProgram,
+            divisionId: selectedDivision || undefined,
+            judgeNumber: parseInt(judge.number),
+            year: activeYear,
+            createdBy: userId,
+          }),
+        }).then((res) => res.json())
+      );
+
+      const results = await Promise.all(promises);
+      const failures = results.filter((r) => !r.success);
+
+      validJudges.forEach((judge) => {
+        if (judge.name) addSavedName(judge.name);
       });
-      const data = await res.json();
-      if (data.success) {
-        addSavedName(newJudgeName);
-        toast.success("Judge assigned successfully!");
+
+      if (failures.length === 0) {
+        toast.success(
+          validJudges.length > 1
+            ? "Judges assigned successfully!"
+            : "Judge assigned successfully!"
+        );
         setAddDialogOpen(false);
-        setNewJudgeId("");
-        setNewJudgeName("");
-        setNewJudgeNumber("");
         fetchAssignments();
       } else {
-        toast.error(data.message || "Failed to assign judge");
+        toast.error(
+          `${failures.length} out of ${validJudges.length} assignments failed`
+        );
+        fetchAssignments();
       }
     } catch {
-      toast.error("Failed to assign judge");
+      toast.error("Failed to assign judges");
     } finally {
       setSaving(false);
     }
@@ -288,10 +306,31 @@ const JudgesManagement = ({
   };
 
   const openAddDialog = () => {
-    setNewJudgeId("");
-    setNewJudgeName("");
-    setNewJudgeNumber(String(nextJudgeNumber));
+    setNewJudges([{ id: "", name: "", number: String(nextJudgeNumber) }]);
+    setCurrentJudgeIndex(0);
     setAddDialogOpen(true);
+  };
+
+  const handleAddJudgeForm = () => {
+    const assignedNumbers = programAssignments.map((a) => a.judgeNumber);
+    const formNumbers = newJudges
+      .map((j) => parseInt(j.number))
+      .filter((n) => !isNaN(n));
+    const allNumbers = [...assignedNumbers, ...formNumbers];
+    const nextNum = allNumbers.length > 0 ? Math.max(...allNumbers) + 1 : 1;
+
+    setNewJudges([...newJudges, { id: "", name: "", number: String(nextNum) }]);
+    setCurrentJudgeIndex(newJudges.length);
+  };
+
+  const handleRemoveJudgeForm = () => {
+    if (newJudges.length <= 1) return;
+    const updated = [...newJudges];
+    updated.splice(currentJudgeIndex, 1);
+    setNewJudges(updated);
+    if (currentJudgeIndex >= updated.length) {
+      setCurrentJudgeIndex(updated.length - 1);
+    }
   };
 
   // Toggle individual row selection
@@ -403,18 +442,49 @@ const JudgesManagement = ({
     label: j.name,
   }));
 
+  // If editing and the assigned judge is no longer in the judges list (e.g., lost role)
+  if (
+    editingAssignment &&
+    editingAssignment.judgeId &&
+    !judgeOptions.some((o) => o.value === editingAssignment.judgeId)
+  ) {
+    judgeOptions.push({
+      value: editingAssignment.judgeId,
+      label: editingAssignment.userName
+        ? `${editingAssignment.userName} (Role Removed)`
+        : `${editingAssignment.judgeId} (Role Removed)`,
+    });
+  }
+
   // Judges already assigned to the relevant program
   const relevantProgramId = editingAssignment ? editingAssignment.programId : selectedProgram;
   const programAssignments = assignments.filter((a) => a.programId === relevantProgramId);
   const assignedJudgeIds = new Set(programAssignments.map((a) => a.judgeId));
+  
+  // Filter out judges currently selected in the new judges form (except the one in current view)
+  const currentlySelectedIds = newJudges
+    .map((j) => j.id)
+    .filter((id) => id && id !== newJudges[currentJudgeIndex]?.id);
+
   const availableJudgeOptions = judgeOptions.filter(
-    (j) => !assignedJudgeIds.has(j.value)
+    (j) => !assignedJudgeIds.has(j.value) && !currentlySelectedIds.includes(j.value)
   );
 
   // Get next judge number
   const nextJudgeNumber = programAssignments.length > 0
     ? Math.max(...programAssignments.map((a) => a.judgeNumber)) + 1
     : 1;
+
+  const allAssignedNumbers = programAssignments.map((a) => a.judgeNumber);
+  const currentlySelectedNumbers = newJudges
+    .map((j) => parseInt(j.number))
+    .filter(
+      (n) => !isNaN(n) && n !== parseInt(newJudges[currentJudgeIndex]?.number)
+    );
+  const takenNumbers = new Set([
+    ...allAssignedNumbers,
+    ...currentlySelectedNumbers,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -559,7 +629,7 @@ const JudgesManagement = ({
                         {assignment.programName || "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {linkedUser?.name || assignment.judgeId || "—"}
+                        {linkedUser?.name || assignment.userName || assignment.judgeId || "—"}
                       </TableCell>
                       <TableCell className="font-medium">
                         {assignment.judgeName}
@@ -799,9 +869,10 @@ const JudgesManagement = ({
                 Assign Judge
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground pt-1">
-                Assign a judge to{" "}
-                <strong>{selectedProgramName}</strong>. The judge must complete
-                this program before they can be assigned another.
+                <strong>
+                  {selectedDivisionName ? `${selectedDivisionName} - ` : ""}
+                  {selectedProgramName}
+                </strong>
               </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
@@ -814,8 +885,8 @@ const JudgesManagement = ({
               <Label>User</Label>
               <MultiSelect
                 options={availableJudgeOptions}
-                value={newJudgeId}
-                onValueChange={setNewJudgeId}
+                value={newJudges[currentJudgeIndex]?.id || ""}
+                onValueChange={(val) => updateNewJudge(currentJudgeIndex, "id", val)}
                 placeholder="Select a user..."
                 multiSelect={false}
               />
@@ -829,8 +900,8 @@ const JudgesManagement = ({
             <div className="space-y-2">
               <Label>Judge Name (Optional)</Label>
               <JudgeNameInput
-                value={newJudgeName}
-                onChange={(e) => setNewJudgeName(e.target.value)}
+                value={newJudges[currentJudgeIndex]?.name || ""}
+                onChange={(e) => updateNewJudge(currentJudgeIndex, "name", e.target.value)}
                 placeholder="Enter custom judge name..."
                 savedNames={savedJudgeNames}
                 onRemove={removeSavedName}
@@ -843,8 +914,8 @@ const JudgesManagement = ({
             <div className="space-y-2">
               <Label>Judge Number</Label>
               <Select
-                value={newJudgeNumber}
-                onValueChange={setNewJudgeNumber}
+                value={newJudges[currentJudgeIndex]?.number || ""}
+                onValueChange={(val) => updateNewJudge(currentJudgeIndex, "number", val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select judge number" />
@@ -854,36 +925,80 @@ const JudgesManagement = ({
                     <SelectItem
                       key={n}
                       value={String(n)}
-                      disabled={programAssignments.some((a) => a.judgeNumber === n)}
+                      disabled={takenNumbers.has(n)}
                     >
                       Judge {n}
-                      {programAssignments.some((a) => a.judgeNumber === n) &&
-                        " (taken)"}
+                      {takenNumbers.has(n) && " (taken)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 px-4 sm:px-5 py-3 border-t bg-muted/40">
-            <Button
-              variant="outline"
-              onClick={() => setAddDialogOpen(false)}
-              disabled={saving}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAdd} disabled={saving || !newJudgeId} className="w-full sm:w-auto">
-              {saving ? (
-                <Loader className="animate-spin h-4 w-4 mr-2" />
-              ) : (
-                <UserCheck className="h-4 w-4 mr-2" />
+          <DialogFooter className="flex-col sm:flex-row gap-2 px-4 sm:px-5 py-3 border-t bg-muted/40 sm:justify-between items-center">
+            {/* Left side: Navigation or empty */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
+              {newJudges.length > 1 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentJudgeIndex((prev) => Math.max(0, prev - 1))}
+                    disabled={currentJudgeIndex === 0 || saving}
+                  >
+                    Prev
+                  </Button>
+                  <span className="text-sm text-muted-foreground w-12 text-center">
+                    {currentJudgeIndex + 1} / {newJudges.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentJudgeIndex((prev) => Math.min(newJudges.length - 1, prev + 1))}
+                    disabled={currentJudgeIndex === newJudges.length - 1 || saving}
+                  >
+                    Next
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive h-8 w-8 ml-1"
+                    onClick={handleRemoveJudgeForm}
+                    disabled={saving}
+                    title="Remove this judge"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
               )}
-              Assign
-            </Button>
+            </div>
+
+            {/* Right side: Actions */}
+            <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap justify-end shrink-0">
+              <Button
+                size="sm"
+                onClick={handleAddJudgeForm}
+                disabled={saving}
+                className="bg-blue-500 hover:bg-blue-600 text-white flex-1 sm:flex-none order-1 sm:order-none"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAdd}
+                disabled={saving || !newJudges.some((j) => j.id)}
+                className="flex-1 sm:flex-none order-2 sm:order-none"
+              >
+                {saving ? (
+                  <Loader className="animate-spin h-4 w-4 mr-1" />
+                ) : (
+                  <UserCheck className="h-4 w-4 mr-1" />
+                )}
+                Assign
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

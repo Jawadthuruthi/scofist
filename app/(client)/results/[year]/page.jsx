@@ -336,6 +336,7 @@ function PublicResultsContent() {
   const [showResults, setShowResults] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeProfileTab, setActiveProfileTab] = useState("card"); // 'card' | 'points'
   const [authParticipant, setAuthParticipant] = useState(null);
   const [publishedResultsCount, setPublishedResultsCount] = useState(0);
 
@@ -648,6 +649,21 @@ function PublicResultsContent() {
     );
   }
 
+  // Filter for Individual programs that are NOT Secondary division
+  const eligiblePointsPrograms = authParticipant?.programs?.filter(
+    (p) => p.type === "Individual" && p.divisionType !== "Secondary"
+  ) || [];
+
+  const participantTotalPoints = eligiblePointsPrograms.reduce((sum, p) => sum + (p.points || 0), 0);
+  
+  const totalStagePoints = eligiblePointsPrograms
+    .filter(p => p.category === "Stage")
+    .reduce((sum, p) => sum + (p.points || 0), 0);
+    
+  const totalOffStagePoints = eligiblePointsPrograms
+    .filter(p => p.category === "Off-Stage")
+    .reduce((sum, p) => sum + (p.points || 0), 0);
+
   return (
     <div className="min-h-screen bg-[#0d0906] text-white flex flex-col selection:bg-[#d4af37] selection:text-black">
       {/* ── TOP BAR ── */}
@@ -692,19 +708,119 @@ function PublicResultsContent() {
 
         <main className="flex-1 overflow-y-auto relative w-full">
           {authParticipant && searchParams.get("view") !== "results" ? (
-            <div className="p-4 pt-8 md:p-8 max-w-5xl mx-auto min-h-screen">
-              <div className="flex justify-center items-center mb-6">
-                <h2 className="text-2xl font-black text-white text-center">My Participant Card</h2>
+            <div className="p-4 pt-8 md:p-8 max-w-4xl mx-auto min-h-screen">
+              
+              {/* Profile Tabs Toggle */}
+              <div className="flex bg-[#1a120e] p-1.5 rounded-2xl border border-white/10 mb-8 max-w-[320px] mx-auto shadow-xl">
+                <button
+                  onClick={() => setActiveProfileTab("card")}
+                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                    activeProfileTab === "card"
+                      ? "bg-gradient-to-r from-[#d4af37] to-[#df6b43] text-black shadow-lg"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  My Card
+                </button>
+                <button
+                  onClick={() => setActiveProfileTab("points")}
+                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                    activeProfileTab === "points"
+                      ? "bg-gradient-to-r from-[#d4af37] to-[#df6b43] text-black shadow-lg"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  My Points
+                </button>
               </div>
-              <div className="w-full max-w-[400px] md:max-w-2xl mx-auto flex justify-center">
-                <ParticipantCard
-                  participant={authParticipant}
-                  festivalSettings={settings?.festival}
-                  viewMode="both"
-                  layout="row"
-                  baseUrl={typeof window !== "undefined" ? window.location.origin : ""}
-                />
-              </div>
+
+              {/* Tab Content: Participant Card */}
+              {activeProfileTab === "card" && (
+                <div className="w-full max-w-[400px] md:max-w-2xl mx-auto flex justify-center animate-in fade-in zoom-in-95 duration-300">
+                  <ParticipantCard
+                    participant={authParticipant}
+                    festivalSettings={settings?.festival}
+                    viewMode="both"
+                    layout="row"
+                    baseUrl={typeof window !== "undefined" ? window.location.origin : ""}
+                  />
+                </div>
+              )}
+
+              {/* Tab Content: My Points */}
+              {activeProfileTab === "points" && (
+                <div className="w-full max-w-2xl mx-auto animate-in fade-in zoom-in-95 duration-300">
+                  <div className="rounded-2xl overflow-hidden border border-[#d4af37]/30 shadow-2xl bg-gradient-to-br from-[#1a120e] to-[#2a1b12] flex flex-col p-6 sm:p-8">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-[#d4af37]/20 p-3.5 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.15)]">
+                          <Trophy className="w-8 h-8 text-[#d4af37]" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-black text-white">My Points</h2>
+                          <p className="text-sm font-medium text-white/50">Detailed Breakdown</p>
+                          {/* Mobile-only points breakdown */}
+                          <div className="text-[10px] text-white/40 mt-2 flex sm:hidden gap-2 font-medium uppercase tracking-wider">
+                            <span>Stage <strong className="text-white/80">{totalStagePoints}</strong></span>
+                            <span className="w-1 h-1 rounded-full bg-white/20 self-center"></span>
+                            <span>Off-Stage <strong className="text-white/80">{totalOffStagePoints}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right flex flex-col items-end">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-4xl sm:text-5xl font-black text-[#d4af37] tracking-tight">{participantTotalPoints}</span>
+                          <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Pts</span>
+                        </div>
+                        {/* Desktop-only points breakdown */}
+                        <div className="text-[11px] text-white/40 mt-1.5 hidden sm:flex gap-2.5 font-medium uppercase tracking-wider">
+                          <span>Stage <strong className="text-white/80">{totalStagePoints}</strong></span>
+                          <span className="w-1 h-1 rounded-full bg-white/20 self-center"></span>
+                          <span>Off-Stage <strong className="text-white/80">{totalOffStagePoints}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {eligiblePointsPrograms.length > 0 ? (
+                        eligiblePointsPrograms.map((prog, idx) => (
+                          <div key={idx} className="bg-black/20 border border-white/5 rounded-xl p-4 flex items-center justify-between gap-4 hover:bg-black/40 transition-colors">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-white text-sm sm:text-base truncate">
+                                {prog.name || "Unknown Program"}
+                                {prog.category && (
+                                  <span className="text-white/40 font-normal text-xs ml-1.5">({prog.category})</span>
+                                )}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1.5 text-xs">
+                                {prog.grade && prog.grade !== "—" && (
+                                  <span className="bg-white/10 text-white/90 px-2 py-1 rounded-md font-bold">
+                                    {prog.grade.toLowerCase() === "f" || prog.grade.toLowerCase() === "no grade" 
+                                      ? "No Grade" 
+                                      : `Grade ${prog.grade}`}
+                                  </span>
+                                )}
+                                {prog.rank && prog.rank !== "—" && (
+                                  <span className="bg-[#d4af37]/20 text-[#d4af37] px-2 py-1 rounded-md font-bold">Rank {prog.rank}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="shrink-0 flex flex-col items-center justify-center bg-black/40 rounded-lg py-2 px-4 border border-white/5">
+                              <span className="text-2xl font-black text-[#d4af37] leading-none">{prog.points || 0}</span>
+                              <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Pts</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center text-white/40 text-sm py-12 bg-black/10 rounded-xl border border-dashed border-white/10">
+                          No programs assigned yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           ) : (
             <>
@@ -879,6 +995,7 @@ function PublicResultsContent() {
     </div>
   );
 }
+
 
 export default function ResultsYearPage() {
   return (

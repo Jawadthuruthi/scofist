@@ -80,6 +80,7 @@ export default async function NonRespondersPage() {
         />
         <DynamicDataTable
           resource="participants"
+          printTitle="NON-RESPONDERS"
           initialData={[]}
           columnsConfig={columnsConfig}
           apiKey={apiKey}

@@ -569,9 +569,45 @@ const DataTableComponent = ({
     [setGlobalFilter, isApiFiltering, debouncedApiFilterUpdate]
   );
 
+  const generatedPrintTitle = useMemo(() => {
+    if (toppersOnly && enableMonthYearFilter && filterMonth && filterYear) {
+      return `Attendance Toppers - ${new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} ${filterYear}`;
+    }
+
+    let baseTitle = printTitle || resource;
+    let activeFilterLabels = [];
+
+    if (filters && filterConfig) {
+      filterConfig.forEach(config => {
+        const filterState = filters[config.id];
+        const filterVal = filterState?.value !== undefined ? filterState.value : filterState;
+        
+        if (filterVal !== undefined && filterVal !== null && filterVal !== "") {
+          if (config.inputType === "dateRange") return; // Date range is in subTitle
+
+          if (config.options) {
+            const opt = config.options.find(o => String(o.value) === String(filterVal));
+            if (opt) {
+              activeFilterLabels.push(opt.label);
+            }
+          } else {
+            activeFilterLabels.push(String(filterVal));
+          }
+        }
+      });
+    }
+
+    let fullTitle = baseTitle;
+    if (activeFilterLabels.length > 0) {
+      fullTitle += ` - ${activeFilterLabels.join(" - ")}`;
+    }
+
+    return fullTitle;
+  }, [printTitle, resource, filters, filterConfig, toppersOnly, enableMonthYearFilter, filterMonth, filterYear]);
+
   const handlePrint = useReactToPrint({
     contentRef: tableRef,
-    documentTitle: printTitle ? printTitle : resource,
+    documentTitle: generatedPrintTitle,
   });
 
   const handleDownloadPDF = async () => {
@@ -593,7 +629,7 @@ const DataTableComponent = ({
 
     await Promise.all(imagePromises);
     const options = {
-      filename: `${printTitle ? printTitle : resource}.pdf`,
+      filename: `${generatedPrintTitle}.pdf`,
       margin: 0.5,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
@@ -667,7 +703,7 @@ const DataTableComponent = ({
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, printTitle || resource || "Sheet1");
-    XLSX.writeFile(workbook, `${printTitle ? printTitle : resource}.xlsx`);
+    XLSX.writeFile(workbook, `${generatedPrintTitle}.xlsx`);
   };
 
   // Table columns
@@ -1495,69 +1531,7 @@ const DataTableComponent = ({
       >
         <PrintHeader
           apiKey={apiKey}
-          title={(() => {
-            if (toppersOnly && enableMonthYearFilter && filterMonth && filterYear) {
-              return `Attendance Toppers - ${new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} ${filterYear}`;
-            }
-
-            let baseTitle = printTitle || resource;
-            let classLabel = "";
-            let batchLabel = "";
-            let teamLabel = "";
-            let teamLeader = "";
-
-            if (filters["teamId"] && filterConfig) {
-              const config = filterConfig.find(f => f.id === "teamId");
-              if (config && config.options) {
-                const val = typeof filters["teamId"] === 'object' ? filters["teamId"].value : filters["teamId"];
-                const opt = config.options.find(o => String(o.value) === String(val));
-                if (opt) {
-                  teamLabel = opt.label;
-                  teamLeader = opt.leaderName || "N/A";
-                }
-              }
-            }
-
-            if (filters["classId"] && filterConfig) {
-              const config = filterConfig.find(f => f.id === "classId");
-              if (config && config.options) {
-                const val = typeof filters["classId"] === 'object' ? filters["classId"].value : filters["classId"];
-                const opt = config.options.find(o => String(o.value) === String(val));
-                if (opt) classLabel = opt.label;
-              }
-            }
-
-            if (filters["batchId"] && filterConfig) {
-              const config = filterConfig.find(f => f.id === "batchId");
-              if (config && config.options) {
-                const val = typeof filters["batchId"] === 'object' ? filters["batchId"].value : filters["batchId"];
-                const opt = config.options.find(o => String(o.value) === String(val));
-                if (opt) batchLabel = opt.label;
-              }
-            }
-
-            if (teamLabel) {
-              return (
-                <div className="flex flex-col items-center justify-center p-1">
-                  <h2 className="text-2xl font-bold uppercase tracking-wide">TEAM {teamLabel}</h2>
-                  {teamLeader && teamLeader !== "N/A" && (
-                    <h3 className="text-base font-semibold uppercase mt-0.5 text-black/80">Leader: {teamLeader}</h3>
-                  )}
-                  {classLabel && <p className="text-sm font-medium mt-0.5">Class: {classLabel}</p>}
-                </div>
-              );
-            }
-
-            if (classLabel && batchLabel) {
-              return `${baseTitle} - ${classLabel} (${batchLabel})`;
-            } else if (classLabel) {
-              return `${baseTitle} - ${classLabel}`;
-            } else if (batchLabel) {
-              return `${baseTitle} - ${batchLabel}`;
-            }
-
-            return baseTitle;
-          })()}
+          title={generatedPrintTitle}
           subTitle={(() => {
             const dateFilterConfig = filterConfig.find(f => f.inputType === "dateRange");
             if (!dateFilterConfig) return null;
@@ -2154,7 +2128,7 @@ const DataTableComponent = ({
                                 )}
                               </TableCell>
                               <TableCell className="text-center text-sm py-3 font-medium text-indigo-600">
-                                {rec.grade || "—"}
+                                {(!rec.grade || rec.grade.toLowerCase() === 'f') ? "—" : rec.grade}
                               </TableCell>
                               <TableCell className="text-center text-sm py-3 font-medium">
                                 {rec.rank || "—"}
