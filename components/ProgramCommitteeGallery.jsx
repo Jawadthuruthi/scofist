@@ -739,7 +739,7 @@ export default function ProgramCommitteeGallery({ activeYear = "2026" }) {
 
       {/* ── UPLOAD PHOTOS MODAL ── */}
       <Dialog open={isPhotoUploadOpen} onOpenChange={setIsPhotoUploadOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 [&>button.absolute]:hidden border shadow-2xl">
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col p-0 gap-0 [&>button.absolute]:hidden border shadow-2xl">
           <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
             <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 flex items-center justify-center">
               <Camera className="w-5 h-5" />
@@ -764,7 +764,7 @@ export default function ProgramCommitteeGallery({ activeYear = "2026" }) {
             </DialogClose>
           </DialogHeader>
 
-          <div className="p-5 overflow-y-auto space-y-4 flex-1">
+          <div className="p-5 space-y-4 flex-1">
             {/* Category Selector */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -925,7 +925,7 @@ export default function ProgramCommitteeGallery({ activeYear = "2026" }) {
 
       {/* ── ADD VIDEO LINK MODAL ── */}
       <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-lg max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 [&>button.absolute]:hidden border shadow-2xl">
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-lg max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col p-0 gap-0 [&>button.absolute]:hidden border shadow-2xl">
           <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
             <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 flex items-center justify-center">
               <Video className="w-5 h-5" />
@@ -950,8 +950,8 @@ export default function ProgramCommitteeGallery({ activeYear = "2026" }) {
             </DialogClose>
           </DialogHeader>
 
-          <form onSubmit={handleAddVideo} className="flex flex-col flex-1 overflow-hidden">
-            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+          <form onSubmit={handleAddVideo} className="flex flex-col flex-1">
+            <div className="p-5 space-y-4 flex-1">
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1 block">
                   Video Link / URL <span className="text-destructive">*</span>
@@ -1105,7 +1105,7 @@ export default function ProgramCommitteeGallery({ activeYear = "2026" }) {
 
       {/* ── EDIT ITEM MODAL ── */}
       <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 [&>button.absolute]:hidden border shadow-2xl">
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col p-0 gap-0 [&>button.absolute]:hidden border shadow-2xl">
           <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
             <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 flex items-center justify-center">
               <Edit2 className="w-5 h-5" />
@@ -1131,7 +1131,7 @@ export default function ProgramCommitteeGallery({ activeYear = "2026" }) {
           </DialogHeader>
 
           {editingItem && (
-            <div className="p-5 overflow-y-auto space-y-3.5 flex-1">
+            <div className="p-5 space-y-3.5 flex-1">
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1 block">
                   Title
