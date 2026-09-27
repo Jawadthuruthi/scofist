@@ -41,6 +41,7 @@ import {
   Play,
   Pause,
   RotateCcw,
+  X,
 } from "lucide-react";
 
 const playAlertSound = () => {
@@ -143,6 +144,8 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [submittedMarksPreview, setSubmittedMarksPreview] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [gradeSchemes, setGradeSchemes] = useState([]);
+  const [gradeLoading, setGradeLoading] = useState(false);
 
   const currentAssignmentIdRef = useRef(null);
   const [dismissingAlert, setDismissingAlert] = useState(false);
@@ -157,6 +160,10 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const thankYouTimerRef = useRef(null);
   const prevAlertActiveRef = useRef(false);
   const prevWelcomeOpenRef = useRef(false);
+  const timerWidgetRef = useRef(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
+  const [timerPos, setTimerPos] = useState({ x: null, y: null });
 
   useEffect(() => {
     return () => {
@@ -165,6 +172,32 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       }
     };
   }, []);
+
+  // Fetch grade schemes eagerly on mount so they are ready when the tab is clicked
+  useEffect(() => {
+    if (gradeSchemes.length > 0) return;
+    const fetchGradeSchemes = async () => {
+      setGradeLoading(true);
+      try {
+        const params = new URLSearchParams({ limit: "100" });
+        if (activeYear) params.set("year", activeYear);
+        const res = await fetch(`/api/grade-scheme?${params}`, {
+          headers: { "api-key": apiKey },
+        });
+        const data = await res.json();
+        if (data.gradeSchemes) {
+          // Sort by points descending
+          const sorted = [...data.gradeSchemes].sort((a, b) => b.points - a.points);
+          setGradeSchemes(sorted);
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setGradeLoading(false);
+      }
+    };
+    fetchGradeSchemes();
+  }, [gradeSchemes.length, apiKey, activeYear]);
 
   useEffect(() => {
     let interval;
@@ -577,65 +610,69 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         role="dialog"
         aria-modal="true"
       >
-        <div className="bg-background text-foreground border border-border rounded-2xl shadow-2xl w-[92vw] sm:max-w-md md:max-w-lg p-5 sm:p-6 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
-          <div className="text-center space-y-1.5 mb-3 shrink-0">
-            <div className="mx-auto w-12 h-12 rounded-full bg-green-100 dark:bg-green-950/60 flex items-center justify-center text-green-600 dark:text-green-400 mb-1">
-              <Trophy className="h-6 w-6" />
+        <div className="bg-background text-foreground border border-border rounded-2xl sm:rounded-2xl shadow-2xl w-[92vw] sm:max-w-md md:max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in zoom-in-95 duration-200">
+          <div className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 flex items-center justify-center">
+              <Trophy className="w-5 h-5" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold">
-              Submitted Marks Preview
-            </h2>
-            {submittedMarksPreview && (
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">
-                  {submittedMarksPreview.programName}
-                </span>
-                {submittedMarksPreview.divisionName && (
-                  <span> ({submittedMarksPreview.divisionName})</span>
-                )}
-              </p>
-            )}
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <h2 className="text-lg md:text-xl font-bold m-0 text-foreground">
+                Submitted Marks Preview
+              </h2>
+              {submittedMarksPreview && (
+                <p className="text-xs text-muted-foreground m-0">
+                  <span className="font-semibold text-foreground">
+                    {submittedMarksPreview.programName}
+                  </span>
+                  {submittedMarksPreview.divisionName && (
+                    <span> ({submittedMarksPreview.divisionName})</span>
+                  )}
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Table of Top Marks */}
-          <div className="flex-1 min-h-0 overflow-y-auto border rounded-xl my-2">
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow className="bg-muted/50 sticky top-0">
-                  <TableHead className="w-12 text-center font-bold">#</TableHead>
-                  <TableHead className="text-center font-bold">Code Letter</TableHead>
-                  <TableHead className="text-center font-bold w-28">Mark</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {submittedMarksPreview?.items?.length > 0 ? (
-                  submittedMarksPreview.items.map((item, idx) => (
-                    <TableRow key={idx} className="hover:bg-muted/30">
-                      <TableCell className="text-center font-medium text-muted-foreground text-sm">
-                        {idx + 1}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="secondary" className="font-mono text-sm px-3 py-0.5">
-                          {item.codeLetter || "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center font-mono font-bold text-base text-foreground">
-                        {item.marks}
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 flex flex-col">
+            {/* Table of Top Marks */}
+            <div className="border rounded-xl">
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="bg-muted/50 sticky top-0">
+                    <TableHead className="w-12 text-center font-bold">#</TableHead>
+                    <TableHead className="text-center font-bold">Code Letter</TableHead>
+                    <TableHead className="text-center font-bold w-28">Mark</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {submittedMarksPreview?.items?.length > 0 ? (
+                    submittedMarksPreview.items.map((item, idx) => (
+                      <TableRow key={idx} className="hover:bg-muted/30">
+                        <TableCell className="text-center font-medium text-muted-foreground text-sm">
+                          {idx + 1}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="text-sm px-3 py-0.5">
+                            {item.codeLetter || "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-base text-foreground">
+                          {item.marks}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
+                        No marks recorded
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
-                      No marks recorded
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
-          <div className="flex justify-center mt-4 shrink-0">
+          <div className="px-5 py-4 bg-muted/20 border-t flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
             <Button
               onClick={() => setShowPreviewModal(false)}
               className="w-full sm:w-auto min-w-36 h-10 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white"
@@ -710,7 +747,9 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
     <div className="space-y-5">
 
       {/* ── Top Header Section ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className={`grid grid-cols-1 gap-5 ${
+        showTimerPopup ? "lg:grid-cols-[1fr_auto_1fr]" : "lg:grid-cols-2"
+      }`}>
         {/* Unified Division + Program Info Card */}
         <div className="flex flex-col items-center justify-center text-center gap-2 rounded-xl border bg-muted/40 px-2 sm:px-6 py-6 h-full">
           <p className="text-sm md:text-base uppercase tracking-widest text-muted-foreground font-medium">
@@ -720,7 +759,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
             {assignment.programName}
           </h2>
           
-          {/* Timer Section */}
+          {/* Timer input row */}
           <div className="flex flex-row items-center justify-center gap-1.5 sm:gap-3 mt-1.5 sm:mt-2 bg-background px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border shadow-sm w-fit max-w-full mx-auto">
             <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground font-medium">
               <Timer className="h-4 w-4 shrink-0" />
@@ -756,7 +795,8 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
               <span className="text-sm text-muted-foreground">sec</span>
             </div>
             
-            <div className="flex items-center">
+            {/* Start/Resume button — hidden when timer is shown */}
+            <div className={`flex items-center ${showTimerPopup ? "hidden" : ""}`}>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -770,13 +810,82 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
           </div>
         </div>
 
+        {/* ── Desktop Live Timer Column (only when timer is running) ── */}
+        {showTimerPopup && (
+          <div className="hidden lg:flex flex-col rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 h-full w-56 overflow-hidden">
+            {/* Header row */}
+            <div className="flex items-center justify-between px-4 py-2 bg-blue-100 dark:bg-blue-900/50 border-b border-blue-200 dark:border-blue-800 shrink-0">
+              <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                <Timer className="h-4 w-4" />
+                <span className="text-xs font-semibold uppercase tracking-widest">Timer</span>
+              </div>
+              <button
+                onClick={handleCancelTimer}
+                className="text-muted-foreground hover:text-red-500 transition-colors p-0.5 rounded"
+                title="Close timer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {/* Body */}
+            <div className="flex flex-col items-center justify-center gap-2 px-4 py-2 flex-1">
+              <span
+                className={`font-mono text-5xl font-black tracking-tight transition-colors ${
+                  timeLeft === 0
+                    ? "text-red-500 animate-pulse"
+                    : timeLeft <= 30
+                    ? "text-amber-500"
+                    : "text-blue-700 dark:text-blue-300"
+                }`}
+              >
+                {formatTime(timeLeft)}
+              </span>
+              {timeLeft === 0 && (
+                <span className="text-xs text-red-500 font-semibold animate-pulse">Time&apos;s up!</span>
+              )}
+              <div className="flex gap-2 w-full">
+                <Button
+                  onClick={handlePauseResumeTimer}
+                  size="sm"
+                  className={`w-1/2 h-8 font-semibold text-xs ${
+                    timerActive
+                      ? "bg-amber-500 hover:bg-amber-600 text-white"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  }`}
+                  disabled={timeLeft === 0}
+                >
+                  {timerActive ? (
+                    <><Pause className="h-3.5 w-3.5 mr-1 fill-current" />Pause</>
+                  ) : (
+                    <><Play className="h-3.5 w-3.5 mr-1 fill-current" />Resume</>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setTimerActive(false);
+                    setTimeLeft(timerMinutes * 60 + timerSeconds);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="w-1/2 h-8 font-semibold text-xs"
+                  title="Reset to start"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />Reset
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Instructions (Desktop) ── */}
-        <div className="hidden lg:flex flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 gap-4 h-full">
+        <div className={`hidden lg:flex flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl gap-4 h-full ${
+          showTimerPopup ? "py-8 px-5" : "py-6 px-4"
+        }`}>
           <div className="text-sm sm:text-base text-blue-700 dark:text-blue-400 text-center sm:text-left">
             <strong className="block mb-2 text-base">Instructions:</strong>
             <ul className="list-disc pl-5 leading-relaxed text-left space-y-1 inline-block sm:block">
               <li>Enter marks (0–100) and comments for each participant.</li>
-              <li>Once submitted, marks cannot be changed.</li>
+              <li>Once submitted, marks cann&apos;t be changed.</li>
             </ul>
           </div>
         </div>
@@ -786,9 +895,9 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
         {/* Left Column: Rules, Topics, and Criteria */}
         <div className="lg:sticky lg:top-4 space-y-4">
-          {(assignment.programId?.rules || assignment.programId?.topics || (assignment.programId?.criteria && assignment.programId.criteria.length > 0)) && (
+          {(assignment.programId?.rules || assignment.programId?.topics || (assignment.programId?.criteria && assignment.programId.criteria.length > 0) || true) && (
             <div className="bg-muted/30 border rounded-lg p-4 text-sm text-muted-foreground">
-              <div className="grid grid-cols-3 gap-2 mb-5 pb-4 border-b border-muted">
+              <div className="grid grid-cols-4 gap-2 mb-5 pb-4 border-b border-muted">
                 <Button 
                   size="sm"
                   variant={activeTab === "Criteria" ? "default" : "outline"} 
@@ -815,6 +924,14 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                   disabled={!assignment.programId?.topics}
                 >
                   Topics
+                </Button>
+                <Button 
+                  size="sm"
+                  variant={activeTab === "Grade" ? "default" : "outline"} 
+                  className="w-full"
+                  onClick={() => setActiveTab("Grade")}
+                >
+                  Grade
                 </Button>
               </div>
 
@@ -861,6 +978,44 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                   </div>
                 </div>
               )}
+              {activeTab === "Grade" && (
+                <div className="mb-2">
+                  <strong className="text-foreground block mb-3 text-sm md:text-base">Grade Scheme:</strong>
+                  {gradeLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader className="animate-spin h-5 w-5 mr-2 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Loading grade scheme...</span>
+                    </div>
+                  ) : gradeSchemes.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No grade scheme configured.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left border-collapse border border-muted bg-background">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="px-4 py-2 font-medium border-b border-muted">Mark Range</th>
+                            <th className="px-4 py-2 font-medium border-b border-muted w-20 text-center">Grade</th>
+                            <th className="px-4 py-2 font-medium border-b border-muted w-20 text-center">Points</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {gradeSchemes.map((gs, i) => (
+                            <tr key={gs._id || i} className="border-b border-muted last:border-0 hover:bg-muted/20">
+                              <td className="px-4 py-2 text-sm">{gs.markRange}</td>
+                              <td className="px-4 py-2 text-center">
+                                <span className="inline-block px-2 py-0.5 rounded bg-primary/10 text-primary font-bold text-sm">{gs.grade}</span>
+                              </td>
+                              <td className="px-4 py-2 text-center font-medium">{gs.points}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -870,7 +1025,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
               <strong className="block mb-2 text-base">Instructions:</strong>
               <ul className="list-disc pl-5 leading-relaxed text-left space-y-1 inline-block sm:block">
                 <li>Enter marks (0–100) and comments for each participant.</li>
-                <li>Once submitted, marks cannot be changed.</li>
+                <li>Once submitted, marks cann&apos;t be changed.</li>
               </ul>
             </div>
           </div>
@@ -1013,25 +1168,34 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
             </Button>
 
             <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Submit Marks?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You are about to submit marks for{" "}
-                    <strong>{assignment.programName}</strong>.{" "}
-                    {!allFilled && (
-                      <span className="text-amber-600 font-medium">
-                        {participantRows.length - filledCount} participant(s) have
-                        no marks — they will be skipped.{" "}
-                      </span>
-                    )}
-                    Once submitted you cannot edit the marks.
-                  </AlertDialogDescription>
+              <AlertDialogContent className="rounded-2xl sm:rounded-2xl max-w-lg overflow-y-auto flex flex-col p-0 gap-0 border shadow-2xl">
+                <AlertDialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-500 shrink-0 flex items-center justify-center">
+                    <Send className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 text-left space-y-0.5 min-w-0">
+                    <AlertDialogTitle className="text-lg md:text-xl font-bold m-0 text-foreground">
+                      Submit Marks?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-xs text-muted-foreground m-0">
+                      You are about to submit marks for <strong>{assignment.divisionName ? `${assignment.divisionName} - ${assignment.programName}` : assignment.programName}</strong>.{" "}
+                      {!allFilled && (
+                        <span className="text-amber-600 font-medium ml-1">
+                          {participantRows.length - filledCount} participant(s) have
+                          no marks — they will be skipped.{" "}
+                        </span>
+                      )}
+                      Once submitted you cann&apos;t edit the marks.
+                    </AlertDialogDescription>
+                  </div>
+                  <button
+                    onClick={() => setShowSubmitConfirm(false)}
+                    className="p-1 rounded-md text-muted-foreground hover:bg-muted"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                  <AlertDialogCancel onClick={() => setShowSubmitConfirm(false)}>
-                    Cancel
-                  </AlertDialogCancel>
+                <AlertDialogFooter className="px-5 py-4 bg-muted/20 border-t flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0 mt-0">
                   <Button
                     type="button"
                     variant="secondary"
@@ -1169,50 +1333,121 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       {/* ── Submitted Marks Preview Popup ── */}
       {renderPreviewModal()}
 
-      {/* ── Big Timer Popup ── */}
-      <AlertDialog open={showTimerPopup}>
-        <AlertDialogContent className="w-[90vw] sm:max-w-md md:max-w-lg p-8 sm:p-10 md:p-12 text-center border-blue-200 bg-white dark:bg-slate-900 dark:border-blue-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center">
-          <AlertDialogHeader className="text-center sm:text-center items-center w-full">
-            <AlertDialogTitle className="text-muted-foreground font-medium text-lg uppercase tracking-widest mb-4">
-              Program Timer
-            </AlertDialogTitle>
-            <div className="font-mono text-6xl sm:text-7xl md:text-8xl font-black text-slate-900 dark:text-white my-6 tracking-tight">
-              {formatTime(timeLeft)}
+      {/* ── Floating Draggable Timer Widget (mobile only) ── */}
+      {showTimerPopup && (
+        <div
+          ref={timerWidgetRef}
+          style={{
+            position: "fixed",
+            top: timerPos.y !== null ? timerPos.y : "50%",
+            left: timerPos.x !== null ? timerPos.x : "50%",
+            transform: timerPos.x === null ? "translate(-50%, -50%)" : "none",
+            zIndex: 9999,
+            touchAction: "none",
+            userSelect: "none",
+          }}
+          className="lg:hidden w-72 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col"
+          onPointerMove={(e) => {
+            if (!isDraggingRef.current) return;
+            const newX = e.clientX - dragOffsetRef.current.x;
+            const newY = e.clientY - dragOffsetRef.current.y;
+            const el = timerWidgetRef.current;
+            const maxX = window.innerWidth - el.offsetWidth;
+            const maxY = window.innerHeight - el.offsetHeight;
+            setTimerPos({
+              x: Math.max(0, Math.min(newX, maxX)),
+              y: Math.max(0, Math.min(newY, maxY)),
+            });
+          }}
+          onPointerUp={() => {
+            isDraggingRef.current = false;
+          }}
+          onPointerCancel={() => {
+            isDraggingRef.current = false;
+          }}
+        >
+          {/* Drag handle — touch/hold here to drag */}
+          <div
+            className="flex items-center justify-between px-4 py-2 bg-blue-50 dark:bg-blue-950/60 cursor-grab active:cursor-grabbing select-none"
+            style={{ touchAction: "none" }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              isDraggingRef.current = true;
+              const rect = timerWidgetRef.current.getBoundingClientRect();
+              dragOffsetRef.current = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+              };
+              // Capture on the outer widget so move/up events always arrive there
+              timerWidgetRef.current.setPointerCapture(e.pointerId);
+            }}
+          >
+            <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+              <Timer className="h-4 w-4" />
+              <span className="text-xs font-semibold uppercase tracking-widest">Timer</span>
             </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-center mt-6 w-full flex-col sm:flex-row gap-3 sm:gap-4">
-            <Button
-              onClick={handlePauseResumeTimer}
-              size="lg"
-              className={`w-full sm:w-auto min-w-32 h-14 text-xl font-bold ${
-                timerActive 
-                  ? "bg-amber-500 hover:bg-amber-600 text-white" 
-                  : "bg-green-600 hover:bg-green-700 text-white"
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={handleCancelTimer}
+              className="text-muted-foreground hover:text-red-500 transition-colors p-0.5 rounded"
+              title="Close timer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Time display */}
+          <div className="flex flex-col items-center justify-center py-5 px-4">
+            <span
+              className={`font-mono text-6xl font-black tracking-tight transition-colors ${
+                timeLeft === 0
+                  ? "text-red-500 animate-pulse"
+                  : timeLeft <= 30
+                  ? "text-amber-500"
+                  : "text-slate-900 dark:text-white"
               }`}
             >
+              {formatTime(timeLeft)}
+            </span>
+            {timeLeft === 0 && (
+              <span className="text-xs text-red-500 font-semibold mt-1 animate-pulse">Time&apos;s up!</span>
+            )}
+          </div>
+
+          {/* Controls */}
+          <div className="flex gap-2 px-4 pb-4">
+            <Button
+              onClick={handlePauseResumeTimer}
+              size="sm"
+              className={`flex-1 h-9 font-semibold ${
+                timerActive
+                  ? "bg-amber-500 hover:bg-amber-600 text-white"
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
+              disabled={timeLeft === 0}
+            >
               {timerActive ? (
-                <>
-                  <Pause className="h-6 w-6 mr-2 fill-current" />
-                  Pause
-                </>
+                <><Pause className="h-4 w-4 mr-1.5 fill-current" />Pause</>
               ) : (
-                <>
-                  <Play className="h-6 w-6 mr-2 fill-current" />
-                  Resume
-                </>
+                <><Play className="h-4 w-4 mr-1.5 fill-current" />Resume</>
               )}
             </Button>
             <Button
-              onClick={handleCancelTimer}
+              onClick={() => {
+                setTimerActive(false);
+                setTimeLeft(timerMinutes * 60 + timerSeconds);
+              }}
               variant="outline"
-              size="lg"
-              className="w-full sm:w-auto min-w-32 h-14 text-xl font-bold border-2"
+              size="sm"
+              className="flex-1 h-9 font-semibold"
+              title="Reset to start"
             >
-              Cancel
+              <RotateCcw className="h-4 w-4 mr-1.5" />Reset
             </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </div>
+        </div>
+      )}
     </div>
   </div>
 );
