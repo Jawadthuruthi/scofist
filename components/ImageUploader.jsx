@@ -766,12 +766,11 @@ const ImageUploader = ({
         </div>
       )}
 
-      {/* Upload, Change Image, and optional Submit buttons */}
-      <div className={`grid gap-2 w-full ${hasSubmitButton ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      <div className="flex flex-wrap gap-2 w-full pb-6">
         {selectedFile && (
           <Button
             type="button"
-            className="flex-1"
+            className="flex-1 min-w-[140px]"
             onClick={handleUpload}
             disabled={disabled || loading}
           >
@@ -790,7 +789,7 @@ const ImageUploader = ({
         )}
 
         {displayedImage && !selectedFile && !loading && (
-          <div className="flex gap-2 w-full">
+          <div className="flex gap-2 flex-1 min-w-[140px]">
             <Button
               type="button"
               variant="outline"
@@ -818,7 +817,7 @@ const ImageUploader = ({
         {!displayedImage && !selectedFile && (
           <Button
             type="button"
-            className="flex-1"
+            className="flex-1 min-w-[140px]"
             onClick={handleSelectClick}
             disabled={disabled}
           >
@@ -830,7 +829,7 @@ const ImageUploader = ({
         {hasSubmitButton && (
           <Button 
             type="submit" 
-            className="flex-1 bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200" 
+            className="flex-1 min-w-[140px] bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200" 
             disabled={disabled || isSubmitting || !!selectedFile}
           >
             {isSubmitting ? (

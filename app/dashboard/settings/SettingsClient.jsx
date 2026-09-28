@@ -49,11 +49,13 @@ const institutionFormField = [
     label: "Institution Name",
     placeholder: "Enter institution name",
     required: true,
+    className: "col-span-2 md:col-span-1 mt-2 md:mt-4",
   },
   {
     name: "fullName",
     label: "Full Name",
     placeholder: "Enter full name",
+    className: "col-span-2 md:col-span-1 mt-2 md:mt-4",
   },
   {
     name: "tagline",
@@ -321,11 +323,13 @@ const sparkFormField = [
     label: "Organisation Name",
     placeholder: "Enter organisation name",
     required: true,
+    className: "col-span-2 md:col-span-1 mt-2 md:mt-4",
   },
   {
     name: "spark_fullName",
     label: "Full Name",
     placeholder: "Enter full name",
+    className: "col-span-2 md:col-span-1 mt-2 md:mt-4",
   },
   {
     name: "spark_tagline",
@@ -377,11 +381,13 @@ const orgFormField = [
     label: "Organisation Name",
     placeholder: "Enter organisation name",
     required: true,
+    className: "col-span-2 md:col-span-1 mt-2 md:mt-4",
   },
   {
     name: "org_fullName",
     label: "Full Name",
     placeholder: "Enter full name",
+    className: "col-span-2 md:col-span-1 mt-2 md:mt-4",
   },
   {
     name: "org_tagline",
@@ -444,7 +450,7 @@ export default function SettingsClient({
             description="Configure Your Institution Details"
             hideDefaultSubmit={true}
           />
-          <div className="mt-8">
+          <div className="mt-8 max-w-md">
             <FormComponent
               formFields={appIconFormField}
               apiKey={apiKey}
