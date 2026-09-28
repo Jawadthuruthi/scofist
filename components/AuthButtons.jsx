@@ -28,7 +28,7 @@ export default function AuthButtons() {
       >
         <Button
           size="lg"
-          className="w-full py-6 sm:w-40 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
+          className="w-full py-6 sm:w-40 bg-emerald-700 hover:bg-white text-white hover:text-emerald-700 border-2 border-emerald-700 rounded-lg shadow-md hover:shadow-lg transition-all"
         >
           {isAuthenticated ? "Dashboard" : "Login"}
         </Button>
@@ -38,7 +38,7 @@ export default function AuthButtons() {
           <Button
             size="lg"
             variant="outline"
-            className="w-full py-6 sm:w-40 border-2 border-emerald-700 text-emerald-700 bg-transparent hover:bg-emerald-50 rounded-lg shadow-sm hover:shadow-md transition-all"
+            className="w-full py-6 sm:w-40 bg-emerald-700 hover:bg-white text-white hover:text-emerald-700 border-2 border-emerald-700 rounded-lg shadow-md hover:shadow-lg transition-all"
           >
             Apply Now
           </Button>

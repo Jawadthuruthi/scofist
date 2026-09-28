@@ -123,11 +123,11 @@ export default function LoginPage() {
       }
     >
       <div
-        className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-1000 ${
+        className={`absolute inset-0 bg-black/50 transition-opacity duration-1000 ${
           backgroundImage ? "opacity-100" : "opacity-0"
         }`}
       />
-      <Card className="z-10 w-full max-w-md shadow-2xl bg-white/90 backdrop-blur-xl border-white/20 animate-in fade-in zoom-in duration-500">
+      <Card className="z-10 w-full max-w-md shadow-none bg-transparent border-none animate-in fade-in zoom-in duration-500">
         <CardHeader className="space-y-4 pb-2 text-center">
           {institutionLogo && (
             <div className="flex justify-center mb-2 animate-in slide-in-from-top duration-700 delay-200">
@@ -139,43 +139,43 @@ export default function LoginPage() {
             </div>
           )}
           <div className="space-y-1">
-            <CardTitle className="text-2xl font-black tracking-tight text-gray-900">
+            <CardTitle className="text-2xl font-black tracking-tight text-white drop-shadow-md">
               {institutionName || "Sign In"}
             </CardTitle>
-            <p className="text-sm text-gray-500 font-medium tracking-wide uppercase">
+            <p className="text-sm text-gray-200 font-medium tracking-wide uppercase drop-shadow-md">
               Official Access Portal
             </p>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
           <Tabs defaultValue="otp" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="otp">OTP Login</TabsTrigger>
-              <TabsTrigger value="student">Student Login</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-black/40 text-gray-200 border-none rounded-lg p-1">
+              <TabsTrigger value="otp" className="data-[state=active]:bg-white/20 data-[state=active]:text-white rounded-md transition-all">OTP Login</TabsTrigger>
+              <TabsTrigger value="student" className="data-[state=active]:bg-white/20 data-[state=active]:text-white rounded-md transition-all">Student Login</TabsTrigger>
             </TabsList>
             <TabsContent value="otp">
               <form onSubmit={handleSendOTP} className="space-y-4 pt-4">
                 <div className="space-y-1">
-                  <Label>Email</Label>
+                  <Label className="text-gray-200 drop-shadow-md">Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300" />
                     <Input
                       type="email"
                       placeholder="you@example.com"
                       required
                       autoFocus
-                      className={`pl-10 ${formErrors.otp ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                      className={`pl-10 bg-black/30 border-none text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-white/50 ${formErrors.otp ? "ring-1 ring-red-500 focus-visible:ring-red-500" : ""}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                 </div>
                 {formErrors.otp && (
-                  <p className="text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
+                  <p className="text-xs font-bold text-red-400 animate-in fade-in slide-in-from-top-1 drop-shadow-md">
                     {formErrors.otp}
                   </p>
                 )}
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/10 backdrop-blur-md" disabled={loading}>
                   {loading ? (
                     <Loader className="animate-spin mr-2" />
                   ) : (
@@ -187,18 +187,18 @@ export default function LoginPage() {
             <TabsContent value="student">
               <form onSubmit={handleStudentLogin} className="space-y-4 pt-4">
                 <div className="space-y-1">
-                  <Label>Student ID</Label>
+                  <Label className="text-gray-200 drop-shadow-md">Student ID</Label>
                   <Input
                     type="text"
                     placeholder="Enter Student ID"
                     required
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    className={`uppercase ${formErrors.student ? "border-red-500" : ""}`}
+                    className={`uppercase bg-black/30 border-none text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-white/50 ${formErrors.student ? "ring-1 ring-red-500" : ""}`}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Date of Birth</Label>
+                  <Label className="text-gray-200 drop-shadow-md">Date of Birth</Label>
                   <Input
                     type="text"
                     placeholder="DD-MM-YYYY"
@@ -220,15 +220,15 @@ export default function LoginPage() {
                       setDateOfBirth(val);
                     }}
                     maxLength={10}
-                    className={formErrors.student ? "border-red-500 focus-visible:ring-red-500" : ""}
+                    className={`bg-black/30 border-none text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-white/50 ${formErrors.student ? "ring-1 ring-red-500" : ""}`}
                   />
                 </div>
                 {formErrors.student && (
-                  <p className="text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
+                  <p className="text-xs font-bold text-red-400 animate-in fade-in slide-in-from-top-1 drop-shadow-md">
                     {formErrors.student}
                   </p>
                 )}
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/10 backdrop-blur-md" disabled={loading}>
                   {loading ? <Loader className="animate-spin mr-2" /> : "Login"}
                 </Button>
               </form>
@@ -295,3 +295,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
