@@ -4,8 +4,8 @@ import Settings from "@/models/Settings";
 export const dynamic = "force-dynamic";
 
 export default async function manifest() {
-  let appIconUrl = "/favicon.svg";
-  let appIconType = "image/svg+xml";
+  let appIconUrl = "/sdc_seal.png";
+  let appIconType = "image/png";
 
   try {
     await connectToDB();
