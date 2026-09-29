@@ -11,7 +11,7 @@
   "kv_namespaces": [
     {
       "binding": "NEXT_CACHE_WORKERS_KV",
-      "id": "YOUR_KV_NAMESPACE_ID"
+      "id": "5329a217bd604ddd89c4b08cf3f775ba"
     }
   ]
 }
