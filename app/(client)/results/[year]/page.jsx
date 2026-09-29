@@ -981,7 +981,7 @@ function PublicResultsContent() {
           )}
 
           {/* ── FOOTER ── */}
-          <PublicFooter settings={settings} institutionName={festivalVenue} year={yearParam} />
+          <PublicFooter settings={settings} institutionName={festivalVenue} year={yearParam} variant="festival" />
         </main>
       </div>
 

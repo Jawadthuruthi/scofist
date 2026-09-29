@@ -343,6 +343,7 @@ function GalleryContent({ initialYear }) {
   const yearParam =
     (params?.year ? decodeURIComponent(params.year) : null) ||
     searchParams.get("year") ||
+    initialYear ||
     "2026";
 
   const yearQuery = `year=${encodeURIComponent(yearParam)}`;
@@ -944,6 +945,7 @@ function GalleryContent({ initialYear }) {
         settings={settings}
         institutionName={festivalVenue}
         year={yearParam}
+        variant="festival"
       />
 
       {/* ── LOGIN MODAL ── */}

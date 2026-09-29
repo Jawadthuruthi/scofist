@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Instagram, MessageCircle, Youtube } from "lucide-react";
 
-export default function Footer({ settings, institutionName, year }) {
+export default function Footer({ settings, institutionName, year, variant }) {
   const ensureAbsoluteUrl = (url) => {
     if (!url) return "";
     const trimmed = url.trim();
@@ -81,26 +81,53 @@ export default function Footer({ settings, institutionName, year }) {
             <nav aria-label="Footer navigation">
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href={`/results/${festivalYear}`} className="hover:text-white transition">
-                    Results
-                  </Link>
-                </li>
-                <li>
-                  <Link href={`/team-points/${festivalYear}`} className="hover:text-white transition">
-                    Team Points
-                  </Link>
-                </li>
-                <li>
-                  <Link href={`/schedule/${festivalYear}`} className="hover:text-white transition">
-                    Schedule
-                  </Link>
-                </li>
-                <li>
-                  <Link href={`/gallery/${festivalYear}`} className="hover:text-white transition">
-                    Gallery
-                  </Link>
-                </li>
+                {variant === "festival" ? (
+                  <>
+                    <li>
+                      <Link href={`/results/${festivalYear}`} className="hover:text-white transition">
+                        Results
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href={`/team-points/${festivalYear}`} className="hover:text-white transition">
+                        Team Points
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href={`/schedule/${festivalYear}`} className="hover:text-white transition">
+                        Schedule
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href={`/gallery/${festivalYear}`} className="hover:text-white transition">
+                        Gallery
+                      </Link>
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li>
+                      <a href="https://www.sa-adiya.org" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+                        Sa-adiya
+                      </a>
+                    </li>
+                    <li>
+                      <a href="https://www.scofist.com/updates" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+                        Updates
+                      </a>
+                    </li>
+                    <li>
+                      <a href="https://www.scofist.com/articles" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+                        Articles
+                      </a>
+                    </li>
+                    <li>
+                      <a href="https://www.scofist.com/gallery" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+                        Gallery
+                      </a>
+                    </li>
+                  </>
+                )}
               </ul>
             </nav>
 

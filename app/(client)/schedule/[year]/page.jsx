@@ -869,6 +869,7 @@ function ScheduleContent({ initialYear }) {
         settings={settings}
         institutionName={festivalVenue}
         year={yearParam}
+        variant="festival"
       />
 
       {/* ── LOGIN MODAL ── */}
