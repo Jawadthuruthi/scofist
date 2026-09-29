@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+import { Suspense } from "react";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function OTPVerification() {
+function OTPVerificationContent() {
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -276,5 +277,13 @@ export default function OTPVerification() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+export default function OTPVerification() {
+  return (
+    <Suspense fallback={null}>
+      <OTPVerificationContent />
+    </Suspense>
   );
 }
