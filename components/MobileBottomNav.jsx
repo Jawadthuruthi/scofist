@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useParams, useSearchParams } from "next/navigation";
@@ -6,22 +6,10 @@ import { Trophy, Flame, Calendar, Camera, User } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function MobileBottomNav() {
+  // All hooks MUST be called unconditionally before any early returns
   const pathname = usePathname();
   const params = useParams();
-
-  // Only show on the 4 specific pages
-  const isTargetPage =
-    pathname?.startsWith("/results") ||
-    pathname?.startsWith("/team-points") ||
-    pathname?.startsWith("/schedule") ||
-    pathname?.startsWith("/gallery");
-
-  if (!isTargetPage) return null;
-
-  const safeYear = params?.year ? decodeURIComponent(params.year) : "2026";
   const searchParams = useSearchParams();
-  const viewParam = searchParams?.get("view");
-
   const [authParticipant, setAuthParticipant] = useState(null);
 
   useEffect(() => {
@@ -36,6 +24,18 @@ export default function MobileBottomNav() {
     window.addEventListener("auth-change", loadAuth);
     return () => window.removeEventListener("auth-change", loadAuth);
   }, []);
+
+  // Only show on the 4 specific pages
+  const isTargetPage =
+    pathname?.startsWith("/results") ||
+    pathname?.startsWith("/team-points") ||
+    pathname?.startsWith("/schedule") ||
+    pathname?.startsWith("/gallery");
+
+  if (!isTargetPage) return null;
+
+  const safeYear = params?.year ? decodeURIComponent(params.year) : "2026";
+  const viewParam = searchParams?.get("view");
 
   const baseNavItems = [
     {
@@ -64,7 +64,7 @@ export default function MobileBottomNav() {
     },
   ];
 
-  const navItems = authParticipant 
+  const navItems = authParticipant
     ? [
         {
           icon: User,
