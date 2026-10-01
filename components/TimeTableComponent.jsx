@@ -68,7 +68,6 @@ const daysOfWeek = [
   "Friday",
   "Saturday",
 ];
-const currentDay = daysOfWeek[new Date().getDay()];
 
 // Absentees Dialog Component
 const AbsenteesDialog = ({
@@ -375,7 +374,7 @@ const EditLeaveReasonDialog = ({ open, onOpenChange, leaveRecord, apiKey, onSucc
 };
 
 // Bulk Leave Reason Dialog (for College Admin — column heading or row heading click)
-const BulkLeaveReasonDialog = ({ open, onOpenChange, mode, label, slots, apiKey, onSuccess }) => {
+const BulkLeaveReasonDialog = ({ open, onOpenChange, mode, label, slots, apiKey, onSuccess, targetDateObj }) => {
   // mode: "period" (column) or "class" (row)
   // slots: array of { classId, classLabel, periodNumber, teacherId, teacherName, existingLeaveRecord }
   const [reason, setReason] = useState("");
@@ -410,7 +409,7 @@ const BulkLeaveReasonDialog = ({ open, onOpenChange, mode, label, slots, apiKey,
             teacherId: slot.teacherId,
             classId: slot.classId,
             periodNumber: slot.periodNumber,
-            date: new Date().toISOString(),
+            date: targetDateObj ? targetDateObj.toISOString() : new Date().toISOString(),
             leaveReason: reason,
           })
         )
@@ -530,8 +529,12 @@ const TimeTableComponent = ({
   hideEmptyClassRows = false,
   role,
   settings,
+  date,
 }) => {
   const timeTableRef = useRef(null);
+  
+  const targetDateObj = useMemo(() => date ? new Date(date) : new Date(), [date]);
+  const currentDay = useMemo(() => daysOfWeek[targetDateObj.getDay()], [targetDateObj]);
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [currentDialogData, setCurrentDialogData] = useState({});
   const [currentAbsenteesList, setCurrentAbsenteesList] = useState([]);
@@ -548,7 +551,7 @@ const TimeTableComponent = ({
 
 
   const { useFetchItems: useFetchLeaveRecords } = useCrud("teachers-leave-record", apiKey);
-  const todayDateStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const todayDateStr = useMemo(() => (date ? new Date(date) : new Date()).toISOString().split("T")[0], [date]);
   const liveLeaveQuery = useFetchLeaveRecords(
     0, 0,
     { date: todayDateStr },
@@ -1069,6 +1072,7 @@ const TimeTableComponent = ({
         absenteesList={currentAbsenteesList}
         useShortName={useShortName}
         apiKey={apiKey}
+        date={targetDateObj}
       />
 
       {/* Edit Leave Reason Dialog (College Admin) */}
@@ -1089,6 +1093,7 @@ const TimeTableComponent = ({
         slots={bulkLeaveSlots}
         apiKey={apiKey}
         onSuccess={() => liveLeaveQuery.refetch()}
+        targetDateObj={targetDateObj}
       />
 
       {!hidePrintButton && (

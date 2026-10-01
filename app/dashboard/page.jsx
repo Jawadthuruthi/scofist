@@ -12,7 +12,7 @@ const istTime = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
 
 const currentDay = WEEKDAYS[istTime.getDay()];
 
-const API_ENDPOINTS = [
+const getApiEndpoints = (dateStr) => [
   {
     pathname: "classes",
   },
@@ -31,7 +31,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "attendances",
-    searchParams: `date=${istTime.toISOString().split("T")[0]}`,
+    searchParams: `date=${dateStr}`,
   },
   {
     pathname: "settings",
@@ -44,7 +44,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "teachers-leave-record",
-    searchParams: `date=${istTime.toISOString().split("T")[0]}`,
+    searchParams: `date=${dateStr}`,
     key: "teachersLeaveRecord",
   },
   {
@@ -54,8 +54,12 @@ const API_ENDPOINTS = [
   },
 ];
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }) {
   try {
+    const query = await searchParams;
+    const dateParam = query?.date;
+    const dateStr = dateParam || istTime.toISOString().split("T")[0];
+    
     const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
@@ -88,7 +92,7 @@ export default async function DashboardPage() {
       teachersLeaveRecord,
       updatesData,
     ] = await Promise.all(
-      API_ENDPOINTS.map((endpoint) =>
+      getApiEndpoints(dateStr).map((endpoint) =>
         fetchData(
           endpoint.pathname,
           endpoint.searchParams,

@@ -55,7 +55,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 import useCrud from "@/hooks/use-crud";
@@ -1416,6 +1416,7 @@ const LazyTimeTable = memo(
     useShortName = false,
     hideEmptyClassRows = false,
     settings,
+    date,
   }) => (
     <Suspense fallback={<ChartSkeleton height="400px" />}>
       <TimeTableComponent
@@ -1430,6 +1431,7 @@ const LazyTimeTable = memo(
         useShortName={useShortName}
         hideEmptyClassRows={hideEmptyClassRows}
         settings={settings}
+        date={date}
       />
     </Suspense>
   )
@@ -1453,7 +1455,19 @@ export default function Dashboard({
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get("date");
   const isClient = useIsClient();
+
+  const getISTDate = () => {
+    const today = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    return new Date(today.getTime() + istOffset);
+  };
+  
+  const currentDateObj = useMemo(() => dateParam ? new Date(dateParam) : getISTDate(), [dateParam]);
+  const currentDateStr = useMemo(() => formatDateForDisplay(currentDateObj), [currentDateObj]);
+  const dateYYYYMMDD = useMemo(() => currentDateObj.toISOString().split("T")[0], [currentDateObj]);
 
   const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
   const { useFetchItems: useFetchTeachersLeaveRecord } = useCrud("teachers-leave-record", apiKey);
@@ -1468,8 +1482,7 @@ export default function Dashboard({
     }
   );
   
-  const todaysDate = useMemo(() => new Date().toISOString().split("T")[0], []);
-  const teachersLeaveRecordQuery = useFetchTeachersLeaveRecord(0, 0, { date: todaysDate });
+  const teachersLeaveRecordQuery = useFetchTeachersLeaveRecord(0, 0, { date: dateYYYYMMDD });
   const liveTeachersLeaveRecord = useMemo(() => {
     return teachersLeaveRecordQuery.data?.teachersLeaveRecord || teachersLeaveRecord;
   }, [teachersLeaveRecordQuery.data?.teachersLeaveRecord, teachersLeaveRecord]);
@@ -1634,7 +1647,6 @@ export default function Dashboard({
     }
   }, [fetchStudentsQuery.error]);
 
-  const currentDate = formatDateForDisplay(new Date());
   const hasClasses = classes.length > 0;
 
   if (activeRole === "Literary Leader") {
@@ -1642,7 +1654,7 @@ export default function Dashboard({
       <div className="flex flex-col space-y-4">
         <Header
           title="DASHBOARD"
-          subTitle={currentDate}
+          subTitle={currentDateStr}
           icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
           className="mb-0 pb-0"
         />
@@ -1656,7 +1668,7 @@ export default function Dashboard({
       <div className="flex flex-col space-y-6">
         <Header
           title="DASHBOARD"
-          subTitle={currentDate}
+          subTitle={currentDateStr}
           icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
         />
       </div>
@@ -1693,7 +1705,7 @@ export default function Dashboard({
         <div className="flex flex-col space-y-4">
           <Header
             title="DASHBOARD"
-            subTitle={currentDate}
+            subTitle={currentDateStr}
             icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
           />
 
@@ -1737,7 +1749,7 @@ export default function Dashboard({
         <div className="flex flex-col space-y-6">
           <Header
             title="DASHBOARD"
-            subTitle={currentDate}
+            subTitle={currentDateStr}
             icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
           />
           <div className="flex flex-col h-[calc(100vh-8rem)] items-center justify-center p-4 text-center space-y-4">
@@ -1771,7 +1783,7 @@ export default function Dashboard({
     <div className="flex flex-col">
       <Header
         title="DASHBOARD"
-        subTitle={currentDate}
+        subTitle={currentDateStr}
         icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
       />
 
@@ -1788,14 +1800,50 @@ export default function Dashboard({
           {/* TimeTable Section */}
           {showTimeTable && (
             <Card className="border-t-4 border-t-primary">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5" />
-                  <span>Today's Schedule</span>
-                </CardTitle>
-                <CardDescription>
-                  View Today's scheduled classes
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div className="space-y-1.5">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Calendar className="h-5 w-5" />
+                    <span>Today's Schedule</span>
+                  </CardTitle>
+                  <CardDescription>
+                    View scheduled classes for {currentDateStr}
+                  </CardDescription>
+                </div>
+                
+                {/* Navigation buttons for College Admin */}
+                {activeRole === "College Admin" && (
+                  <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-none hover:bg-muted"
+                      onClick={() => {
+                        const prevDate = new Date(currentDateObj);
+                        prevDate.setDate(prevDate.getDate() - 1);
+                        router.push(`/dashboard?date=${prevDate.toISOString().split("T")[0]}`);
+                      }}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="py-1.5 px-3 md:px-6 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
+                      {currentDateStr}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-none hover:bg-muted"
+                      disabled={dateYYYYMMDD === getISTDate().toISOString().split("T")[0]}
+                      onClick={() => {
+                        const nextDate = new Date(currentDateObj);
+                        nextDate.setDate(nextDate.getDate() + 1);
+                        router.push(`/dashboard?date=${nextDate.toISOString().split("T")[0]}`);
+                      }}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 <LazyTimeTable
@@ -1809,6 +1857,7 @@ export default function Dashboard({
                   useShortName={true}
                   hideEmptyClassRows={false}
                   settings={settings}
+                  date={dateYYYYMMDD}
                 />
               </CardContent>
             </Card>
