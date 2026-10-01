@@ -30,10 +30,9 @@ export async function GET(req) {
       process.env.VAPID_PRIVATE_KEY
     );
 
-    // 1. Verify cron secret
-    const { searchParams } = new URL(req.url);
-    const cronSecret = searchParams.get("cronSecret");
-    if (cronSecret !== process.env.CRON_SECRET) {
+    // 1. Verify cron secret from Authorization header
+    const authHeader = req.headers.get("authorization");
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
