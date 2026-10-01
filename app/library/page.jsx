@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { fetchData } from "@/lib/utils";
 import PublicLibraryClient from "@/components/PublicLibraryClient";
 import PublicHeader from "@/components/PublicHeader"; // Assuming this exists, if not we can use a basic nav or remove it

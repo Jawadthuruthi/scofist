@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import ErrorPage from "@/components/ErrorPage";
 import { cookies } from "next/headers";
 import Header from "@/components/Header";

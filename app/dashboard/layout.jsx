@@ -5,6 +5,8 @@ import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseUser, fetchData } from "@/lib/utils";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Layout({ children }) {
   const headerStore = await headers();
   const cookiesStore = await cookies();
