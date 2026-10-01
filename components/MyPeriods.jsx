@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight, TrendingUp, BookOpenCheck, Save, X } from "lucide-react";
+import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight, ChevronLeft, TrendingUp, BookOpenCheck, Save, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -118,10 +118,12 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
 
   const handleNavigation = (slot) => {
     router.push(
-      `/dashboard/attendances?classId=${slot.classId?._id}&batchId=${slot.classId.batchId}&subjectId=${slot.subjectId?._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`
+      `/dashboard/attendances?classId=${slot.classId?._id}&batchId=${slot.classId.batchId}&subjectId=${slot.subjectId?._id}&periodNumber=${slot.periodNumber}&day=${slot.day}&date=${formattedDate}`
     );
   };
   // Use refs or state instead of deriving too many values
+  const [selectedDateState, setSelectedDateState] = useState(getISTDate());
+
   const days = useMemo(
     () => [
       "Sunday",
@@ -134,9 +136,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     ],
     []
   );
-  const today = useMemo(() => days[getISTDate().getDay()], [days]);
-  const date = useMemo(() => formatDateForDisplay(getISTDate()), []);
-  const formattedDate = useMemo(() => formatDate(getISTDate()), []);
+  const today = useMemo(() => days[selectedDateState.getDay()], [days, selectedDateState]);
+  const date = useMemo(() => formatDateForDisplay(selectedDateState), [selectedDateState]);
+  const formattedDate = useMemo(() => formatDate(selectedDateState), [selectedDateState]);
 
   const { useFetchItems } = useCrud("timeTables", apiKey);
   const { useFetchItems: useFetchPeriods } = useCrud("periods", apiKey);
@@ -750,8 +752,37 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         </div>
         <div className="flex flex-row items-center justify-between w-full mb-3 gap-2 overflow-hidden">
           {/* Day selector */}
-          <div className="py-1.5 px-4 md:px-8 border border-border rounded-lg text-sm md:text-base font-medium whitespace-nowrap shrink-0">
-            {date}
+          <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r"
+              onClick={() => {
+                const newDate = new Date(selectedDateState);
+                newDate.setDate(newDate.getDate() - 1);
+                setSelectedDateState(newDate);
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="py-1.5 px-3 md:px-6 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
+              {date}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l"
+              onClick={() => {
+                const newDate = new Date(selectedDateState);
+                newDate.setDate(newDate.getDate() + 1);
+                if (newDate <= getISTDate()) {
+                  setSelectedDateState(newDate);
+                }
+              }}
+              disabled={formatDate(selectedDateState) === formatDate(getISTDate())}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
           
           {isPrincipal && (

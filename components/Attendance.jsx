@@ -58,11 +58,12 @@ const Attendance = ({ apiKey, teacherId }) => {
       subjectId: searchParams.get("subjectId"),
       periodNumber: searchParams.get("periodNumber"),
       day: searchParams.get("day"),
+      dateParam: searchParams.get("date"),
     }),
     [searchParams]
   );
 
-  const { classId, batchId, subjectId, periodNumber, day } = queryParams;
+  const { classId, batchId, subjectId, periodNumber, day, dateParam } = queryParams;
 
   // State management
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [classDetails, setClassDetails] = useState(null);
   const [periodDetails, setPeriodDetails] = useState(null);
   const [attendanceExists, setAttendanceExists] = useState(false);
-  const [attendanceDate] = useState(formatDate(new Date()));
+  const [attendanceDate] = useState(dateParam || formatDate(new Date()));
   const [existingAttendanceId, setExistingAttendanceId] = useState(null);
   const [studentLeaveStatus, setStudentLeaveStatus] = useState({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
@@ -90,7 +91,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const quickLeavePopupRef = useRef(null);
   const { handleDownload: handleQuickLeaveDownload } = useDownloadPopup(quickLeavePopupRef, `Leave_Reason.jpeg`);
 
-  const today = useMemo(() => formatDateForDisplay(new Date()), []);
+  const today = useMemo(() => formatDateForDisplay(dateParam ? new Date(dateParam) : new Date()), [dateParam]);
 
   const successPopupRef = useRef(null);
   const { handleDownload: handleSuccessDownload } = useDownloadPopup(
