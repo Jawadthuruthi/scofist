@@ -44,11 +44,19 @@ export default function Footer({ settings, institutionName, year, variant }) {
               <h3 className="text-lg font-semibold mb-4">{institutionName || "Sadiya Dawa College"}</h3>
             )}
             <p className="text-sm opacity-80 leading-relaxed pr-4">
-              <span className="font-semibold text-white/90">
-                {settings?.festival?.festival_name || "Esperanza"} {festivalYear || settings?.festival?.festival_year || "2026"}, 11th Edition.
-              </span>
-              <br />
-              {festivalYear} September 17-20
+              {variant === "festival" ? (
+                <>
+                  <span className="font-semibold text-white/90">
+                    {settings?.festival?.festival_name || "Esperanza"} {festivalYear || settings?.festival?.festival_year || "2026"}, 11th Edition.
+                  </span>
+                  <br />
+                  {festivalYear} September 17-20
+                </>
+              ) : (
+                <span className="font-semibold text-white/90">
+                  Since 2006.
+                </span>
+              )}
             </p>
           </div>
 
@@ -168,7 +176,7 @@ export default function Footer({ settings, institutionName, year, variant }) {
         </div>
       </div>
       <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-gray-700 text-sm text-center opacity-70">
-        © {festivalYear || settings?.festival?.festival_year || "2026"} {institutionName || "Sa-adiya College of Integrated Studies"}. All rights reserved.
+        © {new Date().getFullYear()} {institutionName || "Sa-adiya College of Integrated Studies"}. All rights reserved.
       </div>
     </footer>
   );
