@@ -2254,18 +2254,41 @@ const DataTableComponent = ({
       </Dialog>
       {/* Success Popup */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="sm:max-w-md w-[85vw] rounded-2xl">
-          <div className="flex flex-col items-center justify-center py-6 space-y-4 text-center">
-            <div className="rounded-full bg-emerald-100 p-3 animate-in zoom-in duration-300">
-              <CheckCircle2 className="h-12 w-12 text-emerald-600" />
+        <DialogContent
+          className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+        >
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div
+              className={`p-2 rounded-lg ${
+                successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
+                  ? "bg-amber-100 dark:bg-amber-900/30"
+                  : "bg-emerald-100 dark:bg-emerald-900/30"
+              }`}
+            >
+              <CheckCircle2 className={`h-5 w-5 ${
+                successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+              }`} />
             </div>
-            <div className="space-y-2">
-              <DialogTitle className="text-xl font-bold text-emerald-900">{successConfig.title}</DialogTitle>
-              <p className="text-muted-foreground whitespace-pre-wrap">
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className={`text-xl font-bold m-0 ${
+                successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+              }`}>
+                {successConfig.title || "Success"}
+              </DialogTitle>
+              <DialogDescription className="m-0 text-xs text-muted-foreground whitespace-pre-wrap">
                 {successConfig.message}
-              </p>
+              </DialogDescription>
             </div>
-          </div>
+            <DialogClose 
+              className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" 
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </div>

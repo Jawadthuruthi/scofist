@@ -63,7 +63,7 @@ import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";
-import { formatDateForDisplay, sortClasses } from "@/lib/utils";
+import { formatDateForDisplay, sortClasses, getISTDate } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -1459,11 +1459,7 @@ export default function Dashboard({
   const dateParam = searchParams.get("date");
   const isClient = useIsClient();
 
-  const getISTDate = () => {
-    const today = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    return new Date(today.getTime() + istOffset);
-  };
+
   
   const currentDateObj = useMemo(() => dateParam ? new Date(dateParam) : getISTDate(), [dateParam]);
   const currentDateStr = useMemo(() => formatDateForDisplay(currentDateObj), [currentDateObj]);
@@ -1800,20 +1796,20 @@ export default function Dashboard({
           {/* TimeTable Section */}
           {showTimeTable && (
             <Card className="border-t-4 border-t-primary">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardHeader className="flex flex-col md:flex-row md:items-center justify-between pb-2 gap-3">
                 <div className="space-y-1.5">
                   <CardTitle className="flex items-center space-x-2">
                     <Calendar className="h-5 w-5" />
                     <span>Today's Schedule</span>
                   </CardTitle>
                   <CardDescription>
-                    View scheduled classes for {currentDateStr}
+                    View scheduled classes for Today
                   </CardDescription>
                 </div>
                 
                 {/* Navigation buttons for College Admin */}
                 {activeRole === "College Admin" && (
-                  <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
+                  <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0 self-start md:self-auto">
                     <Button
                       variant="ghost"
                       size="icon"
