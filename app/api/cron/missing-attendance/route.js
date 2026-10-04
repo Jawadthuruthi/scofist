@@ -8,6 +8,7 @@ import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import Settings from "@/models/Settings";
 import DailyTimetableSnapshot from "@/models/DailyTimetableSnapshot";
+import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 
 
 // Helper to get consistent YYYY-MM-DD from any Date source using IST Time
@@ -183,6 +184,17 @@ export async function GET(req) {
       )
     );
 
+    // Fetch teachers leave records to exclude them from missing alerts
+    const leaveRecords = await TeachersLeaveRecord.find({
+      date: { $gte: startOfDay, $lte: endOfDay },
+    }).lean();
+
+    const markedLeaves = new Set(
+      leaveRecords.map(
+        (lr) => `${lr.teacherId}_${lr.classId}_${lr.periodNumber}`
+      )
+    );
+
     // 5. Find missing attendances
     const missingByTeacher = {};
 
@@ -191,7 +203,9 @@ export async function GET(req) {
       if (!expected.teacherId || !expected.classId || !expected.subjectId) continue;
 
       const key = `${expected.classId}_${expected.subjectId}_${expected.periodNumber}`;
-      if (!markedPeriods.has(key)) {
+      const leaveKey = `${expected.teacherId}_${expected.classId}_${expected.periodNumber}`;
+      
+      if (!markedPeriods.has(key) && !markedLeaves.has(leaveKey)) {
         if (!missingByTeacher[expected.teacherId]) {
           missingByTeacher[expected.teacherId] = [];
         }

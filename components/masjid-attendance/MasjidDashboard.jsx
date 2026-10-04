@@ -297,7 +297,8 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
             return;
         }
 
-        let msg = `*Absentees - ${selectedCategory} (${displayDate})*\n\n`;
+        let totalAbsenteesCount = 0;
+        let classSections = [];
         let hasAbsentees = false;
 
         classes.forEach((cls) => {
@@ -306,12 +307,13 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
                 const absentees = record.attendanceData.filter((r) => r.status === "ABSENT" || r.status === "LEAVE");
                 if (absentees.length > 0) {
                     hasAbsentees = true;
-                    msg += `*${cls.name}*\n`;
+                    totalAbsenteesCount += absentees.length;
+                    let sectionMsg = `*${cls.name}*\n`;
                     absentees.forEach((r, idx) => {
                         const leaveText = r.status === "LEAVE" ? " (Leave)" : "";
-                        msg += `${idx + 1}. ${r.studentId?.name || "Unknown Student"}${leaveText}\n`;
+                        sectionMsg += `${idx + 1}. ${r.studentId?.name || "Unknown Student"}${leaveText}\n`;
                     });
-                    msg += `\n`;
+                    classSections.push(sectionMsg);
                 }
             }
         });
@@ -320,6 +322,9 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
             toast.info("No absentees to send.");
             return;
         }
+
+        const title = `*ABSENTEES LIST - ${selectedCategory.toUpperCase()}*`;
+        const msg = `${title}\n${displayDate}\n*Total Absentees:* ${totalAbsenteesCount}\n\n${classSections.join("\n\n")}`;
 
         const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
         const a = document.createElement("a");
@@ -340,7 +345,8 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
             return;
         }
 
-        let msg = `*Absentees - ${selectedCategory} - ${cls.name} (${displayDate})*\n\n`;
+        const title = `*ABSENTEES LIST - ${selectedCategory.toUpperCase()} - ${cls.name}*`;
+        let msg = `${title}\n${displayDate}\n*Total Absentees:* ${absentees.length}\n\n`;
         absentees.forEach((r, idx) => {
             const leaveText = r.status === "LEAVE" ? " (Leave)" : "";
             msg += `${idx + 1}. ${r.studentId?.name || "Unknown Student"}${leaveText}\n`;

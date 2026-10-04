@@ -200,7 +200,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
             ? `*ABSENTEES LIST - ${sessionCategory.toUpperCase()} (${prayer})*`
             : `*ABSENTEES LIST - ${prayer}*`;
 
-        const message = `${title}\n📅 Date: ${displayDate || formattedDate}\n*Total Absentees:* ${totalAbsenteesCount}\n\n${classSections.join("\n\n")}`;
+        const message = `${title}\n${displayDate || formattedDate}\n*Total Absentees:* ${totalAbsenteesCount}\n\n${classSections.join("\n\n")}`;
 
         const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
         window.open(url, "_blank");

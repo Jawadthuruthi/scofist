@@ -660,7 +660,8 @@ async function handleApiRequest(req) {
     return NextResponse.next();
   }
 
-  if (cronSecret === process.env.CRON_SECRET) {
+  const authHeader = req.headers.get("authorization");
+  if (cronSecret === process.env.CRON_SECRET || authHeader === `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.next();
   }
 
