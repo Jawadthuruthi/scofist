@@ -47,8 +47,9 @@ const formFields = [
     inputType: "image",
     placeholder: "Profile Pic",
     defaultValue: {},
-    className: "md:col-span-2",
     maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
+    section: "Personal Details",
+    className: "[&_.min-h-48]:!min-h-[230px]",
   },
   {
     name: "_id",
@@ -56,7 +57,8 @@ const formFields = [
     type: "text",
     placeholder: "Teacher ID",
     required: true,
-    className: "md:col-span-2",
+    section: "Personal Details",
+    className: "-mt-2 md:-mt-3",
     validators: {
       minLength: 3,
       minLengthMessage: "Teacher ID must be at least 3 characters long",
@@ -72,6 +74,7 @@ const formFields = [
     type: "text",
     placeholder: "Teacher name",
     required: true,
+    section: "Personal Details",
     validators: {
       minLength: 3,
       minLengthMessage: "Name must be at least 3 characters long",
@@ -83,6 +86,19 @@ const formFields = [
     type: "email",
     placeholder: "abcd@gmaill.com",
     required: true,
+    section: "Personal Details",
+  },
+  {
+    name: "dateOfBirth",
+    label: "Date Of Birth",
+    type: "date",
+    placeholder: "Date Of Birth",
+    required: true,
+    section: "Personal Details",
+    validators: {
+      maxDate: new Date().toISOString().split("T")[0],
+      maxDateMessage: "Date of birth cannot be in the future",
+    },
   },
   {
     name: "contactNumber",
@@ -90,6 +106,7 @@ const formFields = [
     type: "text",
     placeholder: "Contact Number",
     required: true,
+    section: "Personal Details",
     validators: {
       pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
       patternMessage: "Invalid contact number format",
@@ -100,21 +117,10 @@ const formFields = [
     label: "Alternative Number",
     type: "text",
     placeholder: "Alternative Number",
+    section: "Personal Details",
     validators: {
       pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
       patternMessage: "Invalid contact number format",
-    },
-  },
-  {
-    name: "dateOfBirth",
-    label: "Date Of Birth",
-    type: "date",
-    placeholder: "Date Of Birth",
-    required: true,
-    className: "md:col-span-2",
-    validators: {
-      maxDate: new Date().toISOString().split("T")[0],
-      maxDateMessage: "Date of birth cannot be in the future",
     },
   },
   {
@@ -123,6 +129,8 @@ const formFields = [
     type: "date",
     placeholder: "Date Of Joining",
     required: true,
+    section: "Personal Details",
+    className: "col-start-2",
     validators: {
       maxDate: new Date().toISOString().split("T")[0],
       maxDateMessage: "Joining date cannot be in the future",
@@ -135,6 +143,8 @@ const formFields = [
     inputType: "multiSelect",
     defaultValue: ["Teacher"],
     required: true,
+    section: "Personal Details",
+    className: "col-start-2",
     options: [
       { label: "College Admin", value: "College Admin" },
       { label: "Org Admin", value: "Org Admin" },
@@ -155,6 +165,8 @@ const formFields = [
     label: "House Name",
     type: "text",
     placeholder: "House Name",
+    section: "Personal Details",
+    className: "col-start-2",
   },
   {
     name: "place",
@@ -162,12 +174,16 @@ const formFields = [
     type: "text",
     placeholder: "Place",
     required: true,
+    section: "Personal Details",
+    className: "col-start-2",
   },
   {
     name: "postOffice",
     label: "Post Office",
     type: "text",
     placeholder: "Post Office",
+    section: "Personal Details",
+    className: "col-start-2",
   },
   {
     name: "district",
@@ -175,6 +191,8 @@ const formFields = [
     type: "text",
     placeholder: "District",
     required: true,
+    section: "Personal Details",
+    className: "col-start-2",
   },
   {
     name: "state",
@@ -182,12 +200,16 @@ const formFields = [
     type: "text",
     placeholder: "State",
     required: true,
+    section: "Personal Details",
+    className: "col-start-2",
   },
   {
     name: "pin",
     label: "Pin Code",
     type: "text",
     placeholder: "Pin Code",
+    section: "Personal Details",
+    className: "col-start-2",
     validators: {
       pattern: "^\\d{6}$",
       patternMessage: "Pin Code must be a 6-digit number",
@@ -200,6 +222,8 @@ const formFields = [
     inputType: "select",
     defaultValue: "Active",
     required: true,
+    section: "Personal Details",
+    className: "col-start-2",
     options: [
       { label: "Active", value: "Active" },
       { label: "Principal", value: "Principal" },
