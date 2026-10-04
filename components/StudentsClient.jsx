@@ -344,7 +344,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
           enableSearch={true}
           filterType="api"
           readOnly={activeRole !== "College Admin" || isReadOnly}
-          tableHeight="calc(100vh - 200px)"
+          tableHeight="calc(100vh - 340px)"
           enableClickToEdit={true}
           clickToEditExcludeColumns={[
             ...filteredColumnsConfig.map(c => c.accessorKey || c.id).filter(id => id !== "_id"),

@@ -46,7 +46,7 @@ export default function TeachersClient({ columnsConfig, formFields, filterConfig
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
           limit={50}
-          tableHeight="calc(100vh - 250px)"
+          tableHeight="calc(100vh - 340px)"
           apiFilters={apiFilters}
           printTitle={"Teachers"}
           enableSearch={true}

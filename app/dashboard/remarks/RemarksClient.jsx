@@ -172,9 +172,14 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
     const [isMyRecordsOpen, setIsMyRecordsOpen] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [myRecordsCount, setMyRecordsCount] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
     if (!isMounted) {
@@ -261,7 +266,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             required: true,
             placeholder: "Select or type status",
             defaultValue: "good",
-            className: "col-span-2 md:col-span-1",
+            className: "col-span-3 md:col-span-1",
         },
     ];
 
@@ -318,7 +323,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 searchBarClassName="w-[200px] sm:w-[280px] lg:w-[400px] xl:w-[500px]"
                 desktopSearchPlaceholder="Search student or number..."
                 extraSearchFields={["studentId", "admissionNumber"]}
-                tableHeight="calc(100vh - 250px)"
+                tableHeight={isMobile ? "calc(100vh - 390px)" : "calc(100vh - 280px)"}
                 additionalProps={{}}
             />
 

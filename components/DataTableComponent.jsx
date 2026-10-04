@@ -1526,7 +1526,7 @@ const DataTableComponent = ({
         ref={tableRef}
         className="rounded-md border overflow-auto shadow-sm table-print relative "
         style={{
-          maxHeight: tableHeight === "auto" ? "none" : tableHeight,
+          maxHeight: (isMobile || tableHeight === "auto") ? "none" : tableHeight,
         }}
       >
         <PrintHeader
