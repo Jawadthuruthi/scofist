@@ -24,6 +24,14 @@ const columnsConfig = [
     maxWidth: 60,
     minWidth: 60,
   },
+  {
+    accessorKey: "profilePic",
+    header: "Profile",
+    type: ["avatar"],
+    width: 70,
+    maxWidth: 70,
+    minWidth: 70,
+  },
   { 
     accessorKey: "name", 
     header: "Name",
@@ -82,7 +90,7 @@ export default function ApplicationsClient({ batches, classes, apiKey, lastStude
       inputType: "image",
       placeholder: "Profile Pic",
       defaultValue: {},
-      className: "md:col-span-2",
+      className: "col-span-3 md:col-span-2",
       maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
     },
     {

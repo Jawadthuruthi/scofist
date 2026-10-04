@@ -766,7 +766,7 @@ const ImageUploader = ({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 w-full pb-6">
+      <div className="flex flex-wrap gap-2 w-full pb-2">
         {selectedFile && (
           <Button
             type="button"
