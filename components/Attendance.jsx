@@ -1012,6 +1012,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                 <FileText className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 z-10" />
                 <div className="relative">
                   <Input
+                    autoFocus
                     id="reason"
                     value={quickLeaveReason}
                     onChange={(e) => setQuickLeaveReason(e.target.value)}

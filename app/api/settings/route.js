@@ -143,6 +143,7 @@ export async function POST(req, res) {
           data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
         occasion: data.occasion ?? existingSettings?.general?.occasion,
         appIcon: data.appIcon ?? existingSettings?.general?.appIcon,
+        allowPreviousDayAttendance: data.allowPreviousDayAttendance ?? existingSettings?.general?.allowPreviousDayAttendance ?? true,
       },
       festival: {
         festivalInfo: {
@@ -457,7 +458,7 @@ export async function PUT(req) {
     }
 
     // General
-    if (data.isWorkingDay !== undefined || data.occasion !== undefined || data.appIcon !== undefined) {
+    if (data.isWorkingDay !== undefined || data.occasion !== undefined || data.appIcon !== undefined || data.allowPreviousDayAttendance !== undefined) {
       // Use dot notation for all general fields to avoid MongoDB $set conflicts
       // with general.nonWorkingDays and general.nonWorkingDaysLog sub-paths
       if (data.isWorkingDay !== undefined) {
@@ -468,6 +469,9 @@ export async function PUT(req) {
       }
       if (data.appIcon !== undefined) {
         updateData["general.appIcon"] = data.appIcon;
+      }
+      if (data.allowPreviousDayAttendance !== undefined) {
+        updateData["general.allowPreviousDayAttendance"] = data.allowPreviousDayAttendance;
       }
 
       // Auto-track non-working days: record today's date in IST when admin marks it as non-working

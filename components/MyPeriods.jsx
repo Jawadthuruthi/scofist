@@ -753,36 +753,40 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         <div className="flex flex-row items-center justify-between w-full mb-3 gap-2 overflow-hidden">
           {/* Day selector */}
           <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r"
-              onClick={() => {
-                const newDate = new Date(selectedDateState);
-                newDate.setDate(newDate.getDate() - 1);
-                setSelectedDateState(newDate);
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            {(isPrincipal || settings?.general?.allowPreviousDayAttendance !== false) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r"
+                onClick={() => {
+                  const newDate = new Date(selectedDateState);
+                  newDate.setDate(newDate.getDate() - 1);
+                  setSelectedDateState(newDate);
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
             <div className="py-1.5 px-3 md:px-6 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
               {date}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l"
-              onClick={() => {
-                const newDate = new Date(selectedDateState);
-                newDate.setDate(newDate.getDate() + 1);
-                if (newDate <= getISTDate()) {
-                  setSelectedDateState(newDate);
-                }
-              }}
-              disabled={formatDate(selectedDateState) === formatDate(getISTDate())}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            {(isPrincipal || settings?.general?.allowPreviousDayAttendance !== false) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l"
+                onClick={() => {
+                  const newDate = new Date(selectedDateState);
+                  newDate.setDate(newDate.getDate() + 1);
+                  if (newDate <= getISTDate()) {
+                    setSelectedDateState(newDate);
+                  }
+                }}
+                disabled={formatDate(selectedDateState) === formatDate(getISTDate())}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
           
           {isPrincipal && (
@@ -1552,6 +1556,7 @@ Teacher: ${teacherName || "Teacher"}`;
               <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
               <div className="relative">
                 <Input
+                  autoFocus
                   placeholder="Select or type a reason..."
                   value={bulkReason}
                   onChange={(e) => {
@@ -1661,6 +1666,7 @@ Teacher: ${teacherName || "Teacher"}`;
               <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
               <div className="relative">
                 <Input
+                  autoFocus
                   placeholder="Select or type a reason..."
                   value={reason}
                   onChange={(e) => {

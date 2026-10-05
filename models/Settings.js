@@ -377,6 +377,10 @@ const SettingsSchema = new Schema(
         trim: true,
         default: "",
       },
+      allowPreviousDayAttendance: {
+        type: Boolean,
+        default: true,
+      },
       // Persistent log of all dates marked as non-working by the college admin
       nonWorkingDays: {
         type: [Date],
@@ -653,7 +657,7 @@ const SettingsSchema = new Schema(
 SettingsSchema.index({}, { unique: true });
 
 // Check if model exists but is missing the new fields (Hot Reload fix)
-if (models.Settings && (!models.Settings.schema.path("idCard.sealImage") || !models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog") || !models.Settings.schema.path("participantsCard.layout") || !models.Settings.schema.path("general.attendanceCategories") || !models.Settings.schema.path("teamPointsSnapshot"))) {
+if (models.Settings && (!models.Settings.schema.path("idCard.sealImage") || !models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog") || !models.Settings.schema.path("participantsCard.layout") || !models.Settings.schema.path("general.attendanceCategories") || !models.Settings.schema.path("teamPointsSnapshot") || !models.Settings.schema.path("general.allowPreviousDayAttendance"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }

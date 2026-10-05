@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import CommitteePostersSettings from "@/components/CommitteePostersSettings";
 import SectionWorkingDayToggle from "@/components/SectionWorkingDayToggle";
+import AttendanceSettingsToggle from "@/components/AttendanceSettingsToggle";
 
 const FormComponent = dynamic(() => import("@/components/FormComponent"), {
   ssr: false,
@@ -438,6 +439,10 @@ export default function SettingsClient({
       {activeRole === "College Admin" && (
         <>
           <SectionWorkingDayToggle
+            apiKey={apiKey}
+            general={general}
+          />
+          <AttendanceSettingsToggle
             apiKey={apiKey}
             general={general}
           />
