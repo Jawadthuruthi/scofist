@@ -513,6 +513,11 @@ const pages = [
     allowedRoles: ["College Admin"],
   },
   {
+    title: "College Gallery",
+    path: "/dashboard/college-gallery",
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Pending Code Letters",
     path: "/dashboard/pending-codeletters",
     allowedRoles: ["Program Committee"],

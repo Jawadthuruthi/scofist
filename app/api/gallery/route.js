@@ -18,6 +18,7 @@ export async function GET(req) {
     const yearParam = searchParams.get("year") || "";
     const typeParam = searchParams.get("type") || "all";
     const categoryParam = searchParams.get("category") || "all";
+    const uploadedByParam = searchParams.get("uploadedBy");
     const activeYear = await getYear(req);
 
     const effectiveYear = yearParam || activeYear || "2026";
@@ -39,6 +40,10 @@ export async function GET(req) {
 
     if (categoryParam !== "all" && categoryParam) {
       query.category = categoryParam;
+    }
+
+    if (uploadedByParam) {
+      query.uploadedBy = uploadedByParam;
     }
 
     // Query gallery items
@@ -73,7 +78,7 @@ export async function GET(req) {
     const is2026OrNewer =
       numericYear === "2026" || parseInt(numericYear, 10) >= 2026;
 
-    if (galleryItems.length === 0 && !is2026OrNewer) {
+    if (galleryItems.length === 0 && !is2026OrNewer && !uploadedByParam) {
       const [settings, updates, articles] = await Promise.all([
         Settings.findOne({}).lean(),
         Update.find({ "image.url": { $exists: true, $ne: "" } })

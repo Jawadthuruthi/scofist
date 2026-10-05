@@ -700,6 +700,12 @@ const items = [
     allowedRoles: ["College Admin"],
   },
   {
+    title: "College Gallery",
+    url: "/dashboard/college-gallery",
+    icon: Camera,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Reset",
     url: "/dashboard/program-management/reset",
     icon: AlertTriangle,

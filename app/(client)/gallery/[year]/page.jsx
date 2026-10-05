@@ -357,7 +357,7 @@ function GalleryContent({ initialYear }) {
 
     Promise.all([
       fetchJSON(`/api/settings?${yearQuery}`).catch(() => ({ settings: null })),
-      fetchJSON(`/api/gallery?${yearQuery}`).catch(() => ({ photos: [], videos: [] })),
+      fetchJSON(`/api/gallery?${yearQuery}&uploadedBy=Program%20Committee`).catch(() => ({ photos: [], videos: [] })),
     ])
       .then(([settingsData, galleryData]) => {
         setSettings(settingsData.settings || null);
