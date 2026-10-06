@@ -152,21 +152,27 @@ function OTPVerificationContent() {
         }`}
       />
       <Card className="z-10 w-full max-w-md shadow-2xl bg-white/90 backdrop-blur-xl border-white/20 animate-in fade-in zoom-in duration-500">
-        <CardHeader className="text-center">
-          {settings?.institution?.logo?.url && (
-            <div className="flex justify-center mb-4">
+        <CardHeader className="pb-2 space-y-4">
+          <div className="flex items-center justify-center gap-4 animate-in slide-in-from-top duration-700 delay-200">
+            {settings?.institution?.logo?.url && (
               <img
                 src={settings.institution.logo.url}
-                alt={settings.institution.name}
-                className="h-16 w-auto object-contain"
+                alt={settings?.institution?.name || "Institution Logo"}
+                className="h-16 w-auto object-contain shrink-0"
               />
-            </div>
-          )}
-          <CardTitle className="text-center text-2xl font-black">
+            )}
+            <CardTitle className="text-xl font-black tracking-tight text-gray-900 leading-tight text-left">
+              {settings?.institution?.name === "Sa-adiya College of Integrated Studies" ? (
+                <>
+                  Sa-adiya College of <br /> Integrated Studies
+                </>
+              ) : (
+                settings?.institution?.name || "Institution"
+              )}
+            </CardTitle>
+          </div>
+          <p className="text-sm text-center text-gray-500 font-bold tracking-wide uppercase">
             Verify Access
-          </CardTitle>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
-            {settings?.institution?.name || "Institution"}
           </p>
         </CardHeader>
         <CardContent>
@@ -233,47 +239,52 @@ function OTPVerificationContent() {
       </Card>
 
       <AlertDialog open={resendSuccess} onOpenChange={setResendSuccess}>
-        <AlertDialogContent className="max-w-sm rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
-          <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
-            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
+        <AlertDialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-sm min-h-[220px] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-none shadow-2xl bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 space-y-0 bg-gray-50/80 sticky top-0 z-20 backdrop-blur-md shrink-0 border-b">
+            <div className="p-2 rounded-lg bg-emerald-100">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             </div>
-            <div className="space-y-2">
-              <AlertDialogTitle className="text-2xl font-black text-gray-900">OTP Resent!</AlertDialogTitle>
-              <AlertDialogDescription className="text-base font-medium text-gray-600">
-                A new verification code has been sent to <br />
-                <span className="font-bold text-gray-800">{email}</span>.
+            <div className="flex-1 text-left space-y-0.5">
+              <AlertDialogTitle className="text-xl font-bold m-0 text-emerald-600">
+                OTP Resent!
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-xs text-gray-500 font-medium">
+                A new verification code has been sent to <span className="font-bold text-gray-800">{email}</span>.
               </AlertDialogDescription>
             </div>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-col gap-2 mt-2">
-            <AlertDialogAction 
-              onClick={() => setResendSuccess(false)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-green-500/25"
-            >
-              Okay, I'll check
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          <div className="p-5 bg-gray-50/50 flex-1 flex flex-col justify-center">
+            <AlertDialogFooter className="flex-col sm:flex-col gap-2">
+              <AlertDialogAction 
+                onClick={() => setResendSuccess(false)}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-emerald-500/25"
+              >
+                Okay, I'll check
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={verifySuccess} onOpenChange={setVerifySuccess}>
-        <AlertDialogContent className="max-w-sm rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
-          <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
-            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
+        <AlertDialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-sm min-h-[220px] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-none shadow-2xl bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 space-y-0 bg-gray-50/80 sticky top-0 z-20 backdrop-blur-md shrink-0 border-b">
+            <div className="p-2 rounded-lg bg-emerald-100">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             </div>
-            <div className="space-y-2">
-              <AlertDialogTitle className="text-2xl font-black text-gray-900">Verified!</AlertDialogTitle>
-              <AlertDialogDescription className="text-base font-medium text-gray-600">
-                Your OTP has been verified successfully. <br />
-                Redirecting you to your dashboard...
+            <div className="flex-1 text-left space-y-0.5">
+              <AlertDialogTitle className="text-xl font-bold m-0 text-emerald-600">
+                Verified!
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-xs text-gray-500 font-medium">
+                Your OTP has been verified successfully. Redirecting you...
               </AlertDialogDescription>
             </div>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-col gap-2 mt-2">
-            {/* Auto-redirecting... */}
-          </AlertDialogFooter>
+          <div className="p-5 bg-gray-50/50 flex-1 flex flex-col items-center justify-center">
+             <Loader className="h-6 w-6 text-emerald-500 animate-spin" />
+             <p className="text-sm text-gray-500 mt-3 font-medium">Redirecting to Dashboard...</p>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>

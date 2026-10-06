@@ -206,17 +206,23 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
           </PopoverTrigger>
           <PopoverContent className="w-72 p-0 rounded-xl mr-4 mt-4 overflow-hidden">
             <Card className="border-none shadow-none">
-              <CardHeader className="flex flex-col items-center space-y-3 pb-6 border-b bg-muted/30">
+              <CardHeader className="flex flex-row items-center justify-center gap-3 pb-6 border-b bg-muted/30 space-y-0">
                 {institution?.logo?.url && (
                   <img
                     src={institution.logo.url}
                     alt="Institution Logo"
-                    className="h-20 w-auto object-contain"
+                    className="h-12 w-auto object-contain shrink-0"
                   />
                 )}
-                <div className="text-center">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {institution?.name || "Institution"}
+                <div className="text-left">
+                  <p className="text-sm font-black tracking-tight leading-tight text-foreground">
+                    {institution?.name === "Sa-adiya College of Integrated Studies" ? (
+                      <>
+                        Sa-adiya College of <br /> Integrated Studies
+                      </>
+                    ) : (
+                      institution?.name || "Institution"
+                    )}
                   </p>
                 </div>
               </CardHeader>
