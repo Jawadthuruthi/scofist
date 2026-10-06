@@ -120,19 +120,19 @@ export default function Footer({ settings, institutionName, year, variant }) {
                       </a>
                     </li>
                     <li>
-                      <a href="https://www.scofist.com/updates" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+                      <Link href="/updates" className="hover:text-white transition">
                         Updates
-                      </a>
+                      </Link>
                     </li>
                     <li>
-                      <a href="https://www.scofist.com/articles" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+                      <Link href="/articles" className="hover:text-white transition">
                         Articles
-                      </a>
+                      </Link>
                     </li>
                     <li>
-                      <a href="https://www.scofist.com/gallery" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+                      <Link href="/college-gallery" className="hover:text-white transition">
                         Gallery
-                      </a>
+                      </Link>
                     </li>
                   </>
                 )}
