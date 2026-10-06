@@ -439,11 +439,11 @@ const ClassCard = memo(
               </button>
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-xl font-bold m-0">
-                  Active Students - {classData.name}
+                  Active Students
                 </DialogTitle>
-                <DialogDescription className="m-0">
-                List of all active students in {classData.name} ({classStudentsList.length} students)
-              </DialogDescription>
+                <DialogDescription className="text-sm font-semibold text-muted-foreground m-0">
+                  {classData.name} ({classStudentsList.length})
+                </DialogDescription>
               </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
