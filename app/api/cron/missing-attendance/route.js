@@ -107,10 +107,13 @@ export async function GET(req) {
     const startOfDay = startOfDayIST;
     const endOfDay = endOfDayIST;
 
+    const isSeniorOn = settings?.general?.seniorDaawa?.isWorkingDay !== false;
+    const isJuniorOn = settings?.general?.juniorDaawa?.isWorkingDay !== false;
+
     // 3. Fetch timetables that have slots for today
     const timeTables = await TimeTable.find({
       "timeSlots.day": todayDay,
-    }).populate("classId", "name").lean();
+    }).populate("classId", "name section").lean();
 
     const expectedPeriods = [];
     
@@ -122,6 +125,10 @@ export async function GET(req) {
           const validToDS = slot.validTo ? getDS(slot.validTo) : null;
 
           if ((!validFromDS || todayDS >= validFromDS) && (!validToDS || todayDS < validToDS)) {
+            const classSection = tt.classId?.section || "";
+            if (classSection === "Senior Da-awa" && !isSeniorOn) return;
+            if (classSection === "Junior Da-awa" && !isJuniorOn) return;
+
             expectedPeriods.push({
               classId: tt.classId._id.toString(),
               className: tt.classId.name,
