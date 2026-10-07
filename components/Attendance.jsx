@@ -740,7 +740,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
 
       {/* Students Table */}
-      <div className="overflow-auto max-h-[calc(100vh-365px)] md:max-h-[calc(100vh-339px)] border rounded-md">
+      <div className="border rounded-md">
         <Table>
           <TableHeader>
             <TableRow>
