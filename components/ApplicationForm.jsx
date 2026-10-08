@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { useDropzone } from "react-dropzone";
+import ImageUploader from "./ImageUploader";
 
 
 const formSchema = z.object({
@@ -86,7 +86,7 @@ const formSchema = z.object({
 
 export default function ApplicationForm({ trigger }) {
   const [open, setOpen] = useState(false);
-  const [file, setFile] = useState(null);
+  const [profilePic, setProfilePic] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [dobInput, setDobInput] = useState("");
   const [availableClasses, setAvailableClasses] = useState(["+1", "Degree"]);
@@ -141,61 +141,14 @@ export default function ApplicationForm({ trigger }) {
     },
   });
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: (acceptedFiles) => setFile(acceptedFiles[0]),
-    accept: { "image/*": [] },
-    multiple: false,
-  });
-
   const onSubmit = async (values) => {
     setUploading(true);
 
     try {
-      let profilePic = undefined;
-
-      // Upload photo only if one was selected
-      if (file) {
-        const signResponse = await fetch("/api/sign-cloudinary", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "active-role": "College Admin",
-          },
-          body: JSON.stringify({ folder: "applications" }),
-        });
-
-        if (!signResponse.ok) {
-          const errorData = await signResponse.json().catch(() => ({}));
-          throw new Error(errorData.message || "Failed to get upload signature");
-        }
-
-        const { signature, timestamp, cloudName, apiKey: cloudApiKey, folder } = await signResponse.json();
-
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("api_key", cloudApiKey);
-        formData.append("timestamp", timestamp);
-        formData.append("signature", signature);
-        formData.append("folder", folder);
-
-        const uploadResponse = await fetch(
-          `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
-          { method: "POST", body: formData }
-        );
-
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-          throw new Error(errorData.error?.message || "Image upload failed");
-        }
-
-        const uploadResult = await uploadResponse.json();
-        profilePic = { url: uploadResult.secure_url, publicId: uploadResult.public_id };
-      }
-
       // Submit Application Data
       const applicationData = {
         ...values,
-        ...(profilePic ? { profilePic } : {}),
+        ...(profilePic && profilePic.url ? { profilePic } : {}),
         dateOfBirth: values.dateOfBirth.toISOString(),
       };
 
@@ -212,7 +165,7 @@ export default function ApplicationForm({ trigger }) {
 
       setSubmitted(true);
       form.reset();
-      setFile(null);
+      setProfilePic(null);
       setDobInput("");
     } catch (error) {
       console.error("Submission error:", error);
@@ -342,23 +295,14 @@ export default function ApplicationForm({ trigger }) {
               {/* Photo Upload */}
               <div className="space-y-2">
                 <FormLabel>Profile Picture <span className="text-gray-400 font-normal">(Optional)</span></FormLabel>
-                <div
-                  {...getRootProps()}
-                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                    isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"
-                  }`}
-                >
-                  <input {...getInputProps()} />
-                  {file ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <Upload className="h-4 w-4" />
-                      <span className="text-sm font-medium">{file.name}</span>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Drag &amp; drop or click to upload photo
-                    </p>
-                  )}
+                <div>
+                  <ImageUploader 
+                    value={profilePic}
+                    onChange={(val) => setProfilePic(val)}
+                    aspectRatio="1:1"
+                    minWidth={200}
+                    minHeight={200}
+                  />
                 </div>
               </div>
 
