@@ -261,15 +261,35 @@ export async function GET(req) {
         url: "/dashboard/my-periods"
       });
 
+      // Deduplicate subscriptions by endpoint, keeping the newest one (last in the array)
+      const uniqueSubs = [];
+      const endpoints = new Set();
+      for (let i = teacher.pushSubscriptions.length - 1; i >= 0; i--) {
+        const sub = teacher.pushSubscriptions[i];
+        if (!endpoints.has(sub.endpoint)) {
+          endpoints.add(sub.endpoint);
+          uniqueSubs.push(sub);
+        }
+      }
+
       // Send to all registered devices of the teacher
-      const devicePromises = teacher.pushSubscriptions.map(async (sub) => {
+      const devicePromises = uniqueSubs.map(async (sub) => {
         try {
           await webpush.sendNotification(sub, payload);
           notificationCount++;
         } catch (error) {
           console.error(`Failed to send push to teacher ${teacher.name}:`, error.body || error);
           // If status code is 410 or 404, the subscription has expired or is no longer valid.
-          // Ideally, we should remove it from the DB here.
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            try {
+              await User.findByIdAndUpdate(teacher._id, {
+                $pull: { pushSubscriptions: { endpoint: sub.endpoint } }
+              });
+              console.log(`Removed expired push subscription for ${teacher.name}`);
+            } catch (dbError) {
+              console.error(`Failed to remove expired subscription for ${teacher.name}:`, dbError);
+            }
+          }
         }
       });
 
