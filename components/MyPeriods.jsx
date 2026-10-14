@@ -207,6 +207,122 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     }
   );
   const settings = settingsQuery.data?.settings;
+
+  // ── Per-date working status derived from historical logs ────────────────
+  // These check if the *selected date* (not today) was a non-working day by
+  // scanning the persistent nonWorkingDaysLog arrays in settings.
+  const selectedDateIsNonWorking = useMemo(() => {
+    if (!settings || !formattedDate) return false;
+    const log = settings.general?.nonWorkingDaysLog || [];
+    return log.some((entry) => {
+      if (!entry.date) return false;
+      const entryDS = new Date(entry.date);
+      const y = entryDS.getUTCFullYear();
+      const m = String(entryDS.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(entryDS.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}` === formattedDate;
+    });
+  }, [settings, formattedDate]);
+
+  const selectedDateOccasion = useMemo(() => {
+    if (!settings || !formattedDate) return "";
+    const log = settings.general?.nonWorkingDaysLog || [];
+    const entry = log.find((entry) => {
+      if (!entry.date) return false;
+      const entryDS = new Date(entry.date);
+      const y = entryDS.getUTCFullYear();
+      const m = String(entryDS.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(entryDS.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}` === formattedDate;
+    });
+    return entry?.occasion || "";
+  }, [settings, formattedDate]);
+
+  const selectedDateSeniorIsNonWorking = useMemo(() => {
+    if (!settings || !formattedDate) return false;
+    const log = settings.general?.seniorDaawaNonWorkingDaysLog || [];
+    return log.some((entry) => {
+      if (!entry.date) return false;
+      const entryDS = new Date(entry.date);
+      const y = entryDS.getUTCFullYear();
+      const m = String(entryDS.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(entryDS.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}` === formattedDate;
+    });
+  }, [settings, formattedDate]);
+
+  const selectedDateSeniorOccasion = useMemo(() => {
+    if (!settings || !formattedDate) return "";
+    const log = settings.general?.seniorDaawaNonWorkingDaysLog || [];
+    const entry = log.find((entry) => {
+      if (!entry.date) return false;
+      const entryDS = new Date(entry.date);
+      const y = entryDS.getUTCFullYear();
+      const m = String(entryDS.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(entryDS.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}` === formattedDate;
+    });
+    return entry?.occasion || "";
+  }, [settings, formattedDate]);
+
+  const selectedDateJuniorIsNonWorking = useMemo(() => {
+    if (!settings || !formattedDate) return false;
+    const log = settings.general?.juniorDaawaNonWorkingDaysLog || [];
+    return log.some((entry) => {
+      if (!entry.date) return false;
+      const entryDS = new Date(entry.date);
+      const y = entryDS.getUTCFullYear();
+      const m = String(entryDS.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(entryDS.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}` === formattedDate;
+    });
+  }, [settings, formattedDate]);
+
+  const selectedDateJuniorOccasion = useMemo(() => {
+    if (!settings || !formattedDate) return "";
+    const log = settings.general?.juniorDaawaNonWorkingDaysLog || [];
+    const entry = log.find((entry) => {
+      if (!entry.date) return false;
+      const entryDS = new Date(entry.date);
+      const y = entryDS.getUTCFullYear();
+      const m = String(entryDS.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(entryDS.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}` === formattedDate;
+    });
+    return entry?.occasion || "";
+  }, [settings, formattedDate]);
+
+  // True when the teacher is viewing today (not a past date)
+  const isViewingToday = useMemo(
+    () => formattedDate === formatDate(getISTDate()),
+    [formattedDate]
+  );
+
+  // isWorkingDay for the *selected* date.
+  // Rules:
+  //  • If the date appears in the log → non-working (always, regardless of today's setting)
+  //  • If the date is TODAY and NOT in the log → use the live settings flag
+  //  • If the date is a PAST day and NOT in the log → it was a working day
+  //    (do NOT fall back to today's isWorkingDay — that would bleed today's
+  //    occasion name onto past working days when today is non-working)
+  const isSelectedDateWorkingDay = useMemo(() => {
+    if (selectedDateIsNonWorking) return false;
+    if (isViewingToday) return settings?.general?.isWorkingDay !== false;
+    return true; // past day, not in the non-working log → it was a working day
+  }, [selectedDateIsNonWorking, isViewingToday, settings]);
+
+  const isSelectedDateSeniorOn = useMemo(() => {
+    if (selectedDateSeniorIsNonWorking) return false;
+    if (isViewingToday) return settings?.general?.seniorDaawa?.isWorkingDay !== false;
+    return true;
+  }, [selectedDateSeniorIsNonWorking, isViewingToday, settings]);
+
+  const isSelectedDateJuniorOn = useMemo(() => {
+    if (selectedDateJuniorIsNonWorking) return false;
+    if (isViewingToday) return settings?.general?.juniorDaawa?.isWorkingDay !== false;
+    return true;
+  }, [selectedDateJuniorIsNonWorking, isViewingToday, settings]);
+
   const { useFetchItems: useFetchCalendarEvents } = useCrud("academic-calendar", apiKey);
 
   const currentYear = getISTDate().getFullYear();
@@ -279,9 +395,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const filteredSlots = useMemo(() => {
     if (!timeTablesQuery.data?.timeTables || !periods.length) return [];
 
-    // Section working day status from settings
-    const isSeniorOn = settings?.general?.seniorDaawa?.isWorkingDay !== false;
-    const isJuniorOn = settings?.general?.juniorDaawa?.isWorkingDay !== false;
+    // Use per-date working status (historical log) for section-level filtering
+    const isSeniorOn = isSelectedDateSeniorOn;
+    const isJuniorOn = isSelectedDateJuniorOn;
 
     // Process all timeTables in one pass
     const teachersSlots = timeTablesQuery.data.timeTables.flatMap(
@@ -307,7 +423,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     );
 
     return teachersSlots.sort((a, b) => a.periodNumber - b.periodNumber);
-  }, [timeTablesQuery.data?.timeTables, periods, teacherId, today, settings]);
+  }, [timeTablesQuery.data?.timeTables, periods, teacherId, today, isSelectedDateSeniorOn, isSelectedDateJuniorOn]);
 
   // Precompute attendance status once
   const attendanceStatus = useMemo(() => {
@@ -839,7 +955,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             <div className="flex justify-center items-center h-40">
               <Loader className="h-8 w-8 animate-spin" />
             </div>
-          ) : filteredSlots.length > 0 && settings?.general?.isWorkingDay ? (
+          ) : filteredSlots.length > 0 && isSelectedDateWorkingDay ? (
             <div className="overflow-x-auto border rounded-md">
               <Table>
                 <TableHeader>
@@ -991,21 +1107,29 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
           ) : (
             <div className="text-center p-8 border rounded-md font-bold text-muted-foreground text-lg">
               {(() => {
-                if (!settings?.general?.isWorkingDay) {
-                  return settings?.general?.occasion || "Today is a non-working day.";
+                // Use per-date non-working status (historical log) so that
+                // browsing a past non-working day shows the correct occasion.
+                if (!isSelectedDateWorkingDay) {
+                  return selectedDateOccasion
+                    || settings?.general?.occasion
+                    || "This is a non-working day.";
                 }
-                const isSeniorOn = settings?.general?.seniorDaawa?.isWorkingDay !== false;
-                const isJuniorOn = settings?.general?.juniorDaawa?.isWorkingDay !== false;
-                if (!isSeniorOn && !isJuniorOn) {
-                  return settings?.general?.seniorDaawa?.occasion
+                if (!isSelectedDateSeniorOn && !isSelectedDateJuniorOn) {
+                  return selectedDateSeniorOccasion
+                    || selectedDateJuniorOccasion
+                    || settings?.general?.seniorDaawa?.occasion
                     || settings?.general?.juniorDaawa?.occasion
                     || "Both sections are off today.";
                 }
-                if (!isSeniorOn) {
-                  return settings?.general?.seniorDaawa?.occasion || "Senior Da-awa section is off today.";
+                if (!isSelectedDateSeniorOn) {
+                  return selectedDateSeniorOccasion
+                    || settings?.general?.seniorDaawa?.occasion
+                    || "Senior Da-awa section is off today.";
                 }
-                if (!isJuniorOn) {
-                  return settings?.general?.juniorDaawa?.occasion || "Junior Da-awa section is off today.";
+                if (!isSelectedDateJuniorOn) {
+                  return selectedDateJuniorOccasion
+                    || settings?.general?.juniorDaawa?.occasion
+                    || "Junior Da-awa section is off today.";
                 }
                 return "No periods scheduled for " + today + ".";
               })()}
