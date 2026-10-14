@@ -67,13 +67,13 @@ export default function Home({ settings }) {
 
             {/* Vision and Mission Cards */}
             <div className="mt-16 md:mt-24 grid md:grid-cols-2 gap-6 text-left">
-              <div className="p-6 md:p-8 rounded-2xl bg-transparent border-l-4 border-emerald-400 hover:bg-white/10 backdrop-blur-sm transition-all duration-300">
+              <div className="p-6 md:p-8 rounded-2xl bg-white/10 border-l-4 border-emerald-400 hover:bg-white/20 hover:scale-105 backdrop-blur-sm transition-all duration-300">
                 <h3 className="text-2xl font-bold text-emerald-400 mb-4 drop-shadow-md">Our Vision</h3>
                 <p className="text-gray-200 leading-relaxed drop-shadow-md">
                   To be a premier institution of holistic learning that seamlessly integrates timeless Islamic teachings with modern academic excellence, producing well-rounded leaders who are spiritually grounded, intellectually equipped, and dedicated to the betterment of society.
                 </p>
               </div>
-              <div className="p-6 md:p-8 rounded-2xl bg-transparent border-l-4 border-emerald-400 hover:bg-white/10 backdrop-blur-sm transition-all duration-300">
+              <div className="p-6 md:p-8 rounded-2xl bg-white/10 border-l-4 border-emerald-400 hover:bg-white/20 hover:scale-105 backdrop-blur-sm transition-all duration-300">
                 <h3 className="text-2xl font-bold text-emerald-400 mb-4 drop-shadow-md">Our Mission</h3>
                 <ul className="text-gray-200 leading-relaxed space-y-3 drop-shadow-md list-disc list-outside ml-4 marker:text-emerald-400">
                   <li>To provide a comprehensive educational curriculum that bridges secular academic disciplines with deep, traditional Islamic studies.</li>
@@ -96,7 +96,7 @@ export default function Home({ settings }) {
           Why Choose Sa-adiya College
         </h2>
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <article className="p-8 rounded-lg transition-all duration-300 border-t-4 border-emerald-400 bg-transparent hover:bg-white/10">
+          <article className="p-8 rounded-lg transition-all duration-300 border-t-4 border-emerald-400 bg-white/10 hover:bg-white/20 hover:scale-105">
             <h3 className="text-2xl font-semibold mb-4 text-emerald-400 drop-shadow-md">
               Integrated Curriculum
             </h3>
@@ -106,7 +106,7 @@ export default function Home({ settings }) {
               students for contemporary challenges.
             </p>
           </article>
-          <article className="p-8 rounded-lg transition-all duration-300 border-t-4 border-emerald-400 bg-transparent hover:bg-white/10">
+          <article className="p-8 rounded-lg transition-all duration-300 border-t-4 border-emerald-400 bg-white/10 hover:bg-white/20 hover:scale-105">
             <h3 className="text-2xl font-semibold mb-4 text-emerald-400 drop-shadow-md">
               Qualified Faculty
             </h3>
@@ -116,7 +116,7 @@ export default function Home({ settings }) {
               supportive learning environment.
             </p>
           </article>
-          <article className="p-8 rounded-lg transition-all duration-300 border-t-4 border-emerald-400 bg-transparent hover:bg-white/10">
+          <article className="p-8 rounded-lg transition-all duration-300 border-t-4 border-emerald-400 bg-white/10 hover:bg-white/20 hover:scale-105">
             <h3 className="text-2xl font-semibold mb-4 text-emerald-400 drop-shadow-md">
               Vibrant Campus
             </h3>
