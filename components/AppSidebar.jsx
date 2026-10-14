@@ -208,6 +208,12 @@ const items = [
     allowedRoles: ["Teacher", "College Admin"],
   },
   {
+    title: "Courses",
+    url: "/dashboard/students-courses",
+    icon: GraduationCap,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Performance",
     url: "/dashboard/performance",
     icon: TrendingUp,

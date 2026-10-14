@@ -151,6 +151,11 @@ const pages = [
     allowedRoles: ["College Admin"],
   },
   {
+    title: "Courses",
+    path: "/dashboard/students-courses",
+    allowedRoles: ["College Admin"],
+  },
+  {
     path: "/dashboard/leave-register",
     pattern: /^\/dashboard\/leave-register(?:\/[^/]+)?$/,
     allowedRoles: ["College Admin", "Teacher"],
@@ -642,7 +647,7 @@ async function handleApiRequest(req) {
   ) return NextResponse.next();
 
   const url = new URL(req.url);
-  const apiKey = req.headers.get("api-key");
+  const apiKey = req.headers.get("api-key") || req.headers.get("x-api-key");
   const cronSecret = url.searchParams.get("cronSecret");
   const authToken = req.cookies.get("auth-token")?.value;
 

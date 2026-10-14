@@ -36,6 +36,13 @@ const FamilyDetailSchema = new Schema({
   otherDetails: { type: String, trim: true },
 }, { _id: false });
 
+const CourseSchema = new Schema({
+  courseName: { type: String, trim: true },
+  universityBoard: { type: String, trim: true },
+  year: { type: String, trim: true },
+  status: { type: String, enum: ["", "Completed", "Ongoing", "Pending"], default: "" },
+}, { _id: false });
+
 const studentSpecificSchema = new Schema({
   admissionNumber: { type: String, trim: true },
   admissionClassId: { type: String, trim: true, ref: "Class" },
@@ -90,6 +97,8 @@ const studentSpecificSchema = new Schema({
   },
   islamicQualification: { type: String, trim: true },
   academicQualification: { type: String, trim: true },
+  islamicCourses: { type: [CourseSchema], default: [] },
+  academicCourses: { type: [CourseSchema], default: [] },
   isVerified: {
     type: Boolean,
     default: false,

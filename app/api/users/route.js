@@ -260,6 +260,8 @@ export async function GET(req) {
         studentStatus: studentSpecificField.status,
         islamicQualification: studentSpecificField.islamicQualification,
         academicQualification: studentSpecificField.academicQualification,
+        islamicCourses: studentSpecificField.islamicCourses || [],
+        academicCourses: studentSpecificField.academicCourses || [],
         droppedOutDate: studentSpecificField.droppedOutDate,
         droppedOutClass: studentSpecificField.droppedOutClass,
         droppedOutReason: studentSpecificField.droppedOutReason,
@@ -472,12 +474,225 @@ export async function POST(req, res) {
   }
 }
 
+const applyUpdatesToUser = async (user, updateFields) => {
+  // Update top-level fields
+  const simpleFields = [
+    "name",
+    "email",
+    "contactNumber",
+    "alternativeNumber",
+    "dateOfBirth",
+    "roles",
+  ];
+  simpleFields.forEach((field) => {
+    if (updateFields[field] !== undefined) {
+      if (["dateOfBirth", "name", "roles"].includes(field)) {
+        if (updateFields[field] !== "" && updateFields[field] !== null) {
+          user[field] = updateFields[field];
+        }
+      } else {
+        user[field] = updateFields[field] === "" ? undefined : updateFields[field];
+      }
+    }
+  });
+
+  // Update profilePic
+  if (
+    updateFields.profilePic &&
+    Object.keys(updateFields.profilePic).length > 0
+  ) {
+    user.profilePic = updateFields.profilePic;
+  }
+
+  // Update address
+  if (!user.address) user.address = {};
+  const addressFields = [
+    "houseName",
+    "place",
+    "locationPoint",
+    "postOffice",
+    "district",
+    "state",
+    "pin",
+  ];
+  addressFields.forEach((field) => {
+    if (updateFields[field] !== undefined) {
+      user.set(`address.${field}`, updateFields[field]);
+    }
+  });
+
+  // Update Teacher-specific fields
+  if (user.roles.includes("Teacher")) {
+    if (!user.teacherSpecificField) user.teacherSpecificField = {};
+    if (updateFields.dateOfJoining !== undefined)
+      user.teacherSpecificField.dateOfJoining = updateFields.dateOfJoining;
+    if (updateFields.status !== undefined)
+      user.teacherSpecificField.status = updateFields.status;
+  }
+
+  // Update Student-specific fields
+  if (user.roles.includes("Student")) {
+    const studentFields = [
+      "admissionNumber",
+      "admissionClassId",
+      "admissionDate",
+      "aadharNo",
+      "sslcRegisterNumber",
+      "bloodGroup",
+      "guardianName",
+      "guardianContactNumber",
+      "guardianAlternativeNumber",
+      "relationship",
+      "islamicQualification",
+      "academicQualification",
+      "batchId",
+      "classId",
+      "stream",
+      "subjectTypeAssignments",
+      "status",
+      "isVerified",
+      "verifiedAt",
+    ];
+    
+    if (!user.studentSpecificField) user.studentSpecificField = {};
+    
+    const oldBatchId = user.studentSpecificField?.batchId;
+    const oldClassId = user.studentSpecificField?.classId;
+    
+    studentFields.forEach((field) => {
+      if (updateFields[field] !== undefined) {
+        user.set(`studentSpecificField.${field}`, updateFields[field] === "" ? undefined : updateFields[field]);
+      }
+    });
+
+    // Handle course updates with append or replace support
+    if (updateFields.courseAction === "append") {
+      if (updateFields.islamicCourses !== undefined && Array.isArray(updateFields.islamicCourses)) {
+        const existing = [...(user.studentSpecificField?.islamicCourses || [])].map((c) =>
+          c.toObject ? c.toObject() : { ...c }
+        );
+        updateFields.islamicCourses.forEach((newCourse) => {
+          const idx = existing.findIndex(
+            (c) => c.courseName?.trim().toLowerCase() === newCourse.courseName?.trim().toLowerCase()
+          );
+          if (idx !== -1) {
+            existing[idx] = { ...existing[idx], ...newCourse };
+          } else {
+            existing.push(newCourse);
+          }
+        });
+        user.set("studentSpecificField.islamicCourses", existing);
+      }
+      if (updateFields.academicCourses !== undefined && Array.isArray(updateFields.academicCourses)) {
+        const existing = [...(user.studentSpecificField?.academicCourses || [])].map((c) =>
+          c.toObject ? c.toObject() : { ...c }
+        );
+        updateFields.academicCourses.forEach((newCourse) => {
+          const idx = existing.findIndex(
+            (c) => c.courseName?.trim().toLowerCase() === newCourse.courseName?.trim().toLowerCase()
+          );
+          if (idx !== -1) {
+            existing[idx] = { ...existing[idx], ...newCourse };
+          } else {
+            existing.push(newCourse);
+          }
+        });
+        user.set("studentSpecificField.academicCourses", existing);
+      }
+    } else {
+      if (updateFields.islamicCourses !== undefined) {
+        user.set("studentSpecificField.islamicCourses", updateFields.islamicCourses);
+      }
+      if (updateFields.academicCourses !== undefined) {
+        user.set("studentSpecificField.academicCourses", updateFields.academicCourses);
+      }
+    }
+
+    // Auto-persist any newly added course names to Course master collection
+    const coursesToPersist = [
+      ...(Array.isArray(updateFields.islamicCourses)
+        ? updateFields.islamicCourses.map((c) => ({ name: c.courseName?.trim(), type: "Islamic", universityBoard: c.universityBoard?.trim() || "" }))
+        : []),
+      ...(Array.isArray(updateFields.academicCourses)
+        ? updateFields.academicCourses.map((c) => ({ name: c.courseName?.trim(), type: "Academic", universityBoard: c.universityBoard?.trim() || "" }))
+        : []),
+    ].filter((c) => !!c.name);
+
+    if (coursesToPersist.length > 0) {
+      (async () => {
+        try {
+          const Course = (await import("@/models/Course")).default;
+          for (const c of coursesToPersist) {
+            await Course.updateOne(
+              { name: { $regex: new RegExp(`^${c.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") } },
+              { $setOnInsert: { name: c.name, type: c.type, universityBoard: c.universityBoard } },
+              { upsert: true }
+            );
+          }
+        } catch (e) {
+          // Ignore duplicate/concurrent write error
+        }
+      })();
+    }
+
+    // Update StudentsFund batchId if batchId changed
+    if (updateFields.batchId !== undefined && String(oldBatchId) !== String(updateFields.batchId)) {
+      try {
+        const StudentsFund = (await import("@/models/StudentsFund")).default;
+        const studentFunds = await StudentsFund.find({ studentId: user._id });
+        for (const fund of studentFunds) {
+          fund.batchId = updateFields.batchId;
+          try {
+            await fund.save();
+          } catch (err) {
+            console.log("Duplicate fund found when changing batchId, skipping update for this fund");
+          }
+        }
+      } catch (err) {
+        console.error("Error updating StudentsFund batchId:", err);
+      }
+    }
+
+    // Auto-sync subjectTypeAssignments when classId changes
+    if (updateFields.classId !== undefined) {
+      const newClassId = updateFields.classId;
+      if (newClassId && String(oldClassId) !== String(newClassId)) {
+        user.set("studentSpecificField.subjectTypeAssignments", [
+          `${newClassId}:CORE`,
+          `${newClassId}:MAJOR`,
+        ]);
+      }
+    }
+
+    if (updateFields.familyDetails !== undefined) {
+      user.set("studentSpecificField.familyDetails", updateFields.familyDetails);
+    }
+    if (updateFields.familyOtherDetails !== undefined) {
+      user.familyOtherDetails = updateFields.familyOtherDetails;
+    }
+
+    if (updateFields.status === "Dropped Out") {
+      ["droppedOutDate", "droppedOutClass", "droppedOutReason"].forEach(
+        (field) => {
+          if (updateFields[field] !== undefined) {
+            user.set(`studentSpecificField.${field}`, updateFields[field]);
+          }
+        }
+      );
+    } else if (updateFields.status === "Graduated") {
+      if (updateFields.graduatedYear !== undefined) {
+        user.set(`studentSpecificField.graduatedYear`, updateFields.graduatedYear);
+      }
+    }
+  }
+};
+
 export async function PUT(req) {
   try {
     await connectToDB();
     const body = await req.json();
 
-    const { ids, _id: _idToExclude, ...updateFields } = body;
+    const { ids, updates, _id: _idToExclude, ...updateFields } = body;
     
     const formatPhoneNumber = (num) => {
       if (num && /^\d{10}$/.test(num)) return '+91 ' + num;
@@ -489,6 +704,26 @@ export async function PUT(req) {
     if (updateFields.guardianContactNumber) updateFields.guardianContactNumber = formatPhoneNumber(updateFields.guardianContactNumber);
     if (updateFields.guardianAlternativeNumber) updateFields.guardianAlternativeNumber = formatPhoneNumber(updateFields.guardianAlternativeNumber);
 
+    // Support batch updates array
+    if (updates && Array.isArray(updates) && updates.length > 0) {
+      const updatedUsers = [];
+      for (const item of updates) {
+        const { id, _id: itemId, ...itemFields } = item;
+        const targetId = id || itemId;
+        if (!targetId) continue;
+        const user = await User.findById(targetId);
+        if (!user) continue;
+        await applyUpdatesToUser(user, itemFields);
+        await user.save();
+        updatedUsers.push(user);
+      }
+      revalidatePath("/dashboard/students-contacts", "layout");
+      return NextResponse.json(
+        { updatedUsers, updatedUser: updatedUsers[0], message: "Users updated successfully!" },
+        { status: 200 }
+      );
+    }
+
     if (!ids || ids.length === 0) {
       return NextResponse.json(
         { message: "User IDs are required" },
@@ -496,173 +731,34 @@ export async function PUT(req) {
       );
     }
 
-    const _id = ids[0];
-    const user = await User.findById(_id);
-    if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    if (ids.length === 1) {
+      const _id = ids[0];
+      const user = await User.findById(_id);
+      if (!user) {
+        return NextResponse.json({ message: "User not found" }, { status: 404 });
+      }
+      await applyUpdatesToUser(user, updateFields);
+      await user.save();
+      revalidatePath("/dashboard/students-contacts", "layout");
+      return NextResponse.json(
+        { updatedUser: user, updatedUsers: [user], message: "User updated successfully!" },
+        { status: 200 }
+      );
+    } else {
+      const users = await User.find({ _id: { $in: ids } });
+      if (!users || users.length === 0) {
+        return NextResponse.json({ message: "Users not found" }, { status: 404 });
+      }
+      for (const user of users) {
+        await applyUpdatesToUser(user, updateFields);
+        await user.save();
+      }
+      revalidatePath("/dashboard/students-contacts", "layout");
+      return NextResponse.json(
+        { updatedUsers: users, updatedUser: users[0], message: `${users.length} users updated successfully!` },
+        { status: 200 }
+      );
     }
-
-    // Update top-level fields
-    const simpleFields = [
-      "name",
-      "email",
-      "contactNumber",
-      "alternativeNumber",
-      "dateOfBirth",
-      "roles",
-    ];
-    simpleFields.forEach((field) => {
-      if (updateFields[field] !== undefined) {
-        // Only update if the value is not an empty string or null for required fields
-        if (["dateOfBirth", "name", "roles"].includes(field)) {
-          if (updateFields[field] !== "" && updateFields[field] !== null) {
-            user[field] = updateFields[field];
-          }
-        } else {
-          user[field] = updateFields[field] === "" ? undefined : updateFields[field];
-        }
-      }
-    });
-
-    // Update profilePic
-    if (
-      updateFields.profilePic &&
-      Object.keys(updateFields.profilePic).length > 0
-    ) {
-      user.profilePic = updateFields.profilePic;
-    }
-
-    // Update address
-    if (!user.address) user.address = {};
-    const addressFields = [
-      "houseName",
-      "place",
-      "locationPoint",
-      "postOffice",
-      "district",
-      "state",
-      "pin",
-    ];
-    addressFields.forEach((field) => {
-      if (updateFields[field] !== undefined) {
-        user.set(`address.${field}`, updateFields[field]);
-      }
-    });
-
-    // Update Teacher-specific fields
-    if (user.roles.includes("Teacher")) {
-      if (!user.teacherSpecificField) user.teacherSpecificField = {};
-      if (updateFields.dateOfJoining !== undefined)
-        user.teacherSpecificField.dateOfJoining = updateFields.dateOfJoining;
-      if (updateFields.status !== undefined)
-        user.teacherSpecificField.status = updateFields.status;
-    }
-
-    // Update Student-specific fields
-    if (user.roles.includes("Student")) {
-      const studentFields = [
-        "admissionNumber",
-        "admissionClassId",
-        "admissionDate",
-        "aadharNo",
-        "sslcRegisterNumber",
-        "bloodGroup",
-        "guardianName",
-        "guardianContactNumber",
-        "guardianAlternativeNumber",
-        "relationship",
-        "islamicQualification",
-        "academicQualification",
-        "batchId",
-        "classId",
-        "stream",
-        "subjectTypeAssignments",
-        "status",
-        "isVerified",
-        "verifiedAt",
-      ];
-      
-      if (!user.studentSpecificField) user.studentSpecificField = {};
-      
-      // Capture oldClassId BEFORE it gets overwritten in the loop below
-      const oldBatchId = user.studentSpecificField?.batchId;
-      const oldClassId = user.studentSpecificField?.classId;
-      
-      // Handle standard student fields using Mongoose's formal schema tracking
-      studentFields.forEach((field) => {
-        if (updateFields[field] !== undefined) {
-          user.set(`studentSpecificField.${field}`, updateFields[field] === "" ? undefined : updateFields[field]);
-        }
-      });
-
-      // Update StudentsFund batchId if batchId changed
-      if (updateFields.batchId !== undefined && String(oldBatchId) !== String(updateFields.batchId)) {
-        try {
-          const StudentsFund = (await import("@/models/StudentsFund")).default;
-          // Find existing funds for the student
-          const studentFunds = await StudentsFund.find({ studentId: user._id });
-          for (const fund of studentFunds) {
-            fund.batchId = updateFields.batchId;
-            try {
-              await fund.save();
-            } catch (err) {
-              // If duplicate key error, we skip saving this specific fund
-              // The duplicate merging logic in studentsFund/route.js will handle it next time it's accessed
-              console.log("Duplicate fund found when changing batchId, skipping update for this fund");
-            }
-          }
-        } catch (err) {
-          console.error("Error updating StudentsFund batchId:", err);
-        }
-      }
-
-      // Auto-sync subjectTypeAssignments when classId changes
-      if (updateFields.classId !== undefined) {
-        const newClassId = updateFields.classId;
-
-        // Only recompute if classId actually changed
-        if (newClassId && String(oldClassId) !== String(newClassId)) {
-          // Full reset — only the new class's two tags, all old entries removed
-          user.set("studentSpecificField.subjectTypeAssignments", [
-            `${newClassId}:CORE`,
-            `${newClassId}:MAJOR`,
-          ]);
-        }
-      }
-
-      // Handle kinship fields explicitly at their correct levels
-      if (updateFields.familyDetails !== undefined) {
-        user.set("studentSpecificField.familyDetails", updateFields.familyDetails);
-      }
-      if (updateFields.familyOtherDetails !== undefined) {
-        user.familyOtherDetails = updateFields.familyOtherDetails;
-      }
-
-      // Handle Dropped Out or Graduated fields
-      if (updateFields.status === "Dropped Out") {
-        ["droppedOutDate", "droppedOutClass", "droppedOutReason"].forEach(
-          (field) => {
-            if (updateFields[field] !== undefined) {
-              user.set(`studentSpecificField.${field}`, updateFields[field]);
-            }
-          }
-        );
-      } else if (updateFields.status === "Graduated") {
-        if (updateFields.graduatedYear !== undefined) {
-          user.set(`studentSpecificField.graduatedYear`, updateFields.graduatedYear);
-        }
-      }
-    }
-
-    // Save the user
-    await user.save();
-
-    revalidatePath("/dashboard/students-contacts", "layout");
-
-    return NextResponse.json(
-      { updatedUser: user, message: "User updated successfully!" },
-      { status: 200 }
-    );
   } catch (error) {
     console.error("Error updating user:", error);
     if (error.code === 11000) {
