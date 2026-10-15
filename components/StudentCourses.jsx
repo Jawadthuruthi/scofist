@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -43,41 +42,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { MultiSelect } from "@/components/ui/multi-select";
 import {
-  BookOpen,
   GraduationCap,
   Plus,
   Trash2,
-  Save,
   Loader2,
   Pencil,
   X,
   BookMarked,
   Search,
   Users,
-  CheckCircle2,
-  AlertCircle,
-  ChevronDown,
+  ArrowLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import Header from "./Header";
 
-const EMPTY_COURSE = {
-  courseName: "",
-  universityBoard: "",
-  year: "",
-  status: "",
-};
-
+const YEAR_OPTIONS = ["1", "2", "3", "4"];
 const STATUS_OPTIONS = ["Completed", "Ongoing", "Pending"];
 
 const STATUS_COLORS = {
@@ -87,75 +69,104 @@ const STATUS_COLORS = {
 };
 
 export default function StudentCourses({ classes = [], batches = [], apiKey }) {
-  // Multi-select filters: Batch first, then Class
-  const [selectedBatches, setSelectedBatches] = useState([]);
-  const [selectedClasses, setSelectedClasses] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  // ── Master data state ────────────────────────────────────────────────────
+  const [students, setStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [savedCourses, setSavedCourses] = useState([]);
+  const [saving, setSaving] = useState(false);
 
-  // Options for MultiSelect
-  const batchOptions = useMemo(
+  // ── Main table filter & search ───────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all"); // "all" | "Islamic" | "Academic"
+
+  // ── Selected course and year for popup drilldown ────────────────────────
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [modalSearchTerm, setModalSearchTerm] = useState("");
+
+  // ── Edit Course Dialog for a student ─────────────────────────────────────
+  const [editingItem, setEditingItem] = useState(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    courseName: "",
+    universityBoard: "",
+    year: "1",
+    status: "Ongoing",
+    type: "Islamic",
+  });
+
+  // ── Delete Confirmation for a student's course ───────────────────────────
+  const [deletingItem, setDeletingItem] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // ── Delete Master Course Confirmation ────────────────────────────────────
+  const [deletingMasterCourse, setDeletingMasterCourse] = useState(null);
+  const [isDeleteMasterOpen, setIsDeleteMasterOpen] = useState(false);
+
+  // ── Add Course Popup States (Top Right Button) ───────────────────────────
+  const [isAddCoursePopupOpen, setIsAddCoursePopupOpen] = useState(false);
+  const [popupCourseType, setPopupCourseType] = useState("Islamic");
+  const [popupCourseName, setPopupCourseName] = useState("");
+  const [popupUniversityBoard, setPopupUniversityBoard] = useState("");
+  const [popupYear, setPopupYear] = useState("1");
+  const [popupStatus, setPopupStatus] = useState("Ongoing");
+  const [popupBatchId, setPopupBatchId] = useState("");
+  const [popupClassId, setPopupClassId] = useState("");
+  const [popupStudents, setPopupStudents] = useState([]);
+  const [popupSelectedStudentIds, setPopupSelectedStudentIds] = useState([]);
+  const [loadingPopupStudents, setLoadingPopupStudents] = useState(false);
+  const [isSubmittingPopup, setIsSubmittingPopup] = useState(false);
+
+  // Maps for quick lookup
+  const classMap = useMemo(
     () =>
-      (batches || []).map((b) => ({
-        value: String(b._id),
-        label: b.name,
-      })),
+      new Map(
+        (classes || []).map((c) => [
+          String(c._id),
+          c.name || c.shortname || c._id,
+        ])
+      ),
+    [classes]
+  );
+
+  const batchMap = useMemo(
+    () =>
+      new Map(
+        (batches || []).map((b) => [String(b._id), b.name || String(b._id)])
+      ),
     [batches]
   );
 
-  const classOptions = useMemo(
-    () =>
-      (classes || []).map((c) => ({
-        value: String(c._id),
-        label: c.name || c.shortname || c._id,
-      })),
-    [classes]
-  );
+  // ── Fetch all students on mount ──────────────────────────────────────────
+  const fetchStudents = useCallback(async () => {
+    setLoadingStudents(true);
+    try {
+      const params = new URLSearchParams({
+        roles: "Student",
+        limit: "10000",
+        projection:
+          "name,studentSpecificField.islamicCourses,studentSpecificField.academicCourses,studentSpecificField.classId,studentSpecificField.batchId,studentSpecificField.status",
+      });
+      const res = await fetch(`/api/users?${params}`, {
+        headers: apiKey ? { "x-api-key": apiKey } : {},
+      });
+      const data = await res.json();
+      const list = data.users || data || [];
+      setStudents(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error("Failed to load students:", err);
+      toast.error("Failed to load student course details");
+    } finally {
+      setLoadingStudents(false);
+    }
+  }, [apiKey]);
 
-  const classMap = useMemo(
-    () => new Map((classes || []).map((c) => [String(c._id), c.name || c.shortname])),
-    [classes]
-  );
-
-  // Data
-  const [students, setStudents] = useState([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-
-  // Multi-selection state
-  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
-
-  // Single mode state
-  const [islamicCourses, setIslamicCourses] = useState([]);
-  const [academicCourses, setAcademicCourses] = useState([]);
-
-  // Bulk mode state
-  const [bulkMode, setBulkMode] = useState("append"); // "append" | "replace"
-  const [bulkIslamicCourses, setBulkIslamicCourses] = useState([]);
-  const [bulkAcademicCourses, setBulkAcademicCourses] = useState([]);
-  const [isBulkConfirmOpen, setIsBulkConfirmOpen] = useState(false);
-
-  // Saving state
-  const [saving, setSaving] = useState(false);
-
-  // Form dialog state
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogContext, setDialogContext] = useState("single"); // "single" | "bulk"
-  const [dialogType, setDialogType] = useState("islamic"); // "islamic" | "academic"
-  const [editIndex, setEditIndex] = useState(null); // null = add new
-  const [formData, setFormData] = useState(EMPTY_COURSE);
-
-  // Delete dialog state
-  const [deleteInfo, setDeleteInfo] = useState(null); // { type, index, context }
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  // Master saved courses for input + dropdown suggestions
-  const [savedCourses, setSavedCourses] = useState([]);
-  const [deletedCourseNames, setDeletedCourseNames] = useState(new Set());
-  const [isCourseDropdownOpen, setIsCourseDropdownOpen] = useState(false);
-
-  const hasLoadedRef = useRef({});
-
-  // Fetch saved master courses from backend
   useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
+
+  // ── Fetch master courses for suggestions ─────────────────────────────────
+  const fetchMasterCourses = useCallback(() => {
     fetch("/api/courses", {
       headers: apiKey ? { "x-api-key": apiKey } : {},
     })
@@ -168,1292 +179,1356 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
       .catch((err) => console.error("Error loading master courses:", err));
   }, [apiKey]);
 
-  // Merge any distinct courses found on loaded students into savedCourses, excluding deleted ones
   useEffect(() => {
-    if (!students.length) return;
-    const existingNames = new Set(
-      savedCourses.map((c) => c.name?.toLowerCase().trim())
-    );
-    const newFound = [];
-    students.forEach((s) => {
-      const ic =
-        s.studentSpecificField?.islamicCourses || s.islamicCourses || [];
-      ic.forEach((c) => {
-        const clean = c.courseName?.trim();
-        if (
-          clean &&
-          !existingNames.has(clean.toLowerCase()) &&
-          !deletedCourseNames.has(clean.toLowerCase())
-        ) {
-          existingNames.add(clean.toLowerCase());
-          newFound.push({
-            name: clean,
-            type: "Islamic",
-            universityBoard: c.universityBoard || "",
-          });
+    fetchMasterCourses();
+  }, [fetchMasterCourses]);
+
+  // ── Aggregate Courses with Enrolled Students ─────────────────────────────
+  const aggregatedCourses = useMemo(() => {
+    const courseMap = new Map();
+
+    const getOrInitCourse = (name, type, defaultBoard = "") => {
+      const cleanName = (name || "").trim();
+      const cleanType = type === "Islamic" ? "Islamic" : "Academic";
+      const key = `${cleanType.toLowerCase()}:${cleanName.toLowerCase()}`;
+      if (!courseMap.has(key)) {
+        courseMap.set(key, {
+          name: cleanName,
+          type: cleanType,
+          universityBoard: (defaultBoard || "").trim(),
+          studentCount: 0,
+          students: [],
+        });
+      }
+      return courseMap.get(key);
+    };
+
+    // Pre-populate with saved master courses
+    (savedCourses || []).forEach((c) => {
+      if (c.name?.trim()) {
+        getOrInitCourse(c.name, c.type, c.universityBoard);
+      }
+    });
+
+    // Populate from student records
+    (students || []).forEach((student) => {
+      const studentId = student._id;
+      const studentName = student.name || "—";
+
+      // Robustly extract class and batch info regardless of populated object or ID string
+      const rawClassObj =
+        student.studentSpecificField?.classId ||
+        student.classData ||
+        student.classId;
+      const rawBatchObj =
+        student.studentSpecificField?.batchId ||
+        student.batchData ||
+        student.batchId;
+
+      const rawClassId =
+        rawClassObj && typeof rawClassObj === "object"
+          ? rawClassObj._id
+          : rawClassObj;
+      const rawBatchId =
+        rawBatchObj && typeof rawBatchObj === "object"
+          ? rawBatchObj._id
+          : rawBatchObj;
+
+      const className =
+        student.className ||
+        (rawClassObj && typeof rawClassObj === "object"
+          ? rawClassObj.name
+          : null) ||
+        (rawClassId ? classMap.get(String(rawClassId)) : null) ||
+        "—";
+
+      const batchName =
+        student.batchName ||
+        (rawBatchObj && typeof rawBatchObj === "object"
+          ? rawBatchObj.name
+          : null) ||
+        (rawBatchId ? batchMap.get(String(rawBatchId)) : null) ||
+        "—";
+
+      // Islamic courses
+      const islamicList =
+        student.studentSpecificField?.islamicCourses ||
+        student.islamicCourses ||
+        [];
+      islamicList.forEach((c, idx) => {
+        if (!c.courseName?.trim()) return;
+        const entry = getOrInitCourse(c.courseName, "Islamic", c.universityBoard);
+        if (!entry.universityBoard && c.universityBoard) {
+          entry.universityBoard = c.universityBoard;
         }
+        entry.studentCount += 1;
+        entry.students.push({
+          studentId,
+          studentName,
+          classId: String(rawClassId || ""),
+          batchId: String(rawBatchId || ""),
+          className,
+          batchName,
+          year: c.year ? String(c.year).trim() : "1",
+          status: c.status || "Ongoing",
+          universityBoard: c.universityBoard || entry.universityBoard || "—",
+          index: idx,
+          type: "Islamic",
+        });
       });
-      const ac =
-        s.studentSpecificField?.academicCourses || s.academicCourses || [];
-      ac.forEach((c) => {
-        const clean = c.courseName?.trim();
-        if (
-          clean &&
-          !existingNames.has(clean.toLowerCase()) &&
-          !deletedCourseNames.has(clean.toLowerCase())
-        ) {
-          existingNames.add(clean.toLowerCase());
-          newFound.push({
-            name: clean,
-            type: "Academic",
-            universityBoard: c.universityBoard || "",
-          });
+
+      // Academic courses
+      const academicList =
+        student.studentSpecificField?.academicCourses ||
+        student.academicCourses ||
+        [];
+      academicList.forEach((c, idx) => {
+        if (!c.courseName?.trim()) return;
+        const entry = getOrInitCourse(c.courseName, "Academic", c.universityBoard);
+        if (!entry.universityBoard && c.universityBoard) {
+          entry.universityBoard = c.universityBoard;
         }
+        entry.studentCount += 1;
+        entry.students.push({
+          studentId,
+          studentName,
+          classId: String(rawClassId || ""),
+          batchId: String(rawBatchId || ""),
+          className,
+          batchName,
+          year: c.year ? String(c.year).trim() : "1",
+          status: c.status || "Ongoing",
+          universityBoard: c.universityBoard || entry.universityBoard || "—",
+          index: idx,
+          type: "Academic",
+        });
       });
     });
-    if (newFound.length > 0) {
-      setSavedCourses((prev) => [...prev, ...newFound]);
-    }
-  }, [students, deletedCourseNames, savedCourses]);
 
-  // Delete a saved course from dropdown & backend
-  const handleDeleteSavedCourse = async (courseNameToRemove) => {
-    if (!courseNameToRemove) return;
-    const clean = courseNameToRemove.trim();
-
-    // Optimistically remove from state
-    setSavedCourses((prev) =>
-      prev.filter((c) => c.name?.toLowerCase().trim() !== clean.toLowerCase())
-    );
-    setDeletedCourseNames((prev) => new Set([...prev, clean.toLowerCase()]));
-
-    try {
-      const res = await fetch(`/api/courses?name=${encodeURIComponent(clean)}`, {
-        method: "DELETE",
-        headers: apiKey ? { "x-api-key": apiKey } : {},
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to delete course");
+    return Array.from(courseMap.values()).sort((a, b) => {
+      if (b.studentCount !== a.studentCount) {
+        return b.studentCount - a.studentCount;
       }
-
-      toast.success(`Removed "${clean}" from dropdown`);
-    } catch (err) {
-      console.error("Error deleting course:", err);
-      toast.error(err.message || "Could not delete course from database");
-    }
-  };
-
-  // Compute course suggestions for current dialogType (Islamic vs Academic)
-  const courseSuggestions = useMemo(() => {
-    const list = savedCourses.filter((c) => {
-      if (dialogType === "islamic")
-        return c.type === "Islamic" || c.type === "Both";
-      return c.type === "Academic" || c.type === "Both";
+      return a.name.localeCompare(b.name);
     });
-    const displayList = list.length > 0 ? list : savedCourses;
-    return [...displayList].sort((a, b) => a.name.localeCompare(b.name));
-  }, [savedCourses, dialogType]);
+  }, [students, savedCourses, classMap, batchMap]);
 
-  // ── Fetch students when class/batch changes ──────────────────────────────
+  // Keep selectedCourse in sync with fresh students state
   useEffect(() => {
-    if (selectedClasses.length === 0 && selectedBatches.length === 0) {
-      setStudents([]);
-      setSelectedStudentIds([]);
-      return;
-    }
-
-    const key = `${[...selectedClasses].sort().join(",")}|${[...selectedBatches].sort().join(",")}`;
-    if (hasLoadedRef.current[key]) return;
-    hasLoadedRef.current[key] = true;
-
-    setLoadingStudents(true);
-    setSelectedStudentIds([]);
-    setStudents([]);
-
-    const params = new URLSearchParams({ roles: "Student" });
-    if (selectedClasses.length > 0) {
-      params.append("classId", selectedClasses.join(","));
-    }
-    if (selectedBatches.length > 0) {
-      params.append("batchId", selectedBatches.join(","));
-    }
-    params.append(
-      "projection",
-      "name,studentSpecificField.islamicCourses,studentSpecificField.academicCourses,studentSpecificField.classId,studentSpecificField.batchId"
-    );
-
-    fetch(`/api/users?${params}`, {
-      headers: apiKey ? { "x-api-key": apiKey } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const list = data.users || data || [];
-        setStudents(Array.isArray(list) ? list : []);
-      })
-      .catch(() => toast.error("Failed to load students"))
-      .finally(() => setLoadingStudents(false));
-  }, [selectedClasses, selectedBatches, apiKey]);
-
-  // Reset loader cache when filters change
-  useEffect(() => {
-    hasLoadedRef.current = {};
-    setStudents([]);
-    setSelectedStudentIds([]);
-    setIslamicCourses([]);
-    setAcademicCourses([]);
-  }, [selectedClasses, selectedBatches]);
-
-  // ── Filtered students based on search ────────────────────────────────────
-  const filteredStudents = students.filter((s) =>
-    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s._id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Active student when exactly 1 student is selected
-  const activeStudent =
-    selectedStudentIds.length === 1
-      ? students.find((s) => s._id === selectedStudentIds[0])
-      : null;
-
-  // Selected student objects for bulk display
-  const selectedStudents = students.filter((s) =>
-    selectedStudentIds.includes(s._id)
-  );
-
-  // When activeStudent changes, update single mode course lists
-  useEffect(() => {
-    if (activeStudent) {
-      setIslamicCourses(activeStudent.studentSpecificField?.islamicCourses || []);
-      setAcademicCourses(activeStudent.studentSpecificField?.academicCourses || []);
-    }
-  }, [activeStudent]);
-
-  // When transitioning to bulk mode, if bulk staging is empty, prefill with active student's courses if available
-  useEffect(() => {
-    if (selectedStudentIds.length > 1) {
-      if (
-        bulkIslamicCourses.length === 0 &&
-        bulkAcademicCourses.length === 0 &&
-        (islamicCourses.length > 0 || academicCourses.length > 0)
-      ) {
-        setBulkIslamicCourses(islamicCourses.map((c) => ({ ...c })));
-        setBulkAcademicCourses(academicCourses.map((c) => ({ ...c })));
-      }
-    }
-  }, [selectedStudentIds.length]);
-
-  // ── Selection handlers ───────────────────────────────────────────────────
-  const handleToggleStudent = (studentId, e) => {
-    if (e) e.stopPropagation();
-    setSelectedStudentIds((prev) => {
-      if (prev.includes(studentId)) {
-        return prev.filter((id) => id !== studentId);
-      } else {
-        return [...prev, studentId];
-      }
-    });
-  };
-
-  const handleRowClick = (student) => {
-    if (selectedStudentIds.length > 1) {
-      // In bulk mode, clicking a row toggles it
-      handleToggleStudent(student._id);
-    } else {
-      // In single mode or no selection, clicking selects this student
-      setSelectedStudentIds([student._id]);
-      setIslamicCourses(student.studentSpecificField?.islamicCourses || []);
-      setAcademicCourses(student.studentSpecificField?.academicCourses || []);
-    }
-  };
-
-  const handleSelectAll = () => {
-    const allFilteredIds = filteredStudents.map((s) => s._id);
-    const areAllSelected =
-      allFilteredIds.length > 0 &&
-      allFilteredIds.every((id) => selectedStudentIds.includes(id));
-
-    if (areAllSelected) {
-      // Unselect all filtered
-      setSelectedStudentIds((prev) =>
-        prev.filter((id) => !allFilteredIds.includes(id))
+    if (selectedCourse) {
+      const updated = aggregatedCourses.find(
+        (c) =>
+          c.type === selectedCourse.type &&
+          c.name.toLowerCase() === selectedCourse.name.toLowerCase()
       );
-    } else {
-      // Select all filtered
-      const combined = Array.from(new Set([...selectedStudentIds, ...allFilteredIds]));
-      setSelectedStudentIds(combined);
+      if (updated) setSelectedCourse(updated);
     }
-  };
+  }, [aggregatedCourses, selectedCourse]);
 
-  const handleDeselectAll = () => {
-    setSelectedStudentIds([]);
-  };
+  // ── Filtered Main Courses Table ──────────────────────────────────────────
+  const filteredCourses = useMemo(() => {
+    return aggregatedCourses.filter((course) => {
+      if (filterType !== "all" && course.type !== filterType) return false;
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matchName = course.name?.toLowerCase().includes(term);
+        const matchBoard = course.universityBoard?.toLowerCase().includes(term);
+        if (!matchName && !matchBoard) return false;
+      }
+      return true;
+    });
+  }, [aggregatedCourses, filterType, searchTerm]);
 
-  // ── Open Add/Edit Dialog ─────────────────────────────────────────────────
-  const openAddDialog = (type, context = "single") => {
-    setDialogContext(context);
-    setDialogType(type);
-    setEditIndex(null);
-    setFormData(EMPTY_COURSE);
-    setIsDialogOpen(true);
-  };
+  // ── Enrolled Years for Selected Course ───────────────────────────────────
+  const courseYears = useMemo(() => {
+    if (!selectedCourse?.students) return [];
+    const map = new Map();
+    selectedCourse.students.forEach((st) => {
+      const yr = String(st.year || "1").trim() || "1";
+      if (!map.has(yr)) {
+        map.set(yr, {
+          year: yr,
+          students: [],
+          ongoingCount: 0,
+          completedCount: 0,
+          pendingCount: 0,
+        });
+      }
+      const item = map.get(yr);
+      item.students.push(st);
+      if (st.status === "Completed") item.completedCount += 1;
+      else if (st.status === "Pending") item.pendingCount += 1;
+      else item.ongoingCount += 1;
+    });
 
-  const openEditDialog = (type, index, context = "single") => {
-    setDialogContext(context);
-    setDialogType(type);
-    setEditIndex(index);
+    return Array.from(map.values()).sort((a, b) => {
+      const numA = parseInt(a.year, 10);
+      const numB = parseInt(b.year, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.year.localeCompare(b.year, undefined, { numeric: true });
+    });
+  }, [selectedCourse]);
 
-    let course;
-    if (context === "single") {
-      course = type === "islamic" ? islamicCourses[index] : academicCourses[index];
-    } else {
-      course =
-        type === "islamic"
-          ? bulkIslamicCourses[index]
-          : bulkAcademicCourses[index];
+  // ── Filtered Students inside Selected Course Popup ───────────────────────
+  const modalFilteredStudents = useMemo(() => {
+    if (!selectedCourse?.students) return [];
+    let list = selectedCourse.students;
+    if (selectedYear && selectedYear !== "all") {
+      list = list.filter(
+        (s) => String(s.year || "1").trim() === String(selectedYear).trim()
+      );
     }
-
-    setFormData({ ...course });
-    setIsDialogOpen(true);
-  };
-
-  const handleFormChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSaveCourse = () => {
-    if (!formData.courseName.trim()) {
-      toast.error("Course name is required");
-      return;
-    }
-
-    const cleanName = formData.courseName.trim();
-
-    // Auto-save new course name to master list and backend for next time
-    const exists = savedCourses.some(
-      (c) => c.name?.toLowerCase() === cleanName.toLowerCase()
+    if (!modalSearchTerm.trim()) return list;
+    const term = modalSearchTerm.toLowerCase();
+    return list.filter(
+      (s) =>
+        s.studentName?.toLowerCase().includes(term) ||
+        s.studentId?.toLowerCase().includes(term) ||
+        s.className?.toLowerCase().includes(term) ||
+        s.batchName?.toLowerCase().includes(term) ||
+        s.year?.toLowerCase().includes(term) ||
+        s.status?.toLowerCase().includes(term)
     );
-    if (!exists) {
-      const newEntry = {
-        name: cleanName,
-        type: dialogType === "islamic" ? "Islamic" : "Academic",
-        universityBoard: formData.universityBoard?.trim() || "",
+  }, [selectedCourse, selectedYear, modalSearchTerm]);
+
+  // ── Edit Course Actions for a Student ────────────────────────────────────
+  const handleOpenEdit = (item) => {
+    setEditingItem(item);
+    setEditFormData({
+      courseName: selectedCourse ? selectedCourse.name : item.courseName,
+      universityBoard: item.universityBoard || "",
+      year: item.year || "1",
+      status: item.status || "Ongoing",
+      type: item.type,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    setSaving(true);
+    try {
+      const student = students.find((s) => s._id === editingItem.studentId);
+      if (!student) throw new Error("Student not found");
+
+      const currentIslamic = [
+        ...(student.studentSpecificField?.islamicCourses || []),
+      ];
+      const currentAcademic = [
+        ...(student.studentSpecificField?.academicCourses || []),
+      ];
+
+      const updatedCourse = {
+        courseName: (editFormData.courseName || editingItem.courseName).trim(),
+        universityBoard: (editFormData.universityBoard || "").trim(),
+        year: editFormData.year,
+        status: editFormData.status,
       };
-      setSavedCourses((prev) => [...prev, newEntry]);
-      fetch("/api/courses", {
-        method: "POST",
+
+      if (editingItem.type === "Islamic") {
+        currentIslamic[editingItem.index] = updatedCourse;
+      } else {
+        currentAcademic[editingItem.index] = updatedCourse;
+      }
+
+      const res = await fetch("/api/users", {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           ...(apiKey ? { "x-api-key": apiKey } : {}),
         },
-        body: JSON.stringify(newEntry),
-      }).catch((err) => console.error("Error auto-saving new course name:", err));
-    }
-
-    if (dialogContext === "single") {
-      if (dialogType === "islamic") {
-        setIslamicCourses((prev) => {
-          const updated = [...prev];
-          if (editIndex !== null) updated[editIndex] = formData;
-          else updated.push(formData);
-          return updated;
-        });
-      } else {
-        setAcademicCourses((prev) => {
-          const updated = [...prev];
-          if (editIndex !== null) updated[editIndex] = formData;
-          else updated.push(formData);
-          return updated;
-        });
-      }
-    } else {
-      // Bulk context
-      if (dialogType === "islamic") {
-        setBulkIslamicCourses((prev) => {
-          const updated = [...prev];
-          if (editIndex !== null) updated[editIndex] = formData;
-          else updated.push(formData);
-          return updated;
-        });
-      } else {
-        setBulkAcademicCourses((prev) => {
-          const updated = [...prev];
-          if (editIndex !== null) updated[editIndex] = formData;
-          else updated.push(formData);
-          return updated;
-        });
-      }
-    }
-
-    setIsDialogOpen(false);
-  };
-
-  // ── Delete Confirmation ──────────────────────────────────────────────────
-  const confirmDelete = (type, index, context = "single") => {
-    setDeleteInfo({ type, index, context });
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = () => {
-    if (!deleteInfo) return;
-    const { type, index, context } = deleteInfo;
-
-    if (context === "single") {
-      if (type === "islamic") {
-        setIslamicCourses((prev) => prev.filter((_, i) => i !== index));
-      } else {
-        setAcademicCourses((prev) => prev.filter((_, i) => i !== index));
-      }
-    } else {
-      if (type === "islamic") {
-        setBulkIslamicCourses((prev) => prev.filter((_, i) => i !== index));
-      } else {
-        setBulkAcademicCourses((prev) => prev.filter((_, i) => i !== index));
-      }
-    }
-
-    setIsDeleteDialogOpen(false);
-    setDeleteInfo(null);
-  };
-
-  // ── Save Single Student ──────────────────────────────────────────────────
-  const handleSaveSingle = async () => {
-    if (!activeStudent) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/users`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-        },
         body: JSON.stringify({
-          ids: [activeStudent._id],
-          islamicCourses,
-          academicCourses,
+          ids: [editingItem.studentId],
+          islamicCourses: currentIslamic,
+          academicCourses: currentAcademic,
           courseAction: "replace",
         }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "Failed to save courses");
+        throw new Error(err.message || "Failed to update course");
       }
 
-      // Update local student list
       setStudents((prev) =>
         prev.map((s) =>
-          s._id === activeStudent._id
+          s._id === editingItem.studentId
             ? {
                 ...s,
                 studentSpecificField: {
                   ...s.studentSpecificField,
-                  islamicCourses,
-                  academicCourses,
+                  islamicCourses: currentIslamic,
+                  academicCourses: currentAcademic,
                 },
               }
             : s
         )
       );
 
-      toast.success(`Courses saved successfully for ${activeStudent.name}`);
+      toast.success("Student course updated successfully");
+      setIsEditDialogOpen(false);
+      setEditingItem(null);
     } catch (err) {
-      toast.error(err.message || "Failed to save courses");
+      console.error("Error updating course:", err);
+      toast.error(err.message || "Failed to update course");
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Save Bulk Update ─────────────────────────────────────────────────────
-  const handleSaveBulk = async () => {
-    if (selectedStudentIds.length <= 1) return;
-    if (
-      bulkMode === "append" &&
-      bulkIslamicCourses.length === 0 &&
-      bulkAcademicCourses.length === 0
-    ) {
-      toast.error("Please add at least one course to append.");
-      return;
-    }
+  // ── Remove Course from a Student ─────────────────────────────────────────
+  const handleOpenDelete = (item) => {
+    setDeletingItem(item);
+    setIsDeleteDialogOpen(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/users`, {
+      const student = students.find((s) => s._id === deletingItem.studentId);
+      if (!student) throw new Error("Student not found");
+
+      const currentIslamic = [
+        ...(student.studentSpecificField?.islamicCourses || []),
+      ];
+      const currentAcademic = [
+        ...(student.studentSpecificField?.academicCourses || []),
+      ];
+
+      if (deletingItem.type === "Islamic") {
+        currentIslamic.splice(deletingItem.index, 1);
+      } else {
+        currentAcademic.splice(deletingItem.index, 1);
+      }
+
+      const res = await fetch("/api/users", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": apiKey,
+          ...(apiKey ? { "x-api-key": apiKey } : {}),
         },
         body: JSON.stringify({
-          ids: selectedStudentIds,
-          islamicCourses: bulkIslamicCourses,
-          academicCourses: bulkAcademicCourses,
-          courseAction: bulkMode,
+          ids: [deletingItem.studentId],
+          islamicCourses: currentIslamic,
+          academicCourses: currentAcademic,
+          courseAction: "replace",
         }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "Failed to save bulk courses");
+        throw new Error(err.message || "Failed to remove course");
       }
 
-      // Update local state for all affected students
+      setStudents((prev) =>
+        prev.map((s) =>
+          s._id === deletingItem.studentId
+            ? {
+                ...s,
+                studentSpecificField: {
+                  ...s.studentSpecificField,
+                  islamicCourses: currentIslamic,
+                  academicCourses: currentAcademic,
+                },
+              }
+            : s
+        )
+      );
+
+      toast.success(
+        `Removed "${selectedCourse?.name || deletingItem.courseName}" for ${
+          deletingItem.studentName
+        }`
+      );
+      setIsDeleteDialogOpen(false);
+      setDeletingItem(null);
+    } catch (err) {
+      console.error("Error deleting course:", err);
+      toast.error(err.message || "Failed to remove course");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Delete Master Course from table ──────────────────────────────────────
+  const handleOpenDeleteMaster = (course) => {
+    setDeletingMasterCourse(course);
+    setIsDeleteMasterOpen(true);
+  };
+
+  const handleConfirmDeleteMaster = async () => {
+    if (!deletingMasterCourse) return;
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `/api/courses?courseName=${encodeURIComponent(deletingMasterCourse.name)}`,
+        {
+          method: "DELETE",
+          headers: apiKey ? { "x-api-key": apiKey } : {},
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to delete course");
+      }
+
+      // Remove from savedCourses
+      setSavedCourses((prev) =>
+        prev.filter(
+          (c) =>
+            c.name.toLowerCase() !== deletingMasterCourse.name.toLowerCase()
+        )
+      );
+
+      // Remove from loaded students
+      const cleanName = deletingMasterCourse.name.toLowerCase();
+      setStudents((prev) =>
+        prev.map((s) => ({
+          ...s,
+          studentSpecificField: {
+            ...s.studentSpecificField,
+            islamicCourses: (
+              s.studentSpecificField?.islamicCourses || []
+            ).filter((c) => c.courseName?.trim().toLowerCase() !== cleanName),
+            academicCourses: (
+              s.studentSpecificField?.academicCourses || []
+            ).filter((c) => c.courseName?.trim().toLowerCase() !== cleanName),
+          },
+        }))
+      );
+
+      toast.success(`Course "${deletingMasterCourse.name}" deleted successfully`);
+      setIsDeleteMasterOpen(false);
+      setDeletingMasterCourse(null);
+    } catch (err) {
+      console.error("Error deleting master course:", err);
+      toast.error(err.message || "Failed to delete course");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Add Course Popup Actions ─────────────────────────────────────────────
+  const popupStudentOptions = useMemo(
+    () =>
+      (popupStudents || []).map((s) => {
+        const idDisplay =
+          s.admissionNumber ||
+          s.studentSpecificField?.admissionNumber ||
+          s._id;
+        return {
+          value: s._id,
+          label: s.name ? `${s.name} (${idDisplay})` : idDisplay,
+        };
+      }),
+    [popupStudents]
+  );
+
+  const fetchPopupStudents = useCallback(
+    async (batchId, classId) => {
+      if (!batchId && !classId) {
+        setPopupStudents([]);
+        setPopupSelectedStudentIds([]);
+        return;
+      }
+      setLoadingPopupStudents(true);
+      try {
+        const params = new URLSearchParams({
+          roles: "Student",
+          status: "Active",
+          limit: "1000",
+        });
+        if (batchId && batchId !== "all") {
+          params.append("batchId", batchId);
+        }
+        if (classId && classId !== "all") {
+          params.append("classId", classId);
+        }
+        params.append(
+          "projection",
+          "name,_id,admissionNumber,studentSpecificField.admissionNumber,studentSpecificField.classId,studentSpecificField.batchId,studentSpecificField.status"
+        );
+
+        const res = await fetch(`/api/users?${params}`, {
+          headers: apiKey ? { "x-api-key": apiKey } : {},
+        });
+        const data = await res.json();
+        const list = data.users || data || [];
+        const validList = (Array.isArray(list) ? list : []).filter((s) => {
+          const st =
+            s.studentSpecificField?.status || s.studentStatus || s.status || "Active";
+          return st.toLowerCase() === "active";
+        });
+        setPopupStudents(validList);
+      } catch (err) {
+        console.error("Failed to load popup students:", err);
+        toast.error("Failed to load active students for selected batch/class");
+      } finally {
+        setLoadingPopupStudents(false);
+      }
+    },
+    [apiKey]
+  );
+
+  const handlePopupCourseNameChange = (name) => {
+    setPopupCourseName(name);
+    const clean = name?.trim();
+    if (!clean) return;
+
+    const matched = savedCourses.find(
+      (c) => c.name?.toLowerCase() === clean.toLowerCase()
+    );
+    if (matched && matched.universityBoard) {
+      setPopupUniversityBoard(matched.universityBoard);
+    }
+  };
+
+  const handleOpenAddPopup = () => {
+    setPopupCourseType("Islamic");
+    setPopupCourseName("");
+    setPopupUniversityBoard("");
+    setPopupYear("1");
+    setPopupStatus("Ongoing");
+    setPopupBatchId("");
+    setPopupClassId("");
+    setPopupSelectedStudentIds([]);
+    setPopupStudents([]);
+    setIsAddCoursePopupOpen(true);
+  };
+
+  const handleSaveNewCoursePopup = async () => {
+    if (!popupCourseName?.trim()) {
+      toast.error("Please enter a course name");
+      return;
+    }
+    if (!popupYear) {
+      toast.error("Please select a year");
+      return;
+    }
+    if (popupSelectedStudentIds.length === 0) {
+      toast.error("Please select at least one student");
+      return;
+    }
+
+    setIsSubmittingPopup(true);
+    const newCourse = {
+      courseName: popupCourseName.trim(),
+      universityBoard: popupUniversityBoard.trim(),
+      year: popupYear,
+      status: popupStatus || "Ongoing",
+    };
+    const isIslamic = popupCourseType === "Islamic";
+
+    try {
+      const res = await fetch(`/api/users`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "x-api-key": apiKey } : {}),
+        },
+        body: JSON.stringify({
+          ids: popupSelectedStudentIds,
+          islamicCourses: isIslamic ? [newCourse] : [],
+          academicCourses: !isIslamic ? [newCourse] : [],
+          courseAction: "append",
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to add course");
+      }
+
+      // Auto-save master course to Course collection
+      fetch("/api/courses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "x-api-key": apiKey } : {}),
+        },
+        body: JSON.stringify({
+          name: newCourse.courseName,
+          type: popupCourseType,
+          universityBoard: newCourse.universityBoard,
+        }),
+      }).catch((err) =>
+        console.error("Error auto-saving course to master collection:", err)
+      );
+
+      // Update local master courses state
+      setSavedCourses((prev) => {
+        if (
+          prev.some(
+            (c) =>
+              c.name?.toLowerCase() === newCourse.courseName.toLowerCase()
+          )
+        )
+          return prev;
+        return [
+          ...prev,
+          {
+            name: newCourse.courseName,
+            type: popupCourseType,
+            universityBoard: newCourse.universityBoard,
+          },
+        ];
+      });
+
+      // Update local students list
       setStudents((prev) =>
         prev.map((s) => {
-          if (!selectedStudentIds.includes(s._id)) return s;
+          if (!popupSelectedStudentIds.includes(s._id)) return s;
+          const currentIslamic = [
+            ...(s.studentSpecificField?.islamicCourses || []),
+          ];
+          const currentAcademic = [
+            ...(s.studentSpecificField?.academicCourses || []),
+          ];
 
-          let newIslamic = [];
-          let newAcademic = [];
-
-          if (bulkMode === "append") {
-            const existingIslamic = [
-              ...(s.studentSpecificField?.islamicCourses || []),
-            ];
-            bulkIslamicCourses.forEach((newC) => {
-              const idx = existingIslamic.findIndex(
-                (c) =>
-                  c.courseName?.trim().toLowerCase() ===
-                  newC.courseName?.trim().toLowerCase()
-              );
-              if (idx !== -1) existingIslamic[idx] = { ...existingIslamic[idx], ...newC };
-              else existingIslamic.push(newC);
-            });
-            newIslamic = existingIslamic;
-
-            const existingAcademic = [
-              ...(s.studentSpecificField?.academicCourses || []),
-            ];
-            bulkAcademicCourses.forEach((newC) => {
-              const idx = existingAcademic.findIndex(
-                (c) =>
-                  c.courseName?.trim().toLowerCase() ===
-                  newC.courseName?.trim().toLowerCase()
-              );
-              if (idx !== -1) existingAcademic[idx] = { ...existingAcademic[idx], ...newC };
-              else existingAcademic.push(newC);
-            });
-            newAcademic = existingAcademic;
+          if (isIslamic) {
+            const idx = currentIslamic.findIndex(
+              (c) =>
+                c.courseName?.trim().toLowerCase() ===
+                newCourse.courseName.toLowerCase()
+            );
+            if (idx !== -1)
+              currentIslamic[idx] = { ...currentIslamic[idx], ...newCourse };
+            else currentIslamic.push(newCourse);
           } else {
-            newIslamic = [...bulkIslamicCourses];
-            newAcademic = [...bulkAcademicCourses];
+            const idx = currentAcademic.findIndex(
+              (c) =>
+                c.courseName?.trim().toLowerCase() ===
+                newCourse.courseName.toLowerCase()
+            );
+            if (idx !== -1)
+              currentAcademic[idx] = { ...currentAcademic[idx], ...newCourse };
+            else currentAcademic.push(newCourse);
           }
 
           return {
             ...s,
             studentSpecificField: {
               ...s.studentSpecificField,
-              islamicCourses: newIslamic,
-              academicCourses: newAcademic,
+              islamicCourses: currentIslamic,
+              academicCourses: currentAcademic,
             },
           };
         })
       );
 
-      setIsBulkConfirmOpen(false);
       toast.success(
-        `Courses updated successfully for ${selectedStudentIds.length} students!`
+        `Course "${newCourse.courseName}" added for ${
+          popupSelectedStudentIds.length
+        } student${popupSelectedStudentIds.length > 1 ? "s" : ""}`
       );
+      setIsAddCoursePopupOpen(false);
     } catch (err) {
-      toast.error(err.message || "Failed to save bulk courses");
+      console.error("Error saving new course from popup:", err);
+      toast.error(err.message || "Failed to add course");
     } finally {
-      setSaving(false);
+      setIsSubmittingPopup(false);
     }
   };
 
-
-
-  // Helper: check if all filtered students are selected
-  const allFilteredSelected =
-    filteredStudents.length > 0 &&
-    filteredStudents.every((s) => selectedStudentIds.includes(s._id));
-  const someFilteredSelected =
-    filteredStudents.some((s) => selectedStudentIds.includes(s._id)) &&
-    !allFilteredSelected;
-
-  // ── Course table sub-component ───────────────────────────────────────────
-  const CourseTable = ({ type, courses, context = "single" }) => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {type === "islamic" ? (
-            <BookMarked className="h-4 w-4 text-emerald-600" />
-          ) : (
-            <GraduationCap className="h-4 w-4 text-blue-600" />
-          )}
-          <h3 className="font-semibold text-sm">
-            {type === "islamic" ? "Islamic Courses" : "Academic Courses"}
-          </h3>
-          <Badge variant="secondary" className="text-xs">
-            {courses.length}
-          </Badge>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 gap-1.5 text-xs"
-          onClick={() => openAddDialog(type, context)}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add Course
-        </Button>
-      </div>
-
-      {courses.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground text-xs sm:text-sm border-2 border-dashed rounded-lg bg-muted/20">
-          No {type === "islamic" ? "Islamic" : "Academic"} courses recorded yet.
-        </div>
-      ) : (
-        <div className="border rounded-lg overflow-hidden bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40">
-                <TableHead className="text-xs font-semibold">Course Name</TableHead>
-                <TableHead className="text-xs font-semibold">University / Board</TableHead>
-                <TableHead className="text-xs font-semibold">Year</TableHead>
-                <TableHead className="text-xs font-semibold">Status</TableHead>
-                <TableHead className="text-xs w-20 text-right font-semibold">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {courses.map((course, idx) => (
-                <TableRow key={idx} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium text-xs sm:text-sm py-2.5">
-                    {course.courseName || "—"}
-                  </TableCell>
-                  <TableCell className="text-xs sm:text-sm py-2.5 text-muted-foreground">
-                    {course.universityBoard || "—"}
-                  </TableCell>
-                  <TableCell className="text-xs sm:text-sm py-2.5">
-                    {course.year || "—"}
-                  </TableCell>
-                  <TableCell className="py-2.5">
-                    {course.status ? (
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          STATUS_COLORS[course.status] || ""
-                        }`}
-                      >
-                        {course.status}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => openEditDialog(type, idx, context)}
-                        title="Edit Course"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => confirmDelete(type, idx, context)}
-                        title="Remove Course"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
-  );
-
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-12">
       <Header
         title="COURSES"
         subTitle="Manage Islamic and Academic course details"
+        rightAction={
+          <Button
+            onClick={handleOpenAddPopup}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 sm:w-auto sm:px-3 p-0 gap-1.5 flex items-center justify-center shrink-0 shadow-sm"
+            title="Add Course"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline text-sm font-medium">Add Course</span>
+          </Button>
+        }
       />
 
-      {/* ── Filters ─────────────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-sm font-semibold">Filter Students</CardTitle>
-              <CardDescription className="text-xs">
-                Select one or more batches and classes to load students
-              </CardDescription>
+      {/* ── Main Courses Table ─────────────────────────────────────────── */}
+      <Card className="border shadow-sm">
+        <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-4 border-b bg-card">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search course name or university..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-9 text-xs sm:text-sm"
+              />
             </div>
-            {(selectedBatches.length > 0 || selectedClasses.length > 0) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setSelectedBatches([]);
-                  setSelectedClasses([]);
-                }}
+
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-lg border text-xs">
+              <button
+                onClick={() => setFilterType("all")}
+                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                  filterType === "all"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                Clear Filters
-              </Button>
-            )}
+                All ({aggregatedCourses.length})
+              </button>
+              <button
+                onClick={() => setFilterType("Islamic")}
+                className={`px-3 py-1.5 rounded-md font-medium transition-all flex items-center gap-1 ${
+                  filterType === "Islamic"
+                    ? "bg-background text-emerald-700 dark:text-emerald-300 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <BookMarked className="h-3 w-3" />
+                Islamic (
+                {aggregatedCourses.filter((c) => c.type === "Islamic").length}
+                )
+              </button>
+              <button
+                onClick={() => setFilterType("Academic")}
+                className={`px-3 py-1.5 rounded-md font-medium transition-all flex items-center gap-1 ${
+                  filterType === "Academic"
+                    ? "bg-background text-blue-700 dark:text-blue-300 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <GraduationCap className="h-3 w-3" />
+                Academic (
+                {aggregatedCourses.filter((c) => c.type === "Academic").length}
+                )
+              </button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Batch</Label>
-              <MultiSelect
-                options={batchOptions}
-                value={selectedBatches}
-                onValueChange={setSelectedBatches}
-                placeholder="Select batches..."
-                maxCount={2}
-              />
+
+        <CardContent className="p-0">
+          {loadingStudents ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <p className="text-sm">Loading courses...</p>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Class</Label>
-              <MultiSelect
-                options={classOptions}
-                value={selectedClasses}
-                onValueChange={setSelectedClasses}
-                placeholder="Select classes..."
-                maxCount={2}
-              />
+          ) : filteredCourses.length === 0 ? (
+            <div className="text-center py-16 px-4">
+              <div className="w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground">
+                <GraduationCap className="h-6 w-6" />
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">
+                No courses found
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                {searchTerm || filterType !== "all"
+                  ? "No courses match your filter or search."
+                  : "No courses added yet. Click '+ Add Course' in the top right to get started."}
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="w-12 text-center text-xs font-semibold">
+                      #
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold min-w-[200px]">
+                      Course Name
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold hidden sm:table-cell min-w-[120px]">
+                      Type
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold hidden md:table-cell min-w-[180px]">
+                      University / Board
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold text-center w-36">
+                      Total Students
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold text-right w-20">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCourses.map((course, idx) => (
+                    <TableRow
+                      key={`${course.type}-${course.name}`}
+                      className="hover:bg-muted/50 transition-colors cursor-pointer group"
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        setSelectedYear(null);
+                        setModalSearchTerm("");
+                      }}
+                    >
+                      <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
+                        {idx + 1}
+                      </TableCell>
+                      <TableCell className="py-3.5">
+                        <div className="flex flex-col gap-1 items-start">
+                          {/* Mobile type badge */}
+                          <div className="sm:hidden">
+                            {course.type === "Islamic" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                <BookMarked className="h-2.5 w-2.5" />
+                                Islamic
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                <GraduationCap className="h-2.5 w-2.5" />
+                                Academic
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">
+                            {course.name}
+                          </span>
+                          {/* Mobile university */}
+                          <span className="md:hidden text-xs text-muted-foreground">
+                            {course.universityBoard || "—"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell py-3.5">
+                        {course.type === "Islamic" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                            <BookMarked className="h-3 w-3" />
+                            Islamic
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                            <GraduationCap className="h-3 w-3" />
+                            Academic
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-xs sm:text-sm py-3.5 text-muted-foreground">
+                        {course.universityBoard || "—"}
+                      </TableCell>
+                      <TableCell className="text-center py-3.5">
+                        <Badge
+                          variant="outline"
+                          className={`gap-1.5 px-2.5 py-0.5 text-xs font-semibold ${
+                            course.studentCount > 0
+                              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          <Users className="h-3 w-3" />
+                          <span>{course.studentCount}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell
+                        className="py-3.5 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleOpenDeleteMaster(course)}
+                          title="Delete Course"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* ── Main Layout ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ── Student List (Col 1-5) ───────────────────────────────────────── */}
-        <Card className="lg:col-span-5 xl:col-span-4">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-semibold">Students</CardTitle>
-              </div>
-              {students.length > 0 && (
-                <Badge variant="outline" className="text-xs font-normal">
-                  {selectedStudentIds.length > 0
-                    ? `${selectedStudentIds.length} of ${students.length} selected`
-                    : `${students.length} total`}
-                </Badge>
-              )}
-            </div>
-            {selectedStudentIds.length > 0 && (
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-xs text-muted-foreground">
-                  {selectedStudentIds.length === 1
-                    ? "1 student selected"
-                    : `${selectedStudentIds.length} students selected (Bulk Mode)`}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-destructive hover:text-destructive px-1.5"
-                  onClick={handleDeselectAll}
-                >
-                  Clear Selection
-                </Button>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(selectedClasses.length > 0 || selectedBatches.length > 0) && (
-              <div className="space-y-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name or ID…"
-                    className="pl-8 h-8 text-sm"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+      {/* ── Students in Course Modal (Years Table & Students Table Drilldown) ── */}
+      <Dialog
+        open={!!selectedCourse}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedCourse(null);
+            setSelectedYear(null);
+            setModalSearchTerm("");
+          }
+        }}
+      >
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-4xl max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+          {!selectedYear ? (
+            /* ── VIEW 1: Course Name with Years Table ───────────────────── */
+            <>
+              <DialogHeader className="p-5 pb-3 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    {/* 1. Type on top of course name */}
+                    <div>
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
+                          selectedCourse?.type === "Islamic"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                            : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                        }`}
+                      >
+                        {selectedCourse?.type === "Islamic" ? (
+                          <BookMarked className="h-2.5 w-2.5" />
+                        ) : (
+                          <GraduationCap className="h-2.5 w-2.5" />
+                        )}
+                        <span>{selectedCourse?.type}</span>
+                      </Badge>
+                    </div>
+
+                    {/* 2. Course name with students count in bracket */}
+                    <DialogTitle className="text-lg font-bold m-0 leading-tight">
+                      {selectedCourse?.name}{" "}
+                      <span className="font-semibold text-muted-foreground text-xs">
+                        ({selectedCourse?.students?.length || 0})
+                      </span>
+                    </DialogTitle>
+
+                    {/* 3. University name under course name without label */}
+                    {selectedCourse?.universityBoard && (
+                      <p className="m-0 text-xs text-muted-foreground font-normal">
+                        {selectedCourse.universityBoard}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCourse(null);
+                      setSelectedYear(null);
+                      setModalSearchTerm("");
+                    }}
+                    className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
 
-                {filteredStudents.length > 0 && (
-                  <div className="flex items-center justify-between px-1 py-1 bg-muted/40 rounded-md text-xs">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <Checkbox
-                        checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
-                        onCheckedChange={handleSelectAll}
-                      />
-                      <span className="font-medium">
-                        Select All ({filteredStudents.length})
-                      </span>
-                    </label>
-                    {selectedStudentIds.length > 0 && (
-                      <span className="text-primary font-medium">
-                        {selectedStudentIds.length} chosen
-                      </span>
-                    )}
+                <div className="pt-2 text-xs text-muted-foreground">
+                  Select a year to view enrolled students:
+                </div>
+              </DialogHeader>
+
+              <div className="p-4 pt-3">
+                {courseYears.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-xs">
+                    No students enrolled in this course yet.
+                  </div>
+                ) : (
+                  <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40">
+                          <TableHead className="w-12 text-center text-xs font-semibold">
+                            #
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold min-w-[140px]">
+                            Year
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-center w-36">
+                            Total Students
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold hidden sm:table-cell min-w-[200px]">
+                            Status Breakdown
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-right w-36">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {courseYears.map((yr, idx) => (
+                          <TableRow
+                            key={yr.year}
+                            className="hover:bg-muted/50 transition-colors cursor-pointer group"
+                            onClick={() => {
+                              setSelectedYear(yr.year);
+                              setModalSearchTerm("");
+                            }}
+                          >
+                            <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
+                              {idx + 1}
+                            </TableCell>
+                            <TableCell className="py-3.5">
+                              <span className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">
+                                Year {yr.year}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center py-3.5">
+                              <Badge
+                                variant="outline"
+                                className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                              >
+                                <Users className="h-3 w-3" />
+                                <span>{yr.students.length}</span>
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell py-3.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {yr.ongoingCount > 0 && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                    {yr.ongoingCount} Ongoing
+                                  </span>
+                                )}
+                                {yr.completedCount > 0 && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                    {yr.completedCount} Completed
+                                  </span>
+                                )}
+                                {yr.pendingCount > 0 && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                    {yr.pendingCount} Pending
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3.5 text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-2.5 text-xs font-medium gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-blue-200 dark:border-blue-800 group-hover:bg-blue-600 group-hover:text-white transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedYear(yr.year);
+                                  setModalSearchTerm("");
+                                }}
+                              >
+                                <span>View Students</span>
+                                <ChevronRight className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+
+                        {courseYears.length > 1 && (
+                          <TableRow
+                            className="hover:bg-muted/50 transition-colors cursor-pointer group bg-muted/20 border-t-2"
+                            onClick={() => {
+                              setSelectedYear("all");
+                              setModalSearchTerm("");
+                            }}
+                          >
+                            <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
+                              ★
+                            </TableCell>
+                            <TableCell className="py-3.5">
+                              <span className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">
+                                All Years
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center py-3.5">
+                              <Badge
+                                variant="outline"
+                                className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                              >
+                                <Users className="h-3 w-3" />
+                                <span>{selectedCourse?.students?.length || 0}</span>
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell py-3.5">
+                              <span className="text-xs text-muted-foreground">
+                                All enrolled students across {courseYears.length} years
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3.5 text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-2.5 text-xs font-medium gap-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-purple-200 dark:border-purple-800 group-hover:bg-purple-600 group-hover:text-white transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedYear("all");
+                                  setModalSearchTerm("");
+                                }}
+                              >
+                                <span>View All</span>
+                                <ChevronRight className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </div>
-            )}
-
-            {selectedClasses.length === 0 && selectedBatches.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-sm">
-                Select a batch or class above to load students.
-              </div>
-            ) : loadingStudents ? (
-              <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                Loading students…
-              </div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-sm">
-                No students found.
-              </div>
-            ) : (
-              <div className="space-y-1.5 max-h-[540px] overflow-y-auto pr-1">
-                {filteredStudents.map((student) => {
-                  const isChecked = selectedStudentIds.includes(student._id);
-                  const isSoleSelection =
-                    selectedStudentIds.length === 1 && isChecked;
-                  const islamicCount =
-                    student.studentSpecificField?.islamicCourses?.length || 0;
-                  const academicCount =
-                    student.studentSpecificField?.academicCourses?.length || 0;
-
-                  return (
-                    <div
-                      key={student._id}
-                      onClick={() => handleRowClick(student)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-sm cursor-pointer select-none ${
-                        isSoleSelection
-                          ? "border-primary bg-primary/10 shadow-sm"
-                          : isChecked
-                          ? "border-primary/50 bg-primary/5"
-                          : "border-border/60 hover:border-border hover:bg-muted/50"
-                      }`}
-                    >
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={(checked) =>
-                          handleToggleStudent(student._id)
-                        }
-                        onClick={(e) => e.stopPropagation()}
-                        className="shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium truncate text-foreground text-sm">
-                          {student.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
-                          <span className="truncate">{student._id}</span>
-                          {(selectedClasses.length > 1 || selectedBatches.length > 1) && (
-                            <span className="text-[11px] text-muted-foreground/80 truncate">
-                              {classMap.get(student.studentSpecificField?.classId) || ""}
-                            </span>
-                          )}
-                          {(islamicCount > 0 || academicCount > 0) && (
-                            <span className="flex items-center gap-1 shrink-0 ml-auto">
-                              {islamicCount > 0 && (
-                                <span
-                                  className="inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] font-medium"
-                                  title={`${islamicCount} Islamic course(s)`}
-                                >
-                                  <BookMarked className="h-2.5 w-2.5" />
-                                  {islamicCount}
-                                </span>
-                              )}
-                              {academicCount > 0 && (
-                                <span
-                                  className="inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 text-[10px] font-medium"
-                                  title={`${academicCount} Academic course(s)`}
-                                >
-                                  <GraduationCap className="h-2.5 w-2.5" />
-                                  {academicCount}
-                                </span>
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ── Right Panel: Single Student OR Bulk Mode (Col 6-12) ─────────── */}
-        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-          {selectedStudentIds.length === 0 ? (
-            /* ── Case 0: Empty Selection ──────────────────────────────────── */
-            <Card className="flex flex-col items-center justify-center min-h-[380px] text-center p-8 border-dashed">
-              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <BookOpen className="h-7 w-7 text-primary" />
-              </div>
-              <h3 className="text-base font-semibold mb-1">No Student Selected</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Select one student to view and update their individual courses, or select multiple students to update courses in bulk.
-              </p>
-            </Card>
-          ) : selectedStudentIds.length === 1 && activeStudent ? (
-            /* ── Case 1: Single Student Mode ─────────────────────────────── */
-            <>
-              {/* Header card for single student */}
-              <Card className="bg-card">
-                <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-foreground">
-                        {activeStudent.name}
-                      </h2>
-                      <Badge variant="outline" className="text-xs">
-                        ID: {activeStudent._id}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Individual student course management. Changes will only apply to this student.
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleSaveSingle}
-                    disabled={saving}
-                    className="gap-2 shrink-0 w-full sm:w-auto"
-                  >
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    Save Changes
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Islamic Courses Card */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <BookMarked className="h-4 w-4 text-emerald-600" />
-                    Islamic Courses
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Details of Islamic courses such as Dars-e-Nizami, Hifz, Mukhtasar, etc.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CourseTable
-                    type="islamic"
-                    courses={islamicCourses}
-                    context="single"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Academic Courses Card */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4 text-blue-600" />
-                    Academic Courses
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Details of formal academic courses such as SSLC, Plus Two, Degree, etc.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CourseTable
-                    type="academic"
-                    courses={academicCourses}
-                    context="single"
-                  />
-                </CardContent>
-              </Card>
             </>
           ) : (
-            /* ── Case 2: Bulk Update Mode (Multiple Students) ─────────────── */
+            /* ── VIEW 2: Students in Selected Year Table ─────────────────── */
             <>
-              {/* Bulk Header & Controls */}
-              <Card className="border-primary/40 bg-gradient-to-r from-primary/5 via-background to-primary/5">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <Users className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-base font-bold">
-                            Bulk Course Update
-                          </CardTitle>
-                          <Badge className="bg-primary text-primary-foreground text-xs font-semibold">
-                            {selectedStudentIds.length} Students Selected
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-xs mt-0.5">
-                          Apply course details across multiple students at once.
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-4 pt-1">
-                  {/* Selected students count indicator (names not needed, only count) */}
-                  <div className="flex items-center justify-between p-3 bg-muted/40 border rounded-lg">
+              <DialogHeader className="p-5 pb-3 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-medium text-foreground">
-                        Selected Students:
-                      </span>
-                    </div>
-                    <Badge variant="secondary" className="font-semibold text-xs">
-                      {selectedStudentIds.length} Students Selected
-                    </Badge>
-                  </div>
-
-                  {/* Bulk Update Mode Option */}
-                  <div className="p-3.5 bg-background border rounded-lg space-y-2">
-                    <Label className="text-xs font-semibold text-foreground">
-                      Update Method:
-                    </Label>
-                    <RadioGroup
-                      value={bulkMode}
-                      onValueChange={setBulkMode}
-                      className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                    >
-                      <div
-                        className={`flex items-start gap-2.5 p-3 rounded-md border cursor-pointer transition-colors ${
-                          bulkMode === "append"
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:bg-muted/40"
-                        }`}
-                        onClick={() => setBulkMode("append")}
-                      >
-                        <RadioGroupItem value="append" id="append-mode" className="mt-0.5" />
-                        <div className="space-y-0.5">
-                          <label
-                            htmlFor="append-mode"
-                            className="text-xs font-semibold cursor-pointer text-foreground flex items-center gap-1.5"
-                          >
-                            Append / Add (Recommended)
-                          </label>
-                          <p className="text-[11px] text-muted-foreground leading-snug">
-                            Add these courses to students. Keeps their existing courses; updates courses with the same name.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div
-                        className={`flex items-start gap-2.5 p-3 rounded-md border cursor-pointer transition-colors ${
-                          bulkMode === "replace"
-                            ? "border-destructive/60 bg-destructive/5"
-                            : "border-border hover:bg-muted/40"
-                        }`}
-                        onClick={() => setBulkMode("replace")}
-                      >
-                        <RadioGroupItem value="replace" id="replace-mode" className="mt-0.5" />
-                        <div className="space-y-0.5">
-                          <label
-                            htmlFor="replace-mode"
-                            className="text-xs font-semibold cursor-pointer text-destructive flex items-center gap-1.5"
-                          >
-                            Replace All
-                          </label>
-                          <p className="text-[11px] text-muted-foreground leading-snug">
-                            Overwrite all courses. Each selected student will only have the courses listed below.
-                          </p>
-                        </div>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Bulk Islamic Courses */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <BookMarked className="h-4 w-4 text-emerald-600" />
-                    Islamic Courses to Apply in Bulk
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Courses defined here will be applied to all {selectedStudentIds.length} selected students.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CourseTable
-                    type="islamic"
-                    courses={bulkIslamicCourses}
-                    context="bulk"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Bulk Academic Courses */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4 text-blue-600" />
-                    Academic Courses to Apply in Bulk
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Courses defined here will be applied to all {selectedStudentIds.length} selected students.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CourseTable
-                    type="academic"
-                    courses={bulkAcademicCourses}
-                    context="bulk"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Bulk Save Action Bar */}
-              <Card className="bg-card shadow-sm">
-                <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                    <span>
-                      Ready to <strong>{bulkMode}</strong>{" "}
-                      {bulkIslamicCourses.length} Islamic and{" "}
-                      {bulkAcademicCourses.length} Academic course(s) for{" "}
-                      <strong>{selectedStudentIds.length} students</strong>.
-                    </span>
-                  </div>
-
-                  <Button
-                    onClick={() => setIsBulkConfirmOpen(true)}
-                    disabled={
-                      saving ||
-                      (bulkMode === "append" &&
-                        bulkIslamicCourses.length === 0 &&
-                        bulkAcademicCourses.length === 0)
-                    }
-                    className="gap-2 w-full sm:w-auto"
-                  >
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    Save Courses to {selectedStudentIds.length} Students
-                  </Button>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* ── Add / Edit Course Dialog ─────────────────────────────────────── */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              {dialogType === "islamic" ? (
-                <BookMarked className="h-4 w-4 text-emerald-600" />
-              ) : (
-                <GraduationCap className="h-4 w-4 text-blue-600" />
-              )}
-              {editIndex !== null ? "Edit" : "Add"}{" "}
-              {dialogType === "islamic" ? "Islamic" : "Academic"} Course
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {dialogContext === "single"
-                ? `Enter course details for ${activeStudent?.name || "the student"}.`
-                : `Enter course details to apply across ${selectedStudentIds.length} selected students.`}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="courseName" className="text-xs font-medium">
-                  Course Name <span className="text-destructive">*</span>
-                </Label>
-                <span className="text-[10px] text-muted-foreground">
-                  Type or select from dropdown
-                </span>
-              </div>
-              <div className="relative flex items-center">
-                <Input
-                  id="courseName"
-                  list={`datalist-courses-${dialogType}`}
-                  placeholder="Type or select course name…"
-                  value={formData.courseName}
-                  onChange={(e) => handleFormChange("courseName", e.target.value)}
-                  className="pr-9"
-                />
-                <div className="absolute right-1 flex items-center">
-                  <Popover
-                    open={isCourseDropdownOpen}
-                    onOpenChange={setIsCourseDropdownOpen}
-                  >
-                    <PopoverTrigger asChild>
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        title="Browse saved courses"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedYear(null);
+                          setModalSearchTerm("");
+                        }}
+                        className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground gap-1 border hover:bg-muted"
                       >
-                        <ChevronDown className="h-4 w-4" />
+                        <ArrowLeft className="h-3 w-3" />
+                        <span>Back to Years</span>
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 p-2 shadow-lg" align="end">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-muted-foreground border-b pb-1.5">
-                          <span>Saved Courses ({courseSuggestions.length})</span>
-                          <Badge variant="outline" className="text-[10px] capitalize">
-                            {dialogType}
-                          </Badge>
-                        </div>
-                        <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
-                          {courseSuggestions.length === 0 ? (
-                            <div className="text-center py-4 text-xs text-muted-foreground">
-                              No saved courses yet.
-                            </div>
-                          ) : (
-                            courseSuggestions.map((item) => (
-                              <div
-                                key={item.name}
-                                className={`w-full group px-2 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors ${
-                                  formData.courseName.toLowerCase() === item.name.toLowerCase()
-                                    ? "bg-primary/10 text-primary font-medium"
-                                    : "hover:bg-muted text-foreground"
+
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
+                          selectedCourse?.type === "Islamic"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                            : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                        }`}
+                      >
+                        {selectedCourse?.type === "Islamic" ? (
+                          <BookMarked className="h-2.5 w-2.5" />
+                        ) : (
+                          <GraduationCap className="h-2.5 w-2.5" />
+                        )}
+                        <span>{selectedCourse?.type}</span>
+                      </Badge>
+                    </div>
+
+                    <DialogTitle className="text-lg font-bold m-0 leading-tight">
+                      {selectedCourse?.name}{" "}
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                        {selectedYear === "all" ? "(All Years)" : `- Year ${selectedYear}`}
+                      </span>{" "}
+                      <span className="font-semibold text-muted-foreground text-xs">
+                        ({modalFilteredStudents.length})
+                      </span>
+                    </DialogTitle>
+
+                    {selectedCourse?.universityBoard && (
+                      <p className="m-0 text-xs text-muted-foreground font-normal">
+                        {selectedCourse.universityBoard}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCourse(null);
+                      setSelectedYear(null);
+                      setModalSearchTerm("");
+                    }}
+                    className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Search students in this year */}
+                <div className="relative pt-3">
+                  <Search className="absolute left-2.5 top-5.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder={
+                      selectedYear === "all"
+                        ? "Search all students in this course..."
+                        : `Search students in Year ${selectedYear}...`
+                    }
+                    value={modalSearchTerm}
+                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    className="pl-8 h-8 text-xs bg-background/80"
+                  />
+                </div>
+              </DialogHeader>
+
+              <div className="p-4 pt-3">
+                {modalFilteredStudents.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-xs">
+                    {modalSearchTerm
+                      ? "No students match your search."
+                      : selectedYear === "all"
+                      ? "No students enrolled in this course yet."
+                      : `No students enrolled in Year ${selectedYear}.`}
+                  </div>
+                ) : (
+                  <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="w-10 text-xs font-semibold text-center">
+                            #
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold">
+                            Student Name
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold">
+                            Class
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold">
+                            Batch
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-center">
+                            Year
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold">
+                            Status
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-right w-20">
+                            Actions
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {modalFilteredStudents.map((st, i) => (
+                          <TableRow
+                            key={`${st.studentId}-${i}`}
+                            className="hover:bg-muted/30"
+                          >
+                            <TableCell className="text-xs text-center text-muted-foreground py-2.5">
+                              {i + 1}
+                            </TableCell>
+                            <TableCell className="font-medium text-xs py-2.5">
+                              <div className="font-semibold text-foreground">
+                                {st.studentName}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {st.studentId}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs py-2.5 text-foreground font-medium">
+                              {st.className}
+                            </TableCell>
+                            <TableCell className="text-xs py-2.5 text-muted-foreground">
+                              {st.batchName}
+                            </TableCell>
+                            <TableCell className="text-xs text-center py-2.5 font-semibold text-foreground">
+                              <span className="inline-block px-2 py-0.5 bg-muted rounded text-xs">
+                                {st.year}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-xs py-2.5">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                  STATUS_COLORS[st.status] || ""
                                 }`}
                               >
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleFormChange("courseName", item.name);
-                                    if (item.universityBoard) {
-                                      handleFormChange("universityBoard", item.universityBoard);
-                                    }
-                                    setIsCourseDropdownOpen(false);
-                                  }}
-                                  className="flex-1 text-left flex flex-col min-w-0 pr-2"
-                                >
-                                  <span className="font-medium truncate">{item.name}</span>
-                                  {item.universityBoard && (
-                                    <span className="text-[10px] text-muted-foreground truncate">
-                                      {item.universityBoard}
-                                    </span>
-                                  )}
-                                </button>
+                                {st.status}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-xs text-right py-2.5">
+                              <div className="flex items-center justify-end gap-1">
                                 <Button
-                                  type="button"
-                                  variant="ghost"
                                   size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteSavedCourse(item.name);
-                                  }}
-                                  className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-                                  title={`Remove "${item.name}" from dropdown`}
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  onClick={() => handleOpenEdit(st)}
+                                  title="Edit Student's Course"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleOpenDelete(st)}
+                                  title="Remove Student from Course"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-              {/* Native datalist for browser autocomplete suggestions */}
-              <datalist id={`datalist-courses-${dialogType}`}>
-                {courseSuggestions.map((item) => (
-                  <option key={item.name} value={item.name}>
-                    {item.universityBoard ? `(${item.universityBoard})` : ""}
-                  </option>
-                ))}
-              </datalist>
+      {/* ── Edit Student Course Dialog ─────────────────────────────────── */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-y-auto flex flex-col [&>button.absolute]:hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-30 shrink-0">
+            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0">
+              <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-lg font-bold m-0 text-foreground">
+                Edit Course Details
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground m-0">
+                {editingItem?.studentName} ({editingItem?.studentId})
+              </DialogDescription>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditDialogOpen(false)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </DialogHeader>
 
-              {/* Quick-select pills */}
-              {courseSuggestions.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1 pt-1">
-                  <span className="text-[10px] text-muted-foreground mr-1">
-                    Saved:
-                  </span>
-                  {courseSuggestions.slice(0, 6).map((item) => (
-                    <div
-                      key={item.name}
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border transition-colors ${
-                        formData.courseName.toLowerCase() === item.name.toLowerCase()
-                          ? "bg-primary text-primary-foreground border-primary font-medium"
-                          : "bg-muted/40 hover:bg-muted border-border text-foreground"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleFormChange("courseName", item.name);
-                          if (item.universityBoard) {
-                            handleFormChange("universityBoard", item.universityBoard);
-                          }
-                        }}
-                        className="truncate max-w-[120px]"
-                      >
-                        {item.name}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSavedCourse(item.name);
-                        }}
-                        className="hover:text-destructive transition-colors ml-0.5"
-                        title={`Remove "${item.name}" from dropdown`}
-                      >
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div className="p-5 space-y-4 flex-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Course Name</Label>
+              <Input
+                value={editFormData.courseName}
+                disabled
+                className="bg-muted text-muted-foreground cursor-not-allowed"
+              />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="universityBoard" className="text-xs font-medium">
+              <Label className="text-xs font-semibold">
                 University / Board Name
               </Label>
               <Input
-                id="universityBoard"
-                placeholder="e.g. CBSE / Kerala State Board / Calicut University"
-                value={formData.universityBoard}
+                value={editFormData.universityBoard}
                 onChange={(e) =>
-                  handleFormChange("universityBoard", e.target.value)
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    universityBoard: e.target.value,
+                  }))
                 }
+                placeholder="e.g. Samastha / Calicut University"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="year" className="text-xs font-medium">
-                  Year
+                <Label className="text-xs font-semibold">
+                  Year <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  id="year"
-                  placeholder="e.g. 2024"
-                  value={formData.year}
-                  onChange={(e) => handleFormChange("year", e.target.value)}
-                />
+                <Select
+                  value={editFormData.year}
+                  onValueChange={(val) =>
+                    setEditFormData((prev) => ({ ...prev, year: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEAR_OPTIONS.map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Status</Label>
+                <Label className="text-xs font-semibold">Status</Label>
                 <Select
-                  value={formData.status}
-                  onValueChange={(v) => handleFormChange("status", v)}
+                  value={editFormData.status}
+                  onValueChange={(val) =>
+                    setEditFormData((prev) => ({ ...prev, status: val }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
@@ -1468,113 +1543,371 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
                 </Select>
               </div>
             </div>
+          </div>
 
-            <div className="flex gap-2 justify-end pt-3 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsDialogOpen(false)}
-                className="gap-1.5 text-xs"
-              >
-                <X className="h-3.5 w-3.5" />
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSaveCourse}
-                className="gap-1.5 text-xs"
-              >
-                <Save className="h-3.5 w-3.5" />
-                {editIndex !== null ? "Update" : "Add"} Course
-              </Button>
-            </div>
+          <div className="p-4 border-t bg-background/95 backdrop-blur-md flex items-center justify-end gap-2 sticky bottom-0 z-30 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+              className="h-9 px-4 text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveEdit}
+              disabled={saving}
+              className="h-9 px-5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save changes</span>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Confirmation Dialog ───────────────────────────────────── */}
+      {/* ── Remove Student from Course Dialog ──────────────────────────── */}
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Course Entry?</AlertDialogTitle>
+            <AlertDialogTitle>Remove Student from Course?</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteInfo?.context === "single"
-                ? "This course will be removed from this student. Remember to click 'Save Changes' to commit."
-                : "This course will be removed from the bulk update list."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ── Bulk Confirmation Dialog ─────────────────────────────────────── */}
-      <AlertDialog
-        open={isBulkConfirmOpen}
-        onOpenChange={setIsBulkConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-primary" />
-              Confirm Bulk Course Update
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>
-                  You are about to <strong>{bulkMode}</strong> courses for{" "}
-                  <strong>{selectedStudentIds.length} students</strong>:
-                </div>
-                <ul className="list-disc pl-5 text-xs space-y-1">
-                  <li>
-                    <strong>Islamic Courses ({bulkIslamicCourses.length}):</strong>{" "}
-                    {bulkIslamicCourses.length > 0
-                      ? bulkIslamicCourses.map((c) => c.courseName).join(", ")
-                      : "None"}
-                  </li>
-                  <li>
-                    <strong>Academic Courses ({bulkAcademicCourses.length}):</strong>{" "}
-                    {bulkAcademicCourses.length > 0
-                      ? bulkAcademicCourses.map((c) => c.courseName).join(", ")
-                      : "None"}
-                  </li>
-                  <li>
-                    <strong>Mode:</strong>{" "}
-                    {bulkMode === "append"
-                      ? "Append (existing courses will be kept)"
-                      : "Replace (all existing courses for these students will be replaced)"}
-                  </li>
-                </ul>
-              </div>
+              Are you sure you want to remove{" "}
+              <strong>{selectedCourse?.name || deletingItem?.courseName}</strong>{" "}
+              from student <strong>{deletingItem?.studentName}</strong> (
+              {deletingItem?.studentId})?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleSaveBulk}
+              onClick={handleConfirmDelete}
               disabled={saving}
-              className="gap-2"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Save className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
               )}
-              Confirm & Save
+              Remove Student
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Delete Master Course Confirmation ───────────────────────────── */}
+      <AlertDialog
+        open={isDeleteMasterOpen}
+        onOpenChange={setIsDeleteMasterOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Course</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete course{" "}
+              <strong>{deletingMasterCourse?.name}</strong> (
+              {deletingMasterCourse?.type})? This will also remove it from all{" "}
+              <strong>{deletingMasterCourse?.studentCount} enrolled students</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteMaster}
+              disabled={saving}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete Course
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Add Course Popup (Top Right Button) ─────────────────────────── */}
+      <Dialog open={isAddCoursePopupOpen} onOpenChange={setIsAddCoursePopupOpen}>
+        <DialogContent className="sm:max-w-[700px] p-0 gap-0 rounded-2xl max-h-[85vh] sm:max-h-[85vh] overflow-y-auto flex flex-col [&>button.absolute]:hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-30 shrink-0">
+            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0">
+              <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0 text-foreground">
+                Add Course
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground m-0">
+                Add Islamic or Academic course details and assign to students
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAddCoursePopupOpen(false)}
+                className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </DialogHeader>
+
+          <div className="p-5 overflow-y-auto flex-1 min-h-0 space-y-4 !shrink">
+            {/* 1. Type Dropdown & Course Name Input (Side by Side) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="popupCourseType" className="text-xs font-semibold">
+                  Type <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={popupCourseType}
+                  onValueChange={setPopupCourseType}
+                >
+                  <SelectTrigger id="popupCourseType">
+                    <SelectValue placeholder="Select course type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Islamic">Islamic</SelectItem>
+                    <SelectItem value="Academic">Academic</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="popupCourseName" className="text-xs font-semibold">
+                  Course Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="popupCourseName"
+                  list="popup-course-names-list"
+                  placeholder="e.g. Thanawiyya / B.A English"
+                  value={popupCourseName}
+                  onChange={(e) => handlePopupCourseNameChange(e.target.value)}
+                />
+                <datalist id="popup-course-names-list">
+                  {savedCourses
+                    .filter(
+                      (c) =>
+                        !popupCourseType ||
+                        c.type?.toLowerCase() === popupCourseType?.toLowerCase()
+                    )
+                    .map((c) => (
+                      <option key={c._id || c.name} value={c.name} />
+                    ))}
+                </datalist>
+              </div>
+            </div>
+
+            {/* 2. University / Board Name Input */}
+            <div className="space-y-1.5">
+              <Label htmlFor="popupUniversityBoard" className="text-xs font-semibold">
+                University / Board Name
+              </Label>
+              <Input
+                id="popupUniversityBoard"
+                placeholder="e.g. Samastha / Calicut University"
+                value={popupUniversityBoard}
+                onChange={(e) => setPopupUniversityBoard(e.target.value)}
+              />
+            </div>
+
+            {/* 3. Year Dropdown & Status (Side by Side) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="popupYear" className="text-xs font-semibold">
+                  Year <span className="text-destructive">*</span>
+                </Label>
+                <Select value={popupYear} onValueChange={setPopupYear}>
+                  <SelectTrigger id="popupYear">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEAR_OPTIONS.map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="popupStatus" className="text-xs font-semibold">
+                  Status
+                </Label>
+                <Select value={popupStatus} onValueChange={setPopupStatus}>
+                  <SelectTrigger id="popupStatus">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* 4. Batch Dropdown & Class Dropdown (Side by Side) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="popupBatch" className="text-xs font-semibold">
+                  Batch
+                </Label>
+                <Select
+                  value={popupBatchId}
+                  onValueChange={(val) => {
+                    setPopupBatchId(val);
+                    setPopupSelectedStudentIds([]);
+                    fetchPopupStudents(val, popupClassId);
+                  }}
+                >
+                  <SelectTrigger id="popupBatch">
+                    <SelectValue placeholder="Select batch" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56">
+                    <SelectItem value="all">All Batches</SelectItem>
+                    {(batches || []).map((b) => (
+                      <SelectItem key={b._id} value={String(b._id)}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="popupClass" className="text-xs font-semibold">
+                  Class
+                </Label>
+                <Select
+                  value={popupClassId}
+                  onValueChange={(val) => {
+                    setPopupClassId(val);
+                    setPopupSelectedStudentIds([]);
+                    fetchPopupStudents(popupBatchId, val);
+                  }}
+                >
+                  <SelectTrigger id="popupClass">
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56">
+                    <SelectItem value="all">All Classes</SelectItem>
+                    {(classes || []).map((c) => (
+                      <SelectItem key={c._id} value={String(c._id)}>
+                        {c.name || c.shortname || c._id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* 5. Students Dropdown */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="popupStudents" className="text-xs font-semibold">
+                  Students <span className="text-destructive">*</span>
+                  {popupSelectedStudentIds.length > 0 && (
+                    <span className="text-muted-foreground font-normal ml-1">
+                      ({popupSelectedStudentIds.length} selected)
+                    </span>
+                  )}
+                </Label>
+                {popupStudents.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2 text-blue-600 hover:text-blue-700 font-medium"
+                    onClick={() => {
+                      if (
+                        popupSelectedStudentIds.length === popupStudents.length
+                      ) {
+                        setPopupSelectedStudentIds([]);
+                      } else {
+                        setPopupSelectedStudentIds(
+                          popupStudents.map((s) => s._id)
+                        );
+                      }
+                    }}
+                  >
+                    {popupSelectedStudentIds.length === popupStudents.length
+                      ? "Deselect All"
+                      : "Select All"}
+                  </Button>
+                )}
+              </div>
+
+              {loadingPopupStudents ? (
+                <div className="flex items-center justify-center p-3 border rounded-md bg-muted/10 text-xs text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Loading students...
+                </div>
+              ) : popupStudents.length === 0 ? (
+                <div className="p-3 border rounded-md bg-muted/10 text-xs text-muted-foreground text-center">
+                  {!popupBatchId && !popupClassId
+                    ? "Please select a Batch or Class to load students"
+                    : "No students found for the selected Batch / Class"}
+                </div>
+              ) : (
+                <MultiSelect
+                  options={popupStudentOptions}
+                  value={popupSelectedStudentIds}
+                  onValueChange={setPopupSelectedStudentIds}
+                  placeholder="Select students..."
+                  maxCount={2}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Footer with Save button */}
+          <div className="p-4 border-t bg-background/95 backdrop-blur-md flex items-center justify-end gap-2 sticky bottom-0 z-30 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAddCoursePopupOpen(false)}
+              className="h-10 px-4"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveNewCoursePopup}
+              disabled={isSubmittingPopup}
+              className="h-10 px-6 font-medium bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isSubmittingPopup ? (
+                <>
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <span>Save</span>
+                  <span className="hidden sm:inline">&nbsp;changes</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

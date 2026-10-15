@@ -1451,38 +1451,48 @@ const StatsOverview = memo(({
       >
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-2xl max-h-[75vh] sm:max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-col mx-0 p-0 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
-            <div className="flex flex-row items-center gap-3 px-5 py-4">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className="flex flex-row items-start gap-3 px-5 py-4">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
                 {selectedCourseForModal?.type === "Islamic" ? (
                   <BookMarked className="h-5 w-5" />
                 ) : (
                   <GraduationCap className="h-5 w-5" />
                 )}
               </div>
-              <div className="flex-1 text-left space-y-0.5 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <DialogTitle className="text-lg font-bold m-0 truncate">
-                    {selectedCourseForModal?.name}
-                  </DialogTitle>
+              <div className="flex-1 text-left space-y-1 min-w-0">
+                {/* Type on top of course name */}
+                <div>
                   <Badge
                     variant="secondary"
-                    className={`text-[10px] shrink-0 ${
+                    className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
                       selectedCourseForModal?.type === "Islamic"
                         ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                         : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
                     }`}
                   >
-                    {selectedCourseForModal?.type} Course
+                    {selectedCourseForModal?.type === "Islamic" ? (
+                      <BookMarked className="h-2.5 w-2.5" />
+                    ) : (
+                      <GraduationCap className="h-2.5 w-2.5" />
+                    )}
+                    <span>{selectedCourseForModal?.type}</span>
                   </Badge>
                 </div>
-                <DialogDescription className="m-0 text-xs">
-                  Enrolled Students ({selectedCourseForModal?.students?.length || 0})
-                  {selectedCourseForModal?.universityBoard
-                    ? ` • University / Board: ${selectedCourseForModal.universityBoard}`
-                    : ""}
+
+                {/* Course name with students count in bracket */}
+                <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight">
+                  {selectedCourseForModal?.name}{" "}
+                  <span className="font-semibold text-muted-foreground text-xs sm:text-sm">
+                    ({selectedCourseForModal?.students?.length ?? selectedCourseForModal?.studentCount ?? 0})
+                  </span>
+                </DialogTitle>
+
+                {/* University name under course name without label */}
+                <DialogDescription className={`m-0 text-xs text-muted-foreground ${!selectedCourseForModal?.universityBoard ? "sr-only" : ""}`}>
+                  {selectedCourseForModal?.universityBoard || "Course details"}
                 </DialogDescription>
               </div>
-              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0 mt-0.5">
                 <X className="h-5 w-5" />
               </DialogClose>
             </div>

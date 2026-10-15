@@ -501,28 +501,38 @@ export default function CoursesDashboardCard({
       >
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-2xl max-h-[75vh] sm:max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="p-5 pb-3 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <DialogTitle className="text-base font-bold flex items-center gap-2">
-                    {selectedCourseForModal?.name}
-                  </DialogTitle>
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                {/* Type on top of course name */}
+                <div>
                   <Badge
                     variant="secondary"
-                    className={`text-[10px] ${
+                    className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
                       selectedCourseForModal?.type === "Islamic"
                         ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                         : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
                     }`}
                   >
-                    {selectedCourseForModal?.type} Course
+                    {selectedCourseForModal?.type === "Islamic" ? (
+                      <BookMarked className="h-2.5 w-2.5" />
+                    ) : (
+                      <GraduationCap className="h-2.5 w-2.5" />
+                    )}
+                    <span>{selectedCourseForModal?.type}</span>
                   </Badge>
                 </div>
-                <DialogDescription className="text-xs mt-1">
-                  Enrolled Students ({selectedCourseForModal?.students?.length || 0})
-                  {selectedCourseForModal?.universityBoard
-                    ? ` • University / Board: ${selectedCourseForModal.universityBoard}`
-                    : ""}
+
+                {/* Course name with students count in bracket */}
+                <DialogTitle className="text-base font-bold m-0 leading-tight">
+                  {selectedCourseForModal?.name}{" "}
+                  <span className="font-semibold text-muted-foreground text-xs">
+                    ({selectedCourseForModal?.students?.length ?? selectedCourseForModal?.studentCount ?? 0})
+                  </span>
+                </DialogTitle>
+
+                {/* University name under course name without label */}
+                <DialogDescription className={`m-0 text-xs text-muted-foreground ${!selectedCourseForModal?.universityBoard ? "sr-only" : ""}`}>
+                  {selectedCourseForModal?.universityBoard || "Course details"}
                 </DialogDescription>
               </div>
             </div>
