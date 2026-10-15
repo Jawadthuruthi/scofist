@@ -4,6 +4,8 @@ import StudentCourses from "@/components/StudentCourses";
 import connectToDB from "@/lib/db";
 import Class from "@/models/Class.js";
 import Batch from "@/models/Batch.js";
+import Course from "@/models/Course.js";
+import User from "@/models/User.js";
 
 export default async function StudentCoursesPage() {
   try {
@@ -39,13 +41,37 @@ export default async function StudentCoursesPage() {
       .sort({ startYear: -1, endYear: -1 })
       .lean();
 
+    const coursesData = await Course.find({})
+      .select("_id name type universityBoard description")
+      .sort({ name: 1 })
+      .lean();
+
+    const studentsData = await User.find(
+      {
+        roles: "Student",
+        $or: [
+          { "studentSpecificField.islamicCourses.0": { $exists: true } },
+          { "studentSpecificField.academicCourses.0": { $exists: true } },
+        ],
+      },
+      "_id name studentSpecificField.islamicCourses studentSpecificField.academicCourses studentSpecificField.classId studentSpecificField.batchId studentSpecificField.status"
+    ).lean();
+
     const classes = JSON.parse(JSON.stringify(classesData));
     const batches = JSON.parse(JSON.stringify(batchesData));
+    const initialCourses = JSON.parse(JSON.stringify(coursesData));
+    const initialStudents = JSON.parse(JSON.stringify(studentsData));
     const apiKey = process.env.API_KEY;
 
     return (
       <div className="px-1 md:px-4">
-        <StudentCourses classes={classes} batches={batches} apiKey={apiKey} />
+        <StudentCourses
+          classes={classes}
+          batches={batches}
+          initialCourses={initialCourses}
+          initialStudents={initialStudents}
+          apiKey={apiKey}
+        />
       </div>
     );
   } catch (error) {

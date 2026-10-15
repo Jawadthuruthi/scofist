@@ -5,6 +5,8 @@ import User from "@/models/User";
 import Class from "@/models/Class";
 import Batch from "@/models/Batch";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req) {
   try {
     await connectToDB();
@@ -70,7 +72,7 @@ export async function GET(req) {
 
       // Islamic courses
       const islamicList = student.studentSpecificField?.islamicCourses || [];
-      islamicList.forEach((c) => {
+      islamicList.forEach((c, idx) => {
         if (!c.courseName?.trim()) return;
         const entry = registerCourseEntry(c.courseName, "Islamic", c.universityBoard);
         if (!entry.universityBoard && c.universityBoard) {
@@ -85,11 +87,15 @@ export async function GET(req) {
         entry.students.push({
           studentId,
           studentName,
+          classId: classIdStr || "",
+          batchId: batchIdStr || "",
           className,
           batchName,
-          year: c.year || "—",
-          status: c.status || "—",
-          universityBoard: c.universityBoard || "—",
+          year: c.year ? String(c.year).trim() : "1",
+          status: c.status || "Ongoing",
+          universityBoard: c.universityBoard || entry.universityBoard || "—",
+          index: idx,
+          type: "Islamic",
         });
 
         // Seed check
@@ -98,7 +104,7 @@ export async function GET(req) {
 
       // Academic courses
       const academicList = student.studentSpecificField?.academicCourses || [];
-      academicList.forEach((c) => {
+      academicList.forEach((c, idx) => {
         if (!c.courseName?.trim()) return;
         const entry = registerCourseEntry(c.courseName, "Academic", c.universityBoard);
         if (!entry.universityBoard && c.universityBoard) {
@@ -113,11 +119,15 @@ export async function GET(req) {
         entry.students.push({
           studentId,
           studentName,
+          classId: classIdStr || "",
+          batchId: batchIdStr || "",
           className,
           batchName,
-          year: c.year || "—",
-          status: c.status || "—",
-          universityBoard: c.universityBoard || "—",
+          year: c.year ? String(c.year).trim() : "1",
+          status: c.status || "Ongoing",
+          universityBoard: c.universityBoard || entry.universityBoard || "—",
+          index: idx,
+          type: "Academic",
         });
 
         // Seed check
@@ -226,7 +236,7 @@ export async function DELETE(req) {
   try {
     await connectToDB();
     const url = new URL(req.url);
-    let courseName = url.searchParams.get("name");
+    let courseName = url.searchParams.get("name") || url.searchParams.get("courseName");
 
     if (!courseName) {
       try {

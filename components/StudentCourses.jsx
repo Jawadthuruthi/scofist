@@ -68,11 +68,20 @@ const STATUS_COLORS = {
   Pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
 };
 
-export default function StudentCourses({ classes = [], batches = [], apiKey }) {
+export default function StudentCourses({
+  classes = [],
+  batches = [],
+  initialCourses = [],
+  initialStudents = [],
+  apiKey,
+}) {
   // ── Master data state ────────────────────────────────────────────────────
-  const [students, setStudents] = useState([]);
-  const [loadingStudents, setLoadingStudents] = useState(true);
-  const [savedCourses, setSavedCourses] = useState([]);
+  const [students, setStudents] = useState(initialStudents || []);
+  const [loadingStudents, setLoadingStudents] = useState(
+    (!initialStudents || initialStudents.length === 0) &&
+      (!initialCourses || initialCourses.length === 0)
+  );
+  const [savedCourses, setSavedCourses] = useState(initialCourses || []);
   const [saving, setSaving] = useState(false);
 
   // ── Main table filter & search ───────────────────────────────────────────
@@ -137,9 +146,8 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
     [batches]
   );
 
-  // ── Fetch all students on mount ──────────────────────────────────────────
+  // ── Fetch all students on mount (non-blocking if initialStudents already provided) ──
   const fetchStudents = useCallback(async () => {
-    setLoadingStudents(true);
     try {
       const params = new URLSearchParams({
         roles: "Student",
@@ -150,12 +158,15 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
       const res = await fetch(`/api/users?${params}`, {
         headers: apiKey ? { "x-api-key": apiKey } : {},
       });
-      const data = await res.json();
-      const list = data.users || data || [];
-      setStudents(Array.isArray(list) ? list : []);
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.users || data || [];
+        if (Array.isArray(list) && list.length > 0) {
+          setStudents(list);
+        }
+      }
     } catch (err) {
       console.error("Failed to load students:", err);
-      toast.error("Failed to load student course details");
     } finally {
       setLoadingStudents(false);
     }
@@ -165,14 +176,14 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
     fetchStudents();
   }, [fetchStudents]);
 
-  // ── Fetch master courses for suggestions ─────────────────────────────────
+  // ── Fetch master courses for suggestions & enrolled students ─────────────
   const fetchMasterCourses = useCallback(() => {
     fetch("/api/courses", {
       headers: apiKey ? { "x-api-key": apiKey } : {},
     })
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.courses) {
+        if (data?.courses && Array.isArray(data.courses) && data.courses.length > 0) {
           setSavedCourses(data.courses);
         }
       })
@@ -203,14 +214,30 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
       return courseMap.get(key);
     };
 
-    // Pre-populate with saved master courses
+    // 1. Pre-populate with saved master courses and preserve server/API enrolled students
     (savedCourses || []).forEach((c) => {
       if (c.name?.trim()) {
-        getOrInitCourse(c.name, c.type, c.universityBoard);
+        const entry = getOrInitCourse(c.name, c.type, c.universityBoard);
+        if (!entry.universityBoard && c.universityBoard) {
+          entry.universityBoard = c.universityBoard;
+        }
+        if (Array.isArray(c.students) && c.students.length > 0 && entry.students.length === 0) {
+          entry.students = c.students.map((st, sIdx) => ({
+            ...st,
+            classId: st.classId ? String(st.classId) : "",
+            batchId: st.batchId ? String(st.batchId) : "",
+            year: st.year && st.year !== "—" ? String(st.year).trim() : "1",
+            status: st.status && st.status !== "—" ? st.status : "Ongoing",
+            universityBoard: st.universityBoard || entry.universityBoard || "—",
+            index: st.index !== undefined ? st.index : sIdx,
+            type: st.type || entry.type,
+          }));
+          entry.studentCount = c.studentCount || entry.students.length;
+        }
       }
     });
 
-    // Populate from student records
+    // 2. Populate or enrich from student records if available
     (students || []).forEach((student) => {
       const studentId = student._id;
       const studentName = student.name || "—";
@@ -261,8 +288,10 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
         if (!entry.universityBoard && c.universityBoard) {
           entry.universityBoard = c.universityBoard;
         }
-        entry.studentCount += 1;
-        entry.students.push({
+        const existingIdx = entry.students.findIndex(
+          (s) => String(s.studentId) === String(studentId)
+        );
+        const studentRecord = {
           studentId,
           studentName,
           classId: String(rawClassId || ""),
@@ -274,7 +303,16 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
           universityBoard: c.universityBoard || entry.universityBoard || "—",
           index: idx,
           type: "Islamic",
-        });
+        };
+        if (existingIdx !== -1) {
+          entry.students[existingIdx] = {
+            ...entry.students[existingIdx],
+            ...studentRecord,
+          };
+        } else {
+          entry.studentCount += 1;
+          entry.students.push(studentRecord);
+        }
       });
 
       // Academic courses
@@ -288,8 +326,10 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
         if (!entry.universityBoard && c.universityBoard) {
           entry.universityBoard = c.universityBoard;
         }
-        entry.studentCount += 1;
-        entry.students.push({
+        const existingIdx = entry.students.findIndex(
+          (s) => String(s.studentId) === String(studentId)
+        );
+        const studentRecord = {
           studentId,
           studentName,
           classId: String(rawClassId || ""),
@@ -301,7 +341,16 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
           universityBoard: c.universityBoard || entry.universityBoard || "—",
           index: idx,
           type: "Academic",
-        });
+        };
+        if (existingIdx !== -1) {
+          entry.students[existingIdx] = {
+            ...entry.students[existingIdx],
+            ...studentRecord,
+          };
+        } else {
+          entry.studentCount += 1;
+          entry.students.push(studentRecord);
+        }
       });
     });
 
@@ -321,9 +370,11 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
           c.type === selectedCourse.type &&
           c.name.toLowerCase() === selectedCourse.name.toLowerCase()
       );
-      if (updated) setSelectedCourse(updated);
+      if (updated && updated !== selectedCourse) {
+        setSelectedCourse(updated);
+      }
     }
-  }, [aggregatedCourses, selectedCourse]);
+  }, [aggregatedCourses]);
 
   // ── Filtered Main Courses Table ──────────────────────────────────────────
   const filteredCourses = useMemo(() => {
@@ -341,10 +392,11 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
 
   // ── Enrolled Years for Selected Course ───────────────────────────────────
   const courseYears = useMemo(() => {
-    if (!selectedCourse?.students) return [];
+    if (!selectedCourse?.students || selectedCourse.students.length === 0) return [];
     const map = new Map();
     selectedCourse.students.forEach((st) => {
-      const yr = String(st.year || "1").trim() || "1";
+      let yr = st.year ? String(st.year).trim() : "1";
+      if (!yr || yr === "—") yr = "1";
       if (!map.has(yr)) {
         map.set(yr, {
           year: yr,
@@ -450,19 +502,58 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
         throw new Error(err.message || "Failed to update course");
       }
 
-      setStudents((prev) =>
-        prev.map((s) =>
-          s._id === editingItem.studentId
-            ? {
-                ...s,
-                studentSpecificField: {
-                  ...s.studentSpecificField,
-                  islamicCourses: currentIslamic,
-                  academicCourses: currentAcademic,
-                },
-              }
-            : s
-        )
+      setStudents((prev) => {
+        const found = prev.some((s) => s._id === editingItem.studentId);
+        if (found) {
+          return prev.map((s) =>
+            s._id === editingItem.studentId
+              ? {
+                  ...s,
+                  studentSpecificField: {
+                    ...s.studentSpecificField,
+                    islamicCourses: currentIslamic,
+                    academicCourses: currentAcademic,
+                  },
+                }
+              : s
+          );
+        } else {
+          return [
+            ...prev,
+            {
+              _id: editingItem.studentId,
+              name: editingItem.studentName,
+              studentSpecificField: {
+                classId: editingItem.classId,
+                batchId: editingItem.batchId,
+                islamicCourses: currentIslamic,
+                academicCourses: currentAcademic,
+              },
+            },
+          ];
+        }
+      });
+
+      setSavedCourses((prev) =>
+        prev.map((c) => {
+          if (
+            c.type === editingItem.type &&
+            c.name?.toLowerCase() === (selectedCourse?.name || editingItem.courseName)?.toLowerCase()
+          ) {
+            const updatedSts = (c.students || []).map((st) =>
+              String(st.studentId) === String(editingItem.studentId)
+                ? {
+                    ...st,
+                    year: updatedCourse.year,
+                    status: updatedCourse.status,
+                    universityBoard: updatedCourse.universityBoard || st.universityBoard,
+                  }
+                : st
+            );
+            return { ...c, students: updatedSts };
+          }
+          return c;
+        })
       );
 
       toast.success("Student course updated successfully");
@@ -487,19 +578,31 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
     setSaving(true);
     try {
       const student = students.find((s) => s._id === deletingItem.studentId);
-      if (!student) throw new Error("Student not found");
-
       const currentIslamic = [
-        ...(student.studentSpecificField?.islamicCourses || []),
+        ...(student?.studentSpecificField?.islamicCourses || student?.islamicCourses || []),
       ];
       const currentAcademic = [
-        ...(student.studentSpecificField?.academicCourses || []),
+        ...(student?.studentSpecificField?.academicCourses || student?.academicCourses || []),
       ];
 
       if (deletingItem.type === "Islamic") {
-        currentIslamic.splice(deletingItem.index, 1);
+        if (deletingItem.index !== undefined && currentIslamic[deletingItem.index]) {
+          currentIslamic.splice(deletingItem.index, 1);
+        } else {
+          const idx = currentIslamic.findIndex(
+            (c) => c.courseName?.trim().toLowerCase() === (selectedCourse?.name || deletingItem.courseName)?.trim().toLowerCase()
+          );
+          if (idx !== -1) currentIslamic.splice(idx, 1);
+        }
       } else {
-        currentAcademic.splice(deletingItem.index, 1);
+        if (deletingItem.index !== undefined && currentAcademic[deletingItem.index]) {
+          currentAcademic.splice(deletingItem.index, 1);
+        } else {
+          const idx = currentAcademic.findIndex(
+            (c) => c.courseName?.trim().toLowerCase() === (selectedCourse?.name || deletingItem.courseName)?.trim().toLowerCase()
+          );
+          if (idx !== -1) currentAcademic.splice(idx, 1);
+        }
       }
 
       const res = await fetch("/api/users", {
@@ -534,6 +637,26 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
               }
             : s
         )
+      );
+
+      // Also remove from savedCourses if this student was populated from savedCourses
+      setSavedCourses((prev) =>
+        prev.map((c) => {
+          if (
+            c.type === (selectedCourse?.type || deletingItem.type) &&
+            c.name?.toLowerCase() === (selectedCourse?.name || deletingItem.courseName)?.toLowerCase()
+          ) {
+            const newStudents = (c.students || []).filter(
+              (st) => String(st.studentId) !== String(deletingItem.studentId)
+            );
+            return {
+              ...c,
+              students: newStudents,
+              studentCount: Math.max(0, (c.studentCount || 1) - 1),
+            };
+          }
+          return c;
+        })
       );
 
       toast.success(
@@ -1092,6 +1215,9 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
                         {selectedCourse.universityBoard}
                       </p>
                     )}
+                    <DialogDescription className="sr-only">
+                      Select a year to view enrolled students in this course
+                    </DialogDescription>
                   </div>
 
                   <button
@@ -1114,8 +1240,22 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
 
               <div className="p-4 pt-3">
                 {courseYears.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground text-xs">
-                    No students enrolled in this course yet.
+                  <div className="text-center py-12 text-muted-foreground text-xs space-y-3">
+                    <p>No students enrolled in this course yet.</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        handleOpenAddPopup();
+                        setPopupCourseName(selectedCourse?.name || "");
+                        setPopupCourseType(selectedCourse?.type || "Islamic");
+                        setPopupUniversityBoard(selectedCourse?.universityBoard || "");
+                      }}
+                      className="h-8 text-xs gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Enroll Students in this Course</span>
+                    </Button>
                   </div>
                 ) : (
                   <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
@@ -1309,6 +1449,9 @@ export default function StudentCourses({ classes = [], batches = [], apiKey }) {
                         {selectedCourse.universityBoard}
                       </p>
                     )}
+                    <DialogDescription className="sr-only">
+                      List of students enrolled in this year
+                    </DialogDescription>
                   </div>
 
                   <button

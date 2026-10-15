@@ -3,6 +3,8 @@ import cloudinary from "@/lib/cloudinary";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
 import Class from "@/models/Class";
+import Batch from "@/models/Batch";
+import Course from "@/models/Course";
 import "@/models/StudentCoupon"; // Ensure schema is registered
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
