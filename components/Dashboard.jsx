@@ -1247,25 +1247,25 @@ const StatsOverview = memo(({
             <div className="flex-1 text-left space-y-0.5">
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-xl font-bold m-0">Courses Overview</DialogTitle>
-                <Badge variant="outline" className="text-xs font-semibold">
-                  {allCourses.length} {allCourses.length === 1 ? "Course" : "Courses"}
-                </Badge>
               </div>
               <DialogDescription className="m-0 text-xs">
-                All courses and student enrollment counts across the institution
+                All Islamic and Academic Courses
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2" data-html2canvas-ignore="true">
-              <Link href="/dashboard/students-courses">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs hover:bg-primary/5 hover:text-primary transition-colors"
-                >
-                  <span>Manage Courses</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
+              {activeRole === "College Admin" && (
+                <Link href="/dashboard/students-courses">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2 sm:px-3 gap-1.5 text-xs hover:bg-primary/5 hover:text-primary transition-colors"
+                    title="Manage Courses"
+                  >
+                    <span className="hidden sm:inline">Manage Courses</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              )}
               <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
                 <X className="h-5 w-5" />
               </DialogClose>
@@ -1273,35 +1273,6 @@ const StatsOverview = memo(({
           </DialogHeader>
 
           <div className="p-5 space-y-4">
-            {/* Summary metrics row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3 rounded-xl border bg-muted/30">
-                <div className="text-xs text-muted-foreground font-medium">Total Courses</div>
-                <div className="text-xl font-bold mt-1 text-foreground">{allCourses.length}</div>
-              </div>
-              <div className="p-3 rounded-xl border bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-900/30">
-                <div className="text-xs text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-1">
-                  <BookMarked className="h-3.5 w-3.5" />
-                  Islamic Courses
-                </div>
-                <div className="text-xl font-bold mt-1 text-emerald-900 dark:text-emerald-200">{totalIslamic}</div>
-              </div>
-              <div className="p-3 rounded-xl border bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-900/30">
-                <div className="text-xs text-blue-800 dark:text-blue-300 font-medium flex items-center gap-1">
-                  <GraduationCap className="h-3.5 w-3.5" />
-                  Academic Courses
-                </div>
-                <div className="text-xl font-bold mt-1 text-blue-900 dark:text-blue-200">{totalAcademic}</div>
-              </div>
-              <div className="p-3 rounded-xl border bg-muted/30">
-                <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" />
-                  Total Enrollments
-                </div>
-                <div className="text-xl font-bold mt-1 text-foreground">{totalEnrollments}</div>
-              </div>
-            </div>
-
             {/* Filter buttons & Search */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-html2canvas-ignore="true">
               <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-lg border text-xs">
@@ -1365,12 +1336,14 @@ const StatsOverview = memo(({
                     No Islamic or Academic courses have been recorded yet. Manage courses to add courses and enroll students.
                   </p>
                 </div>
-                <Link href="/dashboard/students-courses" className="inline-block pt-1">
-                  <Button size="sm" className="gap-1.5 text-xs">
-                    <GraduationCap className="h-3.5 w-3.5" />
-                    Add Course Records
-                  </Button>
-                </Link>
+                {activeRole === "College Admin" && (
+                  <Link href="/dashboard/students-courses" className="inline-block pt-1">
+                    <Button size="sm" className="gap-1.5 text-xs">
+                      <GraduationCap className="h-3.5 w-3.5" />
+                      Add Course Records
+                    </Button>
+                  </Link>
+                )}
               </div>
             ) : filteredCourses.length === 0 ? (
               <div className="text-center py-10 border rounded-lg bg-muted/10 text-muted-foreground text-xs">
@@ -1381,13 +1354,11 @@ const StatsOverview = memo(({
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40">
-                      <TableHead className="w-12 text-xs font-semibold text-center">#</TableHead>
+                      <TableHead className="w-10 sm:w-12 text-xs font-semibold text-center">#</TableHead>
                       <TableHead className="text-xs font-semibold">Course Name</TableHead>
-                      <TableHead className="text-xs font-semibold">Type</TableHead>
-                      <TableHead className="text-xs font-semibold">University / Board</TableHead>
-                      <TableHead className="text-xs font-semibold">Status Breakdown</TableHead>
-                      <TableHead className="text-xs font-semibold text-center">Students</TableHead>
-                      <TableHead className="text-xs font-semibold text-right w-24">Action</TableHead>
+                      <TableHead className="hidden sm:table-cell text-xs font-semibold">Type</TableHead>
+                      <TableHead className="hidden sm:table-cell text-xs font-semibold">University / Board</TableHead>
+                      <TableHead className="text-xs font-semibold text-center w-20 sm:w-28">Students</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1396,19 +1367,43 @@ const StatsOverview = memo(({
                         key={`${course.type}-${course.name}`}
                         className="hover:bg-muted/40 transition-colors cursor-pointer group"
                         onClick={() => {
-                          if (course.studentCount > 0) {
-                            setSelectedCourseForModal(course);
-                            setModalSearchTerm("");
-                          }
+                          setSelectedCourseForModal(course);
+                          setModalSearchTerm("");
                         }}
                       >
                         <TableCell className="text-xs font-medium text-center text-muted-foreground py-3">
                           {idx + 1}
                         </TableCell>
-                        <TableCell className="font-semibold text-xs sm:text-sm py-3 text-foreground group-hover:text-primary transition-colors">
-                          {course.name}
-                        </TableCell>
                         <TableCell className="py-3">
+                          <div className="flex flex-col gap-1 items-start">
+                            {/* In mobile view: type at the top of course name */}
+                            <div className="sm:hidden">
+                              {course.type === "Islamic" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                  <BookMarked className="h-2.5 w-2.5" />
+                                  Islamic
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                  <GraduationCap className="h-2.5 w-2.5" />
+                                  Academic
+                                </span>
+                              )}
+                            </div>
+
+                            <span className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors">
+                              {course.name}
+                            </span>
+
+                            {/* In mobile view: university at the bottom of course name */}
+                            {course.universityBoard ? (
+                              <span className="sm:hidden text-[11px] text-muted-foreground">
+                                {course.universityBoard}
+                              </span>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell py-3">
                           {course.type === "Islamic" ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                               <BookMarked className="h-3 w-3" />
@@ -1421,42 +1416,8 @@ const StatsOverview = memo(({
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground py-3">
+                        <TableCell className="hidden sm:table-cell text-xs text-muted-foreground py-3">
                           {course.universityBoard || "—"}
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {course.completedCount > 0 && (
-                              <span
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/40"
-                                title="Completed"
-                              >
-                                <CheckCircle2 className="h-2.5 w-2.5" />
-                                {course.completedCount} Completed
-                              </span>
-                            )}
-                            {course.ongoingCount > 0 && (
-                              <span
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/40"
-                                title="Ongoing"
-                              >
-                                <Clock className="h-2.5 w-2.5" />
-                                {course.ongoingCount} Ongoing
-                              </span>
-                            )}
-                            {course.pendingCount > 0 && (
-                              <span
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/40"
-                                title="Pending"
-                              >
-                                <AlertCircle className="h-2.5 w-2.5" />
-                                {course.pendingCount} Pending
-                              </span>
-                            )}
-                            {course.studentCount === 0 && (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </div>
                         </TableCell>
                         <TableCell className="text-center py-3">
                           <Badge
@@ -1470,24 +1431,6 @@ const StatsOverview = memo(({
                             <Users className="h-3 w-3" />
                             {course.studentCount}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-right py-3" onClick={(e) => e.stopPropagation()}>
-                          {course.studentCount > 0 ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 text-xs gap-1 hover:bg-primary/10 hover:text-primary"
-                              onClick={() => {
-                                setSelectedCourseForModal(course);
-                                setModalSearchTerm("");
-                              }}
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              <span>View</span>
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground mr-3">—</span>
-                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1506,62 +1449,66 @@ const StatsOverview = memo(({
           if (!open) setSelectedCourseForModal(null);
         }}
       >
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-2xl max-h-[75vh] sm:max-h-[85vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 overflow-hidden">
-          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              {selectedCourseForModal?.type === "Islamic" ? (
-                <BookMarked className="h-5 w-5" />
-              ) : (
-                <GraduationCap className="h-5 w-5" />
-              )}
-            </div>
-            <div className="flex-1 text-left space-y-0.5 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <DialogTitle className="text-lg font-bold m-0 truncate">
-                  {selectedCourseForModal?.name}
-                </DialogTitle>
-                <Badge
-                  variant="secondary"
-                  className={`text-[10px] shrink-0 ${
-                    selectedCourseForModal?.type === "Islamic"
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
-                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                  }`}
-                >
-                  {selectedCourseForModal?.type} Course
-                </Badge>
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-2xl max-h-[75vh] sm:max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+          <DialogHeader className="flex flex-col mx-0 p-0 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
+            <div className="flex flex-row items-center gap-3 px-5 py-4">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                {selectedCourseForModal?.type === "Islamic" ? (
+                  <BookMarked className="h-5 w-5" />
+                ) : (
+                  <GraduationCap className="h-5 w-5" />
+                )}
               </div>
-              <DialogDescription className="m-0 text-xs">
-                Enrolled Students ({selectedCourseForModal?.students?.length || 0})
-                {selectedCourseForModal?.universityBoard
-                  ? ` • University / Board: ${selectedCourseForModal.universityBoard}`
-                  : ""}
-              </DialogDescription>
+              <div className="flex-1 text-left space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <DialogTitle className="text-lg font-bold m-0 truncate">
+                    {selectedCourseForModal?.name}
+                  </DialogTitle>
+                  <Badge
+                    variant="secondary"
+                    className={`text-[10px] shrink-0 ${
+                      selectedCourseForModal?.type === "Islamic"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                    }`}
+                  >
+                    {selectedCourseForModal?.type} Course
+                  </Badge>
+                </div>
+                <DialogDescription className="m-0 text-xs">
+                  Enrolled Students ({selectedCourseForModal?.students?.length || 0})
+                  {selectedCourseForModal?.universityBoard
+                    ? ` • University / Board: ${selectedCourseForModal.universityBoard}`
+                    : ""}
+                </DialogDescription>
+              </div>
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </DialogClose>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
-              <X className="h-5 w-5" />
-            </DialogClose>
+
+            <div className="px-5 pb-3">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search students by name, ID, class, or batch…"
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  className="pl-8 h-8 text-xs bg-background/80"
+                />
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="p-4 pb-2 border-b bg-background">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search students by name, ID, class, or batch…"
-                value={modalSearchTerm}
-                onChange={(e) => setModalSearchTerm(e.target.value)}
-                className="pl-8 h-8 text-xs"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 pt-2">
+          <div className="p-4 pt-3">
             {modalFilteredStudents.length === 0 ? (
               <div className="text-center py-10 text-muted-foreground text-xs">
-                No students found matching your search.
+                {selectedCourseForModal?.students?.length === 0
+                  ? "No students enrolled in this course yet."
+                  : "No students found matching your search."}
               </div>
             ) : (
-              <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+              <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40">
