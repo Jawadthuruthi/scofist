@@ -241,7 +241,7 @@ export async function DELETE(req) {
     if (!courseName) {
       try {
         const body = await req.json();
-        courseName = body?.name;
+        courseName = body?.name || body?.courseName;
       } catch (e) {
         // empty body
       }

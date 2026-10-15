@@ -305,10 +305,7 @@ export default function StudentCourses({
           type: "Islamic",
         };
         if (existingIdx !== -1) {
-          entry.students[existingIdx] = {
-            ...entry.students[existingIdx],
-            ...studentRecord,
-          };
+          entry.students[existingIdx] = studentRecord;
         } else {
           entry.studentCount += 1;
           entry.students.push(studentRecord);
@@ -343,10 +340,7 @@ export default function StudentCourses({
           type: "Academic",
         };
         if (existingIdx !== -1) {
-          entry.students[existingIdx] = {
-            ...entry.students[existingIdx],
-            ...studentRecord,
-          };
+          entry.students[existingIdx] = studentRecord;
         } else {
           entry.studentCount += 1;
           entry.students.push(studentRecord);
@@ -370,11 +364,9 @@ export default function StudentCourses({
           c.type === selectedCourse.type &&
           c.name.toLowerCase() === selectedCourse.name.toLowerCase()
       );
-      if (updated && updated !== selectedCourse) {
-        setSelectedCourse(updated);
-      }
+      if (updated && updated !== selectedCourse) setSelectedCourse(updated);
     }
-  }, [aggregatedCourses]);
+  }, [aggregatedCourses, selectedCourse]);
 
   // ── Filtered Main Courses Table ──────────────────────────────────────────
   const filteredCourses = useMemo(() => {
@@ -502,58 +494,19 @@ export default function StudentCourses({
         throw new Error(err.message || "Failed to update course");
       }
 
-      setStudents((prev) => {
-        const found = prev.some((s) => s._id === editingItem.studentId);
-        if (found) {
-          return prev.map((s) =>
-            s._id === editingItem.studentId
-              ? {
-                  ...s,
-                  studentSpecificField: {
-                    ...s.studentSpecificField,
-                    islamicCourses: currentIslamic,
-                    academicCourses: currentAcademic,
-                  },
-                }
-              : s
-          );
-        } else {
-          return [
-            ...prev,
-            {
-              _id: editingItem.studentId,
-              name: editingItem.studentName,
-              studentSpecificField: {
-                classId: editingItem.classId,
-                batchId: editingItem.batchId,
-                islamicCourses: currentIslamic,
-                academicCourses: currentAcademic,
-              },
-            },
-          ];
-        }
-      });
-
-      setSavedCourses((prev) =>
-        prev.map((c) => {
-          if (
-            c.type === editingItem.type &&
-            c.name?.toLowerCase() === (selectedCourse?.name || editingItem.courseName)?.toLowerCase()
-          ) {
-            const updatedSts = (c.students || []).map((st) =>
-              String(st.studentId) === String(editingItem.studentId)
-                ? {
-                    ...st,
-                    year: updatedCourse.year,
-                    status: updatedCourse.status,
-                    universityBoard: updatedCourse.universityBoard || st.universityBoard,
-                  }
-                : st
-            );
-            return { ...c, students: updatedSts };
-          }
-          return c;
-        })
+      setStudents((prev) =>
+        prev.map((s) =>
+          s._id === editingItem.studentId
+            ? {
+                ...s,
+                studentSpecificField: {
+                  ...s.studentSpecificField,
+                  islamicCourses: currentIslamic,
+                  academicCourses: currentAcademic,
+                },
+              }
+            : s
+        )
       );
 
       toast.success("Student course updated successfully");
@@ -578,31 +531,19 @@ export default function StudentCourses({
     setSaving(true);
     try {
       const student = students.find((s) => s._id === deletingItem.studentId);
+      if (!student) throw new Error("Student not found");
+
       const currentIslamic = [
-        ...(student?.studentSpecificField?.islamicCourses || student?.islamicCourses || []),
+        ...(student.studentSpecificField?.islamicCourses || []),
       ];
       const currentAcademic = [
-        ...(student?.studentSpecificField?.academicCourses || student?.academicCourses || []),
+        ...(student.studentSpecificField?.academicCourses || []),
       ];
 
       if (deletingItem.type === "Islamic") {
-        if (deletingItem.index !== undefined && currentIslamic[deletingItem.index]) {
-          currentIslamic.splice(deletingItem.index, 1);
-        } else {
-          const idx = currentIslamic.findIndex(
-            (c) => c.courseName?.trim().toLowerCase() === (selectedCourse?.name || deletingItem.courseName)?.trim().toLowerCase()
-          );
-          if (idx !== -1) currentIslamic.splice(idx, 1);
-        }
+        currentIslamic.splice(deletingItem.index, 1);
       } else {
-        if (deletingItem.index !== undefined && currentAcademic[deletingItem.index]) {
-          currentAcademic.splice(deletingItem.index, 1);
-        } else {
-          const idx = currentAcademic.findIndex(
-            (c) => c.courseName?.trim().toLowerCase() === (selectedCourse?.name || deletingItem.courseName)?.trim().toLowerCase()
-          );
-          if (idx !== -1) currentAcademic.splice(idx, 1);
-        }
+        currentAcademic.splice(deletingItem.index, 1);
       }
 
       const res = await fetch("/api/users", {
@@ -637,26 +578,6 @@ export default function StudentCourses({
               }
             : s
         )
-      );
-
-      // Also remove from savedCourses if this student was populated from savedCourses
-      setSavedCourses((prev) =>
-        prev.map((c) => {
-          if (
-            c.type === (selectedCourse?.type || deletingItem.type) &&
-            c.name?.toLowerCase() === (selectedCourse?.name || deletingItem.courseName)?.toLowerCase()
-          ) {
-            const newStudents = (c.students || []).filter(
-              (st) => String(st.studentId) !== String(deletingItem.studentId)
-            );
-            return {
-              ...c,
-              students: newStudents,
-              studentCount: Math.max(0, (c.studentCount || 1) - 1),
-            };
-          }
-          return c;
-        })
       );
 
       toast.success(
@@ -1077,17 +998,17 @@ export default function StudentCourses({
                   {filteredCourses.map((course, idx) => (
                     <TableRow
                       key={`${course.type}-${course.name}`}
-                      className="hover:bg-muted/50 transition-colors cursor-pointer group"
+                      className="hover:bg-muted/50 transition-colors cursor-pointer group active:bg-muted/70"
                       onClick={() => {
                         setSelectedCourse(course);
                         setSelectedYear(null);
                         setModalSearchTerm("");
                       }}
                     >
-                      <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
+                      <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5 cursor-pointer">
                         {idx + 1}
                       </TableCell>
-                      <TableCell className="py-3.5">
+                      <TableCell className="py-3.5 cursor-pointer">
                         <div className="flex flex-col gap-1 items-start">
                           {/* Mobile type badge */}
                           <div className="sm:hidden">
@@ -1112,7 +1033,7 @@ export default function StudentCourses({
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell py-3.5">
+                      <TableCell className="hidden sm:table-cell py-3.5 cursor-pointer">
                         {course.type === "Islamic" ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                             <BookMarked className="h-3 w-3" />
@@ -1125,10 +1046,10 @@ export default function StudentCourses({
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-xs sm:text-sm py-3.5 text-muted-foreground">
+                      <TableCell className="hidden md:table-cell text-xs sm:text-sm py-3.5 text-muted-foreground cursor-pointer">
                         {course.universityBoard || "—"}
                       </TableCell>
-                      <TableCell className="text-center py-3.5">
+                      <TableCell className="text-center py-3.5 cursor-pointer">
                         <Badge
                           variant="outline"
                           className={`gap-1.5 px-2.5 py-0.5 text-xs font-semibold ${
@@ -1145,15 +1066,30 @@ export default function StudentCourses({
                         className="py-3.5 text-right"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleOpenDeleteMaster(course)}
-                          title="Delete Course"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="sm:hidden h-8 px-2 text-xs text-blue-600 hover:text-blue-700 gap-0.5 font-medium"
+                            onClick={() => {
+                              setSelectedCourse(course);
+                              setSelectedYear(null);
+                              setModalSearchTerm("");
+                            }}
+                          >
+                            <span>Years</span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleOpenDeleteMaster(course)}
+                            title="Delete Course"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1175,7 +1111,7 @@ export default function StudentCourses({
           }
         }}
       >
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-4xl max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent className="w-[95vw] sm:w-full max-w-4xl max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto overflow-x-hidden p-0 gap-0 rounded-2xl min-w-0">
           {!selectedYear ? (
             /* ── VIEW 1: Course Name with Years Table ───────────────────── */
             <>
@@ -1238,9 +1174,9 @@ export default function StudentCourses({
                 </div>
               </DialogHeader>
 
-              <div className="p-4 pt-3">
+              <div className="p-3 sm:p-4 pt-2 sm:pt-3 min-w-0 w-full">
                 {courseYears.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground text-xs space-y-3">
+                  <div className="text-center py-10 px-4 text-muted-foreground text-xs space-y-3">
                     <p>No students enrolled in this course yet.</p>
                     <Button
                       type="button"
@@ -1258,141 +1194,226 @@ export default function StudentCourses({
                     </Button>
                   </div>
                 ) : (
-                  <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/40 hover:bg-muted/40">
-                          <TableHead className="w-12 text-center text-xs font-semibold">
-                            #
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold min-w-[140px]">
-                            Year
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold text-center w-36">
-                            Total Students
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold hidden sm:table-cell min-w-[200px]">
-                            Status Breakdown
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold text-right w-36">
-                            Action
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {courseYears.map((yr, idx) => (
-                          <TableRow
-                            key={yr.year}
-                            className="hover:bg-muted/50 transition-colors cursor-pointer group"
-                            onClick={() => {
-                              setSelectedYear(yr.year);
-                              setModalSearchTerm("");
-                            }}
-                          >
-                            <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
-                              {idx + 1}
-                            </TableCell>
-                            <TableCell className="py-3.5">
-                              <span className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">
+                  <>
+                    {/* Mobile View: Touch-Friendly Responsive Year Cards */}
+                    <div className="sm:hidden space-y-2.5">
+                      {courseYears.map((yr) => (
+                        <div
+                          key={yr.year}
+                          onClick={() => {
+                            setSelectedYear(yr.year);
+                            setModalSearchTerm("");
+                          }}
+                          className="p-3.5 rounded-xl border bg-card hover:bg-muted/50 active:bg-muted/80 transition-all cursor-pointer shadow-sm flex items-center justify-between gap-3 group"
+                        >
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-foreground group-hover:text-blue-600 transition-colors">
                                 Year {yr.year}
                               </span>
-                            </TableCell>
-                            <TableCell className="text-center py-3.5">
                               <Badge
                                 variant="outline"
-                                className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                className="gap-1 px-2 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
                               >
                                 <Users className="h-3 w-3" />
                                 <span>{yr.students.length}</span>
                               </Badge>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell py-3.5">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {yr.ongoingCount > 0 && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                    {yr.ongoingCount} Ongoing
-                                  </span>
-                                )}
-                                {yr.completedCount > 0 && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                    {yr.completedCount} Completed
-                                  </span>
-                                )}
-                                {yr.pendingCount > 0 && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                                    {yr.pendingCount} Pending
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-3.5 text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-2.5 text-xs font-medium gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-blue-200 dark:border-blue-800 group-hover:bg-blue-600 group-hover:text-white transition-all"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedYear(yr.year);
-                                  setModalSearchTerm("");
-                                }}
-                              >
-                                <span>View Students</span>
-                                <ChevronRight className="h-3.5 w-3.5" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {yr.ongoingCount > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                  {yr.ongoingCount} Ongoing
+                                </span>
+                              )}
+                              {yr.completedCount > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                  {yr.completedCount} Completed
+                                </span>
+                              )}
+                              {yr.pendingCount > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                  {yr.pendingCount} Pending
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center text-blue-600 group-hover:translate-x-0.5 transition-transform shrink-0">
+                            <span className="text-xs font-medium mr-1">View</span>
+                            <ChevronRight className="h-4 w-4" />
+                          </div>
+                        </div>
+                      ))}
 
-                        {courseYears.length > 1 && (
-                          <TableRow
-                            className="hover:bg-muted/50 transition-colors cursor-pointer group bg-muted/20 border-t-2"
-                            onClick={() => {
-                              setSelectedYear("all");
-                              setModalSearchTerm("");
-                            }}
-                          >
-                            <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
-                              ★
-                            </TableCell>
-                            <TableCell className="py-3.5">
-                              <span className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">
+                      {courseYears.length > 1 && (
+                        <div
+                          onClick={() => {
+                            setSelectedYear("all");
+                            setModalSearchTerm("");
+                          }}
+                          className="p-3.5 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-800/60 bg-purple-50/40 dark:bg-purple-950/20 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-all cursor-pointer shadow-sm flex items-center justify-between gap-3 group"
+                        >
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-foreground group-hover:text-purple-600 transition-colors">
                                 All Years
                               </span>
-                            </TableCell>
-                            <TableCell className="text-center py-3.5">
                               <Badge
                                 variant="outline"
-                                className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                className="gap-1 px-2 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
                               >
                                 <Users className="h-3 w-3" />
                                 <span>{selectedCourse?.students?.length || 0}</span>
                               </Badge>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell py-3.5">
-                              <span className="text-xs text-muted-foreground">
-                                All enrolled students across {courseYears.length} years
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-3.5 text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-2.5 text-xs font-medium gap-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-purple-200 dark:border-purple-800 group-hover:bg-purple-600 group-hover:text-white transition-all"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedYear("all");
-                                  setModalSearchTerm("");
-                                }}
-                              >
-                                <span>View All</span>
-                                <ChevronRight className="h-3.5 w-3.5" />
-                              </Button>
-                            </TableCell>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground m-0">
+                              All enrolled students across {courseYears.length} years
+                            </p>
+                          </div>
+                          <div className="flex items-center text-purple-600 group-hover:translate-x-0.5 transition-transform shrink-0">
+                            <span className="text-xs font-medium mr-1">View All</span>
+                            <ChevronRight className="h-4 w-4" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Desktop View: Full Table */}
+                    <div className="hidden sm:block border rounded-xl overflow-x-auto bg-card shadow-sm">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/40 hover:bg-muted/40">
+                            <TableHead className="w-12 text-center text-xs font-semibold">
+                              #
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold min-w-[120px]">
+                              Year
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold text-center w-36">
+                              Total Students
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold min-w-[200px]">
+                              Status Breakdown
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold text-right w-36">
+                              Action
+                            </TableHead>
                           </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {courseYears.map((yr, idx) => (
+                            <TableRow
+                              key={yr.year}
+                              className="hover:bg-muted/50 transition-colors cursor-pointer group"
+                              onClick={() => {
+                                setSelectedYear(yr.year);
+                                setModalSearchTerm("");
+                              }}
+                            >
+                              <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
+                                {idx + 1}
+                              </TableCell>
+                              <TableCell className="py-3.5">
+                                <span className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">
+                                  Year {yr.year}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center py-3.5">
+                                <Badge
+                                  variant="outline"
+                                  className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                >
+                                  <Users className="h-3 w-3" />
+                                  <span>{yr.students.length}</span>
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-3.5">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {yr.ongoingCount > 0 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                      {yr.ongoingCount} Ongoing
+                                    </span>
+                                  )}
+                                  {yr.completedCount > 0 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                      {yr.completedCount} Completed
+                                    </span>
+                                  )}
+                                  {yr.pendingCount > 0 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                      {yr.pendingCount} Pending
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-3.5 text-right">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2.5 text-xs font-medium gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-blue-200 dark:border-blue-800 group-hover:bg-blue-600 group-hover:text-white transition-all"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedYear(yr.year);
+                                    setModalSearchTerm("");
+                                  }}
+                                >
+                                  <span>View Students</span>
+                                  <ChevronRight className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+
+                          {courseYears.length > 1 && (
+                            <TableRow
+                              className="hover:bg-muted/50 transition-colors cursor-pointer group bg-muted/20 border-t-2"
+                              onClick={() => {
+                                setSelectedYear("all");
+                                setModalSearchTerm("");
+                              }}
+                            >
+                              <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
+                                ★
+                              </TableCell>
+                              <TableCell className="py-3.5">
+                                <span className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">
+                                  All Years
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center py-3.5">
+                                <Badge
+                                  variant="outline"
+                                  className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                >
+                                  <Users className="h-3 w-3" />
+                                  <span>{selectedCourse?.students?.length || 0}</span>
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-3.5">
+                                <span className="text-xs text-muted-foreground">
+                                  All enrolled students across {courseYears.length} years
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-3.5 text-right">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2.5 text-xs font-medium gap-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-purple-200 dark:border-purple-800 group-hover:bg-purple-600 group-hover:text-white transition-all"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedYear("all");
+                                    setModalSearchTerm("");
+                                  }}
+                                >
+                                  <span>View All</span>
+                                  <ChevronRight className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
                 )}
               </div>
             </>
@@ -1483,7 +1504,7 @@ export default function StudentCourses({
                 </div>
               </DialogHeader>
 
-              <div className="p-4 pt-3">
+              <div className="p-3 sm:p-4 pt-2 sm:pt-3 min-w-0 w-full">
                 {modalFilteredStudents.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-xs">
                     {modalSearchTerm
@@ -1493,97 +1514,158 @@ export default function StudentCourses({
                       : `No students enrolled in Year ${selectedYear}.`}
                   </div>
                 ) : (
-                  <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/40">
-                          <TableHead className="w-10 text-xs font-semibold text-center">
-                            #
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold">
-                            Student Name
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold">
-                            Class
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold">
-                            Batch
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold text-center">
-                            Year
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold">
-                            Status
-                          </TableHead>
-                          <TableHead className="text-xs font-semibold text-right w-20">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {modalFilteredStudents.map((st, i) => (
-                          <TableRow
-                            key={`${st.studentId}-${i}`}
-                            className="hover:bg-muted/30"
-                          >
-                            <TableCell className="text-xs text-center text-muted-foreground py-2.5">
-                              {i + 1}
-                            </TableCell>
-                            <TableCell className="font-medium text-xs py-2.5">
-                              <div className="font-semibold text-foreground">
+                  <>
+                    {/* Mobile View: Student Cards */}
+                    <div className="sm:hidden space-y-2.5">
+                      {modalFilteredStudents.map((st, i) => (
+                        <div
+                          key={`${st.studentId}-${i}`}
+                          className="p-3 rounded-xl border bg-card shadow-sm space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-sm text-foreground truncate">
                                 {st.studentName}
                               </div>
-                              <div className="text-[10px] text-muted-foreground">
-                                {st.studentId}
+                              <div className="text-[11px] text-muted-foreground">
+                                ID: {st.studentId}
                               </div>
-                            </TableCell>
-                            <TableCell className="text-xs py-2.5 text-foreground font-medium">
-                              {st.className}
-                            </TableCell>
-                            <TableCell className="text-xs py-2.5 text-muted-foreground">
-                              {st.batchName}
-                            </TableCell>
-                            <TableCell className="text-xs text-center py-2.5 font-semibold text-foreground">
-                              <span className="inline-block px-2 py-0.5 bg-muted rounded text-xs">
-                                {st.year}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-xs py-2.5">
-                              <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                  STATUS_COLORS[st.status] || ""
-                                }`}
+                            </div>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
+                                STATUS_COLORS[st.status] || ""
+                              }`}
+                            >
+                              {st.status}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t text-xs">
+                            <div className="flex flex-wrap items-center gap-1.5 text-muted-foreground text-[11px]">
+                              <span className="font-medium text-foreground">{st.className}</span>
+                              <span>•</span>
+                              <span>{st.batchName}</span>
+                              <span>•</span>
+                              <span className="font-semibold text-foreground">Yr {st.year}</span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                onClick={() => handleOpenEdit(st)}
+                                title="Edit Student's Course"
                               >
-                                {st.status}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-xs text-right py-2.5">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={() => handleOpenEdit(st)}
-                                  title="Edit Student's Course"
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleOpenDelete(st)}
-                                  title="Remove Student from Course"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </TableCell>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleOpenDelete(st)}
+                                title="Remove Student from Course"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop View: Full Table */}
+                    <div className="hidden sm:block border rounded-xl overflow-x-auto bg-card shadow-sm">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/40">
+                            <TableHead className="w-10 text-xs font-semibold text-center">
+                              #
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold">
+                              Student Name
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold">
+                              Class
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold">
+                              Batch
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold text-center">
+                              Year
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold">
+                              Status
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold text-right w-20">
+                              Actions
+                            </TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {modalFilteredStudents.map((st, i) => (
+                            <TableRow
+                              key={`${st.studentId}-${i}`}
+                              className="hover:bg-muted/30"
+                            >
+                              <TableCell className="text-xs text-center text-muted-foreground py-2.5">
+                                {i + 1}
+                              </TableCell>
+                              <TableCell className="font-medium text-xs py-2.5">
+                                <div className="font-semibold text-foreground">
+                                  {st.studentName}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  {st.studentId}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-xs py-2.5 text-foreground font-medium">
+                                {st.className}
+                              </TableCell>
+                              <TableCell className="text-xs py-2.5 text-muted-foreground">
+                                {st.batchName}
+                              </TableCell>
+                              <TableCell className="text-xs text-center py-2.5 font-semibold text-foreground">
+                                <span className="inline-block px-2 py-0.5 bg-muted rounded text-xs">
+                                  {st.year}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-xs py-2.5">
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                    STATUS_COLORS[st.status] || ""
+                                  }`}
+                                >
+                                  {st.status}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-xs text-right py-2.5">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    onClick={() => handleOpenEdit(st)}
+                                    title="Edit Student's Course"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleOpenDelete(st)}
+                                    title="Remove Student from Course"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
                 )}
               </div>
             </>
