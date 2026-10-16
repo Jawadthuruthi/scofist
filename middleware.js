@@ -642,6 +642,8 @@ async function handleLoginPageRequest(req) {
 async function handleApiRequest(req) {
   if (
     req.nextUrl.pathname === "/api/upload" ||
+    req.nextUrl.pathname === "/api/upload/" ||
+    req.nextUrl.pathname === "/api/sign-cloudinary" ||
     req.nextUrl.pathname === "/api/gallery/upload" ||
     req.nextUrl.pathname.startsWith("/api/og/")
   ) return NextResponse.next();

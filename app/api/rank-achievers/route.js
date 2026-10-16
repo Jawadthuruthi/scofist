@@ -69,19 +69,19 @@ export async function POST(req) {
     const body = await req.json();
     const { name, rank, year, course, college, photo } = body;
 
-    if (!name?.trim() || !rank?.trim() || !year?.trim() || !course?.trim() || !college?.trim()) {
+    if (!name?.trim() || !year?.trim() || !course?.trim()) {
       return NextResponse.json(
-        { success: false, message: "Name, rank, year, course, and college are required" },
+        { success: false, message: "Name, year, and course are required" },
         { status: 400 }
       );
     }
 
     const newAchiever = await RankAchiever.create({
       name: name.trim(),
-      rank: rank.trim(),
+      rank: rank?.trim() || "",
       year: year.trim(),
       course: course.trim(),
-      college: college.trim(),
+      college: college?.trim() || "",
       photo: {
         url: photo?.url?.trim() || "",
         publicId: photo?.publicId?.trim() || "",
@@ -102,7 +102,7 @@ export async function POST(req) {
   } catch (error) {
     console.error("Error creating rank achiever:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to create rank achiever", error: error.message },
+      { success: false, message: error.message || "Failed to create rank achiever", error: error.message },
       { status: 500 }
     );
   }
@@ -152,10 +152,10 @@ export async function PUT(req) {
     }
 
     if (name !== undefined) existing.name = name.trim();
-    if (rank !== undefined) existing.rank = rank.trim();
+    if (rank !== undefined) existing.rank = rank?.trim() || "";
     if (year !== undefined) existing.year = year.trim();
     if (course !== undefined) existing.course = course.trim();
-    if (college !== undefined) existing.college = college.trim();
+    if (college !== undefined) existing.college = college?.trim() || "";
     if (photo !== undefined) {
       existing.photo = {
         url: photo?.url?.trim() || "",
@@ -179,7 +179,7 @@ export async function PUT(req) {
   } catch (error) {
     console.error("Error updating rank achiever:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to update rank achiever", error: error.message },
+      { success: false, message: error.message || "Failed to update rank achiever", error: error.message },
       { status: 500 }
     );
   }

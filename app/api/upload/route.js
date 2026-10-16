@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   const isE2ETest = req.headers.get("x-e2e-test") === "true";

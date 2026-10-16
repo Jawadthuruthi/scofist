@@ -11,7 +11,11 @@ const RankAchieverCard = memo(({ achiever, canManage, onEdit, onDelete }) => {
     ? achiever.rank.toString().toLowerCase().includes("rank")
       ? achiever.rank
       : `Rank ${achiever.rank}`
-    : "Rank Achiever";
+    : "";
+
+  const courseAndYear = [achiever.course, achiever.year]
+    .filter(Boolean)
+    .join(" - ");
 
   return (
     <Card
@@ -42,41 +46,47 @@ const RankAchieverCard = memo(({ achiever, canManage, onEdit, onDelete }) => {
         {/* Details Container */}
         <div className="p-2.5 md:p-4 flex-1 min-w-0 flex flex-col justify-between">
           <div>
-            <div className="flex items-start justify-between gap-1.5 mb-1.5">
-              <div className="truncate">
-                <h3
-                  id={`achiever-${achiever._id}`}
-                  className="font-semibold text-sm truncate"
-                  title={achiever.name}
-                >
-                  {achiever.name}
-                </h3>
-              </div>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 shrink-0">
-                <Trophy className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
-                {displayRank}
-              </span>
+            <div className="mb-1.5">
+              <h3
+                id={`achiever-${achiever._id}`}
+                className="font-semibold text-sm break-words leading-snug"
+                title={achiever.name}
+              >
+                {achiever.name}
+              </h3>
             </div>
 
             <div className="text-xs space-y-1">
-              <div className="truncate">
-                <span className="text-muted-foreground">Course: </span>
-                <span className="font-medium text-foreground">
-                  {achiever.course || "N/A"}
-                </span>
-              </div>
-              <div className="truncate">
-                <span className="text-muted-foreground">College: </span>
-                <span className="text-muted-foreground">
-                  {achiever.college || "N/A"}
-                </span>
-              </div>
-              <div className="truncate">
-                <span className="text-muted-foreground">Year: </span>
-                <span className="font-medium text-primary">
-                  {achiever.year || "N/A"}
-                </span>
-              </div>
+              {(achiever.course || achiever.year) && (
+                <div className="break-words leading-normal" title={courseAndYear}>
+                  {achiever.course && (
+                    <span className="font-medium text-foreground">
+                      {achiever.course}
+                    </span>
+                  )}
+                  {achiever.course && achiever.year && (
+                    <span className="text-muted-foreground"> - </span>
+                  )}
+                  {achiever.year && (
+                    <span className="font-medium text-primary">
+                      {achiever.year}
+                    </span>
+                  )}
+                </div>
+              )}
+              {achiever.college && (
+                <div
+                  className="text-muted-foreground break-words leading-normal"
+                  title={achiever.college}
+                >
+                  {achiever.college}
+                </div>
+              )}
+              {displayRank && (
+                <div className="font-semibold text-amber-600 dark:text-amber-400 break-words leading-normal">
+                  {displayRank}
+                </div>
+              )}
             </div>
           </div>
 

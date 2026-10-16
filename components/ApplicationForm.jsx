@@ -294,7 +294,7 @@ export default function ApplicationForm({ trigger }) {
 
               {/* Photo Upload */}
               <div className="space-y-2">
-                <FormLabel>Profile Picture <span className="text-gray-400 font-normal">(Optional)</span></FormLabel>
+                <FormLabel>Profile Picture</FormLabel>
                 <div>
                   <ImageUploader 
                     value={profilePic}
@@ -372,9 +372,6 @@ export default function ApplicationForm({ trigger }) {
                           </PopoverContent>
                         </Popover>
                       </div>
-                      <FormDescription className="text-xs">
-                        Enter manually as DD/MM/YYYY or use the calendar icon
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -388,10 +385,7 @@ export default function ApplicationForm({ trigger }) {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Email{" "}
-                        <span className="text-gray-400 font-normal">(Optional)</span>
-                      </FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="example@email.com" {...field} />
                       </FormControl>
@@ -405,10 +399,7 @@ export default function ApplicationForm({ trigger }) {
                   name="aadharNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Aadhar Number{" "}
-                        <span className="text-gray-400 font-normal">(Optional)</span>
-                      </FormLabel>
+                      <FormLabel>Aadhar Number</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="12- DIGIT AADHAR NUMBER"
@@ -428,10 +419,7 @@ export default function ApplicationForm({ trigger }) {
                   name="bloodGroup"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Blood Group{" "}
-                        <span className="text-gray-400 font-normal">(Optional)</span>
-                      </FormLabel>
+                      <FormLabel>Blood Group</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
@@ -465,10 +453,7 @@ export default function ApplicationForm({ trigger }) {
                     name="address.houseName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>
-                          House Name{" "}
-                          <span className="text-gray-400">(Optional)</span>
-                        </FormLabel>
+                        <FormLabel>House Name</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="HOUSE NAME" 
@@ -508,10 +493,7 @@ export default function ApplicationForm({ trigger }) {
                     name="address.postOffice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>
-                          Post Office{" "}
-                          <span className="text-gray-400">(Optional)</span>
-                        </FormLabel>
+                        <FormLabel>Post Office</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="POST OFFICE" 
@@ -572,9 +554,7 @@ export default function ApplicationForm({ trigger }) {
                     name="address.pin"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>
-                          PIN Code <span className="text-gray-400 font-normal">(Optional)</span>
-                        </FormLabel>
+                        <FormLabel>PIN Code</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="6 DIGIT PIN CODE"

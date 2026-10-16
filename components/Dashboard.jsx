@@ -43,9 +43,11 @@ import {
   Trophy,
   Plus,
   Award,
+  AlertTriangle,
 } from "lucide-react";
 import RankAchieverCard from "./RankAchieverCard";
 import RankAchieverModal from "./RankAchieverModal";
+import ConfirmationPopup from "./ConfirmationPopup";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -634,6 +636,9 @@ const StatsOverview = memo(({
     "Rank_Achievers.jpeg"
   );
 
+  const [achieverToDelete, setAchieverToDelete] = useState(null);
+  const [isDeletingAchiever, setIsDeletingAchiever] = useState(false);
+
   // Fetch rank achievers from backend
   const fetchRankAchievers = useCallback(async () => {
     try {
@@ -955,30 +960,33 @@ const StatsOverview = memo(({
     setIsRankModalOpen(true);
   }, []);
 
-  const handleDeleteAchiever = useCallback(
-    async (achiever) => {
-      if (!window.confirm(`Are you sure you want to delete ${achiever.name}?`)) {
-        return;
+  const handleDeleteAchiever = useCallback((achiever) => {
+    setAchieverToDelete(achiever);
+  }, []);
+
+  const handleConfirmDeleteAchiever = useCallback(async () => {
+    if (!achieverToDelete) return;
+    try {
+      setIsDeletingAchiever(true);
+      const res = await fetch(`/api/rank-achievers?id=${achieverToDelete._id}`, {
+        method: "DELETE",
+        headers: apiKey ? { "x-api-key": apiKey } : {},
+      });
+      const data = await res.json();
+      if (data?.success) {
+        toast.success("Rank achiever deleted successfully");
+        setAchieverToDelete(null);
+        fetchRankAchievers();
+      } else {
+        toast.error(data?.message || "Failed to delete rank achiever");
       }
-      try {
-        const res = await fetch(`/api/rank-achievers?id=${achiever._id}`, {
-          method: "DELETE",
-          headers: apiKey ? { "x-api-key": apiKey } : {},
-        });
-        const data = await res.json();
-        if (data?.success) {
-          toast.success("Rank achiever deleted successfully");
-          fetchRankAchievers();
-        } else {
-          toast.error(data?.message || "Failed to delete rank achiever");
-        }
-      } catch (err) {
-        console.error("Error deleting rank achiever:", err);
-        toast.error("Failed to delete rank achiever");
-      }
-    },
-    [fetchRankAchievers]
-  );
+    } catch (err) {
+      console.error("Error deleting rank achiever:", err);
+      toast.error("Failed to delete rank achiever");
+    } finally {
+      setIsDeletingAchiever(false);
+    }
+  }, [achieverToDelete, apiKey, fetchRankAchievers]);
 
 
 
@@ -2100,6 +2108,19 @@ const StatsOverview = memo(({
           apiKey={apiKey}
         />
       )}
+
+      {/* Delete Rank Achiever Confirmation Popup (Exact same ConfirmationPopup as other pages) */}
+      <ConfirmationPopup
+        open={!!achieverToDelete}
+        onOpenChange={(open) => {
+          if (!open) setAchieverToDelete(null);
+        }}
+        action="delete"
+        title="Delete Rank Achiever"
+        loading={isDeletingAchiever}
+        onClick={handleConfirmDeleteAchiever}
+        contentClassName="z-[70]"
+      />
 
       {/* Student Profile Dialog */}
       {selectedStudentForProfile && (

@@ -9,8 +9,8 @@ const rankAchieverSchema = new Schema(
     },
     rank: {
       type: String,
-      required: [true, "Rank is required"],
       trim: true,
+      default: "",
     },
     year: {
       type: String,
@@ -24,8 +24,8 @@ const rankAchieverSchema = new Schema(
     },
     college: {
       type: String,
-      required: [true, "College is required"],
       trim: true,
+      default: "",
     },
     photo: {
       url: {
@@ -49,6 +49,10 @@ const rankAchieverSchema = new Schema(
     versionKey: false,
   }
 );
+
+if (models.RankAchiever) {
+  delete models.RankAchiever;
+}
 
 const RankAchiever =
   models.RankAchiever || model("RankAchiever", rankAchieverSchema);
