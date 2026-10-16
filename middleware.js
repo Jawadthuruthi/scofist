@@ -664,6 +664,7 @@ async function handleApiRequest(req) {
     "/api/teams",
     "/api/schedules",
     "/api/gallery",
+    "/api/rank-achievers",
   ];
 
   if (req.method === "GET" && publicGet.includes(url.pathname)) {

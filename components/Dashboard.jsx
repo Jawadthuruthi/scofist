@@ -40,7 +40,13 @@ import {
   CheckCircle2,
   Clock,
   ArrowLeft,
+  Trophy,
+  Plus,
+  Award,
 } from "lucide-react";
+import RankAchieverCard from "./RankAchieverCard";
+import RankAchieverModal from "./RankAchieverModal";
+import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -615,6 +621,43 @@ const StatsOverview = memo(({
   const coursesPopupRef = useRef(null);
   const { handleDownload: handleCoursesDownload } = useDownloadPopup(coursesPopupRef, "Courses_Overview.jpeg");
 
+  // Rank Achievers dialog states
+  const [rankAchieversDialogOpen, setRankAchieversDialogOpen] = useState(false);
+  const [rankAchievers, setRankAchievers] = useState([]);
+  const [isLoadingRankAchievers, setIsLoadingRankAchievers] = useState(false);
+  const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+  const [achieverToEdit, setAchieverToEdit] = useState(null);
+  const [achieversSearchTerm, setAchieversSearchTerm] = useState("");
+  const [selectedAchieversYearFilter, setSelectedAchieversYearFilter] = useState("all");
+
+  const rankAchieversPopupRef = useRef(null);
+  const { handleDownload: handleRankAchieversDownload } = useDownloadPopup(
+    rankAchieversPopupRef,
+    "Rank_Achievers.jpeg"
+  );
+
+  // Fetch rank achievers from backend
+  const fetchRankAchievers = useCallback(async () => {
+    try {
+      setIsLoadingRankAchievers(true);
+      const res = await fetch("/api/rank-achievers", {
+        headers: apiKey ? { "x-api-key": apiKey } : {},
+      });
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.rankAchievers)) {
+        setRankAchievers(data.rankAchievers);
+      }
+    } catch (err) {
+      console.error("Error fetching rank achievers:", err);
+    } finally {
+      setIsLoadingRankAchievers(false);
+    }
+  }, [apiKey]);
+
+  useEffect(() => {
+    fetchRankAchievers();
+  }, [fetchRankAchievers]);
+
   // Fetch courses from backend
   useEffect(() => {
     let isMounted = true;
@@ -902,6 +945,68 @@ const StatsOverview = memo(({
     );
   }, [teachers]);
 
+  const isCollegeAdmin = activeRole === "College Admin";
+
+  const handleOpenAddAchiever = useCallback(() => {
+    setAchieverToEdit(null);
+    setIsRankModalOpen(true);
+  }, []);
+
+  const handleOpenEditAchiever = useCallback((achiever) => {
+    setAchieverToEdit(achiever);
+    setIsRankModalOpen(true);
+  }, []);
+
+  const handleDeleteAchiever = useCallback(
+    async (achiever) => {
+      if (!window.confirm(`Are you sure you want to delete ${achiever.name}?`)) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/rank-achievers?id=${achiever._id}`, {
+          method: "DELETE",
+          headers: apiKey ? { "x-api-key": apiKey } : {},
+        });
+        const data = await res.json();
+        if (data?.success) {
+          toast.success("Rank achiever deleted successfully");
+          fetchRankAchievers();
+        } else {
+          toast.error(data?.message || "Failed to delete rank achiever");
+        }
+      } catch (err) {
+        console.error("Error deleting rank achiever:", err);
+        toast.error("Failed to delete rank achiever");
+      }
+    },
+    [fetchRankAchievers]
+  );
+
+  const distinctAchieverYears = useMemo(() => {
+    const years = Array.from(
+      new Set(rankAchievers.map((a) => a.year).filter(Boolean))
+    );
+    return years.sort((a, b) =>
+      String(b).localeCompare(String(a), undefined, { numeric: true })
+    );
+  }, [rankAchievers]);
+
+  const filteredAchievers = useMemo(() => {
+    return rankAchievers.filter((a) => {
+      const matchYear =
+        selectedAchieversYearFilter === "all" ||
+        String(a.year) === String(selectedAchieversYearFilter);
+      const term = achieversSearchTerm.trim().toLowerCase();
+      const matchSearch =
+        !term ||
+        a.name?.toLowerCase().includes(term) ||
+        a.course?.toLowerCase().includes(term) ||
+        a.college?.toLowerCase().includes(term) ||
+        a.rank?.toLowerCase().includes(term);
+      return matchYear && matchSearch;
+    });
+  }, [rankAchievers, selectedAchieversYearFilter, achieversSearchTerm]);
+
   if (isLoading) return <StatsOverviewSkeleton />;
 
   const statCards = [
@@ -973,6 +1078,14 @@ const StatsOverview = memo(({
         { label: "Academic", value: totalAcademic },
       ],
     },
+    {
+      title: "Rank Achievers",
+      value: rankAchievers.length,
+      icon: Trophy,
+      description: "College & university rank holders",
+      onClick: () => setRankAchieversDialogOpen(true),
+      clickLabel: "Click to view rank achievers →",
+    },
   ];
 
   const visibleStatCards = activeRole === "Teacher"
@@ -981,7 +1094,7 @@ const StatsOverview = memo(({
 
   return (
     <>
-      <div className={`grid gap-4 xs:grid-cols-2 md:grid-cols-3 ${activeRole === "Teacher" ? "lg:grid-cols-3 xl:grid-cols-5" : "lg:grid-cols-4"}`}>
+      <div className={`grid gap-4 xs:grid-cols-2 md:grid-cols-3 ${activeRole === "Teacher" ? "lg:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-4"}`}>
         {visibleStatCards.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}
@@ -1535,59 +1648,71 @@ const StatsOverview = memo(({
             /* ── VIEW 1: Table showing students count of different years of selected course ── */
             <>
               <DialogHeader className="flex flex-col mx-0 p-0 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
-                <div className="flex flex-row items-start justify-between gap-3 px-5 py-4">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
-                      {selectedCourseForModal?.type === "Islamic" ? (
-                        <BookMarked className="h-5 w-5" />
-                      ) : (
-                        <GraduationCap className="h-5 w-5" />
-                      )}
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <div>
-                        <Badge
-                          variant="secondary"
-                          className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
-                            selectedCourseForModal?.type === "Islamic"
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
-                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                          }`}
-                        >
-                          {selectedCourseForModal?.type === "Islamic" ? (
-                            <BookMarked className="h-2.5 w-2.5" />
-                          ) : (
-                            <GraduationCap className="h-2.5 w-2.5" />
-                          )}
-                          <span>{selectedCourseForModal?.type}</span>
-                        </Badge>
-                      </div>
-
-                      <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight">
-                        {selectedCourseForModal?.name}{" "}
-                        <span className="font-semibold text-muted-foreground text-xs sm:text-sm">
-                          ({selectedCourseForModal?.students?.length ?? selectedCourseForModal?.studentCount ?? 0})
-                        </span>
-                      </DialogTitle>
-
-                      {selectedCourseForModal?.universityBoard && (
-                        <p className="m-0 text-xs text-muted-foreground font-normal">
-                          {selectedCourseForModal.universityBoard}
-                        </p>
-                      )}
-                      <DialogDescription className="sr-only">
-                        Table showing students count of different years of selected course
-                      </DialogDescription>
-                    </div>
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4">
+                  {/* Left: Back to Courses button */}
+                  <div className="flex items-center justify-start shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedCourseForModal(null);
+                        setSelectedYearForModal(null);
+                        setModalSearchTerm("");
+                        setCoursesDialogOpen(true);
+                      }}
+                      className="h-8 px-2 sm:px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5 border hover:bg-muted shrink-0"
+                      title="Back to Courses"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Back to Courses</span>
+                      <span className="sm:hidden">Back</span>
+                    </Button>
                   </div>
 
-                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0 mt-0.5">
-                    <X className="h-5 w-5" />
-                  </DialogClose>
-                </div>
+                  {/* Center: Heading in centre alignment */}
+                  <div className="flex flex-col items-center justify-center text-center space-y-1 min-w-0">
+                    <div className="flex items-center justify-center">
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${
+                          selectedCourseForModal?.type === "Islamic"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                            : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                        }`}
+                      >
+                        {selectedCourseForModal?.type === "Islamic" ? (
+                          <BookMarked className="h-2.5 w-2.5" />
+                        ) : (
+                          <GraduationCap className="h-2.5 w-2.5" />
+                        )}
+                        <span>{selectedCourseForModal?.type}</span>
+                      </Badge>
+                    </div>
 
-                <div className="px-5 pb-3 text-xs text-muted-foreground">
-                  Select a year below to view enrolled students:
+                    <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight text-center">
+                      {selectedCourseForModal?.name}{" "}
+                      <span className="font-semibold text-muted-foreground text-xs sm:text-sm">
+                        ({selectedCourseForModal?.students?.length ?? selectedCourseForModal?.studentCount ?? 0})
+                      </span>
+                    </DialogTitle>
+
+                    {selectedCourseForModal?.universityBoard && (
+                      <p className="m-0 text-xs text-muted-foreground font-normal text-center">
+                        {selectedCourseForModal.universityBoard}
+                      </p>
+                    )}
+                    <DialogDescription className="sr-only">
+                      Table showing students count of different years of selected course
+                    </DialogDescription>
+                  </div>
+
+                  {/* Right: Close button */}
+                  <div className="flex items-center justify-end shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0" aria-label="Close">
+                      <X className="h-5 w-5" />
+                    </DialogClose>
+                  </div>
                 </div>
               </DialogHeader>
 
@@ -1784,72 +1909,72 @@ const StatsOverview = memo(({
             /* ── VIEW 2: Details of students in selected year ── */
             <>
               <DialogHeader className="flex flex-col mx-0 p-0 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
-                <div className="flex flex-row items-start justify-between gap-3 px-5 py-4">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
-                      {selectedCourseForModal?.type === "Islamic" ? (
-                        <BookMarked className="h-5 w-5" />
-                      ) : (
-                        <GraduationCap className="h-5 w-5" />
-                      )}
-                    </div>
-                    <div className="space-y-1.5 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedYearForModal(null);
-                            setModalSearchTerm("");
-                          }}
-                          className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground gap-1 border hover:bg-muted"
-                        >
-                          <ArrowLeft className="h-3 w-3" />
-                          <span>Back to Years</span>
-                        </Button>
-
-                        <Badge
-                          variant="secondary"
-                          className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
-                            selectedCourseForModal?.type === "Islamic"
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
-                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                          }`}
-                        >
-                          {selectedCourseForModal?.type === "Islamic" ? (
-                            <BookMarked className="h-2.5 w-2.5" />
-                          ) : (
-                            <GraduationCap className="h-2.5 w-2.5" />
-                          )}
-                          <span>{selectedCourseForModal?.type}</span>
-                        </Badge>
-                      </div>
-
-                      <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight">
-                        {selectedCourseForModal?.name}{" "}
-                        <span className="text-primary font-bold">
-                          {selectedYearForModal === "all" ? "(All Years)" : `- ${getDisplayYear(selectedYearForModal)}`}
-                        </span>{" "}
-                        <span className="font-semibold text-muted-foreground text-xs sm:text-sm">
-                          ({modalFilteredStudents.length})
-                        </span>
-                      </DialogTitle>
-
-                      {selectedCourseForModal?.universityBoard && (
-                        <p className="m-0 text-xs text-muted-foreground font-normal">
-                          {selectedCourseForModal.universityBoard}
-                        </p>
-                      )}
-                      <DialogDescription className="sr-only">
-                        Student details for {selectedCourseForModal?.name}
-                      </DialogDescription>
-                    </div>
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-3 px-4 sm:px-5 pt-3 sm:pt-4 pb-2">
+                  {/* Left: Back to Years button */}
+                  <div className="flex items-center justify-start shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedYearForModal(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="h-8 px-2 sm:px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5 border hover:bg-muted shrink-0"
+                      title="Back to Years"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Back to Years</span>
+                      <span className="sm:hidden">Back</span>
+                    </Button>
                   </div>
 
-                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0 mt-0.5">
-                    <X className="h-5 w-5" />
-                  </DialogClose>
+                  {/* Center: Heading in centre alignment */}
+                  <div className="flex flex-col items-center justify-center text-center space-y-1 min-w-0">
+                    <div className="flex items-center justify-center">
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${
+                          selectedCourseForModal?.type === "Islamic"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                            : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                        }`}
+                      >
+                        {selectedCourseForModal?.type === "Islamic" ? (
+                          <BookMarked className="h-2.5 w-2.5" />
+                        ) : (
+                          <GraduationCap className="h-2.5 w-2.5" />
+                        )}
+                        <span>{selectedCourseForModal?.type}</span>
+                      </Badge>
+                    </div>
+
+                    <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight text-center">
+                      {selectedCourseForModal?.name}{" "}
+                      <span className="text-primary font-bold">
+                        {selectedYearForModal === "all" ? "(All Years)" : `- ${getDisplayYear(selectedYearForModal)}`}
+                      </span>{" "}
+                      <span className="font-semibold text-muted-foreground text-xs sm:text-sm">
+                        ({modalFilteredStudents.length})
+                      </span>
+                    </DialogTitle>
+
+                    {selectedCourseForModal?.universityBoard && (
+                      <p className="m-0 text-xs text-muted-foreground font-normal text-center">
+                        {selectedCourseForModal.universityBoard}
+                      </p>
+                    )}
+                    <DialogDescription className="sr-only">
+                      Student details for {selectedCourseForModal?.name}
+                    </DialogDescription>
+                  </div>
+
+                  {/* Right: Close button */}
+                  <div className="flex items-center justify-end shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0" aria-label="Close">
+                      <X className="h-5 w-5" />
+                    </DialogClose>
+                  </div>
                 </div>
 
                 <div className="px-5 pb-3">
@@ -1873,62 +1998,67 @@ const StatsOverview = memo(({
                       : "No students found matching your search."}
                   </div>
                 ) : (
-                  <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/40">
-                          <TableHead className="w-14 text-xs font-semibold text-center">Sl No</TableHead>
-                          <TableHead className="text-xs font-semibold">Student Name</TableHead>
-                          <TableHead className="text-xs font-semibold">Class</TableHead>
-                          <TableHead className="text-xs font-semibold">Batch</TableHead>
-                          <TableHead className="text-xs font-semibold">Year</TableHead>
-                          <TableHead className="text-xs font-semibold text-right pr-4">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {modalFilteredStudents.map((st, i) => (
-                          <TableRow
-                            key={`${st.studentId}-${i}`}
-                            className="hover:bg-muted/30 cursor-pointer"
-                            onClick={() => handleViewStudentProfile(st)}
-                          >
-                            <TableCell className="text-xs text-center text-muted-foreground py-2.5">
-                              {i + 1}
-                            </TableCell>
-                            <TableCell className="font-medium text-xs py-2.5">
-                              <div className="font-semibold text-foreground">{st.studentName}</div>
-                              {(st.admissionNumber || st.studentId) && (
-                                <div className="text-[10px] text-muted-foreground">
-                                  {st.admissionNumber ? `${st.admissionNumber}` : st.studentId}
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground py-2.5">
-                              {st.className}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground py-2.5">
-                              {st.batchName}
-                            </TableCell>
-                            <TableCell className="text-xs py-2.5 text-muted-foreground">
-                              {getDisplayYear(st.year)}
-                            </TableCell>
-                            <TableCell className="text-xs text-right py-2.5 pr-4">
-                              {st.status && st.status !== "—" ? (
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${
-                                    STATUS_COLORS[st.status] || "bg-muted text-foreground border-border"
-                                  }`}
-                                >
-                                  {st.status}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">—</span>
-                              )}
-                            </TableCell>
+                  <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/40">
+                            <TableHead className="w-14 text-xs font-semibold text-center">Sl No</TableHead>
+                            <TableHead className="text-xs font-semibold">Student Name</TableHead>
+                            <TableHead className="text-xs font-semibold">Class</TableHead>
+                            {selectedYearForModal === "all" && (
+                              <TableHead className="text-xs font-semibold text-center">Year</TableHead>
+                            )}
+                            <TableHead className="text-xs font-semibold text-right pr-4">Status</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {modalFilteredStudents.map((st, i) => (
+                            <TableRow
+                              key={`${st.studentId}-${i}`}
+                              className="hover:bg-muted/30 cursor-pointer"
+                              onClick={() => handleViewStudentProfile(st)}
+                            >
+                              <TableCell className="text-xs text-center text-muted-foreground py-2.5">
+                                {i + 1}
+                              </TableCell>
+                              <TableCell className="font-medium text-xs py-2.5">
+                                <div className="font-semibold text-foreground">{st.studentName}</div>
+                                {(st.admissionNumber || st.studentId) && (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {st.admissionNumber ? `${st.admissionNumber}` : st.studentId}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-xs py-2.5">
+                                <div className="font-medium text-foreground">{st.className || "—"}</div>
+                                {st.batchName && st.batchName !== "—" && (
+                                  <div className="text-[10px] text-muted-foreground">{st.batchName}</div>
+                                )}
+                              </TableCell>
+                              {selectedYearForModal === "all" && (
+                                <TableCell className="text-xs py-2.5 text-center text-muted-foreground">
+                                  {getDisplayYear(st.year)}
+                                </TableCell>
+                              )}
+                              <TableCell className="text-xs text-right py-2.5 pr-4">
+                                {st.status && st.status !== "—" ? (
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                      STATUS_COLORS[st.status] || "bg-muted text-foreground border-border"
+                                    }`}
+                                  >
+                                    {st.status}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1936,6 +2066,164 @@ const StatsOverview = memo(({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Rank Achievers Dialog */}
+      <Dialog
+        open={rankAchieversDialogOpen}
+        onOpenChange={setRankAchieversDialogOpen}
+      >
+        <DialogContent
+          ref={rankAchieversPopupRef}
+          data-html2canvas-popup="true"
+          className="rounded-2xl sm:rounded-2xl max-w-4xl max-h-[75vh] sm:max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0"
+        >
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+            <button
+              type="button"
+              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+              onClick={handleRankAchieversDownload}
+              title="Download Image"
+              data-html2canvas-ignore="true"
+            >
+              <Trophy className="h-5 w-5 text-primary" />
+            </button>
+            <div className="flex-1 text-left space-y-0.5">
+              <div className="flex items-center gap-2">
+                <DialogTitle className="text-xl font-bold m-0">
+                  Rank Achievers
+                </DialogTitle>
+                <Badge variant="secondary" className="text-xs font-semibold">
+                  {rankAchievers.length}
+                </Badge>
+              </div>
+              <DialogDescription className="m-0 text-xs">
+                College & university rank holders and achievers
+              </DialogDescription>
+            </div>
+            <div
+              className="flex items-center gap-2"
+              data-html2canvas-ignore="true"
+            >
+              {isCollegeAdmin && (
+                <Button
+                  size="sm"
+                  className="h-8 px-2 sm:px-3 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  onClick={handleOpenAddAchiever}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Add Rank Achiever</span>
+                  <span className="sm:hidden">Add</span>
+                </Button>
+              )}
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </div>
+          </DialogHeader>
+
+          <div className="p-5 space-y-4">
+            {/* Filter and Search Bar */}
+            <div
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              data-html2canvas-ignore="true"
+            >
+              <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-lg border text-xs overflow-x-auto max-w-full">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAchieversYearFilter("all")}
+                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                    selectedAchieversYearFilter === "all"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  All ({rankAchievers.length})
+                </button>
+                {distinctAchieverYears.map((yr) => (
+                  <button
+                    key={yr}
+                    type="button"
+                    onClick={() => setSelectedAchieversYearFilter(yr)}
+                    className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                      selectedAchieversYearFilter === yr
+                        ? "bg-background text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {yr}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, course, college, rank…"
+                  value={achieversSearchTerm}
+                  onChange={(e) => setAchieversSearchTerm(e.target.value)}
+                  className="pl-8 h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Achievers Grid */}
+            {filteredAchievers.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed rounded-xl p-6 bg-muted/10 space-y-3">
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto text-amber-500">
+                  <Trophy className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm">No Rank Achievers Found</h4>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                    {achieversSearchTerm || selectedAchieversYearFilter !== "all"
+                      ? "No rank achievers match your search filters."
+                      : "No rank achievers have been recorded yet."}
+                  </p>
+                </div>
+                {isCollegeAdmin &&
+                  !achieversSearchTerm &&
+                  selectedAchieversYearFilter === "all" && (
+                    <Button
+                      size="sm"
+                      onClick={handleOpenAddAchiever}
+                      className="gap-1.5 text-xs mt-1"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Rank Achiever
+                    </Button>
+                  )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredAchievers.map((achiever) => (
+                  <RankAchieverCard
+                    key={achiever._id}
+                    achiever={achiever}
+                    canManage={isCollegeAdmin}
+                    onEdit={handleOpenEditAchiever}
+                    onDelete={handleDeleteAchiever}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add / Edit Rank Achiever Modal (College Admin only) */}
+      {isCollegeAdmin && (
+        <RankAchieverModal
+          isOpen={isRankModalOpen}
+          onClose={() => {
+            setIsRankModalOpen(false);
+            setAchieverToEdit(null);
+          }}
+          achieverToEdit={achieverToEdit}
+          onSuccess={fetchRankAchievers}
+          availableCourses={allCourses}
+          apiKey={apiKey}
+        />
+      )}
 
       {/* Student Profile Dialog */}
       {selectedStudentForProfile && (

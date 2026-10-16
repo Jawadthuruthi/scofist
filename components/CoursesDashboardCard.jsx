@@ -41,6 +41,7 @@ import {
   AlertCircle,
   Loader2,
   ArrowLeft,
+  X,
 } from "lucide-react";
 
 const STATUS_COLORS = {
@@ -565,13 +566,34 @@ export default function CoursesDashboardCard({
           {!selectedYearForModal ? (
             /* ── VIEW 1: Years Table ── */
             <>
-              <DialogHeader className="p-5 pb-3 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div>
+              <DialogHeader className="flex flex-col mx-0 p-0 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4">
+                  {/* Left: Back to Courses button */}
+                  <div className="flex items-center justify-start shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedCourseForModal(null);
+                        setSelectedYearForModal(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="h-8 px-2 sm:px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5 border hover:bg-muted shrink-0"
+                      title="Back to Courses"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Back to Courses</span>
+                      <span className="sm:hidden">Back</span>
+                    </Button>
+                  </div>
+
+                  {/* Center: Heading in centre alignment */}
+                  <div className="flex flex-col items-center justify-center text-center space-y-1 min-w-0">
+                    <div className="flex items-center justify-center">
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
+                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${
                           selectedCourseForModal?.type === "Islamic"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                             : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
@@ -586,7 +608,7 @@ export default function CoursesDashboardCard({
                       </Badge>
                     </div>
 
-                    <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight">
+                    <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight text-center">
                       {selectedCourseForModal?.name}{" "}
                       <span className="font-semibold text-muted-foreground text-xs sm:text-sm">
                         ({selectedCourseForModal?.students?.length ?? selectedCourseForModal?.studentCount ?? 0})
@@ -594,7 +616,7 @@ export default function CoursesDashboardCard({
                     </DialogTitle>
 
                     {selectedCourseForModal?.universityBoard && (
-                      <p className="m-0 text-xs text-muted-foreground font-normal">
+                      <p className="m-0 text-xs text-muted-foreground font-normal text-center">
                         {selectedCourseForModal.universityBoard}
                       </p>
                     )}
@@ -602,21 +624,22 @@ export default function CoursesDashboardCard({
                       Table showing students count of different years of selected course
                     </DialogDescription>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCourseForModal(null);
-                      setSelectedYearForModal(null);
-                      setModalSearchTerm("");
-                    }}
-                    className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
 
-                <div className="pt-2 text-xs text-muted-foreground">
-                  Select a year below to view enrolled students:
+                  {/* Right: Close button */}
+                  <div className="flex items-center justify-end shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCourseForModal(null);
+                        setSelectedYearForModal(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                      aria-label="Close"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               </DialogHeader>
 
@@ -812,27 +835,33 @@ export default function CoursesDashboardCard({
           ) : (
             /* ── VIEW 2: Students in Selected Year ── */
             <>
-              <DialogHeader className="p-5 pb-3 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedYearForModal(null);
-                          setModalSearchTerm("");
-                        }}
-                        className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground gap-1 border hover:bg-muted"
-                      >
-                        <ArrowLeft className="h-3 w-3" />
-                        <span>Back to Years</span>
-                      </Button>
+              <DialogHeader className="flex flex-col mx-0 p-0 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-3 px-4 sm:px-5 pt-3 sm:pt-4 pb-2">
+                  {/* Left: Back to Years button */}
+                  <div className="flex items-center justify-start shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedYearForModal(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="h-8 px-2 sm:px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5 border hover:bg-muted shrink-0"
+                      title="Back to Years"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Back to Years</span>
+                      <span className="sm:hidden">Back</span>
+                    </Button>
+                  </div>
 
+                  {/* Center: Heading in centre alignment */}
+                  <div className="flex flex-col items-center justify-center text-center space-y-1 min-w-0">
+                    <div className="flex items-center justify-center">
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
+                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${
                           selectedCourseForModal?.type === "Islamic"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                             : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
@@ -847,7 +876,7 @@ export default function CoursesDashboardCard({
                       </Badge>
                     </div>
 
-                    <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight">
+                    <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight text-center">
                       {selectedCourseForModal?.name}{" "}
                       <span className="text-primary font-bold">
                         {selectedYearForModal === "all" ? "(All Years)" : `- ${getDisplayYear(selectedYearForModal)}`}
@@ -858,7 +887,7 @@ export default function CoursesDashboardCard({
                     </DialogTitle>
 
                     {selectedCourseForModal?.universityBoard && (
-                      <p className="m-0 text-xs text-muted-foreground font-normal">
+                      <p className="m-0 text-xs text-muted-foreground font-normal text-center">
                         {selectedCourseForModal.universityBoard}
                       </p>
                     )}
@@ -867,27 +896,33 @@ export default function CoursesDashboardCard({
                     </DialogDescription>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCourseForModal(null);
-                      setSelectedYearForModal(null);
-                      setModalSearchTerm("");
-                    }}
-                    className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  {/* Right: Close button */}
+                  <div className="flex items-center justify-end shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCourseForModal(null);
+                        setSelectedYearForModal(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                      aria-label="Close"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="relative pt-3">
-                  <Search className="absolute left-2.5 top-5.5 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search students in this course…"
-                    value={modalSearchTerm}
-                    onChange={(e) => setModalSearchTerm(e.target.value)}
-                    className="pl-8 h-8 text-xs bg-background/80"
-                  />
+                <div className="px-4 sm:px-5 pb-3 pt-1">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search students in this course…"
+                      value={modalSearchTerm}
+                      onChange={(e) => setModalSearchTerm(e.target.value)}
+                      className="pl-8 h-8 text-xs bg-background/80"
+                    />
+                  </div>
                 </div>
               </DialogHeader>
 
@@ -899,15 +934,17 @@ export default function CoursesDashboardCard({
                       : "No students found matching your search."}
                   </div>
                 ) : (
-                  <div className="border rounded-xl overflow-x-auto bg-card shadow-sm">
-                    <Table>
+                  <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+                    <div className="overflow-x-auto">
+                      <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/40">
                           <TableHead className="w-14 text-xs font-semibold text-center">Sl No</TableHead>
                           <TableHead className="text-xs font-semibold">Student Name</TableHead>
                           <TableHead className="text-xs font-semibold">Class</TableHead>
-                          <TableHead className="text-xs font-semibold">Batch</TableHead>
-                          <TableHead className="text-xs font-semibold">Year</TableHead>
+                          {selectedYearForModal === "all" && (
+                            <TableHead className="text-xs font-semibold text-center">Year</TableHead>
+                          )}
                           <TableHead className="text-xs font-semibold text-right">Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -923,15 +960,17 @@ export default function CoursesDashboardCard({
                                 <div className="text-[10px] text-muted-foreground">{st.studentId}</div>
                               )}
                             </TableCell>
-                            <TableCell className="text-xs text-muted-foreground py-2.5">
-                              {st.className}
+                            <TableCell className="text-xs py-2.5">
+                              <div className="font-medium text-foreground">{st.className || "—"}</div>
+                              {st.batchName && st.batchName !== "—" && (
+                                <div className="text-[10px] text-muted-foreground">{st.batchName}</div>
+                              )}
                             </TableCell>
-                            <TableCell className="text-xs text-muted-foreground py-2.5">
-                              {st.batchName}
-                            </TableCell>
-                            <TableCell className="text-xs py-2.5 text-muted-foreground">
-                              {getDisplayYear(st.year)}
-                            </TableCell>
+                            {selectedYearForModal === "all" && (
+                              <TableCell className="text-xs py-2.5 text-center text-muted-foreground">
+                                {getDisplayYear(st.year)}
+                              </TableCell>
+                            )}
                             <TableCell className="text-xs text-right py-2.5">
                               {st.status ? (
                                 <span
@@ -950,6 +989,7 @@ export default function CoursesDashboardCard({
                       </TableBody>
                     </Table>
                   </div>
+                </div>
                 )}
               </div>
             </>

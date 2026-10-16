@@ -1237,7 +1237,7 @@ export default function StudentCourses({
       />
 
       {/* ── Main Courses Table ─────────────────────────────────────────── */}
-      <Card className="border shadow-sm">
+      <Card className="border shadow-sm overflow-hidden">
         <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-4 border-b bg-card">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search Input */}
@@ -1468,14 +1468,34 @@ export default function StudentCourses({
           {!selectedYear ? (
             /* ── VIEW 1: Course Name with Years Table ───────────────────── */
             <>
-              <DialogHeader className="p-5 pb-3 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    {/* 1. Type on top of course name */}
-                    <div>
+              <DialogHeader className="flex flex-col mx-0 p-0 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4">
+                  {/* Left: Back to Courses button */}
+                  <div className="flex items-center justify-start shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedCourse(null);
+                        setSelectedYear(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="h-8 px-2 sm:px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5 border hover:bg-muted shrink-0"
+                      title="Back to Courses"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Back to Courses</span>
+                      <span className="sm:hidden">Back</span>
+                    </Button>
+                  </div>
+
+                  {/* Center: Heading in centre alignment */}
+                  <div className="flex flex-col items-center justify-center text-center space-y-1 min-w-0">
+                    <div className="flex items-center justify-center">
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
+                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${
                           selectedCourse?.type === "Islamic"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                             : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
@@ -1490,17 +1510,15 @@ export default function StudentCourses({
                       </Badge>
                     </div>
 
-                    {/* 2. Course name with students count in bracket */}
-                    <DialogTitle className="text-lg font-bold m-0 leading-tight">
+                    <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight text-center">
                       {selectedCourse?.name}{" "}
-                      <span className="font-semibold text-muted-foreground text-xs">
+                      <span className="font-semibold text-muted-foreground text-xs sm:text-sm">
                         ({selectedCourse?.students?.length || 0})
                       </span>
                     </DialogTitle>
 
-                    {/* 3. University name under course name without label */}
                     {selectedCourse?.universityBoard && (
-                      <p className="m-0 text-xs text-muted-foreground font-normal">
+                      <p className="m-0 text-xs text-muted-foreground font-normal text-center">
                         {selectedCourse.universityBoard}
                       </p>
                     )}
@@ -1509,21 +1527,21 @@ export default function StudentCourses({
                     </DialogDescription>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCourse(null);
-                      setSelectedYear(null);
-                      setModalSearchTerm("");
-                    }}
-                    className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="pt-2 text-xs text-muted-foreground">
-                  Select a year to view enrolled students:
+                  {/* Right: Close button */}
+                  <div className="flex items-center justify-end shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCourse(null);
+                        setSelectedYear(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                      aria-label="Close"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               </DialogHeader>
 
@@ -1651,8 +1669,9 @@ export default function StudentCourses({
                     </div>
 
                     {/* Desktop View: Full Table */}
-                    <div className="hidden sm:block border rounded-xl overflow-x-auto bg-card shadow-sm">
-                      <Table>
+                    <div className="hidden sm:block border rounded-xl overflow-hidden bg-card shadow-sm">
+                      <div className="overflow-x-auto">
+                        <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/40 hover:bg-muted/40">
                             <TableHead className="w-14 sm:w-16 text-center text-xs font-semibold">
@@ -1784,7 +1803,8 @@ export default function StudentCourses({
                             </TableRow>
                           )}
                         </TableBody>
-                      </Table>
+                        </Table>
+                      </div>
                     </div>
                   </>
                 )}
@@ -1793,27 +1813,33 @@ export default function StudentCourses({
           ) : (
             /* ── VIEW 2: Students in Selected Year Table ─────────────────── */
             <>
-              <DialogHeader className="p-5 pb-3 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedYear(null);
-                          setModalSearchTerm("");
-                        }}
-                        className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground gap-1 border hover:bg-muted"
-                      >
-                        <ArrowLeft className="h-3 w-3" />
-                        <span>Back to Years</span>
-                      </Button>
+              <DialogHeader className="flex flex-col mx-0 p-0 border-b space-y-0 bg-muted/80 dark:bg-muted/30 sticky top-0 z-20 backdrop-blur-md">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-3 px-4 sm:px-5 pt-3 sm:pt-4 pb-2">
+                  {/* Left: Back to Years button */}
+                  <div className="flex items-center justify-start shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedYear(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="h-8 px-2 sm:px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5 border hover:bg-muted shrink-0"
+                      title="Back to Years"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Back to Years</span>
+                      <span className="sm:hidden">Back</span>
+                    </Button>
+                  </div>
 
+                  {/* Center: Heading in centre alignment */}
+                  <div className="flex flex-col items-center justify-center text-center space-y-1 min-w-0">
+                    <div className="flex items-center justify-center">
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] font-medium gap-1 px-2 py-0.5 ${
+                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${
                           selectedCourse?.type === "Islamic"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                             : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
@@ -1828,18 +1854,18 @@ export default function StudentCourses({
                       </Badge>
                     </div>
 
-                    <DialogTitle className="text-lg font-bold m-0 leading-tight">
+                    <DialogTitle className="text-base sm:text-lg font-bold m-0 leading-tight text-center">
                       {selectedCourse?.name}{" "}
                       <span className="text-blue-600 dark:text-blue-400 font-semibold">
                         {selectedYear === "all" ? "(All Years)" : `- Year ${selectedYear}`}
                       </span>{" "}
-                      <span className="font-semibold text-muted-foreground text-xs">
+                      <span className="font-semibold text-muted-foreground text-xs sm:text-sm">
                         ({modalFilteredStudents.length})
                       </span>
                     </DialogTitle>
 
                     {selectedCourse?.universityBoard && (
-                      <p className="m-0 text-xs text-muted-foreground font-normal">
+                      <p className="m-0 text-xs text-muted-foreground font-normal text-center">
                         {selectedCourse.universityBoard}
                       </p>
                     )}
@@ -1848,32 +1874,38 @@ export default function StudentCourses({
                     </DialogDescription>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCourse(null);
-                      setSelectedYear(null);
-                      setModalSearchTerm("");
-                    }}
-                    className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  {/* Right: Close button */}
+                  <div className="flex items-center justify-end shrink-0 min-w-[70px] sm:min-w-[130px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCourse(null);
+                        setSelectedYear(null);
+                        setModalSearchTerm("");
+                      }}
+                      className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                      aria-label="Close"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Search students in this year */}
-                <div className="relative pt-3">
-                  <Search className="absolute left-2.5 top-5.5 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder={
-                      selectedYear === "all"
-                        ? "Search all students in this course..."
-                        : `Search students in Year ${selectedYear}...`
-                    }
-                    value={modalSearchTerm}
-                    onChange={(e) => setModalSearchTerm(e.target.value)}
-                    className="pl-8 h-8 text-xs bg-background/80"
-                  />
+                <div className="px-4 sm:px-5 pb-3 pt-1">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder={
+                        selectedYear === "all"
+                          ? "Search all students in this course..."
+                          : `Search students in Year ${selectedYear}...`
+                      }
+                      value={modalSearchTerm}
+                      onChange={(e) => setModalSearchTerm(e.target.value)}
+                      className="pl-8 h-8 text-xs bg-background/80"
+                    />
+                  </div>
                 </div>
               </DialogHeader>
 
@@ -1914,32 +1946,36 @@ export default function StudentCourses({
                           </div>
 
                           <div className="flex items-center justify-between pt-1 border-t text-xs">
-                            <div className="flex flex-wrap items-center gap-1.5 text-muted-foreground text-[11px]">
-                              <span className="font-medium text-foreground">{st.className}</span>
-                              <span>•</span>
-                              <span>{st.batchName}</span>
-                              <span>•</span>
-                              <span className="font-semibold text-foreground">Yr {st.year}</span>
+                            <div className="flex flex-col text-[11px] min-w-0">
+                              <span className="font-medium text-foreground truncate">{st.className || "—"}</span>
+                              {st.batchName && st.batchName !== "—" && (
+                                <span className="text-[10px] text-muted-foreground truncate">{st.batchName}</span>
+                              )}
                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                onClick={() => handleOpenEdit(st)}
-                                title="Edit Student's Course"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => handleOpenDelete(st)}
-                                title="Remove Student from Course"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                            <div className="flex items-center gap-2">
+                              {selectedYear === "all" && (
+                                <span className="text-xs font-semibold text-foreground bg-muted px-2 py-0.5 rounded">Yr {st.year}</span>
+                              )}
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  onClick={() => handleOpenEdit(st)}
+                                  title="Edit Student's Course"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleOpenDelete(st)}
+                                  title="Remove Student from Course"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1947,8 +1983,9 @@ export default function StudentCourses({
                     </div>
 
                     {/* Desktop View: Full Table */}
-                    <div className="hidden sm:block border rounded-xl overflow-x-auto bg-card shadow-sm">
-                      <Table>
+                    <div className="hidden sm:block border rounded-xl overflow-hidden bg-card shadow-sm">
+                      <div className="overflow-x-auto">
+                        <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/40">
                             <TableHead className="w-14 text-xs font-semibold text-center">
@@ -1960,12 +1997,11 @@ export default function StudentCourses({
                             <TableHead className="text-xs font-semibold">
                               Class
                             </TableHead>
-                            <TableHead className="text-xs font-semibold">
-                              Batch
-                            </TableHead>
-                            <TableHead className="text-xs font-semibold text-center">
-                              Year
-                            </TableHead>
+                            {selectedYear === "all" && (
+                              <TableHead className="text-xs font-semibold text-center">
+                                Year
+                              </TableHead>
+                            )}
                             <TableHead className="text-xs font-semibold">
                               Status
                             </TableHead>
@@ -1991,17 +2027,23 @@ export default function StudentCourses({
                                   {st.studentId}
                                 </div>
                               </TableCell>
-                              <TableCell className="text-xs py-2.5 text-foreground font-medium">
-                                {st.className}
+                              <TableCell className="text-xs py-2.5">
+                                <div className="font-medium text-foreground">
+                                  {st.className || "—"}
+                                </div>
+                                {st.batchName && st.batchName !== "—" && (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {st.batchName}
+                                  </div>
+                                )}
                               </TableCell>
-                              <TableCell className="text-xs py-2.5 text-muted-foreground">
-                                {st.batchName}
-                              </TableCell>
-                              <TableCell className="text-xs text-center py-2.5 font-semibold text-foreground">
-                                <span className="inline-block px-2 py-0.5 bg-muted rounded text-xs">
-                                  {st.year}
-                                </span>
-                              </TableCell>
+                              {selectedYear === "all" && (
+                                <TableCell className="text-xs text-center py-2.5 font-semibold text-foreground">
+                                  <span className="inline-block px-2 py-0.5 bg-muted rounded text-xs">
+                                    {st.year}
+                                  </span>
+                                </TableCell>
+                              )}
                               <TableCell className="text-xs py-2.5">
                                 <span
                                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
@@ -2036,7 +2078,8 @@ export default function StudentCourses({
                             </TableRow>
                           ))}
                         </TableBody>
-                      </Table>
+                        </Table>
+                      </div>
                     </div>
                   </>
                 )}
