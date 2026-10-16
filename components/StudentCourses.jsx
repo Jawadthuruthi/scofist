@@ -59,7 +59,7 @@ import {
 import { toast } from "sonner";
 import Header from "./Header";
 
-const YEAR_OPTIONS = ["1", "2", "3", "4"];
+const YEAR_OPTIONS = ["1", "2", "3", "4", "5"];
 const STATUS_OPTIONS = ["Completed", "Ongoing", "Pending"];
 
 const STATUS_COLORS = {
@@ -111,6 +111,23 @@ export default function StudentCourses({
   // ── Delete Master Course Confirmation ────────────────────────────────────
   const [deletingMasterCourse, setDeletingMasterCourse] = useState(null);
   const [isDeleteMasterOpen, setIsDeleteMasterOpen] = useState(false);
+
+  // ── Edit Master Course State ─────────────────────────────────────────────
+  const [editingMasterCourse, setEditingMasterCourse] = useState(null);
+  const [isEditMasterOpen, setIsEditMasterOpen] = useState(false);
+  const [editMasterFormData, setEditMasterFormData] = useState({
+    name: "",
+    type: "Academic",
+    universityBoard: "",
+  });
+
+  // ── Edit / Delete Year in Course Popup States ────────────────────────────
+  const [editingYearData, setEditingYearData] = useState(null);
+  const [isEditYearOpen, setIsEditYearOpen] = useState(false);
+  const [newYearValue, setNewYearValue] = useState("1");
+
+  const [deletingYearData, setDeletingYearData] = useState(null);
+  const [isDeleteYearOpen, setIsDeleteYearOpen] = useState(false);
 
   // ── Add Course Popup States (Top Right Button) ───────────────────────────
   const [isAddCoursePopupOpen, setIsAddCoursePopupOpen] = useState(false);
@@ -653,6 +670,333 @@ export default function StudentCourses({
     }
   };
 
+  // ── Edit Master Course Actions ───────────────────────────────────────────
+  const handleOpenEditMaster = (course) => {
+    setEditingMasterCourse(course);
+    setEditMasterFormData({
+      name: course.name || "",
+      type: course.type || "Academic",
+      universityBoard: course.universityBoard || "",
+    });
+    setIsEditMasterOpen(true);
+  };
+
+  const handleSaveEditMaster = async () => {
+    if (!editingMasterCourse) return;
+    if (!editMasterFormData.name?.trim()) {
+      toast.error("Course name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/courses", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "x-api-key": apiKey } : {}),
+        },
+        body: JSON.stringify({
+          action: "editCourse",
+          oldName: editingMasterCourse.name,
+          oldType: editingMasterCourse.type,
+          name: editMasterFormData.name.trim(),
+          type: editMasterFormData.type,
+          universityBoard: editMasterFormData.universityBoard.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to update course");
+      }
+
+      const cleanOldName = editingMasterCourse.name.toLowerCase();
+      const cleanNewName = editMasterFormData.name.trim();
+      const newType = editMasterFormData.type;
+      const newBoard = editMasterFormData.universityBoard.trim();
+
+      // 1. Update savedCourses
+      setSavedCourses((prev) =>
+        prev.map((c) =>
+          c.name.toLowerCase() === cleanOldName
+            ? { ...c, name: cleanNewName, type: newType, universityBoard: newBoard }
+            : c
+        )
+      );
+
+      // 2. Update students state
+      setStudents((prev) =>
+        prev.map((s) => {
+          const islamicList = [
+            ...(s.studentSpecificField?.islamicCourses || []),
+          ];
+          const academicList = [
+            ...(s.studentSpecificField?.academicCourses || []),
+          ];
+
+          let changed = false;
+
+          if (editingMasterCourse.type === "Islamic" && newType === "Academic") {
+            const matching = islamicList.filter(
+              (c) => c.courseName?.trim().toLowerCase() === cleanOldName
+            );
+            if (matching.length > 0) {
+              changed = true;
+              const remaining = islamicList.filter(
+                (c) => c.courseName?.trim().toLowerCase() !== cleanOldName
+              );
+              matching.forEach((c) => {
+                academicList.push({
+                  ...c,
+                  courseName: cleanNewName,
+                  universityBoard: newBoard || c.universityBoard,
+                });
+              });
+              return {
+                ...s,
+                studentSpecificField: {
+                  ...s.studentSpecificField,
+                  islamicCourses: remaining,
+                  academicCourses: academicList,
+                },
+              };
+            }
+          } else if (
+            editingMasterCourse.type === "Academic" &&
+            newType === "Islamic"
+          ) {
+            const matching = academicList.filter(
+              (c) => c.courseName?.trim().toLowerCase() === cleanOldName
+            );
+            if (matching.length > 0) {
+              changed = true;
+              const remaining = academicList.filter(
+                (c) => c.courseName?.trim().toLowerCase() !== cleanOldName
+              );
+              matching.forEach((c) => {
+                islamicList.push({
+                  ...c,
+                  courseName: cleanNewName,
+                  universityBoard: newBoard || c.universityBoard,
+                });
+              });
+              return {
+                ...s,
+                studentSpecificField: {
+                  ...s.studentSpecificField,
+                  islamicCourses: islamicList,
+                  academicCourses: remaining,
+                },
+              };
+            }
+          } else {
+            const updateArray = (arr) =>
+              arr.map((c) => {
+                if (c.courseName?.trim().toLowerCase() === cleanOldName) {
+                  changed = true;
+                  return {
+                    ...c,
+                    courseName: cleanNewName,
+                    universityBoard: newBoard || c.universityBoard,
+                  };
+                }
+                return c;
+              });
+
+            const newIslamic = updateArray(islamicList);
+            const newAcademic = updateArray(academicList);
+
+            if (changed) {
+              return {
+                ...s,
+                studentSpecificField: {
+                  ...s.studentSpecificField,
+                  islamicCourses: newIslamic,
+                  academicCourses: newAcademic,
+                },
+              };
+            }
+          }
+          return s;
+        })
+      );
+
+      // If selectedCourse was this course, update it too
+      if (
+        selectedCourse &&
+        selectedCourse.name.toLowerCase() === cleanOldName
+      ) {
+        setSelectedCourse((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: cleanNewName,
+                type: newType,
+                universityBoard: newBoard,
+              }
+            : null
+        );
+      }
+
+      toast.success(`Course "${cleanNewName}" updated successfully`);
+      setIsEditMasterOpen(false);
+      setEditingMasterCourse(null);
+    } catch (err) {
+      console.error("Error updating master course:", err);
+      toast.error(err.message || "Failed to update course");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Edit / Delete Year Actions ───────────────────────────────────────────
+  const handleOpenEditYear = (yr) => {
+    setEditingYearData(yr);
+    setNewYearValue(yr.year);
+    setIsEditYearOpen(true);
+  };
+
+  const handleSaveEditYear = async () => {
+    if (!editingYearData || !selectedCourse) return;
+    if (!newYearValue || !newYearValue.trim()) {
+      toast.error("Please select or enter a valid year");
+      return;
+    }
+    const oldYear = String(editingYearData.year).trim();
+    const newYear = String(newYearValue).trim();
+    if (oldYear === newYear) {
+      setIsEditYearOpen(false);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/courses", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "x-api-key": apiKey } : {}),
+        },
+        body: JSON.stringify({
+          action: "updateYear",
+          courseName: selectedCourse.name,
+          type: selectedCourse.type,
+          oldYear,
+          newYear,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to update year");
+      }
+
+      // Update students state
+      const cleanCourseName = selectedCourse.name.toLowerCase();
+      setStudents((prev) =>
+        prev.map((s) => {
+          const updateYearInArr = (arr) =>
+            (arr || []).map((c) => {
+              if (
+                c.courseName?.trim().toLowerCase() === cleanCourseName &&
+                String(c.year || "1").trim() === oldYear
+              ) {
+                return { ...c, year: newYear };
+              }
+              return c;
+            });
+
+          return {
+            ...s,
+            studentSpecificField: {
+              ...s.studentSpecificField,
+              islamicCourses: updateYearInArr(
+                s.studentSpecificField?.islamicCourses
+              ),
+              academicCourses: updateYearInArr(
+                s.studentSpecificField?.academicCourses
+              ),
+            },
+          };
+        })
+      );
+
+      toast.success(`Year ${oldYear} updated to Year ${newYear}`);
+      setIsEditYearOpen(false);
+      setEditingYearData(null);
+    } catch (err) {
+      console.error("Error updating year:", err);
+      toast.error(err.message || "Failed to update year");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenDeleteYear = (yr) => {
+    setDeletingYearData(yr);
+    setIsDeleteYearOpen(true);
+  };
+
+  const handleConfirmDeleteYear = async () => {
+    if (!deletingYearData || !selectedCourse) return;
+    setSaving(true);
+    try {
+      const targetYear = String(deletingYearData.year).trim();
+      const res = await fetch("/api/courses", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "x-api-key": apiKey } : {}),
+        },
+        body: JSON.stringify({
+          action: "deleteYear",
+          courseName: selectedCourse.name,
+          type: selectedCourse.type,
+          year: targetYear,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to delete year");
+      }
+
+      const cleanCourseName = selectedCourse.name.toLowerCase();
+      setStudents((prev) =>
+        prev.map((s) => {
+          const filterArr = (arr) =>
+            (arr || []).filter(
+              (c) =>
+                !(
+                  c.courseName?.trim().toLowerCase() === cleanCourseName &&
+                  String(c.year || "1").trim() === targetYear
+                )
+            );
+
+          return {
+            ...s,
+            studentSpecificField: {
+              ...s.studentSpecificField,
+              islamicCourses: filterArr(s.studentSpecificField?.islamicCourses),
+              academicCourses: filterArr(s.studentSpecificField?.academicCourses),
+            },
+          };
+        })
+      );
+
+      toast.success(
+        `Year ${targetYear} removed from "${selectedCourse.name}"`
+      );
+      setIsDeleteYearOpen(false);
+      setDeletingYearData(null);
+    } catch (err) {
+      console.error("Error deleting year:", err);
+      toast.error(err.message || "Failed to delete year");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // ── Add Course Popup Actions ─────────────────────────────────────────────
   const popupStudentOptions = useMemo(
     () =>
@@ -974,8 +1318,8 @@ export default function StudentCourses({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="w-12 text-center text-xs font-semibold">
-                      #
+                    <TableHead className="w-14 sm:w-16 text-center text-xs font-semibold">
+                      Sl No
                     </TableHead>
                     <TableHead className="text-xs font-semibold min-w-[200px]">
                       Course Name
@@ -989,7 +1333,7 @@ export default function StudentCourses({
                     <TableHead className="text-xs font-semibold text-center w-36">
                       Total Students
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-right w-20">
+                    <TableHead className="text-xs font-semibold text-right w-24 sm:w-28">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -1079,6 +1423,15 @@ export default function StudentCourses({
                           >
                             <span>Years</span>
                             <ChevronRight className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                            onClick={() => handleOpenEditMaster(course)}
+                            title="Edit Course Details"
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             size="icon"
@@ -1237,9 +1590,29 @@ export default function StudentCourses({
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center text-blue-600 group-hover:translate-x-0.5 transition-transform shrink-0">
-                            <span className="text-xs font-medium mr-1">View</span>
-                            <ChevronRight className="h-4 w-4" />
+                          <div
+                            className="flex items-center gap-1 shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                              onClick={() => handleOpenEditYear(yr)}
+                              title={`Edit Year ${yr.year}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleOpenDeleteYear(yr)}
+                              title={`Delete Year ${yr.year}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground ml-0.5" />
                           </div>
                         </div>
                       ))}
@@ -1282,8 +1655,8 @@ export default function StudentCourses({
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/40 hover:bg-muted/40">
-                            <TableHead className="w-12 text-center text-xs font-semibold">
-                              #
+                            <TableHead className="w-14 sm:w-16 text-center text-xs font-semibold">
+                              Sl No
                             </TableHead>
                             <TableHead className="text-xs font-semibold min-w-[120px]">
                               Year
@@ -1292,10 +1665,10 @@ export default function StudentCourses({
                               Total Students
                             </TableHead>
                             <TableHead className="text-xs font-semibold min-w-[200px]">
-                              Status Breakdown
+                              Status
                             </TableHead>
-                            <TableHead className="text-xs font-semibold text-right w-36">
-                              Action
+                            <TableHead className="text-xs font-semibold text-right w-24 sm:w-28">
+                              Actions
                             </TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1345,20 +1718,30 @@ export default function StudentCourses({
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="py-3.5 text-right">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 px-2.5 text-xs font-medium gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-blue-200 dark:border-blue-800 group-hover:bg-blue-600 group-hover:text-white transition-all"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedYear(yr.year);
-                                    setModalSearchTerm("");
-                                  }}
-                                >
-                                  <span>View Students</span>
-                                  <ChevronRight className="h-3.5 w-3.5" />
-                                </Button>
+                              <TableCell
+                                className="py-3.5 text-right"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                    onClick={() => handleOpenEditYear(yr)}
+                                    title={`Edit Year ${yr.year}`}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleOpenDeleteYear(yr)}
+                                    title={`Delete Year ${yr.year}`}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1394,19 +1777,9 @@ export default function StudentCourses({
                                 </span>
                               </TableCell>
                               <TableCell className="py-3.5 text-right">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 px-2.5 text-xs font-medium gap-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-purple-200 dark:border-purple-800 group-hover:bg-purple-600 group-hover:text-white transition-all"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedYear("all");
-                                    setModalSearchTerm("");
-                                  }}
-                                >
-                                  <span>View All</span>
-                                  <ChevronRight className="h-3.5 w-3.5" />
-                                </Button>
+                                <div className="flex items-center justify-end text-purple-600 pr-2">
+                                  <ChevronRight className="h-4 w-4" />
+                                </div>
                               </TableCell>
                             </TableRow>
                           )}
@@ -1578,8 +1951,8 @@ export default function StudentCourses({
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/40">
-                            <TableHead className="w-10 text-xs font-semibold text-center">
-                              #
+                            <TableHead className="w-14 text-xs font-semibold text-center">
+                              Sl No
                             </TableHead>
                             <TableHead className="text-xs font-semibold">
                               Student Name
@@ -1859,6 +2232,223 @@ export default function StudentCourses({
                 <Trash2 className="h-4 w-4" />
               )}
               Delete Course
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Edit Master Course Dialog ──────────────────────────────────── */}
+      <Dialog open={isEditMasterOpen} onOpenChange={setIsEditMasterOpen}>
+        <DialogContent className="sm:max-w-[500px] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-y-auto flex flex-col [&>button.absolute]:hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-30 shrink-0">
+            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0">
+              <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-lg font-bold m-0 text-foreground">
+                Edit Course
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground m-0">
+                Update Course Name, Type, and University / Board
+              </DialogDescription>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditMasterOpen(false)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </DialogHeader>
+
+          <div className="p-5 space-y-4 flex-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Course Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                value={editMasterFormData.name}
+                onChange={(e) =>
+                  setEditMasterFormData((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                placeholder="e.g. Thanawiyya / B.A English"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Type <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={editMasterFormData.type}
+                onValueChange={(val) =>
+                  setEditMasterFormData((prev) => ({ ...prev, type: val }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select course type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Islamic">Islamic</SelectItem>
+                  <SelectItem value="Academic">Academic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                University / Board Name
+              </Label>
+              <Input
+                value={editMasterFormData.universityBoard}
+                onChange={(e) =>
+                  setEditMasterFormData((prev) => ({
+                    ...prev,
+                    universityBoard: e.target.value,
+                  }))
+                }
+                placeholder="e.g. Samastha / Calicut University"
+              />
+            </div>
+          </div>
+
+          <div className="p-4 border-t bg-background/95 backdrop-blur-md flex items-center justify-end gap-2 sticky bottom-0 z-30 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditMasterOpen(false)}
+              className="h-9 px-4 text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveEditMaster}
+              disabled={saving}
+              className="h-9 px-5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save changes</span>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Course Year Dialog ────────────────────────────────────── */}
+      <Dialog open={isEditYearOpen} onOpenChange={setIsEditYearOpen}>
+        <DialogContent className="sm:max-w-[420px] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-y-auto flex flex-col [&>button.absolute]:hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-30 shrink-0">
+            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0">
+              <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-lg font-bold m-0 text-foreground">
+                Edit Course Year
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground m-0">
+                {selectedCourse?.name}
+              </DialogDescription>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditYearOpen(false)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </DialogHeader>
+
+          <div className="p-5 space-y-4 flex-1">
+            <p className="text-xs text-muted-foreground">
+              Update year for all{" "}
+              <strong>{editingYearData?.students?.length || 0} students</strong>{" "}
+              currently enrolled in Year <strong>{editingYearData?.year}</strong>.
+            </p>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                New Year <span className="text-destructive">*</span>
+              </Label>
+              <Select value={newYearValue} onValueChange={setNewYearValue}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEAR_OPTIONS.map((y) => (
+                    <SelectItem key={y} value={y}>
+                      Year {y}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="6">Year 6</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="p-4 border-t bg-background/95 backdrop-blur-md flex items-center justify-end gap-2 sticky bottom-0 z-30 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditYearOpen(false)}
+              className="h-9 px-4 text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveEditYear}
+              disabled={saving}
+              className="h-9 px-5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Update Year</span>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Course Year Confirmation ────────────────────────────── */}
+      <AlertDialog
+        open={isDeleteYearOpen}
+        onOpenChange={setIsDeleteYearOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Year {deletingYearData?.year}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove <strong>Year {deletingYearData?.year}</strong> of{" "}
+              <strong>{selectedCourse?.name}</strong>? This will remove this course enrollment from all{" "}
+              <strong>{deletingYearData?.students?.length || 0} enrolled students</strong> in this year.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteYear}
+              disabled={saving}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete Year
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
