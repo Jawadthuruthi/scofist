@@ -87,6 +87,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [quickLeaveComboboxOpen, setQuickLeaveComboboxOpen] = useState(false);
   const [attendanceReasons, setAttendanceReasons] = useState({});
   const [bulkLeaveReason, setBulkLeaveReason] = useState("");
+  const [previousAttendanceState, setPreviousAttendanceState] = useState(null);
 
   const quickLeavePopupRef = useRef(null);
   const { handleDownload: handleQuickLeaveDownload } = useDownloadPopup(quickLeavePopupRef, `Leave_Reason.jpeg`);
@@ -360,10 +361,12 @@ const Attendance = ({ apiKey, teacherId }) => {
         });
         setAttendance(existingAttendance);
         setAttendanceReasons(existingReasons);
+        setPreviousAttendanceState(null);
       }
     } else {
       setAttendanceExists(false);
       setExistingAttendanceId(null);
+      setPreviousAttendanceState(null);
     }
   }, [attendanceQuery.data]);
 
@@ -450,6 +453,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
   // Toggle individual student attendance
   const toggleAttendance = useCallback((studentId) => {
+    setPreviousAttendanceState(null);
     setAttendance((prev) => {
       const isCurrentlyPresent = prev[studentId];
       if (!isCurrentlyPresent) {
@@ -524,7 +528,7 @@ const Attendance = ({ apiKey, teacherId }) => {
       const attendanceData = filteredStudents.map((student) => ({
         studentId: student._id,
         present: !!attendance[student._id],
-        leaveReason: attendanceReasons[student._id] || null,
+        leaveReason: attendance[student._id] ? null : (attendanceReasons[student._id] || null),
       }));
 
       const payload = {
@@ -544,11 +548,13 @@ const Attendance = ({ apiKey, teacherId }) => {
         });
         setSuccessMessage("Attendance Updated Successfully!");
         setShowSuccessDialog(true);
+        setPreviousAttendanceState(null);
       } else {
         await createAttendance.mutateAsync(payload);
         setSuccessMessage("Attendance Saved Successfully!");
         setShowSuccessDialog(true);
         setAttendanceExists(true);
+        setPreviousAttendanceState(null);
       }
     } catch (error) {
       console.error("Error saving attendance:", error);
@@ -587,6 +593,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
       setAttendanceExists(false);
       setExistingAttendanceId(null);
+      setPreviousAttendanceState(null);
 
       // Reset attendance based on leave status
       const resetAttendance = initializeAttendance(
@@ -612,6 +619,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
   const handleQuickLeaveSubmit = async () => {
     if (!quickLeaveStudent) return;
+    setPreviousAttendanceState(null);
 
     if (quickLeaveStudent === 'bulk') {
       const applicableStudents = filteredStudents.filter(student => {
@@ -663,6 +671,94 @@ const Attendance = ({ apiKey, teacherId }) => {
     toast.success("Leave reason added!");
     setQuickLeaveOpen(false);
   };
+
+  // Handle Present count touch / click
+  const handlePresentCountClick = useCallback(() => {
+    if (!filteredStudents.length) return;
+
+    const allPresent = filteredStudents.every((st) => !!attendance[st._id]);
+
+    // If currently in all-present mode or all students are present and we have an earlier state saved:
+    if (previousAttendanceState && (previousAttendanceState.mode === "present" || allPresent)) {
+      setAttendance(previousAttendanceState.attendance);
+      setAttendanceReasons(previousAttendanceState.reasons);
+      setPreviousAttendanceState(null);
+      toast.info("Restored earlier attendance");
+      return;
+    }
+
+    // If all are already present and no earlier state exists
+    if (allPresent) {
+      toast.info("All students are already marked present");
+      return;
+    }
+
+    // Save previous state (preserve original snapshot if switching between bulk modes)
+    setPreviousAttendanceState((prev) =>
+      prev
+        ? { ...prev, mode: "present" }
+        : {
+            attendance: { ...attendance },
+            reasons: { ...attendanceReasons },
+            mode: "present",
+          }
+    );
+
+    // Mark all filtered students as present
+    setAttendance((prev) => {
+      const next = { ...prev };
+      filteredStudents.forEach((st) => {
+        next[st._id] = true;
+      });
+      return next;
+    });
+
+    toast.success("Marked all students as present");
+  }, [filteredStudents, attendance, attendanceReasons, previousAttendanceState]);
+
+  // Handle Absent count touch / click
+  const handleAbsentCountClick = useCallback(() => {
+    if (!filteredStudents.length) return;
+
+    const allAbsent = filteredStudents.every((st) => !attendance[st._id]);
+
+    // If currently in all-absent mode or all students are absent and we have an earlier state saved:
+    if (previousAttendanceState && (previousAttendanceState.mode === "absent" || allAbsent)) {
+      setAttendance(previousAttendanceState.attendance);
+      setAttendanceReasons(previousAttendanceState.reasons);
+      setPreviousAttendanceState(null);
+      toast.info("Restored earlier attendance");
+      return;
+    }
+
+    // If all are already absent and no earlier state exists
+    if (allAbsent) {
+      toast.info("All students are already marked absent");
+      return;
+    }
+
+    // Save previous state (preserve original snapshot if switching between bulk modes)
+    setPreviousAttendanceState((prev) =>
+      prev
+        ? { ...prev, mode: "absent" }
+        : {
+            attendance: { ...attendance },
+            reasons: { ...attendanceReasons },
+            mode: "absent",
+          }
+    );
+
+    // Mark all filtered students as absent
+    setAttendance((prev) => {
+      const next = { ...prev };
+      filteredStudents.forEach((st) => {
+        next[st._id] = false;
+      });
+      return next;
+    });
+
+    toast.success("Marked all students as absent");
+  }, [filteredStudents, attendance, attendanceReasons, previousAttendanceState]);
 
   // Render loading state
   if (loading) {
@@ -718,20 +814,62 @@ const Attendance = ({ apiKey, teacherId }) => {
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-1 md:gap-2">
-            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={handlePresentCountClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handlePresentCountClick();
+              }
+            }}
+            className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
+            title={
+              previousAttendanceState && (previousAttendanceState.mode === "present" || (attendanceStats.present === attendanceStats.total && attendanceStats.total > 0))
+                ? "Click to restore earlier attendance"
+                : "Click to mark all present"
+            }
+          >
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
               Present
             </span>
-            <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+            <div
+              className={cn(
+                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
+                previousAttendanceState?.mode === "present" && "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+              )}
+            >
               {attendanceStats.present}
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-1 md:gap-2">
-            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={handleAbsentCountClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleAbsentCountClick();
+              }
+            }}
+            className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg transition-all"
+            title={
+              previousAttendanceState && (previousAttendanceState.mode === "absent" || (attendanceStats.absent === attendanceStats.total && attendanceStats.total > 0))
+                ? "Click to restore earlier attendance"
+                : "Click to mark all absent"
+            }
+          >
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
               Absent
             </span>
-            <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+            <div
+              className={cn(
+                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:bg-red-600 group-hover:shadow-md",
+                previousAttendanceState?.mode === "absent" && "ring-2 ring-red-400 ring-offset-2 dark:ring-offset-background font-extrabold"
+              )}
+            >
               {attendanceStats.absent}
             </div>
           </div>

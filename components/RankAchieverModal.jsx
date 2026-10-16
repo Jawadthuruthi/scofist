@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
   Dialog,
   DialogContent,
+  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -207,20 +208,29 @@ export default function RankAchieverModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto p-0">
-        <DialogHeader className="p-5 pb-4 border-b">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <Trophy className="h-5 w-5" />
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto p-0 [&>button.absolute]:hidden">
+        <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                <Trophy className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 text-left">
+                <DialogTitle className="text-base sm:text-lg font-bold leading-tight">
+                  {achieverToEdit ? "Edit Rank Achiever" : "Add Rank Achiever"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Enter the details and photo of the rank holder
+                </DialogDescription>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-lg font-bold">
-                {achieverToEdit ? "Edit Rank Achiever" : "Add Rank Achiever"}
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                Enter the details and photo of the rank holder
-              </DialogDescription>
-            </div>
+
+            <DialogClose
+              className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </DialogClose>
           </div>
         </DialogHeader>
 

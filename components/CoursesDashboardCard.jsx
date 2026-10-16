@@ -650,97 +650,14 @@ export default function CoursesDashboardCard({
                     <p className="font-medium">No students enrolled in this course yet.</p>
                   </div>
                 ) : (
-                  <>
-                    {/* Mobile View: Year Cards */}
-                    <div className="sm:hidden space-y-2.5">
-                      {courseYearsForModal.map((yr) => (
-                        <div
-                          key={yr.year}
-                          onClick={() => {
-                            setSelectedYearForModal(yr.year);
-                            setModalSearchTerm("");
-                          }}
-                          className="p-3.5 rounded-xl border bg-card hover:bg-muted/50 active:bg-muted/80 transition-all cursor-pointer shadow-sm flex items-center justify-between gap-3 group"
-                        >
-                          <div className="space-y-1.5 flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                                {getDisplayYear(yr.year)}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="gap-1 px-2 py-0.5 text-xs font-semibold bg-primary/10 text-primary border-primary/20"
-                              >
-                                <Users className="h-3 w-3" />
-                                <span>{yr.students.length}</span>
-                              </Badge>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {yr.ongoingCount > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                  {yr.ongoingCount} Ongoing
-                                </span>
-                              )}
-                              {yr.completedCount > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                  {yr.completedCount} Completed
-                                </span>
-                              )}
-                              {yr.pendingCount > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                                  {yr.pendingCount} Pending
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center text-primary group-hover:translate-x-0.5 transition-transform shrink-0">
-                            <span className="text-xs font-medium mr-1">View</span>
-                            <ChevronRight className="h-4 w-4" />
-                          </div>
-                        </div>
-                      ))}
-
-                      {courseYearsForModal.length > 1 && (
-                        <div
-                          onClick={() => {
-                            setSelectedYearForModal("all");
-                            setModalSearchTerm("");
-                          }}
-                          className="p-3.5 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-800/60 bg-purple-50/40 dark:bg-purple-950/20 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-all cursor-pointer shadow-sm flex items-center justify-between gap-3 group"
-                        >
-                          <div className="space-y-1 flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-foreground group-hover:text-purple-600 transition-colors">
-                                All Years
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="gap-1 px-2 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
-                              >
-                                <Users className="h-3 w-3" />
-                                <span>{selectedCourseForModal?.students?.length || 0}</span>
-                              </Badge>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground m-0">
-                              All enrolled students across {courseYearsForModal.length} years
-                            </p>
-                          </div>
-                          <div className="flex items-center text-purple-600 group-hover:translate-x-0.5 transition-transform shrink-0">
-                            <span className="text-xs font-medium mr-1">View All</span>
-                            <ChevronRight className="h-4 w-4" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Desktop View: Years Table */}
-                    <div className="hidden sm:block border rounded-xl overflow-hidden bg-card shadow-sm">
+                  <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+                    <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/40 hover:bg-muted/40">
-                            <TableHead className="w-16 text-center text-xs font-semibold">Sl No</TableHead>
+                            <TableHead className="w-12 sm:w-16 text-center text-xs font-semibold">Sl No</TableHead>
                             <TableHead className="text-xs font-semibold">Year</TableHead>
-                            <TableHead className="text-xs font-semibold text-center w-36">Total Students</TableHead>
+                            <TableHead className="text-xs font-semibold text-center w-28 sm:w-36">Total Students</TableHead>
                             <TableHead className="text-xs font-semibold">Status</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -754,37 +671,37 @@ export default function CoursesDashboardCard({
                                 setModalSearchTerm("");
                               }}
                             >
-                              <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
+                              <TableCell className="text-center text-xs text-muted-foreground font-medium py-3 sm:py-3.5">
                                 {idx + 1}
                               </TableCell>
-                              <TableCell className="py-3.5 font-medium">
-                                <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                              <TableCell className="py-3 sm:py-3.5 font-medium">
+                                <span className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors">
                                   {getDisplayYear(yr.year)}
                                 </span>
                               </TableCell>
-                              <TableCell className="text-center py-3.5">
+                              <TableCell className="text-center py-3 sm:py-3.5">
                                 <Badge
                                   variant="outline"
-                                  className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary border-primary/20"
+                                  className="gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary border-primary/20"
                                 >
                                   <Users className="h-3 w-3" />
                                   <span>{yr.students.length}</span>
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-3.5">
-                                <div className="flex flex-wrap items-center gap-1.5">
+                              <TableCell className="py-3 sm:py-3.5">
+                                <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
                                   {yr.ongoingCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
                                       {yr.ongoingCount} Ongoing
                                     </span>
                                   )}
                                   {yr.completedCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                                       {yr.completedCount} Completed
                                     </span>
                                   )}
                                   {yr.pendingCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                                       {yr.pendingCount} Pending
                                     </span>
                                   )}
@@ -801,25 +718,30 @@ export default function CoursesDashboardCard({
                                 setModalSearchTerm("");
                               }}
                             >
-                              <TableCell className="text-center text-xs text-purple-600 font-bold py-3.5">
+                              <TableCell className="text-center text-xs text-purple-600 font-bold py-3 sm:py-3.5">
                                 ★
                               </TableCell>
-                              <TableCell className="py-3.5">
-                                <span className="font-semibold text-sm text-foreground group-hover:text-purple-600 transition-colors">
-                                  All Years
-                                </span>
+                              <TableCell className="py-3 sm:py-3.5">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-purple-600 transition-colors">
+                                    All Years
+                                  </span>
+                                  <span className="sm:hidden text-[10px] text-muted-foreground">
+                                    All {courseYearsForModal.length} years
+                                  </span>
+                                </div>
                               </TableCell>
-                              <TableCell className="text-center py-3.5">
+                              <TableCell className="text-center py-3 sm:py-3.5">
                                 <Badge
                                   variant="outline"
-                                  className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                  className="gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
                                 >
                                   <Users className="h-3 w-3" />
                                   <span>{selectedCourseForModal?.students?.length || 0}</span>
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-3.5">
-                                <span className="text-xs text-muted-foreground">
+                              <TableCell className="py-3 sm:py-3.5">
+                                <span className="hidden sm:inline text-xs text-muted-foreground">
                                   All enrolled students across {courseYearsForModal.length} years
                                 </span>
                               </TableCell>
@@ -828,7 +750,7 @@ export default function CoursesDashboardCard({
                         </TableBody>
                       </Table>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </>

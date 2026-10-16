@@ -627,8 +627,6 @@ const StatsOverview = memo(({
   const [isLoadingRankAchievers, setIsLoadingRankAchievers] = useState(false);
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
   const [achieverToEdit, setAchieverToEdit] = useState(null);
-  const [achieversSearchTerm, setAchieversSearchTerm] = useState("");
-  const [selectedAchieversYearFilter, setSelectedAchieversYearFilter] = useState("all");
 
   const rankAchieversPopupRef = useRef(null);
   const { handleDownload: handleRankAchieversDownload } = useDownloadPopup(
@@ -982,30 +980,7 @@ const StatsOverview = memo(({
     [fetchRankAchievers]
   );
 
-  const distinctAchieverYears = useMemo(() => {
-    const years = Array.from(
-      new Set(rankAchievers.map((a) => a.year).filter(Boolean))
-    );
-    return years.sort((a, b) =>
-      String(b).localeCompare(String(a), undefined, { numeric: true })
-    );
-  }, [rankAchievers]);
 
-  const filteredAchievers = useMemo(() => {
-    return rankAchievers.filter((a) => {
-      const matchYear =
-        selectedAchieversYearFilter === "all" ||
-        String(a.year) === String(selectedAchieversYearFilter);
-      const term = achieversSearchTerm.trim().toLowerCase();
-      const matchSearch =
-        !term ||
-        a.name?.toLowerCase().includes(term) ||
-        a.course?.toLowerCase().includes(term) ||
-        a.college?.toLowerCase().includes(term) ||
-        a.rank?.toLowerCase().includes(term);
-      return matchYear && matchSearch;
-    });
-  }, [rankAchievers, selectedAchieversYearFilter, achieversSearchTerm]);
 
   if (isLoading) return <StatsOverviewSkeleton />;
 
@@ -1082,7 +1057,7 @@ const StatsOverview = memo(({
       title: "Rank Achievers",
       value: rankAchievers.length,
       icon: Trophy,
-      description: "College & university rank holders",
+      description: "College rank holders",
       onClick: () => setRankAchieversDialogOpen(true),
       clickLabel: "Click to view rank achievers →",
     },
@@ -1723,97 +1698,14 @@ const StatsOverview = memo(({
                     <p className="font-medium">No students enrolled in this course yet.</p>
                   </div>
                 ) : (
-                  <>
-                    {/* Mobile View: Touch-friendly Year Cards */}
-                    <div className="sm:hidden space-y-2.5">
-                      {courseYearsForModal.map((yr) => (
-                        <div
-                          key={yr.year}
-                          onClick={() => {
-                            setSelectedYearForModal(yr.year);
-                            setModalSearchTerm("");
-                          }}
-                          className="p-3.5 rounded-xl border bg-card hover:bg-muted/50 active:bg-muted/80 transition-all cursor-pointer shadow-sm flex items-center justify-between gap-3 group"
-                        >
-                          <div className="space-y-1.5 flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                                {getDisplayYear(yr.year)}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="gap-1 px-2 py-0.5 text-xs font-semibold bg-primary/10 text-primary border-primary/20"
-                              >
-                                <Users className="h-3 w-3" />
-                                <span>{yr.students.length}</span>
-                              </Badge>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {yr.ongoingCount > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                  {yr.ongoingCount} Ongoing
-                                </span>
-                              )}
-                              {yr.completedCount > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                  {yr.completedCount} Completed
-                                </span>
-                              )}
-                              {yr.pendingCount > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                                  {yr.pendingCount} Pending
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center text-primary group-hover:translate-x-0.5 transition-transform shrink-0">
-                            <span className="text-xs font-medium mr-1">View</span>
-                            <ChevronRight className="h-4 w-4" />
-                          </div>
-                        </div>
-                      ))}
-
-                      {courseYearsForModal.length > 1 && (
-                        <div
-                          onClick={() => {
-                            setSelectedYearForModal("all");
-                            setModalSearchTerm("");
-                          }}
-                          className="p-3.5 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-800/60 bg-purple-50/40 dark:bg-purple-950/20 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-all cursor-pointer shadow-sm flex items-center justify-between gap-3 group"
-                        >
-                          <div className="space-y-1 flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-foreground group-hover:text-purple-600 transition-colors">
-                                All Years
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="gap-1 px-2 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
-                              >
-                                <Users className="h-3 w-3" />
-                                <span>{selectedCourseForModal?.students?.length || 0}</span>
-                              </Badge>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground m-0">
-                              All enrolled students across {courseYearsForModal.length} years
-                            </p>
-                          </div>
-                          <div className="flex items-center text-purple-600 group-hover:translate-x-0.5 transition-transform shrink-0">
-                            <span className="text-xs font-medium mr-1">View All</span>
-                            <ChevronRight className="h-4 w-4" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Desktop View: Years Table */}
-                    <div className="hidden sm:block border rounded-xl overflow-hidden bg-card shadow-sm">
+                  <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+                    <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/40 hover:bg-muted/40">
-                            <TableHead className="w-16 text-center text-xs font-semibold">Sl No</TableHead>
+                            <TableHead className="w-12 sm:w-16 text-center text-xs font-semibold">Sl No</TableHead>
                             <TableHead className="text-xs font-semibold">Year</TableHead>
-                            <TableHead className="text-xs font-semibold text-center w-36">Total Students</TableHead>
+                            <TableHead className="text-xs font-semibold text-center w-28 sm:w-36">Total Students</TableHead>
                             <TableHead className="text-xs font-semibold">Status</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1827,37 +1719,37 @@ const StatsOverview = memo(({
                                 setModalSearchTerm("");
                               }}
                             >
-                              <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5">
+                              <TableCell className="text-center text-xs text-muted-foreground font-medium py-3 sm:py-3.5">
                                 {idx + 1}
                               </TableCell>
-                              <TableCell className="py-3.5 font-medium">
-                                <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                              <TableCell className="py-3 sm:py-3.5 font-medium">
+                                <span className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors">
                                   {getDisplayYear(yr.year)}
                                 </span>
                               </TableCell>
-                              <TableCell className="text-center py-3.5">
+                              <TableCell className="text-center py-3 sm:py-3.5">
                                 <Badge
                                   variant="outline"
-                                  className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary border-primary/20"
+                                  className="gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary border-primary/20"
                                 >
                                   <Users className="h-3 w-3" />
                                   <span>{yr.students.length}</span>
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-3.5">
-                                <div className="flex flex-wrap items-center gap-1.5">
+                              <TableCell className="py-3 sm:py-3.5">
+                                <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
                                   {yr.ongoingCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
                                       {yr.ongoingCount} Ongoing
                                     </span>
                                   )}
                                   {yr.completedCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                                       {yr.completedCount} Completed
                                     </span>
                                   )}
                                   {yr.pendingCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                                       {yr.pendingCount} Pending
                                     </span>
                                   )}
@@ -1874,25 +1766,30 @@ const StatsOverview = memo(({
                                 setModalSearchTerm("");
                               }}
                             >
-                              <TableCell className="text-center text-xs text-purple-600 font-bold py-3.5">
+                              <TableCell className="text-center text-xs text-purple-600 font-bold py-3 sm:py-3.5">
                                 ★
                               </TableCell>
-                              <TableCell className="py-3.5">
-                                <span className="font-semibold text-sm text-foreground group-hover:text-purple-600 transition-colors">
-                                  All Years
-                                </span>
+                              <TableCell className="py-3 sm:py-3.5">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-purple-600 transition-colors">
+                                    All Years
+                                  </span>
+                                  <span className="sm:hidden text-[10px] text-muted-foreground">
+                                    All {courseYearsForModal.length} years
+                                  </span>
+                                </div>
                               </TableCell>
-                              <TableCell className="text-center py-3.5">
+                              <TableCell className="text-center py-3 sm:py-3.5">
                                 <Badge
                                   variant="outline"
-                                  className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                  className="gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
                                 >
                                   <Users className="h-3 w-3" />
                                   <span>{selectedCourseForModal?.students?.length || 0}</span>
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-3.5">
-                                <span className="text-xs text-muted-foreground">
+                              <TableCell className="py-3 sm:py-3.5">
+                                <span className="hidden sm:inline text-xs text-muted-foreground">
                                   All enrolled students across {courseYearsForModal.length} years
                                 </span>
                               </TableCell>
@@ -1901,7 +1798,7 @@ const StatsOverview = memo(({
                         </TableBody>
                       </Table>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </>
@@ -2077,42 +1974,69 @@ const StatsOverview = memo(({
           data-html2canvas-popup="true"
           className="rounded-2xl sm:rounded-2xl max-w-4xl max-h-[75vh] sm:max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0"
         >
-          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+          <DialogHeader className="flex flex-row items-start sm:items-center gap-2.5 sm:gap-3 mx-0 px-4 sm:px-5 py-3 sm:py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <button
               type="button"
-              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer shrink-0 mt-0.5 sm:mt-0"
               onClick={handleRankAchieversDownload}
               title="Download Image"
               data-html2canvas-ignore="true"
             >
               <Trophy className="h-5 w-5 text-primary" />
             </button>
-            <div className="flex-1 text-left space-y-0.5">
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
               <div className="flex items-center gap-2">
-                <DialogTitle className="text-xl font-bold m-0">
+                <DialogTitle className="text-lg sm:text-xl font-bold m-0 leading-tight">
                   Rank Achievers
                 </DialogTitle>
-                <Badge variant="secondary" className="text-xs font-semibold">
+                <Badge variant="secondary" className="hidden sm:inline-flex text-xs font-semibold">
                   {rankAchievers.length}
                 </Badge>
               </div>
-              <DialogDescription className="m-0 text-xs">
-                College & university rank holders and achievers
+              <DialogDescription className="m-0 text-xs text-muted-foreground">
+                College rank holders
               </DialogDescription>
             </div>
+
+            {/* Mobile View: count before close button, add button under them */}
+            <div className="sm:hidden flex flex-col items-end gap-1.5 shrink-0">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5">
+                  {rankAchievers.length}
+                </Badge>
+                <DialogClose
+                  data-html2canvas-ignore="true"
+                  className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+                >
+                  <X className="h-4 w-4" />
+                </DialogClose>
+              </div>
+              {isCollegeAdmin && (
+                <Button
+                  data-html2canvas-ignore="true"
+                  size="sm"
+                  className="h-7 w-full px-2 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  onClick={handleOpenAddAchiever}
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Add</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Desktop View: Actions in a single row */}
             <div
-              className="flex items-center gap-2"
+              className="hidden sm:flex items-center gap-2 shrink-0"
               data-html2canvas-ignore="true"
             >
               {isCollegeAdmin && (
                 <Button
                   size="sm"
-                  className="h-8 px-2 sm:px-3 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  className="h-8 px-3 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   onClick={handleOpenAddAchiever}
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Add Rank Achiever</span>
-                  <span className="sm:hidden">Add</span>
+                  <span>Add Rank Achiever</span>
                 </Button>
               )}
               <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
@@ -2122,52 +2046,8 @@ const StatsOverview = memo(({
           </DialogHeader>
 
           <div className="p-5 space-y-4">
-            {/* Filter and Search Bar */}
-            <div
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              data-html2canvas-ignore="true"
-            >
-              <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-lg border text-xs overflow-x-auto max-w-full">
-                <button
-                  type="button"
-                  onClick={() => setSelectedAchieversYearFilter("all")}
-                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                    selectedAchieversYearFilter === "all"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  All ({rankAchievers.length})
-                </button>
-                {distinctAchieverYears.map((yr) => (
-                  <button
-                    key={yr}
-                    type="button"
-                    onClick={() => setSelectedAchieversYearFilter(yr)}
-                    className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                      selectedAchieversYearFilter === yr
-                        ? "bg-background text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {yr}
-                  </button>
-                ))}
-              </div>
-
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, course, college, rank…"
-                  value={achieversSearchTerm}
-                  onChange={(e) => setAchieversSearchTerm(e.target.value)}
-                  className="pl-8 h-8 text-xs"
-                />
-              </div>
-            </div>
-
             {/* Achievers Grid */}
-            {filteredAchievers.length === 0 ? (
+            {rankAchievers.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed rounded-xl p-6 bg-muted/10 space-y-3">
                 <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto text-amber-500">
                   <Trophy className="h-6 w-6" />
@@ -2175,27 +2055,23 @@ const StatsOverview = memo(({
                 <div>
                   <h4 className="font-semibold text-sm">No Rank Achievers Found</h4>
                   <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                    {achieversSearchTerm || selectedAchieversYearFilter !== "all"
-                      ? "No rank achievers match your search filters."
-                      : "No rank achievers have been recorded yet."}
+                    No rank achievers have been recorded yet.
                   </p>
                 </div>
-                {isCollegeAdmin &&
-                  !achieversSearchTerm &&
-                  selectedAchieversYearFilter === "all" && (
-                    <Button
-                      size="sm"
-                      onClick={handleOpenAddAchiever}
-                      className="gap-1.5 text-xs mt-1"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Rank Achiever
-                    </Button>
-                  )}
+                {isCollegeAdmin && (
+                  <Button
+                    size="sm"
+                    onClick={handleOpenAddAchiever}
+                    className="gap-1.5 text-xs mt-1"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Rank Achiever
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredAchievers.map((achiever) => (
+                {rankAchievers.map((achiever) => (
                   <RankAchieverCard
                     key={achiever._id}
                     achiever={achiever}
