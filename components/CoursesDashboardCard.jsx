@@ -48,6 +48,7 @@ const STATUS_COLORS = {
   Completed: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
   Ongoing: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
   Pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+  Dropped: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 border-rose-200 dark:border-rose-800",
 };
 
 export default function CoursesDashboardCard({
@@ -125,6 +126,7 @@ export default function CoursesDashboardCard({
           completedCount: 0,
           ongoingCount: 0,
           pendingCount: 0,
+          droppedCount: 0,
           students: [],
         });
       }
@@ -166,6 +168,7 @@ export default function CoursesDashboardCard({
         if (c.status === "Completed") entry.completedCount += 1;
         else if (c.status === "Ongoing") entry.ongoingCount += 1;
         else if (c.status === "Pending") entry.pendingCount += 1;
+        else if (c.status === "Dropped") entry.droppedCount = (entry.droppedCount || 0) + 1;
 
         entry.students.push({
           studentId,
@@ -194,6 +197,7 @@ export default function CoursesDashboardCard({
         if (c.status === "Completed") entry.completedCount += 1;
         else if (c.status === "Ongoing") entry.ongoingCount += 1;
         else if (c.status === "Pending") entry.pendingCount += 1;
+        else if (c.status === "Dropped") entry.droppedCount = (entry.droppedCount || 0) + 1;
 
         entry.students.push({
           studentId,
@@ -296,12 +300,14 @@ export default function CoursesDashboardCard({
           ongoingCount: 0,
           completedCount: 0,
           pendingCount: 0,
+          droppedCount: 0,
         });
       }
       const item = map.get(yr);
       item.students.push(st);
       if (st.status === "Completed") item.completedCount += 1;
       else if (st.status === "Pending") item.pendingCount += 1;
+      else if (st.status === "Dropped") item.droppedCount += 1;
       else item.ongoingCount += 1;
     });
 
@@ -703,6 +709,11 @@ export default function CoursesDashboardCard({
                                   {yr.pendingCount > 0 && (
                                     <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                                       {yr.pendingCount} Pending
+                                    </span>
+                                  )}
+                                  {yr.droppedCount > 0 && (
+                                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+                                      {yr.droppedCount} Dropped
                                     </span>
                                   )}
                                 </div>

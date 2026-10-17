@@ -40,7 +40,7 @@ const CourseSchema = new Schema({
   courseName: { type: String, trim: true },
   universityBoard: { type: String, trim: true },
   year: { type: String, trim: true },
-  status: { type: String, enum: ["", "Completed", "Ongoing", "Pending"], default: "" },
+  status: { type: String, enum: ["", "Completed", "Ongoing", "Pending", "Dropped"], default: "" },
 }, { _id: false });
 
 const studentSpecificSchema = new Schema({

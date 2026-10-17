@@ -6,7 +6,6 @@ const CourseSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
     },
     type: {
       type: String,
@@ -26,6 +25,8 @@ const CourseSchema = new Schema(
   },
   { timestamps: true }
 );
+
+CourseSchema.index({ name: 1, type: 1, universityBoard: 1 }, { unique: true });
 
 const Course = mongoose.models?.Course || model("Course", CourseSchema);
 export default Course;

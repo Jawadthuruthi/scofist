@@ -27,22 +27,25 @@ export async function GET(req) {
     const classMap = new Map(classes.map((c) => [String(c._id), c.name || c.shortname]));
     const batchMap = new Map(batches.map((b) => [String(b._id), b.name]));
 
-    // 3. Aggregate courses by normalized course name
-    // courseMap key: `${type.toLowerCase()}:${name.toLowerCase()}`
+    // 3. Aggregate courses by normalized course name and university board
     const courseMap = new Map();
 
     // Helper to register course in map
     const registerCourseEntry = (name, type, defaultBoard = "") => {
-      const key = `${type.toLowerCase()}:${name.trim().toLowerCase()}`;
+      const cleanName = (name || "").trim();
+      const cleanType = type === "Islamic" ? "Islamic" : "Academic";
+      const cleanBoard = (defaultBoard || "").trim();
+      const key = `${cleanType.toLowerCase()}:${cleanName.toLowerCase()}:${cleanBoard.toLowerCase()}`;
       if (!courseMap.has(key)) {
         courseMap.set(key, {
-          name: name.trim(),
-          type, // "Islamic" | "Academic"
-          universityBoard: defaultBoard || "",
+          name: cleanName,
+          type: cleanType,
+          universityBoard: cleanBoard,
           studentCount: 0,
           completedCount: 0,
           ongoingCount: 0,
           pendingCount: 0,
+          droppedCount: 0,
           students: [],
         });
       }
@@ -74,15 +77,27 @@ export async function GET(req) {
       const islamicList = student.studentSpecificField?.islamicCourses || [];
       islamicList.forEach((c, idx) => {
         if (!c.courseName?.trim()) return;
-        const entry = registerCourseEntry(c.courseName, "Islamic", c.universityBoard);
-        if (!entry.universityBoard && c.universityBoard) {
-          entry.universityBoard = c.universityBoard;
+        let board = (c.universityBoard || "").trim();
+        if (!board) {
+          const matchingMaster = masterCourses.filter(
+            (mc) =>
+              mc.name?.trim().toLowerCase() === c.courseName.trim().toLowerCase() &&
+              (mc.type === "Islamic" || mc.type === "Both")
+          );
+          if (matchingMaster.length === 1 && matchingMaster[0].universityBoard) {
+            board = matchingMaster[0].universityBoard.trim();
+          }
+        }
+        const entry = registerCourseEntry(c.courseName, "Islamic", board);
+        if (!entry.universityBoard && board) {
+          entry.universityBoard = board;
         }
 
         entry.studentCount += 1;
         if (c.status === "Completed") entry.completedCount += 1;
         else if (c.status === "Ongoing") entry.ongoingCount += 1;
         else if (c.status === "Pending") entry.pendingCount += 1;
+        else if (c.status === "Dropped") entry.droppedCount = (entry.droppedCount || 0) + 1;
 
         entry.students.push({
           studentId,
@@ -93,28 +108,40 @@ export async function GET(req) {
           batchName,
           year: c.year ? String(c.year).trim() : "1",
           status: c.status || "Ongoing",
-          universityBoard: c.universityBoard || entry.universityBoard || "—",
+          universityBoard: board || entry.universityBoard || "—",
           index: idx,
           type: "Islamic",
         });
 
         // Seed check
-        coursesToSeed.push({ name: c.courseName.trim(), type: "Islamic", universityBoard: c.universityBoard || "" });
+        coursesToSeed.push({ name: c.courseName.trim(), type: "Islamic", universityBoard: board });
       });
 
       // Academic courses
       const academicList = student.studentSpecificField?.academicCourses || [];
       academicList.forEach((c, idx) => {
         if (!c.courseName?.trim()) return;
-        const entry = registerCourseEntry(c.courseName, "Academic", c.universityBoard);
-        if (!entry.universityBoard && c.universityBoard) {
-          entry.universityBoard = c.universityBoard;
+        let board = (c.universityBoard || "").trim();
+        if (!board) {
+          const matchingMaster = masterCourses.filter(
+            (mc) =>
+              mc.name?.trim().toLowerCase() === c.courseName.trim().toLowerCase() &&
+              (mc.type === "Academic" || mc.type === "Both")
+          );
+          if (matchingMaster.length === 1 && matchingMaster[0].universityBoard) {
+            board = matchingMaster[0].universityBoard.trim();
+          }
+        }
+        const entry = registerCourseEntry(c.courseName, "Academic", board);
+        if (!entry.universityBoard && board) {
+          entry.universityBoard = board;
         }
 
         entry.studentCount += 1;
         if (c.status === "Completed") entry.completedCount += 1;
         else if (c.status === "Ongoing") entry.ongoingCount += 1;
         else if (c.status === "Pending") entry.pendingCount += 1;
+        else if (c.status === "Dropped") entry.droppedCount = (entry.droppedCount || 0) + 1;
 
         entry.students.push({
           studentId,
@@ -125,13 +152,13 @@ export async function GET(req) {
           batchName,
           year: c.year ? String(c.year).trim() : "1",
           status: c.status || "Ongoing",
-          universityBoard: c.universityBoard || entry.universityBoard || "—",
+          universityBoard: board || entry.universityBoard || "—",
           index: idx,
           type: "Academic",
         });
 
         // Seed check
-        coursesToSeed.push({ name: c.courseName.trim(), type: "Academic", universityBoard: c.universityBoard || "" });
+        coursesToSeed.push({ name: c.courseName.trim(), type: "Academic", universityBoard: board });
       });
     });
 
@@ -169,7 +196,12 @@ export async function GET(req) {
           ).length,
         },
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
     );
   } catch (error) {
     console.error("Error fetching courses:", error);
@@ -195,15 +227,34 @@ export async function POST(req) {
     }
 
     const cleanName = name.trim();
+    const cleanBoard = (universityBoard || "").trim();
+    const cleanType = ["Islamic", "Academic", "Both"].includes(type) ? type : "Academic";
 
-    // Case-insensitive search for existing course
-    const existing = await Course.findOne({
-      name: { $regex: new RegExp(`^${cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
-    });
+    const nameRegex = new RegExp(`^${cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+
+    const query = {
+      name: { $regex: nameRegex },
+      $or: [{ type: cleanType }, { type: "Both" }],
+    };
+
+    if (cleanBoard) {
+      query.universityBoard = {
+        $regex: new RegExp(`^${cleanBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+      };
+    } else {
+      query.$or = [
+        { universityBoard: "" },
+        { universityBoard: null },
+        { universityBoard: { $exists: false } },
+      ];
+    }
+
+    // Case-insensitive search for existing course with matching board & type
+    const existing = await Course.findOne(query);
 
     if (existing) {
-      if (universityBoard && !existing.universityBoard) {
-        existing.universityBoard = universityBoard.trim();
+      if (cleanBoard && !existing.universityBoard) {
+        existing.universityBoard = cleanBoard;
         await existing.save();
       }
       return NextResponse.json(
@@ -214,8 +265,8 @@ export async function POST(req) {
 
     const newCourse = await Course.create({
       name: cleanName,
-      type: ["Islamic", "Academic", "Both"].includes(type) ? type : "Academic",
-      universityBoard: universityBoard?.trim() || "",
+      type: cleanType,
+      universityBoard: cleanBoard,
       description: description?.trim() || "",
     });
 
@@ -237,11 +288,15 @@ export async function DELETE(req) {
     await connectToDB();
     const url = new URL(req.url);
     let courseName = url.searchParams.get("name") || url.searchParams.get("courseName");
+    let courseType = url.searchParams.get("type");
+    let universityBoard = url.searchParams.get("universityBoard");
 
     if (!courseName) {
       try {
         const body = await req.json();
         courseName = body?.name || body?.courseName;
+        courseType = courseType || body?.type;
+        universityBoard = universityBoard || body?.universityBoard;
       } catch (e) {
         // empty body
       }
@@ -255,26 +310,44 @@ export async function DELETE(req) {
     }
 
     const cleanName = courseName.trim();
-    const regex = new RegExp(`^${cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+    const cleanBoard = (universityBoard || "").trim();
+    const nameRegex = new RegExp(`^${cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
 
     // 1. Delete from Course collection
-    const deleteResult = await Course.deleteMany({ name: { $regex: regex } });
+    const courseDeleteQuery = { name: { $regex: nameRegex } };
+    if (courseType && courseType !== "Both") {
+      courseDeleteQuery.$or = [{ type: courseType }, { type: "Both" }];
+    }
+    if (cleanBoard) {
+      courseDeleteQuery.universityBoard = {
+        $regex: new RegExp(`^${cleanBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+      };
+    }
+    const deleteResult = await Course.deleteMany(courseDeleteQuery);
 
-    // 2. Also remove from student qualification/courses so that it is completely purged
-    await User.updateMany(
-      {
-        $or: [
-          { "studentSpecificField.islamicCourses.courseName": { $regex: regex } },
-          { "studentSpecificField.academicCourses.courseName": { $regex: regex } },
-        ],
-      },
-      {
-        $pull: {
-          "studentSpecificField.islamicCourses": { courseName: { $regex: regex } },
-          "studentSpecificField.academicCourses": { courseName: { $regex: regex } },
-        },
-      }
-    );
+    // 2. Also remove from student qualification/courses
+    const islamicPullFilter = { courseName: { $regex: nameRegex } };
+    const academicPullFilter = { courseName: { $regex: nameRegex } };
+    if (cleanBoard) {
+      const boardRegex = new RegExp(`^${cleanBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+      islamicPullFilter.universityBoard = { $regex: boardRegex };
+      academicPullFilter.universityBoard = { $regex: boardRegex };
+    }
+
+    const pullObj = {};
+    const orClauses = [];
+    if (!courseType || courseType === "Islamic" || courseType === "Both") {
+      pullObj["studentSpecificField.islamicCourses"] = islamicPullFilter;
+      orClauses.push({ "studentSpecificField.islamicCourses": { $elemMatch: islamicPullFilter } });
+    }
+    if (!courseType || courseType === "Academic" || courseType === "Both") {
+      pullObj["studentSpecificField.academicCourses"] = academicPullFilter;
+      orClauses.push({ "studentSpecificField.academicCourses": { $elemMatch: academicPullFilter } });
+    }
+
+    if (orClauses.length > 0) {
+      await User.updateMany({ $or: orClauses }, { $pull: pullObj });
+    }
 
     return NextResponse.json(
       {
@@ -300,7 +373,7 @@ export async function PUT(req) {
 
     // ── Action: Update year for all students enrolled in this course year ───
     if (action === "updateYear") {
-      const { courseName, type, oldYear, newYear } = body;
+      const { courseName, type, universityBoard, oldYear, newYear } = body;
       if (!courseName || !oldYear || !newYear) {
         return NextResponse.json(
           { message: "courseName, oldYear, and newYear are required" },
@@ -311,16 +384,24 @@ export async function PUT(req) {
       const cleanCourse = courseName.trim();
       const cleanOldYear = String(oldYear).trim();
       const cleanNewYear = String(newYear).trim();
-      const regex = new RegExp(
+      const cleanBoard = (universityBoard || "").trim();
+      const nameRegex = new RegExp(
         `^${cleanCourse.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
         "i"
       );
 
+      const elemFilter = { "elem.courseName": { $regex: nameRegex }, "elem.year": cleanOldYear };
+      const rootFilter = { courseName: { $regex: nameRegex }, year: cleanOldYear };
+      if (cleanBoard) {
+        const boardRegex = new RegExp(`^${cleanBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+        elemFilter["elem.universityBoard"] = { $regex: boardRegex };
+        rootFilter.universityBoard = { $regex: boardRegex };
+      }
+
       const updateTarget = (field) =>
         User.updateMany(
           {
-            [`${field}.courseName`]: { $regex: regex },
-            [`${field}.year`]: cleanOldYear,
+            [field]: { $elemMatch: rootFilter },
           },
           {
             $set: {
@@ -328,9 +409,7 @@ export async function PUT(req) {
             },
           },
           {
-            arrayFilters: [
-              { "elem.courseName": { $regex: regex }, "elem.year": cleanOldYear },
-            ],
+            arrayFilters: [elemFilter],
           }
         );
 
@@ -351,7 +430,7 @@ export async function PUT(req) {
 
     // ── Action: Delete a specific year for all students enrolled ───────────
     if (action === "deleteYear") {
-      const { courseName, type, year } = body;
+      const { courseName, type, universityBoard, year } = body;
       if (!courseName || !year) {
         return NextResponse.json(
           { message: "courseName and year are required" },
@@ -361,44 +440,36 @@ export async function PUT(req) {
 
       const cleanCourse = courseName.trim();
       const cleanYear = String(year).trim();
+      const cleanBoard = (universityBoard || "").trim();
       const regex = new RegExp(
         `^${cleanCourse.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
         "i"
       );
 
-      const pullQuery = {};
-      if (!type || type === "Islamic") {
-        pullQuery["studentSpecificField.islamicCourses"] = {
-          courseName: { $regex: regex },
-          year: cleanYear,
-        };
-      }
-      if (!type || type === "Academic") {
-        pullQuery["studentSpecificField.academicCourses"] = {
-          courseName: { $regex: regex },
-          year: cleanYear,
+      const elemMatch = { courseName: { $regex: regex }, year: cleanYear };
+      if (cleanBoard) {
+        elemMatch.universityBoard = {
+          $regex: new RegExp(`^${cleanBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
         };
       }
 
-      await User.updateMany(
-        {
-          $or: [
-            {
-              "studentSpecificField.islamicCourses": {
-                $elemMatch: { courseName: { $regex: regex }, year: cleanYear },
-              },
-            },
-            {
-              "studentSpecificField.academicCourses": {
-                $elemMatch: { courseName: { $regex: regex }, year: cleanYear },
-              },
-            },
-          ],
-        },
-        {
-          $pull: pullQuery,
-        }
-      );
+      const pullQuery = {};
+      const orConditions = [];
+      if (!type || type === "Islamic") {
+        pullQuery["studentSpecificField.islamicCourses"] = elemMatch;
+        orConditions.push({ "studentSpecificField.islamicCourses": { $elemMatch: elemMatch } });
+      }
+      if (!type || type === "Academic") {
+        pullQuery["studentSpecificField.academicCourses"] = elemMatch;
+        orConditions.push({ "studentSpecificField.academicCourses": { $elemMatch: elemMatch } });
+      }
+
+      if (orConditions.length > 0) {
+        await User.updateMany(
+          { $or: orConditions },
+          { $pull: pullQuery }
+        );
+      }
 
       return NextResponse.json(
         {
@@ -415,17 +486,19 @@ export async function PUT(req) {
       type = "Academic",
       universityBoard = "",
       oldType,
+      oldUniversityBoard = "",
     } = body;
     const lookupName = (oldName || name || "").trim();
     const newName = (name || oldName || "").trim();
     const cleanBoard = (universityBoard || "").trim();
+    const cleanOldBoard = (oldUniversityBoard || "").trim();
     const newType = ["Islamic", "Academic", "Both"].includes(type)
       ? type
       : "Academic";
 
     if (!lookupName || !newName) {
       return NextResponse.json(
-        { message: "Course name is required" },
+        { message: "Course name is required", error: "Course name is required" },
         { status: 400 }
       );
     }
@@ -434,9 +507,127 @@ export async function PUT(req) {
       `^${lookupName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
       "i"
     );
+    const newNameRegex = new RegExp(
+      `^${newName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+      "i"
+    );
 
-    // 1. Update or create in Course collection
-    const existing = await Course.findOne({ name: { $regex: oldRegex } });
+    const isIdentityChanging =
+      lookupName.toLowerCase() !== newName.toLowerCase() ||
+      cleanOldBoard.toLowerCase() !== cleanBoard.toLowerCase() ||
+      (oldType && oldType !== newType);
+
+    // 1. If renaming/moving to a course that already exists with the same name, type, and board, handle as MERGE
+    let targetCourse = null;
+    if (isIdentityChanging) {
+      const targetQuery = {
+        name: { $regex: newNameRegex },
+        $or: [{ type: newType }, { type: "Both" }],
+      };
+      if (cleanBoard) {
+        targetQuery.universityBoard = {
+          $regex: new RegExp(`^${cleanBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+        };
+      } else {
+        targetQuery.$or = [
+          { universityBoard: "" },
+          { universityBoard: null },
+          { universityBoard: { $exists: false } },
+        ];
+      }
+      targetCourse = await Course.findOne(targetQuery);
+      if (
+        targetCourse &&
+        lookupName.toLowerCase() === targetCourse.name.toLowerCase() &&
+        cleanOldBoard.toLowerCase() === (targetCourse.universityBoard || "").toLowerCase()
+      ) {
+        targetCourse = null; // Same course, not a merge
+      }
+    }
+
+    if (isIdentityChanging && targetCourse) {
+      // ── MERGE: Move all students from old course name into target course ──
+      const setIslamic = {
+        "studentSpecificField.islamicCourses.$[elem].courseName": targetCourse.name,
+      };
+      if (cleanBoard) {
+        setIslamic["studentSpecificField.islamicCourses.$[elem].universityBoard"] = cleanBoard;
+      }
+      const islamicFilter = { "elem.courseName": { $regex: oldRegex } };
+      if (cleanOldBoard) {
+        islamicFilter["elem.universityBoard"] = {
+          $regex: new RegExp(`^${cleanOldBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+        };
+      }
+      await User.updateMany(
+        { "studentSpecificField.islamicCourses.courseName": { $regex: oldRegex } },
+        { $set: setIslamic },
+        { arrayFilters: [islamicFilter] }
+      );
+
+      const setAcademic = {
+        "studentSpecificField.academicCourses.$[elem].courseName": targetCourse.name,
+      };
+      if (cleanBoard) {
+        setAcademic["studentSpecificField.academicCourses.$[elem].universityBoard"] = cleanBoard;
+      }
+      const academicFilter = { "elem.courseName": { $regex: oldRegex } };
+      if (cleanOldBoard) {
+        academicFilter["elem.universityBoard"] = {
+          $regex: new RegExp(`^${cleanOldBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+        };
+      }
+      await User.updateMany(
+        { "studentSpecificField.academicCourses.courseName": { $regex: oldRegex } },
+        { $set: setAcademic },
+        { arrayFilters: [academicFilter] }
+      );
+
+      // Remove the old master course
+      const oldDeleteQuery = { name: { $regex: oldRegex } };
+      if (cleanOldBoard) {
+        oldDeleteQuery.universityBoard = {
+          $regex: new RegExp(`^${cleanOldBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+        };
+      }
+      await Course.deleteMany(oldDeleteQuery);
+
+      if (cleanBoard && !targetCourse.universityBoard) {
+        targetCourse.universityBoard = cleanBoard;
+        await targetCourse.save();
+      }
+
+      return NextResponse.json(
+        {
+          message: `Course "${lookupName}" merged into "${targetCourse.name}" successfully`,
+          course: {
+            name: targetCourse.name,
+            type: targetCourse.type,
+            universityBoard: targetCourse.universityBoard || cleanBoard,
+          },
+          merged: true,
+          mergedInto: targetCourse.name,
+        },
+        { status: 200 }
+      );
+    }
+
+    // 2. Find existing master course in Course collection
+    let existing = null;
+    const existingQuery = { name: { $regex: oldRegex } };
+    if (oldType) {
+      existingQuery.$or = [{ type: oldType }, { type: "Both" }];
+    }
+    if (cleanOldBoard) {
+      existingQuery.universityBoard = {
+        $regex: new RegExp(`^${cleanOldBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+      };
+    }
+    existing = await Course.findOne(existingQuery);
+    if (!existing) {
+      existing = await Course.findOne({ name: { $regex: oldRegex } });
+    }
+
     if (existing) {
       existing.name = newName;
       existing.type = newType;
@@ -450,7 +641,7 @@ export async function PUT(req) {
       });
     }
 
-    // 2. Cascade changes to students
+    // 3. Cascade changes to students
     const sourceIsIslamic = oldType
       ? oldType === "Islamic"
       : existing
@@ -471,63 +662,91 @@ export async function PUT(req) {
 
       const studentsWithCourse = await User.find({
         [`studentSpecificField.${fromField}.courseName`]: { $regex: oldRegex },
-      });
+      }).lean();
 
       for (const student of studentsWithCourse) {
         const fromList = student.studentSpecificField?.[fromField] || [];
         const toList = student.studentSpecificField?.[toField] || [];
 
-        const matchingItems = fromList.filter((c) =>
-          oldRegex.test(c.courseName || "")
-        );
-        const remainingItems = fromList.filter(
-          (c) => !oldRegex.test(c.courseName || "")
-        );
+        const matchingItems = fromList.filter((c) => {
+          const nameMatch = oldRegex.test(c.courseName || "");
+          const boardMatch = !cleanOldBoard || (c.universityBoard || "").toLowerCase() === cleanOldBoard.toLowerCase();
+          return nameMatch && boardMatch;
+        });
+        const remainingItems = fromList.filter((c) => {
+          const nameMatch = oldRegex.test(c.courseName || "");
+          const boardMatch = !cleanOldBoard || (c.universityBoard || "").toLowerCase() === cleanOldBoard.toLowerCase();
+          return !(nameMatch && boardMatch);
+        });
 
         const movedItems = matchingItems.map((c) => ({
           courseName: newName,
           universityBoard: cleanBoard || c.universityBoard || "",
-          year: c.year || "1",
+          year: c.year ? String(c.year).trim() : "1",
           status: c.status || "Ongoing",
         }));
 
-        student.studentSpecificField[fromField] = remainingItems;
-        student.studentSpecificField[toField] = [...toList, ...movedItems];
-        await student.save();
+        await User.updateOne(
+          { _id: student._id },
+          {
+            $set: {
+              [`studentSpecificField.${fromField}`]: remainingItems,
+              [`studentSpecificField.${toField}`]: [...toList, ...movedItems],
+            },
+          }
+        );
       }
     } else {
       // In-place updates in students
-      await User.updateMany(
-        {
-          "studentSpecificField.islamicCourses.courseName": {
-            $regex: oldRegex,
-          },
-        },
-        {
-          $set: {
-            "studentSpecificField.islamicCourses.$[elem].courseName": newName,
-            "studentSpecificField.islamicCourses.$[elem].universityBoard":
-              cleanBoard,
-          },
-        },
-        { arrayFilters: [{ "elem.courseName": { $regex: oldRegex } }] }
-      );
+      const updateIslamic =
+        newType === "Islamic" ||
+        newType === "Both" ||
+        oldType === "Islamic" ||
+        !oldType;
 
-      await User.updateMany(
-        {
-          "studentSpecificField.academicCourses.courseName": {
-            $regex: oldRegex,
+      const updateAcademic =
+        newType === "Academic" ||
+        newType === "Both" ||
+        oldType === "Academic" ||
+        !oldType;
+
+      const setObjIslamic = {
+        "studentSpecificField.islamicCourses.$[elem].courseName": newName,
+        "studentSpecificField.islamicCourses.$[elem].universityBoard": cleanBoard,
+      };
+
+      const setObjAcademic = {
+        "studentSpecificField.academicCourses.$[elem].courseName": newName,
+        "studentSpecificField.academicCourses.$[elem].universityBoard": cleanBoard,
+      };
+
+      const elemFilter = { "elem.courseName": { $regex: oldRegex } };
+      const rootFilter = { courseName: { $regex: oldRegex } };
+      if (cleanOldBoard) {
+        const boardRegex = new RegExp(`^${cleanOldBoard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+        elemFilter["elem.universityBoard"] = { $regex: boardRegex };
+        rootFilter.universityBoard = { $regex: boardRegex };
+      }
+
+      if (updateIslamic) {
+        await User.updateMany(
+          {
+            "studentSpecificField.islamicCourses": { $elemMatch: rootFilter },
           },
-        },
-        {
-          $set: {
-            "studentSpecificField.academicCourses.$[elem].courseName": newName,
-            "studentSpecificField.academicCourses.$[elem].universityBoard":
-              cleanBoard,
+          { $set: setObjIslamic },
+          { arrayFilters: [elemFilter] }
+        );
+      }
+
+      if (updateAcademic) {
+        await User.updateMany(
+          {
+            "studentSpecificField.academicCourses": { $elemMatch: rootFilter },
           },
-        },
-        { arrayFilters: [{ "elem.courseName": { $regex: oldRegex } }] }
-      );
+          { $set: setObjAcademic },
+          { arrayFilters: [elemFilter] }
+        );
+      }
     }
 
     return NextResponse.json(
@@ -539,8 +758,20 @@ export async function PUT(req) {
     );
   } catch (error) {
     console.error("Error updating course:", error);
+    if (error.code === 11000) {
+      return NextResponse.json(
+        {
+          message: "A course with this name and university board already exists",
+          error: "A course with this name and university board already exists",
+        },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
-      { message: "Failed to update course", error: error.message },
+      {
+        message: error.message || "Failed to update course",
+        error: error.message || "Failed to update course",
+      },
       { status: 500 }
     );
   }
