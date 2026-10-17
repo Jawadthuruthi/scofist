@@ -108,16 +108,12 @@ export default function CollegeAdminGallery({ activeYear = "2026" }) {
   const fetchGalleryItems = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/gallery?year=${encodeURIComponent(activeYear)}`, {
+      const res = await fetch(`/api/gallery?year=all&uploadedBy=College%20Admin`, {
         cache: "no-store",
       });
       const data = await res.json();
       if (data.success) {
-        // Only show items uploaded by College Admin
-        const collegeItems = (data.items || []).filter(
-          (i) => i.uploadedBy === "College Admin"
-        );
-        setItems(collegeItems);
+        setItems(data.items || []);
       } else {
         toast.error(data.message || "Failed to load gallery items");
       }
@@ -431,17 +427,6 @@ export default function CollegeAdminGallery({ activeYear = "2026" }) {
             <Camera className="w-6 h-6 text-primary" />
             College Gallery
           </h2>
-          <p className="text-xs md:text-sm text-muted-foreground mt-1 font-medium">
-            Year: {cleanYear} · Visible at{" "}
-            <a
-              href="https://www.scofist.com/college-gallery"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2 hover:text-primary/80"
-            >
-              www.scofist.com/college-gallery
-            </a>
-          </p>
         </div>
 
         <div className="grid grid-cols-2 sm:flex sm:flex-row sm:items-center gap-2.5 w-full sm:w-auto">
@@ -465,7 +450,7 @@ export default function CollegeAdminGallery({ activeYear = "2026" }) {
 
           {/* Public Gallery Link Button */}
           <a
-            href={`/college-gallery/${cleanYear}`}
+            href="/college-gallery"
             target="_blank"
             rel="noopener noreferrer"
             className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 px-3.5 h-10 text-xs font-semibold rounded-xl border bg-background hover:bg-muted/80 text-foreground transition-colors shadow-sm w-full sm:w-auto"
@@ -761,7 +746,7 @@ export default function CollegeAdminGallery({ activeYear = "2026" }) {
                 Upload College Photos
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground m-0">
-                Uploaded photos will appear in the public gallery at scofist.com/college-gallery.
+                Uploaded photos will appear in the public gallery
               </DialogDescription>
             </div>
             <DialogClose asChild>

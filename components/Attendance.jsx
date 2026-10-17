@@ -674,7 +674,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
   // Handle Present count touch / click
   const handlePresentCountClick = useCallback(() => {
-    if (!filteredStudents.length) return;
+    if (saving || !filteredStudents.length) return;
 
     const allPresent = filteredStudents.every((st) => !!attendance[st._id]);
 
@@ -714,11 +714,11 @@ const Attendance = ({ apiKey, teacherId }) => {
     });
 
     toast.success("Marked all students as present");
-  }, [filteredStudents, attendance, attendanceReasons, previousAttendanceState]);
+  }, [filteredStudents, attendance, attendanceReasons, previousAttendanceState, saving]);
 
   // Handle Absent count touch / click
   const handleAbsentCountClick = useCallback(() => {
-    if (!filteredStudents.length) return;
+    if (saving || !filteredStudents.length) return;
 
     const allAbsent = filteredStudents.every((st) => !attendance[st._id]);
 
@@ -758,7 +758,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     });
 
     toast.success("Marked all students as absent");
-  }, [filteredStudents, attendance, attendanceReasons, previousAttendanceState]);
+  }, [filteredStudents, attendance, attendanceReasons, previousAttendanceState, saving]);
 
   // Render loading state
   if (loading) {
@@ -805,11 +805,32 @@ const Attendance = ({ apiKey, teacherId }) => {
       {/* Stats Cards */}
       <div className="border border-border rounded-lg p-2 md:p-4 bg-card/30">
         <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
-          <div className="flex flex-col items-center gap-1 md:gap-2">
-            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={handlePresentCountClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handlePresentCountClick();
+              }
+            }}
+            className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
+            title={
+              previousAttendanceState && (previousAttendanceState.mode === "present" || (attendanceStats.present === attendanceStats.total && attendanceStats.total > 0))
+                ? "Click to restore earlier attendance"
+                : "Click to mark all present"
+            }
+          >
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
               Total
             </span>
-            <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+            <div
+              className={cn(
+                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
+                previousAttendanceState?.mode === "present" && "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+              )}
+            >
               {attendanceStats.total}
             </div>
           </div>

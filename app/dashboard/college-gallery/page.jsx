@@ -1,4 +1,4 @@
-﻿import { Suspense } from "react";
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import Header from "@/components/Header";
 import CollegeAdminGallery from "@/components/CollegeAdminGallery";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "College Gallery | Admin",
-  description: "Upload and manage college photos and video links for the public gallery",
+  description: "College photos and videos for the public.",
 };
 
 export default async function CollegeGalleryPage() {
@@ -48,7 +48,7 @@ export default async function CollegeGalleryPage() {
       <div className="space-y-4">
         <Header
           title="COLLEGE GALLERY"
-          subTitle="Upload college photos and video links for the public gallery"
+          subTitle="College photos and videos for the public."
         />
         <Suspense
           fallback={

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +41,7 @@ const AttendanceSheet = ({
     const router = useRouter();
     const [attendance, setAttendance] = useState({});
     const [saving, setSaving] = useState(false);
+    const [previousAttendanceState, setPreviousAttendanceState] = useState(null);
     const [existingRecordId, setExistingRecordId] = useState(null);
     const [resetDialogOpen, setResetDialogOpen] = useState(false);
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
@@ -279,11 +280,96 @@ const AttendanceSheet = ({
 
     const toggleAttendance = (studentId) => {
         // Toggle is now allowed for EVERYONE including leave students
+        setPreviousAttendanceState(null);
         setAttendance((prev) => ({
             ...prev,
             [studentId]: !prev[studentId],
         }));
     };
+
+    // Handle Present count touch / click
+    const handlePresentCountClick = useCallback(() => {
+        if (isPastDate || saving || !students.length) return;
+
+        const allPresent = students.every((st) => !!attendance[st._id]);
+
+        // If currently in all-present mode or all students are present and we have an earlier state saved:
+        if (previousAttendanceState && (previousAttendanceState.mode === "present" || allPresent)) {
+            setAttendance(previousAttendanceState.attendance);
+            setPreviousAttendanceState(null);
+            toast.info("Restored earlier attendance");
+            return;
+        }
+
+        // If all are already present and no earlier state exists
+        if (allPresent) {
+            toast.info("All students are already marked present");
+            return;
+        }
+
+        // Save previous state (preserve original snapshot if switching between bulk modes)
+        setPreviousAttendanceState((prev) =>
+            prev
+                ? { ...prev, mode: "present" }
+                : {
+                      attendance: { ...attendance },
+                      mode: "present",
+                  }
+        );
+
+        // Mark all students as present
+        setAttendance((prev) => {
+            const next = { ...prev };
+            students.forEach((st) => {
+                next[st._id] = true;
+            });
+            return next;
+        });
+
+        toast.success("Marked all students as present");
+    }, [students, attendance, previousAttendanceState, isPastDate, saving]);
+
+    // Handle Absent count touch / click
+    const handleAbsentCountClick = useCallback(() => {
+        if (isPastDate || saving || !students.length) return;
+
+        const allAbsent = students.every((st) => !attendance[st._id]);
+
+        // If currently in all-absent mode or all students are absent and we have an earlier state saved:
+        if (previousAttendanceState && (previousAttendanceState.mode === "absent" || allAbsent)) {
+            setAttendance(previousAttendanceState.attendance);
+            setPreviousAttendanceState(null);
+            toast.info("Restored earlier attendance");
+            return;
+        }
+
+        // If all are already absent and no earlier state exists
+        if (allAbsent) {
+            toast.info("All students are already marked absent");
+            return;
+        }
+
+        // Save previous state (preserve original snapshot if switching between bulk modes)
+        setPreviousAttendanceState((prev) =>
+            prev
+                ? { ...prev, mode: "absent" }
+                : {
+                      attendance: { ...attendance },
+                      mode: "absent",
+                  }
+        );
+
+        // Mark all students as absent
+        setAttendance((prev) => {
+            const next = { ...prev };
+            students.forEach((st) => {
+                next[st._id] = false;
+            });
+            return next;
+        });
+
+        toast.success("Marked all students as absent");
+    }, [students, attendance, previousAttendanceState, isPastDate, saving]);
 
     const saveAttendance = useSaveAttendance();
     const updateAttendance = useUpdateAttendance();
@@ -330,6 +416,7 @@ const AttendanceSheet = ({
             setSuccessMessage(existingRecordId ? "Attendance Updated Successfully!" : "Attendance Marked Successfully!");
             setShowSuccessDialog(true);
             setExistingRecordId(true);
+            setPreviousAttendanceState(null);
         } catch (error) {
             console.error("Error saving attendance:", error);
             toast.error("Failed to save attendance");
@@ -348,6 +435,7 @@ const AttendanceSheet = ({
             setSuccessMessage("Attendance Reset Successfully!");
             setShowSuccessDialog(true);
             setExistingRecordId(null);
+            setPreviousAttendanceState(null);
             
             // Reset attendance based on leave status
             const resetAttendance = {};
@@ -451,29 +539,134 @@ const AttendanceSheet = ({
             {/* Stats Cards - Exactly same style as in /dashboard/periods */}
             <div className="border border-border rounded-lg p-2 md:p-4 bg-card/30">
                 <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
-                    <div className="flex flex-col items-center gap-1 md:gap-2">
-                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                    <div
+                        role={!isPastDate ? "button" : undefined}
+                        tabIndex={!isPastDate ? 0 : undefined}
+                        onClick={!isPastDate ? handlePresentCountClick : undefined}
+                        onKeyDown={
+                            !isPastDate
+                                ? (e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          handlePresentCountClick();
+                                      }
+                                  }
+                                : undefined
+                        }
+                        className={cn(
+                            "flex flex-col items-center gap-1 md:gap-2 select-none",
+                            !isPastDate &&
+                                "cursor-pointer group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
+                        )}
+                        title={
+                            !isPastDate
+                                ? previousAttendanceState &&
+                                  (previousAttendanceState.mode === "present" ||
+                                      (stats.present === stats.total && stats.total > 0))
+                                    ? "Click to restore earlier attendance"
+                                    : "Click to mark all present"
+                                : undefined
+                        }
+                    >
+                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                             Total
                         </span>
-                        <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                        <div
+                            className={cn(
+                                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all",
+                                !isPastDate && "group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
+                                previousAttendanceState?.mode === "present" &&
+                                    "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+                            )}
+                        >
                             {stats.total}
                         </div>
                     </div>
 
-                    <div className="flex flex-col items-center gap-1 md:gap-2">
-                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                    <div
+                        role={!isPastDate ? "button" : undefined}
+                        tabIndex={!isPastDate ? 0 : undefined}
+                        onClick={!isPastDate ? handlePresentCountClick : undefined}
+                        onKeyDown={
+                            !isPastDate
+                                ? (e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          handlePresentCountClick();
+                                      }
+                                  }
+                                : undefined
+                        }
+                        className={cn(
+                            "flex flex-col items-center gap-1 md:gap-2 select-none",
+                            !isPastDate &&
+                                "cursor-pointer group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
+                        )}
+                        title={
+                            !isPastDate
+                                ? previousAttendanceState &&
+                                  (previousAttendanceState.mode === "present" ||
+                                      (stats.present === stats.total && stats.total > 0))
+                                    ? "Click to restore earlier attendance"
+                                    : "Click to mark all present"
+                                : undefined
+                        }
+                    >
+                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                             Present
                         </span>
-                        <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                        <div
+                            className={cn(
+                                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all",
+                                !isPastDate && "group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
+                                previousAttendanceState?.mode === "present" &&
+                                    "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+                            )}
+                        >
                             {stats.present}
                         </div>
                     </div>
 
-                    <div className="flex flex-col items-center gap-1 md:gap-2">
-                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                    <div
+                        role={!isPastDate ? "button" : undefined}
+                        tabIndex={!isPastDate ? 0 : undefined}
+                        onClick={!isPastDate ? handleAbsentCountClick : undefined}
+                        onKeyDown={
+                            !isPastDate
+                                ? (e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          handleAbsentCountClick();
+                                      }
+                                  }
+                                : undefined
+                        }
+                        className={cn(
+                            "flex flex-col items-center gap-1 md:gap-2 select-none",
+                            !isPastDate &&
+                                "cursor-pointer group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg transition-all"
+                        )}
+                        title={
+                            !isPastDate
+                                ? previousAttendanceState &&
+                                  (previousAttendanceState.mode === "absent" ||
+                                      (stats.absent === stats.total && stats.total > 0))
+                                    ? "Click to restore earlier attendance"
+                                    : "Click to mark all absent"
+                                : undefined
+                        }
+                    >
+                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
                             Absent
                         </span>
-                        <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                        <div
+                            className={cn(
+                                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all",
+                                !isPastDate && "group-active:scale-95 group-hover:bg-red-600 group-hover:shadow-md",
+                                previousAttendanceState?.mode === "absent" &&
+                                    "ring-2 ring-red-400 ring-offset-2 dark:ring-offset-background font-extrabold"
+                            )}
+                        >
                             {stats.absent}
                         </div>
                     </div>

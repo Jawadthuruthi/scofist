@@ -35,7 +35,6 @@ function GalleryContent({ initialYear }) {
   const [error, setError] = useState("");
 
   const [mediaTab, setMediaTab] = useState("all"); // 'all' | 'photos' | 'videos'
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [activePhotoIndex, setActivePhotoIndex] = useState(null);
   const [activeVideo, setActiveVideo] = useState(null);
 
@@ -45,16 +44,19 @@ function GalleryContent({ initialYear }) {
     (params?.year ? decodeURIComponent(params.year) : null) ||
     searchParams.get("year") ||
     initialYear ||
-    "2026";
+    "all";
 
-  const yearQuery = `year=${encodeURIComponent(yearParam)}`;
+  const yearQuery =
+    yearParam && yearParam !== "all"
+      ? `year=${encodeURIComponent(yearParam)}`
+      : "year=all";
 
   useEffect(() => {
     setLoading(true);
     setError("");
 
     Promise.all([
-      fetchJSON(`/api/settings?${yearQuery}`).catch(() => ({ settings: null })),
+      fetchJSON("/api/settings").catch(() => ({ settings: null })),
       fetchJSON(`/api/gallery?${yearQuery}&uploadedBy=College%20Admin`).catch(() => ({ photos: [], videos: [] })),
     ])
       .then(([settingsData, galleryData]) => {
@@ -67,26 +69,11 @@ function GalleryContent({ initialYear }) {
         setError("Unable to load gallery content");
       })
       .finally(() => setLoading(false));
-  }, [yearParam]);
+  }, [yearQuery]);
 
-  // Compute categories combined
-  const categories = useMemo(() => {
-    const cats = new Set();
-    photos.forEach((p) => p.category && cats.add(p.category));
-    videos.forEach((v) => v.category && cats.add(v.category));
-    return Array.from(cats);
-  }, [photos, videos]);
-
-  // Filtered lists
-  const filteredPhotos = useMemo(() => {
-    if (selectedCategory === "all") return photos;
-    return photos.filter((p) => p.category === selectedCategory);
-  }, [photos, selectedCategory]);
-
-  const filteredVideos = useMemo(() => {
-    if (selectedCategory === "all") return videos;
-    return videos.filter((v) => v.category === selectedCategory);
-  }, [videos, selectedCategory]);
+  // Filtered lists by media type
+  const filteredPhotos = photos;
+  const filteredVideos = videos;
 
   const totalFilteredCount =
     (mediaTab === "videos" ? 0 : filteredPhotos.length) +
@@ -123,20 +110,20 @@ function GalleryContent({ initialYear }) {
       />
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 relative overflow-hidden pt-24 pb-12">
+      <main className="flex-1 relative overflow-hidden pt-4 sm:pt-6 pb-12">
         <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <header className="mb-8">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white drop-shadow-md">
+          <header className="mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white drop-shadow-md">
               College Gallery
             </h1>
-            <p className="mt-2 text-sm sm:text-base text-gray-400 max-w-xl">
+            <p className="mt-1 text-xs sm:text-sm text-gray-400 max-w-xl">
               Explore moments and highlights from our campus life.
             </p>
           </header>
 
           {/* ── MEDIA TYPE TABS (All / Photos / Videos) ── */}
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-4 sm:mt-6 flex flex-wrap items-center gap-3">
             <div className="inline-flex p-1 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
               <button
                 onClick={() => setMediaTab("all")}
@@ -182,35 +169,6 @@ function GalleryContent({ initialYear }) {
                 </span>
               </button>
             </div>
-
-            {/* Category Filter Pills */}
-            {categories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 sm:ml-auto">
-                <button
-                  onClick={() => setSelectedCategory("all")}
-                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all ${
-                    selectedCategory === "all"
-                      ? "bg-white/20 text-white border border-white/30"
-                      : "bg-white/[0.03] text-white/50 border border-white/5 hover:text-white"
-                  }`}
-                >
-                  All Categories
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all ${
-                      selectedCategory === cat
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold"
-                        : "bg-white/[0.03] text-white/50 border border-white/5 hover:text-white"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Error Message */}
@@ -244,16 +202,8 @@ function GalleryContent({ initialYear }) {
                 No Media Found
               </h3>
               <p className="text-white/50 max-w-sm text-sm">
-                There are no {mediaTab === "videos" ? "videos" : mediaTab === "photos" ? "photos" : "media items"} in this category yet.
+                There are no {mediaTab === "videos" ? "videos" : mediaTab === "photos" ? "photos" : "media items"} uploaded yet.
               </p>
-              {selectedCategory !== "all" && (
-                <button
-                  onClick={() => setSelectedCategory("all")}
-                  className="mt-6 px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold uppercase tracking-wider transition-colors"
-                >
-                  Clear Category Filter
-                </button>
-              )}
             </div>
           )}
 

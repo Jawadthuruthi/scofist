@@ -15,26 +15,34 @@ export async function GET(req) {
   try {
     await connectToDB();
     const { searchParams } = new URL(req.url);
-    const yearParam = searchParams.get("year") || "";
+    const yearParam = searchParams.get("year");
     const typeParam = searchParams.get("type") || "all";
     const categoryParam = searchParams.get("category") || "all";
     const uploadedByParam = searchParams.get("uploadedBy");
     const activeYear = await getYear(req);
 
-    const effectiveYear = yearParam || activeYear || "2026";
-    // Extract 4-digit year or clean year token
-    const yearMatch = effectiveYear.match(/\b(20\d\d)\b/);
-    const numericYear = yearMatch ? yearMatch[1] : effectiveYear;
-
     // Build filter query for Gallery collection
-    const query = {
-      $or: [
+    const query = {};
+
+    // Only apply year filter if yearParam is NOT "all", and if a year was requested or if it's not a college admin query
+    if (yearParam && yearParam !== "all") {
+      const yearMatch = yearParam.match(/\b(20\d\d)\b/);
+      const numericYear = yearMatch ? yearMatch[1] : yearParam;
+      query.$or = [
+        { year: { $regex: new RegExp(numericYear, "i") } },
+        { year: yearParam },
+      ];
+    } else if (!yearParam && (!uploadedByParam || !/college admin/i.test(uploadedByParam))) {
+      const effectiveYear = activeYear || "2026";
+      const yearMatch = effectiveYear.match(/\b(20\d\d)\b/);
+      const numericYear = yearMatch ? yearMatch[1] : effectiveYear;
+      query.$or = [
         { year: { $regex: new RegExp(numericYear, "i") } },
         { year: effectiveYear },
-      ],
-    };
+      ];
+    }
 
-    if (typeParam !== "all") {
+    if (typeParam !== "all" && typeParam) {
       query.type = typeParam;
     }
 
@@ -43,7 +51,7 @@ export async function GET(req) {
     }
 
     if (uploadedByParam) {
-      query.uploadedBy = uploadedByParam;
+      query.uploadedBy = { $regex: new RegExp(`^${uploadedByParam.trim()}$`, "i") };
     }
 
     // Query gallery items
@@ -51,13 +59,10 @@ export async function GET(req) {
       .sort({ order: 1, createdAt: -1 })
       .lean();
 
-    // Fetch distinct categories for the active festival year
-    const distinctCategories = await Gallery.distinct("category", {
-      $or: [
-        { year: { $regex: new RegExp(numericYear, "i") } },
-        { year: effectiveYear },
-      ],
-    });
+    // Fetch distinct categories for the active query
+    const categoryQuery = { ...query };
+    delete categoryQuery.category;
+    const distinctCategories = await Gallery.distinct("category", categoryQuery);
 
     const photos = [];
     const videos = [];
@@ -75,6 +80,9 @@ export async function GET(req) {
     });
 
     // Fallback for older years (e.g. 2025) if no explicit Gallery records exist yet
+    const effectiveYear = yearParam || activeYear || "2026";
+    const yearMatch = effectiveYear.match(/\b(20\d\d)\b/);
+    const numericYear = yearMatch ? yearMatch[1] : effectiveYear;
     const is2026OrNewer =
       numericYear === "2026" || parseInt(numericYear, 10) >= 2026;
 
