@@ -23,9 +23,10 @@ import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileT
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import UpdateCard from "@/components/UpdateCard";
+import ShareModal from "@/components/ShareModal";
 import ProfileEditModal from "./ProfileEditModal";
 import html2canvas from "html2canvas";
-import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate } from "@/lib/utils";
+import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate, copyToClipboard } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import TableComponent from "@/components/TableComponent";
 import Barcode from "react-barcode";
@@ -70,7 +71,7 @@ const formatDateWithoutDay = (dateString) => {
 };
 
 const ProfileField = ({ label, subLabel, value, isBold }) =>
-  (value || value === 0 || typeof value === 'string') ? (
+  (value || value === 0 || (typeof value === 'string' && value.trim() !== '')) ? (
     <>
       <div className="flex flex-col py-1">
         <span className={`text-sm font-medium ${isBold ? 'font-bold' : 'text-muted-foreground'}`}>{label}</span>
@@ -707,6 +708,7 @@ export default function StudentDashboard({
 
   const [currentUser, setCurrentUser] = useState(user);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [sharedArticle, setSharedArticle] = useState(null);
   const detailsRef = useRef(null);
   const historyRef = useRef(null);
   const chartRef = useRef(null);
@@ -797,6 +799,79 @@ export default function StudentDashboard({
   const batchName = batches.find(
     (b) => b._id === currentUser?.studentSpecificField?.batchId
   )?.name;
+
+  const renderCourseDisplay = (coursesList) => {
+    if (!Array.isArray(coursesList)) return null;
+    let target = coursesList.filter(
+      (c) =>
+        c &&
+        (!c.status || String(c.status).trim().toLowerCase() === "ongoing") &&
+        c.courseName?.trim()
+    );
+    if (target.length === 0) {
+      target = coursesList.filter((c) => c && c.courseName?.trim());
+    }
+    if (target.length === 0) return null;
+
+    return (
+      <div className="flex flex-col gap-2">
+        {target.map((c, idx) => {
+          const status = c.status || "Ongoing";
+          const yearStr = c.year
+            ? String(c.year).toLowerCase().startsWith("year")
+              ? String(c.year).trim()
+              : `Year ${String(c.year).trim()}`
+            : null;
+          const subInfo = [yearStr, c.universityBoard?.trim() || null]
+            .filter(Boolean)
+            .join(" • ");
+
+          return (
+            <div key={idx} className="flex flex-col">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-semibold text-foreground text-sm">
+                  {c.courseName}
+                </span>
+                <span
+                  className={cn(
+                    "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border leading-none inline-flex items-center",
+                    status === "Completed"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                      : status === "Pending"
+                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                      : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                  )}
+                >
+                  {status}
+                </span>
+              </div>
+              {subInfo && (
+                <div className="text-xs text-muted-foreground mt-0.5 font-normal leading-tight">
+                  {subInfo}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const ongoingIslamicCoursesDisplay = useMemo(() => {
+    const list =
+      currentUser?.studentSpecificField?.islamicCourses ||
+      currentUser?.islamicCourses ||
+      [];
+    return renderCourseDisplay(list);
+  }, [currentUser]);
+
+  const ongoingAcademicCoursesDisplay = useMemo(() => {
+    const list =
+      currentUser?.studentSpecificField?.academicCourses ||
+      currentUser?.academicCourses ||
+      [];
+    return renderCourseDisplay(list);
+  }, [currentUser]);
 
   useEffect(() => {
     const fetchFunds = async () => {
@@ -1647,7 +1722,7 @@ export default function StudentDashboard({
               <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
               <div className="absolute inset-0 blur-xl bg-blue-500/20 rounded-full animate-pulse"></div>
             </div>
-            <p className="mt-6 text-base font-medium text-slate-600 animate-pulse tracking-wide italic">
+            <p className="mt-6 text-base font-medium text-slate-600 animate-pulse tracking-wide font-normal not-italic">
               Loading your personalized dashboard...
             </p>
           </Card>
@@ -1768,8 +1843,16 @@ export default function StudentDashboard({
               value={currentUser?.studentSpecificField?.islamicQualification || currentUser?.islamicQualification}
             />
             <ProfileField
+              label="Islamic Course"
+              value={ongoingIslamicCoursesDisplay}
+            />
+            <ProfileField
               label="Academic Qualif."
               value={currentUser?.studentSpecificField?.academicQualification || currentUser?.academicQualification}
+            />
+            <ProfileField
+              label="Academic Course"
+              value={ongoingAcademicCoursesDisplay}
             />
             <ProfileField
               label="Graduated Year"
@@ -1831,8 +1914,8 @@ export default function StudentDashboard({
             </CardHeader>
             <CardContent className="p-0">
               {currentUser?.studentSpecificField?.familyDetails?.length > 0 && (
-                <div className="overflow-x-auto">
-                  <Table>
+                <div className="overflow-x-auto w-full min-w-0">
+                  <Table className="min-w-[550px] w-full">
                     <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead className="w-16 text-center">Sl.No</TableHead>
@@ -1887,19 +1970,19 @@ export default function StudentDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="max-h-[400px] overflow-y-auto pr-2 rounded-md border min-h-[100px]">
+            <div className="max-h-[400px] overflow-auto rounded-md border min-h-[100px] w-full min-w-0">
               {fundsLoading ? (
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
                   <span className="ml-2 text-sm text-muted-foreground">Loading financial records...</span>
                 </div>
               ) : displayFunds && displayFunds.length > 0 ? (
-                <Table>
+                <Table className="min-w-[450px] w-full">
                   <TableHeader className="bg-muted/50 sticky top-0 z-10">
                     <TableRow>
-                      <TableHead className="w-[60px] py-2">Sl No</TableHead>
-                      <TableHead className="py-2">Fund Name</TableHead>
-                      <TableHead className="py-2 text-right">Balance</TableHead>
+                      <TableHead className="w-[60px] py-2 whitespace-nowrap">Sl No</TableHead>
+                      <TableHead className="py-2 min-w-[200px]">Fund Name</TableHead>
+                      <TableHead className="py-2 text-right whitespace-nowrap min-w-[100px]">Balance</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1941,7 +2024,7 @@ export default function StudentDashboard({
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
                    <Clock className="h-8 w-8 opacity-20" />
-                   <p className="text-sm italic">No pending transactions found.</p>
+                   <p className="text-sm font-normal not-italic">No pending transactions found.</p>
                 </div>
               )}
             </div>
@@ -1972,24 +2055,26 @@ export default function StudentDashboard({
                         <User className="h-4 w-4" />
                         Collection Breakdown
                       </h3>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Role Holder</TableHead>
-                            <TableHead className="text-right">Balance</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(selectedStandardFund?.records || []).map((record, i) => (
-                            <TableRow key={i}>
-                              <TableCell>{record.holder}</TableCell>
-                              <TableCell className={`text-right font-bold ${(record.value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                {(record.value || 0).toFixed(2)}
-                              </TableCell>
+                      <div className="overflow-x-auto w-full min-w-0 rounded-md border">
+                        <Table className="min-w-[320px] w-full">
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Role Holder</TableHead>
+                              <TableHead className="text-right">Balance</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {(selectedStandardFund?.records || []).map((record, i) => (
+                              <TableRow key={i}>
+                                <TableCell>{record.holder}</TableCell>
+                                <TableCell className={`text-right font-bold ${(record.value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                  {(record.value || 0).toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
 
                     {/* Full Transaction History */}
@@ -1998,13 +2083,13 @@ export default function StudentDashboard({
                         <Clock className="h-4 w-4" />
                         Fund History
                       </h3>
-                      <div className="rounded-md border">
-                        <Table>
+                      <div className="rounded-md border overflow-x-auto w-full min-w-0">
+                        <Table className="min-w-[360px] w-full">
                           <TableHeader className="bg-muted/50">
                             <TableRow>
-                              <TableHead className="py-2">Date</TableHead>
-                              <TableHead className="py-2 text-right">Transactions</TableHead>
-                              <TableHead className="py-2 text-right">Balance</TableHead>
+                              <TableHead className="py-2 whitespace-nowrap">Date</TableHead>
+                              <TableHead className="py-2 text-right whitespace-nowrap">Transactions</TableHead>
+                              <TableHead className="py-2 text-right whitespace-nowrap">Balance</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -2029,7 +2114,7 @@ export default function StudentDashboard({
                                       <div className="flex flex-col items-end gap-0.5">
                                         <span>{t.type === 'Withdrawal' ? '-' : '+'}{(t.amount || 0).toFixed(2)}</span>
                                         {t.note && (
-                                          <span className="text-[10px] font-normal text-muted-foreground italic leading-tight max-w-[140px] text-right">
+                                          <span className="text-[10px] font-normal text-muted-foreground leading-tight max-w-[140px] text-right">
                                             {t.note}
                                           </span>
                                         )}
@@ -2042,7 +2127,7 @@ export default function StudentDashboard({
                                 ))
                             ) : (
                               <TableRow>
-                                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground text-xs italic">
+                                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground text-xs font-normal not-italic">
                                   No transaction history found for this fund.
                                 </TableCell>
                               </TableRow>
@@ -2074,8 +2159,8 @@ export default function StudentDashboard({
                       <X className="h-5 w-5" />
                     </DialogClose>
                   </DialogHeader>
-                  <div className="p-4">
-                    <Table>
+                  <div className="p-4 overflow-x-auto w-full min-w-0">
+                    <Table className="min-w-[650px] w-full">
                       <TableHeader className="bg-muted/50">
                         <TableRow>
                           <TableHead className="py-2 w-[60px]">Sl No</TableHead>
@@ -2115,7 +2200,7 @@ export default function StudentDashboard({
                                       </div>
                                     ))
                                   ) : (
-                                    <span className="text-[10px] text-muted-foreground italic">No payments recorded</span>
+                                    <span className="text-[10px] text-muted-foreground font-normal not-italic">No payments recorded</span>
                                   )}
                                 </div>
                               </TableCell>
@@ -2329,20 +2414,20 @@ export default function StudentDashboard({
                 )}
               </div>
             ) : (
-              <div className="max-h-[500px] overflow-y-auto pr-2">
+              <div className="w-full min-w-0">
                 {rentalsLoading ? (
                   <div className="flex items-center justify-center py-20">
                     <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
                   </div>
                 ) : rentalHistory && rentalHistory.length > 0 ? (
-                  <div className="rounded-md border overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-muted/50">
+                  <div className="rounded-md border overflow-auto max-h-[500px] w-full min-w-0">
+                    <Table className="min-w-[500px] w-full">
+                      <TableHeader className="bg-muted/50 sticky top-0 z-10">
                         <TableRow>
-                          <TableHead className="w-[60px]">Sl No</TableHead>
-                          <TableHead>Book Name</TableHead>
-                          <TableHead>Rented Date</TableHead>
-                          <TableHead>Returned Date</TableHead>
+                          <TableHead className="w-[60px] whitespace-nowrap">Sl No</TableHead>
+                          <TableHead className="min-w-[180px]">Book Name</TableHead>
+                          <TableHead className="whitespace-nowrap min-w-[120px]">Rented Date</TableHead>
+                          <TableHead className="whitespace-nowrap min-w-[120px]">Returned Date</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2480,9 +2565,9 @@ export default function StudentDashboard({
                       });
 
                       return (
-                        <div key={exam._id} className="space-y-1 print-exam-card">
-                          <div className="rounded-md border overflow-hidden">
-                            <Table>
+                        <div key={exam._id} className="space-y-1 print-exam-card w-full min-w-0">
+                          <div className="rounded-md border overflow-x-auto w-full min-w-0">
+                            <Table className="min-w-[550px] w-full">
                               <TableHeader className="bg-muted/50">
                                 <TableRow>
                                   <TableHead colSpan={3 + subColNames.length} className="text-center font-bold text-sm h-10 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300">
@@ -2490,12 +2575,12 @@ export default function StudentDashboard({
                                   </TableHead>
                                 </TableRow>
                                 <TableRow className="bg-muted/30">
-                                  <TableHead className="py-2 text-xs">Subject</TableHead>
+                                  <TableHead className="py-2 text-xs min-w-[150px]">Subject</TableHead>
                                   {subColNames.map(name => (
-                                    <TableHead key={name} className="py-2 text-xs text-center">{name}</TableHead>
+                                    <TableHead key={name} className="py-2 text-xs text-center whitespace-nowrap min-w-[80px]">{name}</TableHead>
                                   ))}
-                                  <TableHead className="py-2 text-xs text-center">Total</TableHead>
-                                  <TableHead className="py-2 text-xs text-center">Result</TableHead>
+                                  <TableHead className="py-2 text-xs text-center whitespace-nowrap min-w-[80px]">Total</TableHead>
+                                  <TableHead className="py-2 text-xs text-center whitespace-nowrap min-w-[90px]">Result</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -2622,15 +2707,15 @@ export default function StudentDashboard({
               </div>
             </CardHeader>
             <CardContent className="px-2 sm:px-4 pt-4 pb-6">
-              <div className="max-h-[400px] overflow-y-auto border rounded-md">
-                <Table>
-                  <TableHeader className="bg-muted/50">
+              <div className="max-h-[400px] overflow-auto border rounded-md w-full min-w-0">
+                <Table className="min-w-[450px] w-full">
+                  <TableHeader className="bg-muted/50 sticky top-0 z-10">
                     <TableRow>
-                      <TableHead className="py-2 text-xs">Month</TableHead>
-                      <TableHead className="py-2 text-xs">Total</TableHead>
-                      <TableHead className="py-2 text-xs">Present</TableHead>
-                      <TableHead className="py-2 text-xs">Absent</TableHead>
-                      <TableHead className="py-2 text-xs text-right">%</TableHead>
+                      <TableHead className="py-2 text-xs whitespace-nowrap">Month</TableHead>
+                      <TableHead className="py-2 text-xs whitespace-nowrap">Total</TableHead>
+                      <TableHead className="py-2 text-xs whitespace-nowrap">Present</TableHead>
+                      <TableHead className="py-2 text-xs whitespace-nowrap">Absent</TableHead>
+                      <TableHead className="py-2 text-xs text-right whitespace-nowrap">%</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -2645,11 +2730,11 @@ export default function StudentDashboard({
                             }
                             className="cursor-pointer hover:bg-muted/50"
                           >
-                            <TableCell className="py-2 text-sm font-medium">{row.month}</TableCell>
-                            <TableCell className="py-2 text-sm">{row.totalPeriods}</TableCell>
-                            <TableCell className="py-2 text-sm">{row.presentPeriods}</TableCell>
-                            <TableCell className="py-2 text-sm">{(row.totalPeriods || 0) - (row.presentPeriods || 0)}</TableCell>
-                            <TableCell className="py-2 text-sm text-right">
+                            <TableCell className="py-2 text-sm font-medium whitespace-nowrap">{row.month}</TableCell>
+                            <TableCell className="py-2 text-sm whitespace-nowrap">{row.totalPeriods}</TableCell>
+                            <TableCell className="py-2 text-sm whitespace-nowrap">{row.presentPeriods}</TableCell>
+                            <TableCell className="py-2 text-sm whitespace-nowrap">{(row.totalPeriods || 0) - (row.presentPeriods || 0)}</TableCell>
+                            <TableCell className="py-2 text-sm text-right whitespace-nowrap">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${parseFloat(row.percentage) > 80 ? 'bg-green-100 text-green-700' :
                                 parseFloat(row.percentage) >= 50 ? 'bg-orange-100 text-orange-700' :
                                   'bg-red-100 text-red-700'
@@ -2661,13 +2746,13 @@ export default function StudentDashboard({
                           {expandedMonth === row.monthYear && (
                             <TableRow className="bg-muted/30">
                               <TableCell colSpan={5} className="p-0">
-                                <div className="p-4">
-                                  <Table className="border rounded-md bg-background">
+                                <div className="p-3 sm:p-4 overflow-x-auto w-full min-w-0">
+                                  <Table className="border rounded-md bg-background min-w-[380px] w-full">
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead className="h-8 py-1">Date</TableHead>
-                                        <TableHead className="h-8 py-1">Subject (Teacher)</TableHead>
-                                        <TableHead className="h-8 py-1 text-center">Status</TableHead>
+                                        <TableHead className="h-8 py-1 whitespace-nowrap">Date</TableHead>
+                                        <TableHead className="h-8 py-1 min-w-[180px]">Subject (Teacher)</TableHead>
+                                        <TableHead className="h-8 py-1 text-center whitespace-nowrap">Status</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -2677,8 +2762,8 @@ export default function StudentDashboard({
                                           <TableCell className="py-1 text-xs font-medium">
                                             {detail.subject} <span className="text-muted-foreground font-normal">({detail.teacher})</span>
                                           </TableCell>
-                                          <TableCell className="py-1 text-center">
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+                                          <TableCell className="py-1 text-center whitespace-nowrap">
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
                                               }`}>
                                               {detail.present ? "Present" : "Absent"}
                                             </span>
@@ -2695,7 +2780,7 @@ export default function StudentDashboard({
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">
+                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm font-normal not-italic">
                           No records found for {selectedYear}.
                         </TableCell>
                       </TableRow>
@@ -2780,24 +2865,24 @@ export default function StudentDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1">
-            <div className="max-h-[400px] overflow-y-auto pr-2">
+            <div className="w-full min-w-0">
               {leavesLoading ? (
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : (leavesList && leavesList.length > 0) ? (
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
+                <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
+                  <Table className="min-w-[850px] w-full">
+                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
                       <TableRow>
-                        <TableHead className="w-[60px] py-3 pl-4 text-xs font-bold uppercase tracking-wider">Sl No</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[100px]">Date of Leave</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider">Leave Reason</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[100px]">Exp. Arrival</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[100px]">Actual Arrival</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider">Late Reason</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider">Remark</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider text-center">Status</TableHead>
+                        <TableHead className="w-[60px] py-3 pl-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Sl No</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Date of Leave</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[180px]">Leave Reason</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Exp. Arrival</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Actual Arrival</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[120px] whitespace-nowrap">Late Reason</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[120px] whitespace-nowrap">Remark</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider text-center min-w-[100px] whitespace-nowrap">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2806,27 +2891,27 @@ export default function StudentDashboard({
                         .map((leave, index) => (
                         <TableRow key={leave._id} className="group hover:bg-muted/30 transition-colors">
                           <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
-                          <TableCell className="py-3 text-sm font-bold text-violet-700 dark:text-violet-300">
+                          <TableCell className="py-3 text-sm font-bold text-violet-700 dark:text-violet-300 whitespace-nowrap">
                             {formatDateShort(leave.dateOfLeave)}
                           </TableCell>
-                          <TableCell className="py-3">
-                            <p className="text-sm text-foreground leading-relaxed italic line-clamp-1" title={leave.leaveReason}>
+                          <TableCell className="py-3 min-w-[180px]">
+                            <p className="text-sm text-foreground leading-relaxed font-normal not-italic" title={leave.leaveReason}>
                               {leave.leaveReason}
                             </p>
                           </TableCell>
-                          <TableCell className="py-3 text-sm font-medium text-slate-600 dark:text-slate-400">
+                          <TableCell className="py-3 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
                             {formatDateShort(leave.dateOfArrival)}
                           </TableCell>
-                          <TableCell className="py-3 text-sm font-bold text-green-600 dark:text-green-400">
+                          <TableCell className="py-3 text-sm font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
                             {leave.arrivedDate ? formatDateShort(leave.arrivedDate) : "N/A"}
                           </TableCell>
-                          <TableCell className="py-3 text-sm text-muted-foreground">
+                          <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
                             {leave.lateReason || "-"}
                           </TableCell>
-                          <TableCell className="py-3 text-sm text-muted-foreground">
+                          <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
                             {leave.remark || "-"}
                           </TableCell>
-                          <TableCell className="py-3 text-center">
+                          <TableCell className="py-3 text-center whitespace-nowrap">
                             {leave.arrivedDate ? (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                                 <span className="h-1 w-1 rounded-full bg-green-500" />
@@ -2889,22 +2974,22 @@ export default function StudentDashboard({
               })}
             </div>
 
-            <div className="max-h-[400px] overflow-y-auto pr-2">
+            <div className="w-full min-w-0">
               {activeRemarksSubTab === "REMARKS" ? (
                 remarksLoading ? (
                   <div className="flex items-center justify-center py-10">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : (remarksList && remarksList.length > 0) ? (
-                  <div className="rounded-md border overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-muted/50">
+                  <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
+                    <Table className="min-w-[600px] w-full">
+                      <TableHeader className="bg-muted/50 sticky top-0 z-10">
                         <TableRow>
-                          <TableHead className="w-[60px] py-3 pl-4 text-xs">Sl No</TableHead>
-                          <TableHead className="py-3 text-xs">Date</TableHead>
-                          <TableHead className="py-3 text-xs w-[40%]">Remarks</TableHead>
-                          <TableHead className="py-3 text-xs">Teacher</TableHead>
-                          <TableHead className="py-3 text-xs text-center">Status</TableHead>
+                          <TableHead className="w-[60px] py-3 pl-4 text-xs font-semibold whitespace-nowrap">Sl No</TableHead>
+                          <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[100px]">Date</TableHead>
+                          <TableHead className="py-3 text-xs font-semibold min-w-[200px]">Remarks</TableHead>
+                          <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[120px]">Teacher</TableHead>
+                          <TableHead className="py-3 text-xs font-semibold text-center whitespace-nowrap min-w-[100px]">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2913,17 +2998,17 @@ export default function StudentDashboard({
                           .map((remark, index) => (
                           <TableRow key={remark._id} className="group hover:bg-muted/30 transition-colors">
                             <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
-                            <TableCell className="py-3 text-sm font-medium">
+                            <TableCell className="py-3 text-sm font-medium whitespace-nowrap">
                               {formatDateShort(remark.date)}
                             </TableCell>
-                            <TableCell className="py-3">
-                              <p className="text-sm text-foreground leading-relaxed italic">"{remark.comments}"</p>
+                            <TableCell className="py-3 min-w-[200px]">
+                              <p className="text-sm text-foreground leading-relaxed font-normal not-italic">{remark.comments}</p>
                             </TableCell>
-                            <TableCell className="py-3 text-sm text-muted-foreground">
+                            <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
                               {remark.teacherName || "N/A"}
                             </TableCell>
-                            <TableCell className="py-3 text-center">
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase" style={getStatusBadgeStyle(remark.status)}>
+                            <TableCell className="py-3 text-center whitespace-nowrap">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block" style={getStatusBadgeStyle(remark.status)}>
                                 {remark.status}
                               </span>
                             </TableCell>
@@ -2944,15 +3029,15 @@ export default function StudentDashboard({
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : (performanceList && performanceList.length > 0) ? (
-                  <div className="rounded-md border overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-muted/50">
+                  <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
+                    <Table className="min-w-[600px] w-full">
+                      <TableHeader className="bg-muted/50 sticky top-0 z-10">
                         <TableRow>
-                          <TableHead className="w-[60px] py-3 pl-4 text-xs">Sl No</TableHead>
-                          <TableHead className="py-3 text-xs">Date</TableHead>
-                          <TableHead className="py-3 text-xs w-[40%]">Performance</TableHead>
-                          <TableHead className="py-3 text-xs">Teacher</TableHead>
-                          <TableHead className="py-3 text-xs text-center">Status</TableHead>
+                          <TableHead className="w-[60px] py-3 pl-4 text-xs font-semibold whitespace-nowrap">Sl No</TableHead>
+                          <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[100px]">Date</TableHead>
+                          <TableHead className="py-3 text-xs font-semibold min-w-[200px]">Performance</TableHead>
+                          <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[120px]">Teacher</TableHead>
+                          <TableHead className="py-3 text-xs font-semibold text-center whitespace-nowrap min-w-[100px]">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2961,17 +3046,17 @@ export default function StudentDashboard({
                           .map((perf, index) => (
                           <TableRow key={perf._id} className="group hover:bg-muted/30 transition-colors">
                             <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
-                            <TableCell className="py-3 text-sm font-medium">
+                            <TableCell className="py-3 text-sm font-medium whitespace-nowrap">
                               {formatDateShort(perf.date)}
                             </TableCell>
-                            <TableCell className="py-3">
-                              <p className="text-sm text-foreground leading-relaxed italic">"{perf.comments}"</p>
+                            <TableCell className="py-3 min-w-[200px]">
+                              <p className="text-sm text-foreground leading-relaxed font-normal not-italic">{perf.comments}</p>
                             </TableCell>
-                            <TableCell className="py-3 text-sm text-muted-foreground">
+                            <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
                               {perf.teacherName || "N/A"}
                             </TableCell>
-                            <TableCell className="py-3 text-center">
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase" style={getStatusBadgeStyle(perf.status)}>
+                            <TableCell className="py-3 text-center whitespace-nowrap">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block" style={getStatusBadgeStyle(perf.status)}>
                                 {perf.status}
                               </span>
                             </TableCell>
@@ -3092,22 +3177,10 @@ export default function StudentDashboard({
                       <div className="pt-4 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between">
                         <span className="text-xs font-semibold text-purple-600 dark:text-purple-400"></span>
                         <button
-                          onClick={async (e) => {
+                          onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            const boldTitle = `*${article.title}*`;
-                            const shareData = {
-                              title: article.title,
-                              text: `${boldTitle}\n\n${article.content || article.title}`,
-                              url: `${window.location.origin}/articles/${article._id}`,
-                            };
-                            if (navigator.share) {
-                              try { await navigator.share(shareData); }
-                              catch (err) { if (err.name !== "AbortError") toast.error("Share failed"); }
-                            } else {
-                              navigator.clipboard.writeText(`*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`);
-                              toast.success("Copied to clipboard!");
-                            }
+                            setSharedArticle(article);
                           }}
                           className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                           title="Share this article"
@@ -3209,6 +3282,18 @@ export default function StudentDashboard({
         // 4. Trigger router refresh for any server components
         router.refresh();
       }}
+    />
+    <ShareModal
+      open={!!sharedArticle}
+      onOpenChange={(open) => !open && setSharedArticle(null)}
+      title={sharedArticle?.title || ""}
+      text={sharedArticle?.content || ""}
+      url={
+        sharedArticle
+          ? `${typeof window !== "undefined" ? window.location.origin : ""}/articles/${sharedArticle._id}`
+          : ""
+      }
+      category="Article"
     />
   </>
   );

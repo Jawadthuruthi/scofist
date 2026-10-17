@@ -79,7 +79,7 @@ import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";
-import { formatDateForDisplay, sortClasses, getISTDate } from "@/lib/utils";
+import { formatDateForDisplay, sortClasses, getISTDate, copyToClipboard } from "@/lib/utils";
 import StudentProfileDialog from "@/components/StudentProfileDialog";
 import {
   Dialog,
@@ -390,7 +390,7 @@ const ClassCard = memo(
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-primary shrink-0"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
                   const header = `${classData.name}${classBatch ? ` - ${classBatch.name}` : ''}`;
                   const studentsText = classStudentsList.map((student, index) => {
@@ -398,9 +398,11 @@ const ClassCard = memo(
                     return `${index + 1}. ${student.name} (${admnNo})`;
                   });
                   const textToCopy = [header, "", ...studentsText].join('\n');
-                  navigator.clipboard.writeText(textToCopy);
-                  setIsCopied(true);
-                  setTimeout(() => setIsCopied(false), 2000);
+                  const success = await copyToClipboard(textToCopy);
+                  if (success) {
+                    setIsCopied(true);
+                    setTimeout(() => setIsCopied(false), 2000);
+                  }
                 }}
                 title="Copy active students"
               >

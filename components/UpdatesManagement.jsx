@@ -27,6 +27,8 @@ import {
 import ImageUploader from "@/components/ImageUploader";
 import axios from "axios";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
+import ShareModal from "@/components/ShareModal";
 
 const formFields = [
   {
@@ -72,6 +74,7 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
   const [isUpdatingLogo, setIsUpdatingLogo] = React.useState(false);
   const [itemToDelete, setItemToDelete] = React.useState(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
+  const [sharedUpdate, setSharedUpdate] = React.useState(null);
 
   // Sync state with initial data when it changes
   React.useEffect(() => {
@@ -278,27 +281,9 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
                           size="icon"
                           className="h-7 w-7 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-none"
                           title="Share this update"
-                          onClick={async () => {
-                            const boldTitle = `*${update.heading}*`;
-                            const shareData = {
-                              title: update.heading,
-                              text: `${boldTitle}\n\n${update.news || update.heading}`,
-                              url: `${window.location.origin}/updates/${update._id}`,
-                            };
-                            if (navigator.share) {
-                              try {
-                                await navigator.share(shareData);
-                              } catch (err) {
-                                if (err.name !== "AbortError") {
-                                  toast.error("Share failed");
-                                }
-                              }
-                            } else {
-                              navigator.clipboard.writeText(
-                                `*${update.heading}*\n\n${update.news || ""}\n\n${window.location.origin}/updates/${update._id}`
-                              );
-                              toast.success("Copied to clipboard!");
-                            }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSharedUpdate(update);
                           }}
                         >
                           <Share2 className="w-3.5 h-3.5" />
@@ -320,6 +305,18 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
           ))
         )}
       </div>
+      <ShareModal
+        open={!!sharedUpdate}
+        onOpenChange={(open) => !open && setSharedUpdate(null)}
+        title={sharedUpdate?.heading || ""}
+        text={sharedUpdate?.news || ""}
+        url={
+          sharedUpdate
+            ? `${typeof window !== "undefined" ? window.location.origin : ""}/updates/${sharedUpdate._id}`
+            : ""
+        }
+        category="Update"
+      />
     </div>
   );
 }

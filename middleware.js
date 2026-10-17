@@ -600,7 +600,7 @@ export async function middleware(req, event) {
 
 async function handleLoginPageRequest(req) {
   const token = req.cookies.get("auth-token")?.value;
-  const activeRole = req.cookies.get("active-role")?.value;
+  let activeRole = req.cookies.get("active-role")?.value;
 
   // If no token, allow access to login page
   if (!token) {
@@ -610,28 +610,72 @@ async function handleLoginPageRequest(req) {
   try {
     // Verify JWT token to check if it's valid
     const { payload } = await jwtVerify(token, SECRET_KEY);
+    const effectiveUserId = payload.userId || payload.email;
 
-    if (activeRole === "Teacher") {
-      return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
+    // Check if user has an active cache entry or fetch profile
+    let user = getUserFromCache(effectiveUserId)?.user;
+    if (!user && effectiveUserId) {
+      try {
+        user = await fetchUserProfile(effectiveUserId, process.env.API_KEY, req.nextUrl.origin);
+        if (user) {
+          storeUserInCache(effectiveUserId, user);
+        }
+      } catch (err) {
+        user = createFallbackUser(payload);
+      }
     }
 
-    if (activeRole === "Judge") {
-      return NextResponse.redirect(new URL("/judge-portal", req.url));
+    const userRoles = user?.roles || payload.roles || [];
+    const isTeacher = userRoles.includes("Teacher") || activeRole === "Teacher";
+
+    const redirectParam = req.nextUrl.searchParams.get("redirect");
+    let destinationUrl;
+    let targetActiveRole;
+
+    if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) {
+      destinationUrl = redirectParam;
+      if (redirectParam.startsWith("/dashboard/my-periods") && isTeacher) {
+        targetActiveRole = "Teacher";
+      } else {
+        targetActiveRole = activeRole || (isTeacher ? "Teacher" : userRoles[0]);
+      }
+    } else if (isTeacher) {
+      destinationUrl = "/dashboard/my-periods";
+      targetActiveRole = "Teacher";
+    } else if (activeRole === "Judge" || userRoles.includes("Judge")) {
+      destinationUrl = "/judge-portal";
+      targetActiveRole = "Judge";
+    } else if (activeRole === "Librarian" || userRoles.includes("Librarian")) {
+      destinationUrl = "/library-dashboard";
+      targetActiveRole = "Librarian";
+    } else if (activeRole === "Gate Keeper" || userRoles.includes("Gate Keeper")) {
+      destinationUrl = "/dashboard/gate-pass";
+      targetActiveRole = "Gate Keeper";
+    } else {
+      destinationUrl = "/dashboard";
+      targetActiveRole = activeRole || userRoles[0] || "College Admin";
     }
 
+    const res = NextResponse.redirect(new URL(destinationUrl, req.url));
 
-
-    if (activeRole === "Librarian") {
-      return NextResponse.redirect(
-        new URL("/library-dashboard", req.url)
-      );
+    if (targetActiveRole) {
+      res.cookies.set("active-role", targetActiveRole, {
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
     }
 
-    if (activeRole === "Gate Keeper") {
-      return NextResponse.redirect(new URL("/dashboard/gate-pass", req.url));
-    }
+    // Refresh auth-token to sameSite: 'lax' to upgrade any older strict cookies
+    res.cookies.set("auth-token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      path: "/",
+    });
 
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return res;
   } catch (error) {
     // Token is invalid, allow access to login page
     console.error("Login page token verification error:", error.message);
@@ -988,6 +1032,21 @@ function prepareResponse(req, token, user, newProfileToken = null) {
 
   // Now validate access using the resolved (possibly corrected) active role
   if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
+    // If user has multiple roles (e.g. Teacher + Admin) and navigated to a page
+    // allowed for another of their roles (e.g. /dashboard/my-periods), switch activeRole
+    const matchingRole = user?.roles?.find((r) => isUserAllowed(r, req.nextUrl.pathname));
+    if (matchingRole) {
+      activeRole = matchingRole;
+      res.cookies.set("active-role", activeRole, {
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+  }
+
+  // If still not allowed, redirect to role-specific dashboard or 404
+  if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
     if (activeRole === "Librarian" && req.nextUrl.pathname === "/dashboard") {
       return NextResponse.redirect(
         new URL("/library-dashboard", req.url)
@@ -1030,6 +1089,17 @@ function prepareResponse(req, token, user, newProfileToken = null) {
       maxAge: 5 * 60, // 5 minutes
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
+    });
+  }
+
+  // Upgrade / refresh auth-token cookie with sameSite: "lax"
+  if (token) {
+    res.cookies.set("auth-token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      path: "/",
     });
   }
 

@@ -587,7 +587,7 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                             <Loader2 className="h-12 w-12 animate-spin text-primary" />
                             <div className="absolute inset-0 blur-xl bg-primary/20 rounded-full animate-pulse"></div>
                         </div>
-                        <p className="mt-6 text-base font-medium text-muted-foreground animate-pulse tracking-wide italic">
+                        <p className="mt-6 text-base font-medium text-muted-foreground animate-pulse tracking-wide font-normal not-italic">
                             Preparing student dashboard...
                         </p>
                     </div>

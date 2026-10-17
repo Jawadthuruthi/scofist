@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDateShort } from "@/lib/utils";
+import { formatDateShort, cn } from "@/lib/utils";
 import PrintHeader from "@/components/PrintHeader";
 
 const InfoField = ({ label, value, fullWidth = false }) => {
@@ -11,7 +11,7 @@ const InfoField = ({ label, value, fullWidth = false }) => {
     <div className={`flex border-b border-gray-100 last:border-0 py-1.5 print:py-[6px] items-start text-sm print:text-[13px] leading-tight ${fullWidth ? 'sm:col-span-2' : ''}`}>
       <span className="font-semibold text-gray-500 min-w-[120px] print:min-w-[110px] uppercase tracking-tighter text-[11px] print:text-[11px]">{label}</span>
       <span className="text-gray-400 mr-2">:</span>
-      <span className="text-gray-900 break-words font-normal flex-1">{value}</span>
+      <div className="text-gray-900 break-words font-normal flex-1">{value}</div>
     </div>
   );
 };
@@ -31,6 +31,79 @@ const Section = ({ title, children }) => (
 
 export default function StudentProfilePrintView({ student, classes, batches, apiKey }) {
   if (!student) return null;
+
+  const renderCourseDisplay = (coursesList) => {
+    if (!Array.isArray(coursesList)) return null;
+    let target = coursesList.filter(
+      (c) =>
+        c &&
+        (!c.status || String(c.status).trim().toLowerCase() === "ongoing") &&
+        c.courseName?.trim()
+    );
+    if (target.length === 0) {
+      target = coursesList.filter((c) => c && c.courseName?.trim());
+    }
+    if (target.length === 0) return null;
+
+    return (
+      <div className="flex flex-col gap-2">
+        {target.map((c, idx) => {
+          const status = c.status || "Ongoing";
+          const yearStr = c.year
+            ? String(c.year).toLowerCase().startsWith("year")
+              ? String(c.year).trim()
+              : `Year ${String(c.year).trim()}`
+            : null;
+          const subInfo = [yearStr, c.universityBoard?.trim() || null]
+            .filter(Boolean)
+            .join(" • ");
+
+          return (
+            <div key={idx} className="flex flex-col">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-medium text-gray-900 text-sm">
+                  {c.courseName}
+                </span>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border leading-none inline-flex items-center",
+                    status === "Completed"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 print:bg-transparent print:border-gray-300 print:text-gray-800"
+                      : status === "Pending"
+                      ? "bg-amber-50 text-amber-700 border-amber-200 print:bg-transparent print:border-gray-300 print:text-gray-800"
+                      : "bg-blue-50 text-blue-700 border-blue-200 print:bg-transparent print:border-gray-300 print:text-gray-800"
+                  )}
+                >
+                  {status}
+                </span>
+              </div>
+              {subInfo && (
+                <div className="text-[11px] text-gray-500 print:text-gray-600 mt-0.5 font-normal leading-tight">
+                  {subInfo}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const ongoingIslamicCourse = React.useMemo(() => {
+    const list =
+      student?.studentSpecificField?.islamicCourses ||
+      student?.islamicCourses ||
+      [];
+    return renderCourseDisplay(list);
+  }, [student]);
+
+  const ongoingAcademicCourse = React.useMemo(() => {
+    const list =
+      student?.studentSpecificField?.academicCourses ||
+      student?.academicCourses ||
+      [];
+    return renderCourseDisplay(list);
+  }, [student]);
 
   const getInitials = (name) => {
     return name
@@ -171,10 +244,12 @@ export default function StudentProfilePrintView({ student, classes, batches, api
         <InfoField label="Current Batch" value={student.batchName} />
         <InfoField label="Admission Class" value={student.admissionClassName} />
         <InfoField label="Admission Date" value={formatDateShort(student?.admissionDate)} />
-        <InfoField label="Islamic Qualif." value={student?.islamicQualification} />
-        <InfoField label="Academic Qualif." value={student?.academicQualification} />
-        <InfoField label="Graduated Year" value={student?.graduatedYear} />
-        <InfoField label="Current Status" value={student?.status} />
+        <InfoField label="Islamic Qualif." value={student?.islamicQualification || student?.studentSpecificField?.islamicQualification} />
+        <InfoField label="Islamic Course" value={ongoingIslamicCourse} />
+        <InfoField label="Academic Qualif." value={student?.academicQualification || student?.studentSpecificField?.academicQualification} />
+        <InfoField label="Academic Course" value={ongoingAcademicCourse} />
+        <InfoField label="Graduated Year" value={student?.graduatedYear || student?.studentSpecificField?.graduatedYear} />
+        <InfoField label="Current Status" value={student?.status || student?.studentSpecificField?.status} />
       </Section>
 
       {/* Guardian Details */}

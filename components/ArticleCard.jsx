@@ -4,38 +4,20 @@ import Link from "next/link";
 import { Newspaper, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
+import ShareModal from "@/components/ShareModal";
+
 export default function ArticleCard({ article }) {
-  const shareArticle = async (e) => {
+  const [isShareOpen, setIsShareOpen] = React.useState(false);
+
+  const shareArticle = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const boldTitle = `*${article.title}*`;
-    const shareData = {
-      title: article.title,
-      text: `${boldTitle}\n\n${article.content || article.title}`,
-      url: `${window.location.origin}/articles/${article._id}`,
-    };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        if (err.name !== "AbortError") toast.error("Share failed");
-      }
-    } else if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(
-          `*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`
-        );
-        toast.success("Copied to clipboard!");
-      } catch (copyErr) {
-        toast.error("Failed to copy to clipboard");
-      }
-    } else {
-      toast.error("Sharing is not supported on this browser.");
-    }
+    setIsShareOpen(true);
   };
 
   return (
-    <Link href={`/articles/${article._id}`} className="block h-full">
+    <>
+      <Link href={`/articles/${article._id}`} className="block h-full">
       <div className="group overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white rounded-2xl cursor-pointer h-full">
         {article.image?.url ? (
           <div className="relative aspect-[16/10] overflow-hidden">
@@ -90,5 +72,14 @@ export default function ArticleCard({ article }) {
         </div>
       </div>
     </Link>
+    <ShareModal
+      open={isShareOpen}
+      onOpenChange={setIsShareOpen}
+      title={article.title}
+      text={article.content}
+      url={`${typeof window !== "undefined" ? window.location.origin : ""}/articles/${article._id}`}
+      category="Article"
+    />
+    </>
   );
 }

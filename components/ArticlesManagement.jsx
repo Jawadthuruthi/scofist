@@ -25,6 +25,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
+import ShareModal from "@/components/ShareModal";
 
 const formFields = [
   {
@@ -76,6 +78,7 @@ export default function ArticlesManagement({ apiKey, initialArticles = [] }) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [itemToDelete, setItemToDelete] = React.useState(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
+  const [sharedArticle, setSharedArticle] = React.useState(null);
 
   const articles = articlesData?.articles || [];
 
@@ -214,21 +217,10 @@ export default function ArticlesManagement({ apiKey, initialArticles = [] }) {
                           variant="secondary"
                           size="icon"
                           className="h-7 w-7 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 border-none"
-                          onClick={async (e) => {
+                          title="Share this article"
+                          onClick={(e) => {
                             e.stopPropagation();
-                            const boldTitle = `*${article.title}*`;
-                            const shareData = {
-                              title: article.title,
-                              text: `${boldTitle}\n\n${article.content || article.title}`,
-                              url: `${window.location.origin}/articles/${article._id}`,
-                            };
-                            if (navigator.share) {
-                              try { await navigator.share(shareData); }
-                              catch (err) { if (err.name !== "AbortError") toast.error("Share failed"); }
-                            } else {
-                              navigator.clipboard.writeText(`*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`);
-                              toast.success("Copied to clipboard!");
-                            }
+                            setSharedArticle(article);
                           }}
                         >
                           <Share2 className="w-3.5 h-3.5" />
@@ -250,6 +242,18 @@ export default function ArticlesManagement({ apiKey, initialArticles = [] }) {
           ))
         )}
       </div>
+      <ShareModal
+        open={!!sharedArticle}
+        onOpenChange={(open) => !open && setSharedArticle(null)}
+        title={sharedArticle?.title || ""}
+        text={sharedArticle?.content || ""}
+        url={
+          sharedArticle
+            ? `${typeof window !== "undefined" ? window.location.origin : ""}/articles/${sharedArticle._id}`
+            : ""
+        }
+        category="Article"
+      />
     </div>
   );
 }

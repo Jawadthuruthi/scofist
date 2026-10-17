@@ -69,6 +69,7 @@ if (!self.define) {
 }
 define(['./workbox-e43f5367'], (function (workbox) { 'use strict';
 
+  // Service worker v1.0.1 - missing attendance alert direct navigation
   importScripts("worker-development.js");
   self.skipWaiting();
   workbox.clientsClaim();
