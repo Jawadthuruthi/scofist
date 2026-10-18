@@ -244,10 +244,9 @@ export default function CoursesDashboardCard({
     });
 
     return Array.from(map.values()).sort((a, b) => {
-      if (b.studentCount !== a.studentCount) {
-        return b.studentCount - a.studentCount;
-      }
-      return a.name.localeCompare(b.name);
+      const nameComp = a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+      if (nameComp !== 0) return nameComp;
+      return (a.universityBoard || "").localeCompare(b.universityBoard || "", undefined, { sensitivity: "base" });
     });
   }, [apiCourses, clientAggregatedCourses]);
 
@@ -663,7 +662,7 @@ export default function CoursesDashboardCard({
                           <TableRow className="bg-muted/40 hover:bg-muted/40">
                             <TableHead className="w-12 sm:w-16 text-center text-xs font-semibold">Sl No</TableHead>
                             <TableHead className="text-xs font-semibold">Year</TableHead>
-                            <TableHead className="text-xs font-semibold text-center w-28 sm:w-36">Total Students</TableHead>
+                            <TableHead className="text-xs font-semibold text-center w-28 sm:w-36">Students</TableHead>
                             <TableHead className="text-xs font-semibold">Status</TableHead>
                           </TableRow>
                         </TableHeader>

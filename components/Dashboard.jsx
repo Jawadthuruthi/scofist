@@ -835,10 +835,9 @@ const StatsOverview = memo(({
     });
 
     return Array.from(map.values()).sort((a, b) => {
-      if (b.studentCount !== a.studentCount) {
-        return b.studentCount - a.studentCount;
-      }
-      return a.name.localeCompare(b.name);
+      const nameComp = a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+      if (nameComp !== 0) return nameComp;
+      return (a.universityBoard || "").localeCompare(b.universityBoard || "", undefined, { sensitivity: "base" });
     });
   }, [apiCourses, clientAggregatedCourses]);
 
@@ -1420,9 +1419,8 @@ const StatsOverview = memo(({
               className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
               onClick={handleCoursesDownload}
               title="Download Image"
-              data-html2canvas-ignore="true"
             >
-              <BookMarked className="h-5 w-5 text-primary" />
+              <BookMarked size={20} className="h-5 w-5 text-primary shrink-0" />
             </button>
             <div className="flex-1 text-left space-y-0.5">
               <div className="flex items-center gap-2">
@@ -1454,7 +1452,7 @@ const StatsOverview = memo(({
 
           <div className="p-5 space-y-4">
             {/* Filter buttons & Search */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-html2canvas-ignore="true">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-lg border text-xs">
                 <button
                   type="button"
@@ -1476,7 +1474,7 @@ const StatsOverview = memo(({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <BookMarked className="h-3 w-3" />
+                  <BookMarked size={12} className="h-3 w-3 shrink-0" />
                   Islamic ({totalIslamic})
                 </button>
                 <button
@@ -1488,12 +1486,12 @@ const StatsOverview = memo(({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <GraduationCap className="h-3 w-3" />
+                  <GraduationCap size={12} className="h-3 w-3 shrink-0" />
                   Academic ({totalAcademic})
                 </button>
               </div>
 
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full sm:w-64" data-html2canvas-ignore="true">
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   placeholder="Search course or board…"
@@ -1561,12 +1559,12 @@ const StatsOverview = memo(({
                             <div className="sm:hidden">
                               {course.type === "Islamic" ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                  <BookMarked className="h-2.5 w-2.5" />
+                                  <BookMarked size={10} className="h-2.5 w-2.5 shrink-0" />
                                   Islamic
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                  <GraduationCap className="h-2.5 w-2.5" />
+                                  <GraduationCap size={10} className="h-2.5 w-2.5 shrink-0" />
                                   Academic
                                 </span>
                               )}
@@ -1587,12 +1585,12 @@ const StatsOverview = memo(({
                         <TableCell className="hidden sm:table-cell py-3">
                           {course.type === "Islamic" ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                              <BookMarked className="h-3 w-3" />
+                              <BookMarked size={12} className="h-3 w-3 shrink-0" />
                               Islamic
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                              <GraduationCap className="h-3 w-3" />
+                              <GraduationCap size={12} className="h-3 w-3 shrink-0" />
                               Academic
                             </span>
                           )}
@@ -1609,7 +1607,7 @@ const StatsOverview = memo(({
                                 : "text-muted-foreground"
                             }`}
                           >
-                            <Users className="h-3 w-3" />
+                            <Users size={12} className="h-3 w-3 shrink-0" />
                             {course.studentCount}
                           </Badge>
                         </TableCell>
@@ -1673,9 +1671,9 @@ const StatsOverview = memo(({
                         }`}
                       >
                         {selectedCourseForModal?.type === "Islamic" ? (
-                          <BookMarked className="h-2.5 w-2.5" />
+                          <BookMarked size={10} className="h-2.5 w-2.5 shrink-0" />
                         ) : (
-                          <GraduationCap className="h-2.5 w-2.5" />
+                          <GraduationCap size={10} className="h-2.5 w-2.5 shrink-0" />
                         )}
                         <span>{selectedCourseForModal?.type}</span>
                       </Badge>
@@ -1721,7 +1719,7 @@ const StatsOverview = memo(({
                           <TableRow className="bg-muted/40 hover:bg-muted/40">
                             <TableHead className="w-12 sm:w-16 text-center text-xs font-semibold">Sl No</TableHead>
                             <TableHead className="text-xs font-semibold">Year</TableHead>
-                            <TableHead className="text-xs font-semibold text-center w-28 sm:w-36">Total Students</TableHead>
+                            <TableHead className="text-xs font-semibold text-center w-28 sm:w-36">Students</TableHead>
                             <TableHead className="text-xs font-semibold">Status</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1859,9 +1857,9 @@ const StatsOverview = memo(({
                         }`}
                       >
                         {selectedCourseForModal?.type === "Islamic" ? (
-                          <BookMarked className="h-2.5 w-2.5" />
+                          <BookMarked size={10} className="h-2.5 w-2.5 shrink-0" />
                         ) : (
-                          <GraduationCap className="h-2.5 w-2.5" />
+                          <GraduationCap size={10} className="h-2.5 w-2.5 shrink-0" />
                         )}
                         <span>{selectedCourseForModal?.type}</span>
                       </Badge>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Fragment, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -59,8 +59,11 @@ import {
   ChevronRight,
   AlertTriangle,
   List,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useReactToPrint } from "react-to-print";
+import PrintHeader from "@/components/PrintHeader";
 import Header from "./Header";
 
 const YEAR_OPTIONS = ["1", "2", "3", "4", "5"];
@@ -642,6 +645,57 @@ export default function StudentCourses({
       return true;
     });
   }, [aggregatedCourses, filterType, searchTerm]);
+
+  // ── Print Reference & Handler for All Courses ───────────────────────────
+  const printCoursesRef = useRef(null);
+
+  const handlePrintAllCourses = useReactToPrint({
+    contentRef: printCoursesRef,
+    documentTitle: "Students_Course_Details",
+    pageStyle: `
+      @page {
+        size: A4 portrait;
+        margin: 12mm 10mm;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          font-size: 11px;
+          color: #000;
+          background: #fff;
+        }
+        .print-only-container {
+          display: block !important;
+        }
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          page-break-inside: auto;
+        }
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        thead {
+          display: table-header-group;
+        }
+        .course-print-block {
+          break-inside: auto;
+          page-break-inside: auto;
+          margin-bottom: 22px;
+        }
+      }
+    `,
+  });
+
+  const onPrintClick = () => {
+    if (!filteredCourses || filteredCourses.length === 0) {
+      toast.error("No courses available to print.");
+      return;
+    }
+    handlePrintAllCourses();
+  };
 
   // ── Enrolled Years for Selected Course ───────────────────────────────────
   const courseYears = useMemo(() => {
@@ -1761,16 +1815,27 @@ export default function StudentCourses({
     <div className="space-y-4 pb-12">
       <Header
         title="COURSES"
-        subTitle="Islamic and Academic course details"
+        subTitle="Islamic and Academic courses"
         rightAction={
-          <Button
-            onClick={handleOpenAddPopup}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 sm:w-auto sm:px-3 p-0 gap-1.5 flex items-center justify-center shrink-0 shadow-sm"
-            title="Add Course"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline text-sm font-medium">Add Course</span>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              onClick={onPrintClick}
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-md h-9 w-9 sm:w-auto sm:px-3 p-0 gap-1.5 flex items-center justify-center shrink-0 shadow-sm border border-transparent"
+              title="Print Student Details of Each Course"
+            >
+              <Printer className="h-4 w-4" />
+              <span className="hidden sm:inline text-sm font-medium">Print</span>
+            </Button>
+            <Button
+              onClick={handleOpenAddPopup}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 sm:w-auto sm:px-3 p-0 gap-1.5 flex items-center justify-center shrink-0 shadow-sm"
+              title="Add Course"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline text-sm font-medium">Add Course</span>
+            </Button>
+          </div>
         }
       />
 
@@ -1856,10 +1921,10 @@ export default function StudentCourses({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="w-14 sm:w-16 text-center text-xs font-semibold">
+                    <TableHead className="w-10 sm:w-16 text-center text-xs font-semibold px-1 sm:px-2">
                       Sl No
                     </TableHead>
-                    <TableHead className="text-xs font-semibold min-w-[200px]">
+                    <TableHead className="text-xs font-semibold px-2 sm:px-4 min-w-0 sm:min-w-[200px]">
                       Course Name
                     </TableHead>
                     <TableHead className="text-xs font-semibold hidden sm:table-cell min-w-[120px]">
@@ -1868,10 +1933,10 @@ export default function StudentCourses({
                     <TableHead className="text-xs font-semibold hidden md:table-cell min-w-[180px]">
                       University / Board
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-center w-36">
-                      Total Students
+                    <TableHead className="text-xs font-semibold text-center w-20 sm:w-32 px-1 sm:px-3">
+                      Students
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-right w-24 sm:w-28">
+                    <TableHead className="text-xs font-semibold text-right w-20 sm:w-28 px-1 sm:px-4">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -1888,20 +1953,20 @@ export default function StudentCourses({
                         setModalSearchTerm("");
                       }}
                     >
-                      <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5 cursor-pointer">
+                      <TableCell className="text-center text-xs text-muted-foreground font-medium py-3 px-1 sm:px-2 cursor-pointer">
                         {idx + 1}
                       </TableCell>
-                      <TableCell className="py-3.5 cursor-pointer">
-                        <div className="flex flex-col gap-1 items-start">
+                      <TableCell className="py-3 px-2 sm:px-4 cursor-pointer">
+                        <div className="flex flex-col gap-0.5 sm:gap-1 items-start min-w-0">
                           {/* Mobile type badge */}
                           <div className="sm:hidden">
                             {course.type === "Islamic" ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                                 <BookMarked className="h-2.5 w-2.5" />
                                 Islamic
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
                                 <GraduationCap className="h-2.5 w-2.5" />
                                 Academic
                               </span>
@@ -1911,9 +1976,11 @@ export default function StudentCourses({
                             {course.name}
                           </span>
                           {/* Mobile university */}
-                          <span className="md:hidden text-xs text-muted-foreground">
-                            {course.universityBoard || "—"}
-                          </span>
+                          {course.universityBoard && (
+                            <span className="md:hidden text-xs text-muted-foreground">
+                              {course.universityBoard}
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell py-3.5 cursor-pointer">
@@ -1932,10 +1999,10 @@ export default function StudentCourses({
                       <TableCell className="hidden md:table-cell text-xs sm:text-sm py-3.5 text-muted-foreground cursor-pointer">
                         {course.universityBoard || "—"}
                       </TableCell>
-                      <TableCell className="text-center py-3.5 cursor-pointer">
+                      <TableCell className="text-center py-3 px-1 sm:px-3 cursor-pointer">
                         <Badge
                           variant="outline"
-                          className={`gap-1.5 px-2.5 py-0.5 text-xs font-semibold ${
+                          className={`gap-1 px-2 py-0.5 text-xs font-semibold inline-flex items-center ${
                             course.studentCount > 0
                               ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
                               : "text-muted-foreground"
@@ -1946,27 +2013,27 @@ export default function StudentCourses({
                         </Badge>
                       </TableCell>
                       <TableCell
-                        className="py-3.5 text-right"
+                        className="py-3 px-1 sm:px-4 text-right"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-0.5 sm:gap-1">
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                            className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                             onClick={() => handleOpenEditMaster(course)}
                             title="Edit Course Details"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                             onClick={() => handleOpenDeleteMaster(course)}
                             title="Delete Course"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -2094,254 +2161,183 @@ export default function StudentCourses({
                     </Button>
                   </div>
                 ) : (
-                  <>
-                    {/* Mobile View: Touch-Friendly Responsive Year Cards */}
-                    <div className="sm:hidden space-y-2.5">
-                      {courseYears.map((yr) => (
-                        <div
-                          key={yr.year}
-                          onClick={() => {
-                            setSelectedYear(yr.year);
-                            setSelectedCohort(null);
-                            setModalSearchTerm("");
-                          }}
-                          className="p-3.5 rounded-xl border bg-card hover:bg-muted/50 active:bg-muted/80 transition-all cursor-pointer shadow-sm flex flex-col gap-2.5 group"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-3">
-                              {/* Year badge */}
-                              <div className="flex flex-col items-center justify-center min-w-[54px] py-1 px-2 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/50 shrink-0">
-                                <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                                  Year
-                                </span>
-                                <span className="text-sm font-extrabold text-foreground group-hover:text-blue-600 transition-colors">
-                                  {yr.year}
-                                </span>
-                              </div>
-
-                              {/* Total Students */}
-                              <div className="flex flex-col">
-                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total</span>
-                                <Badge
-                                  variant="outline"
-                                  className="gap-1 px-2 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 w-fit"
-                                >
-                                  <Users className="h-3 w-3" />
-                                  <span>{yr.students.length}</span>
-                                </Badge>
-                              </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div
-                              className="flex items-center gap-1 shrink-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
-                                onClick={() => handleOpenEditYear(yr)}
-                                title={`Edit Year ${yr.year}`}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => handleOpenDeleteYear(yr)}
-                                title={`Delete Year ${yr.year}`}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-
-                          {/* Class / Batch breakdown under Year */}
-                          {yr.cohortBreakdown && yr.cohortBreakdown.length > 0 && (
-                            <div className="pt-2 border-t border-border/50 flex flex-wrap gap-1.5">
-                              {yr.cohortBreakdown.map((cohort, cIdx) => (
-                                <button
-                                  key={cIdx}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedYear(yr.year);
-                                    setSelectedCohort(cohort.name);
-                                    setModalSearchTerm("");
-                                  }}
-                                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium bg-muted/80 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 dark:hover:bg-blue-950/60 dark:hover:text-blue-300 dark:hover:border-blue-800 text-foreground border border-border/70 transition-all cursor-pointer shadow-xs active:scale-95 text-left"
-                                  title={`View only ${cohort.name} students in Year ${yr.year}`}
-                                >
-                                  <span className="font-medium">{cohort.name}</span>:
-                                  <span className="text-blue-600 dark:text-blue-400 font-bold">
-                                    {cohort.count}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Status Pills */}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                            {yr.ongoingCount > 0 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                {yr.ongoingCount} Ongoing
-                              </span>
-                            )}
-                            {yr.completedCount > 0 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                {yr.completedCount} Completed
-                              </span>
-                            )}
-                            {yr.pendingCount > 0 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                                {yr.pendingCount} Pending
-                              </span>
-                            )}
-                            {yr.droppedCount > 0 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
-                                {yr.droppedCount} Dropped
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Desktop View: Full Table */}
-                    <div className="hidden sm:block border rounded-xl overflow-hidden bg-card shadow-sm">
-                      <div className="overflow-x-auto">
-                        <Table>
+                  <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+                    <div className="overflow-x-auto">
+                      <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/40 hover:bg-muted/40">
-                            <TableHead className="w-14 sm:w-16 text-center text-xs font-semibold">
+                            <TableHead className="w-12 sm:w-16 text-center text-xs font-semibold hidden sm:table-cell px-2 sm:px-4">
                               Sl No
                             </TableHead>
-                            <TableHead className="text-xs font-semibold min-w-[240px]">
+                            <TableHead className="text-xs font-semibold px-2 sm:px-4 min-w-[70px] sm:min-w-[180px]">
                               Year
                             </TableHead>
-                            <TableHead className="text-xs font-semibold text-center w-28 sm:w-32">
-                              Total
+                            <TableHead className="text-xs font-semibold text-center w-16 sm:w-28 px-1 sm:px-3">
+                              Students
                             </TableHead>
-                            <TableHead className="text-xs font-semibold min-w-[200px]">
+                            <TableHead className="text-xs font-semibold px-1 sm:px-4 min-w-[90px] sm:min-w-[180px]">
                               Status
                             </TableHead>
-                            <TableHead className="text-xs font-semibold text-right w-24 sm:w-28">
-                              Actions
+                            <TableHead className="text-xs font-semibold text-right w-16 sm:w-24 px-1 sm:px-3">
+                              Action
                             </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {courseYears.map((yr, idx) => (
-                            <TableRow
-                              key={yr.year}
-                              className="hover:bg-muted/50 transition-colors cursor-pointer group"
-                              onClick={() => {
-                                setSelectedYear(yr.year);
-                                setSelectedCohort(null);
-                                setModalSearchTerm("");
-                              }}
-                            >
-                              <TableCell className="text-center text-xs text-muted-foreground font-medium py-3.5 align-top">
-                                {idx + 1}
-                              </TableCell>
-                              <TableCell className="py-3.5 align-top">
-                                <div className="flex flex-col gap-1.5 items-start">
-                                  <span className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">
-                                    Year {yr.year}
-                                  </span>
-                                  {yr.cohortBreakdown && yr.cohortBreakdown.length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5 pt-1">
-                                      {yr.cohortBreakdown.map((cohort, cIdx) => (
-                                        <button
-                                          key={cIdx}
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedYear(yr.year);
-                                            setSelectedCohort(cohort.name);
-                                            setModalSearchTerm("");
-                                          }}
-                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-muted/80 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 dark:hover:bg-blue-950/60 dark:hover:text-blue-300 dark:hover:border-blue-800 text-foreground border border-border/70 transition-all cursor-pointer shadow-xs active:scale-95 text-left"
-                                          title={`Click to view only ${cohort.name} students in Year ${yr.year}`}
-                                        >
-                                          <span className="font-medium">{cohort.name}</span>:
-                                          <span className="text-blue-600 dark:text-blue-400 font-bold">
-                                            {cohort.count}
-                                          </span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center py-3.5 align-top">
-                                <Badge
-                                  variant="outline"
-                                  className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                          {courseYears.map((yr, idx) => {
+                            const hasCohorts = yr.cohortBreakdown && yr.cohortBreakdown.length > 0;
+                            return (
+                              <Fragment key={yr.year}>
+                                <TableRow
+                                  className={`hover:bg-muted/50 transition-colors cursor-pointer group ${
+                                    hasCohorts ? "border-b-0 sm:border-b" : "border-b"
+                                  }`}
+                                  onClick={() => {
+                                    setSelectedYear(yr.year);
+                                    setSelectedCohort(null);
+                                    setModalSearchTerm("");
+                                  }}
                                 >
-                                  <Users className="h-3 w-3" />
-                                  <span>{yr.students.length}</span>
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="py-3.5 align-top">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  {yr.ongoingCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                      {yr.ongoingCount} Ongoing
-                                    </span>
-                                  )}
-                                  {yr.completedCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                      {yr.completedCount} Completed
-                                    </span>
-                                  )}
-                                  {yr.pendingCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                                      {yr.pendingCount} Pending
-                                    </span>
-                                  )}
-                                  {yr.droppedCount > 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
-                                      {yr.droppedCount} Dropped
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell
-                                className="py-3.5 text-right align-top"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
-                                    onClick={() => handleOpenEditYear(yr)}
-                                    title={`Edit Year ${yr.year}`}
+                                  <TableCell className="hidden sm:table-cell text-center text-xs text-muted-foreground font-medium py-3 sm:py-3.5 px-2 sm:px-4 align-middle">
+                                    {idx + 1}
+                                  </TableCell>
+                                  <TableCell className="py-2.5 sm:py-3.5 px-2 sm:px-4 align-middle">
+                                    <div className="flex flex-col gap-1 items-start">
+                                      <span className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-blue-600 transition-colors whitespace-nowrap">
+                                        Year {yr.year}
+                                      </span>
+                                      {/* Desktop only: Classes / cohort breakdown under Year */}
+                                      {hasCohorts && (
+                                        <div className="hidden sm:flex flex-wrap gap-1 pt-0.5">
+                                          {yr.cohortBreakdown.map((cohort, cIdx) => (
+                                            <button
+                                              key={cIdx}
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedYear(yr.year);
+                                                setSelectedCohort(cohort.name);
+                                                setModalSearchTerm("");
+                                              }}
+                                              className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium bg-muted/80 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 dark:hover:bg-blue-950/60 dark:hover:text-blue-300 dark:hover:border-blue-800 text-foreground border border-border/70 transition-all cursor-pointer shadow-xs active:scale-95 text-left"
+                                              title={`Click to view only ${cohort.name} students in Year ${yr.year}`}
+                                            >
+                                              <span className="font-medium">{cohort.name}</span>:
+                                              <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                                {cohort.count}
+                                              </span>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-center py-2.5 sm:py-3.5 px-1 sm:px-3 align-middle">
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 px-1.5 sm:px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 inline-flex items-center"
+                                    >
+                                      <Users className="h-3 w-3" />
+                                      <span>{yr.students.length}</span>
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="py-2.5 sm:py-3.5 px-1 sm:px-4 align-middle">
+                                    <div className="flex flex-wrap items-center gap-1">
+                                      {yr.ongoingCount > 0 && (
+                                        <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 whitespace-nowrap">
+                                          {yr.ongoingCount} Ongoing
+                                        </span>
+                                      )}
+                                      {yr.completedCount > 0 && (
+                                        <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 whitespace-nowrap">
+                                          {yr.completedCount} Completed
+                                        </span>
+                                      )}
+                                      {yr.pendingCount > 0 && (
+                                        <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 whitespace-nowrap">
+                                          {yr.pendingCount} Pending
+                                        </span>
+                                      )}
+                                      {yr.droppedCount > 0 && (
+                                        <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 whitespace-nowrap">
+                                          {yr.droppedCount} Dropped
+                                        </span>
+                                      )}
+                                      {yr.ongoingCount === 0 && yr.completedCount === 0 && yr.pendingCount === 0 && yr.droppedCount === 0 && (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell
+                                    className="py-2.5 sm:py-3.5 px-1 sm:px-3 text-right align-middle"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => handleOpenDeleteYear(yr)}
-                                    title={`Delete Year ${yr.year}`}
+                                    <div className="flex items-center justify-end gap-0.5 sm:gap-1">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                        onClick={() => handleOpenEditYear(yr)}
+                                        title={`Edit Year ${yr.year}`}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleOpenDeleteYear(yr)}
+                                        title={`Delete Year ${yr.year}`}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+
+                                {/* Mobile View Only: Class name / cohort breakdown in full width of Year, Students, Status columns */}
+                                {hasCohorts && (
+                                  <TableRow
+                                    className="sm:hidden hover:bg-muted/50 transition-colors cursor-pointer border-b bg-muted/15"
+                                    onClick={() => {
+                                      setSelectedYear(yr.year);
+                                      setSelectedCohort(null);
+                                      setModalSearchTerm("");
+                                    }}
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                    <TableCell colSpan={3} className="pt-0 pb-2.5 px-2.5 align-middle">
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {yr.cohortBreakdown.map((cohort, cIdx) => (
+                                          <button
+                                            key={cIdx}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedYear(yr.year);
+                                              setSelectedCohort(cohort.name);
+                                              setModalSearchTerm("");
+                                            }}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-background hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 dark:hover:bg-blue-950/60 dark:hover:text-blue-300 dark:hover:border-blue-800 text-foreground border border-border/80 transition-all cursor-pointer shadow-xs active:scale-95 text-left"
+                                            title={`Click to view only ${cohort.name} students in Year ${yr.year}`}
+                                          >
+                                            <span className="font-medium">{cohort.name}</span>:
+                                            <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                              {cohort.count}
+                                            </span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="p-0 sm:hidden" />
+                                  </TableRow>
+                                )}
+                              </Fragment>
+                            );
+                          })}
                         </TableBody>
-                        </Table>
-                      </div>
+                      </Table>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </>
@@ -3479,6 +3475,136 @@ export default function StudentCourses({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── Print Layout for Each Course of Each University ─────────── */}
+      <div className="hidden print:block print-only-container" ref={printCoursesRef}>
+        <PrintHeader
+          title="STUDENTS COURSE ENROLLMENT DETAILS"
+          subTitle={
+            filterType !== "all"
+              ? `${filterType} Courses`
+              : "Islamic and Academic Courses"
+          }
+          apiKey={apiKey}
+          displayOnScreen={true}
+        />
+
+        {filteredCourses.map((course, cIdx) => {
+          const sortedStudents = [...(course.students || [])].sort((a, b) => {
+            const yA = parseInt(a.year, 10) || 0;
+            const yB = parseInt(b.year, 10) || 0;
+            if (yA !== yB) return yA - yB;
+            const cComp = (a.className || "").localeCompare(b.className || "", undefined, { numeric: true });
+            if (cComp !== 0) return cComp;
+            return (a.studentName || "").localeCompare(b.studentName || "");
+          });
+
+          return (
+            <div
+              key={`${course.type}-${course.name}-${course.universityBoard || ""}-${cIdx}`}
+              className="course-print-block mb-6"
+            >
+              <table className="w-full border-collapse border border-gray-400 text-xs text-left">
+                <thead>
+                  {/* Heading row: Type, Course Name, University */}
+                  <tr className="bg-gray-100 border-b border-gray-400 text-gray-900">
+                    <th
+                      colSpan={6}
+                      className="border border-gray-400 px-3 py-2 text-xs font-semibold"
+                    >
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <span>
+                            <strong className="text-gray-700">Type:</strong>{" "}
+                            {course.type}
+                          </span>
+                          <span>
+                            <strong className="text-gray-700">Course Name:</strong>{" "}
+                            {course.name}
+                          </span>
+                          <span>
+                            <strong className="text-gray-700">University:</strong>{" "}
+                            {course.universityBoard || "—"}
+                          </span>
+                        </div>
+                        <span className="font-normal text-gray-600 text-[11px]">
+                          Total Students:{" "}
+                          <strong className="text-gray-900">
+                            {course.students?.length || 0}
+                          </strong>
+                        </span>
+                      </div>
+                    </th>
+                  </tr>
+                  {/* Table Column Headers */}
+                  <tr className="bg-gray-50 border-b border-gray-400 text-gray-800 font-semibold text-[11px]">
+                    <th className="border border-gray-400 px-2.5 py-1.5 text-center w-12">
+                      Sl No.
+                    </th>
+                    <th className="border border-gray-400 px-2.5 py-1.5 w-28">
+                      Student ID
+                    </th>
+                    <th className="border border-gray-400 px-2.5 py-1.5">
+                      Name
+                    </th>
+                    <th className="border border-gray-400 px-2.5 py-1.5 w-28">
+                      Class
+                    </th>
+                    <th className="border border-gray-400 px-2.5 py-1.5 text-center w-28">
+                      Year of Course
+                    </th>
+                    <th className="border border-gray-400 px-2.5 py-1.5 text-center w-28">
+                      Status of Course
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedStudents.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="border border-gray-300 px-3 py-3 text-center text-gray-500 italic"
+                      >
+                        No students enrolled in this course
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedStudents.map((st, sIdx) => (
+                      <tr
+                        key={`${st.studentId}-${sIdx}`}
+                        className="border-b border-gray-200"
+                      >
+                        <td className="border border-gray-300 px-2.5 py-1.5 text-center">
+                          {sIdx + 1}
+                        </td>
+                        <td className="border border-gray-300 px-2.5 py-1.5 font-mono text-[11px]">
+                          {st.studentId || "—"}
+                        </td>
+                        <td className="border border-gray-300 px-2.5 py-1.5 font-medium">
+                          {st.studentName || "—"}
+                        </td>
+                        <td className="border border-gray-300 px-2.5 py-1.5">
+                          {st.className || "—"}
+                        </td>
+                        <td className="border border-gray-300 px-2.5 py-1.5 text-center">
+                          {st.year
+                            ? String(st.year).toLowerCase().startsWith("year")
+                              ? st.year
+                              : `Year ${st.year}`
+                            : "—"}
+                        </td>
+                        <td className="border border-gray-300 px-2.5 py-1.5 text-center">
+                          {st.status || "Ongoing"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
