@@ -76,6 +76,7 @@ import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
+import CollegeAdminAISearch from "@/components/CollegeAdminAISearch";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";
@@ -2967,6 +2968,10 @@ export default function Dashboard({
         subTitle={currentDateStr}
         icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
       />
+
+      {activeRole === "College Admin" && (
+        <CollegeAdminAISearch settings={settings} />
+      )}
 
       {error && <ErrorAlert message={error} />}
 
