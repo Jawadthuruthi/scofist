@@ -49,7 +49,7 @@ const formFields = [
     defaultValue: {},
     maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
     section: "Personal Details",
-    className: "[&_.min-h-48]:!min-h-[230px]",
+    className: "col-start-1 [&_.min-h-48]:!h-[230px] [&_.min-h-48]:!max-h-[230px] [&_.min-h-48]:!min-h-[230px]",
   },
   {
     name: "_id",

@@ -412,9 +412,13 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
                   <Input
                     type={fieldToRender.type || "text"}
                     placeholder={fieldToRender.placeholder}
+                    disabled={fieldToRender.disabled}
                     readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     autoFocus={fieldToRender.autoFocus}
-                    className={capitalizeInputs && fieldToRender.name !== "email" ? "uppercase" : ""}
+                    className={cn(
+                      capitalizeInputs && fieldToRender.name !== "email" ? "uppercase" : "",
+                      ((data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly) && "bg-muted/50 cursor-not-allowed text-muted-foreground focus-visible:ring-0"
+                    )}
                     {...form.register(fieldToRender.name, {
                       setValueAs: (v) => {
                         if (typeof v === "string" && capitalizeInputs && fieldToRender.name !== "email" && fieldToRender.type !== "email") {

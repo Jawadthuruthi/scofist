@@ -65,6 +65,7 @@ const ImageUploader = ({
   hasSubmitButton = false,
   isSubmitting = false,
   hidePreview = false,
+  readOnly = false,
 }) => {
   const [preview, setPreview] = React.useState(value?.url || "");
   const [loading, setLoading] = React.useState(false);
@@ -708,16 +709,17 @@ const ImageUploader = ({
         onChange={handleFileSelect}
         accept={allowedTypes.join(",")}
         className="hidden"
-        disabled={disabled || loading}
+        disabled={disabled || readOnly || loading}
       />
 
       {!hidePreview && (
         <div
-          className={`w-full flex-1 min-h-48 border-2 border-dashed rounded-md overflow-hidden flex flex-col items-center justify-center relative ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-            } transition-colors`}
+          onClick={!disabled && !readOnly && !loading ? handleSelectClick : undefined}
+          className={`w-full flex-1 h-48 sm:h-52 min-h-48 max-h-48 sm:max-h-52 border-2 border-dashed rounded-md overflow-hidden relative ${disabled || readOnly ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
+            } transition-colors flex flex-col items-center justify-center`}
         >
           {loading && (
-            <div className="absolute inset-0 backdrop-blur-md bg-white/50 border border-white/30 shadow-lg flex flex-col items-center justify-center z-10">
+            <div className="absolute inset-0 backdrop-blur-md bg-white/50 border border-white/30 shadow-lg flex flex-col items-center justify-center z-20">
               <Loader className="animate-spin text-primary mb-4" size={32} />
 
               {uploadProgress > 0 && (
@@ -732,30 +734,31 @@ const ImageUploader = ({
           )}
 
           {displayedImage ? (
-            <div className="relative w-full h-full flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center p-2 overflow-hidden bg-muted/5">
               <img
                 src={displayedImage}
                 alt="Image preview"
-                className="max-h-full max-w-full object-contain"
+                className="h-full w-auto max-h-full max-w-full object-contain mx-auto select-none pointer-events-none"
               />
 
-              {!disabled && !loading && (
+              {!disabled && !readOnly && !loading && (
                 <Button
                   type="button"
                   variant="destructive"
                   size="icon"
-                  className="absolute top-2 right-2 h-8 w-8"
+                  className="absolute top-2 right-2 h-8 w-8 shadow-sm z-10"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRemoveImage();
                   }}
+                  title="Remove Image"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
             </div>
           ) : (
-            <div onClick={handleSelectClick} className="text-center p-4">
+            <div className="text-center p-4">
               <Image className="h-10 w-10 text-gray-400 mb-2 mx-auto" />
               <p className="text-sm text-gray-500">Click to select an image</p>
               <p className="text-xs text-gray-400 mt-1">
@@ -772,7 +775,7 @@ const ImageUploader = ({
             type="button"
             className="flex-1 min-w-[140px]"
             onClick={handleUpload}
-            disabled={disabled || loading}
+            disabled={disabled || readOnly || loading}
           >
             {loading ? (
               <>
@@ -795,7 +798,7 @@ const ImageUploader = ({
               variant="outline"
               className="flex-1"
               onClick={handleSelectClick}
-              disabled={disabled}
+              disabled={disabled || readOnly}
             >
               <Image className="h-4 w-4 mr-2" />
               Change Image
@@ -806,7 +809,7 @@ const ImageUploader = ({
                 variant="destructive"
                 className="px-3"
                 onClick={handleRemoveImage}
-                disabled={disabled}
+                disabled={disabled || readOnly}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -819,7 +822,7 @@ const ImageUploader = ({
             type="button"
             className="flex-1 min-w-[140px]"
             onClick={handleSelectClick}
-            disabled={disabled}
+            disabled={disabled || readOnly}
           >
             <Image className="h-4 w-4 mr-2" />
             Select Image
