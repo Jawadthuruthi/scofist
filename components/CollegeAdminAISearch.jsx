@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   Sparkles,
   Search,
@@ -23,7 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function CollegeAdminAISearch({ settings }) {
+export default function CollegeAdminAISearch({ settings, apiKey }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -54,8 +55,10 @@ export default function CollegeAdminAISearch({ settings }) {
     try {
       const response = await fetch("/api/dashboard/ai-search", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...(apiKey ? { "api-key": apiKey } : {}),
         },
         body: JSON.stringify({ query: q }),
       });
@@ -241,11 +244,82 @@ export default function CollegeAdminAISearch({ settings }) {
   const renderFormattedText = (rawText) => {
     if (!rawText) return null;
     const lines = rawText.split("\n");
+    const blocks = [];
+    let currentTable = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+        if (!currentTable) {
+          currentTable = [];
+        }
+        currentTable.push(trimmed);
+      } else {
+        if (currentTable) {
+          blocks.push({ type: "table", rows: currentTable });
+          currentTable = null;
+        }
+        blocks.push({ type: "line", text: line, trimmed });
+      }
+    }
+
+    if (currentTable) {
+      blocks.push({ type: "table", rows: currentTable });
+    }
 
     return (
       <div className="space-y-2 text-sm leading-relaxed text-foreground/90">
-        {lines.map((line, idx) => {
-          const trimmed = line.trim();
+        {blocks.map((block, idx) => {
+          if (block.type === "table") {
+            const rows = block.rows;
+            if (rows.length === 0) return null;
+
+            // First row is header
+            const headerCells = rows[0]
+              .split("|")
+              .slice(1, -1)
+              .map((c) => c.trim());
+
+            // Skip divider row (row with :--- or ---)
+            const bodyRows = rows.slice(1).filter((r) => !/^[|\s-:]+$/.test(r));
+
+            return (
+              <div key={idx} className="my-3 overflow-x-auto rounded-lg border border-border/80 shadow-xs">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead className="bg-muted/80 text-foreground font-semibold border-b border-border/80">
+                    <tr>
+                      {headerCells.map((h, hIdx) => (
+                        <th key={hIdx} className="px-3 py-2 text-left font-semibold">
+                          {renderInlineFormatting(h)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40 bg-card">
+                    {bodyRows.map((rowStr, rIdx) => {
+                      const cells = rowStr
+                        .split("|")
+                        .slice(1, -1)
+                        .map((c) => c.trim());
+                      return (
+                        <tr key={rIdx} className="hover:bg-muted/30 transition-colors">
+                          {cells.map((cell, cIdx) => (
+                            <td key={cIdx} className="px-3 py-2 align-top text-foreground/90">
+                              {renderInlineFormatting(cell)}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+
+          const trimmed = block.trimmed;
           if (!trimmed) {
             return <div key={idx} className="h-1" />;
           }
@@ -253,8 +327,16 @@ export default function CollegeAdminAISearch({ settings }) {
           if (trimmed.startsWith("### ")) {
             return (
               <h3 key={idx} className="text-base font-bold text-foreground mt-3 pt-1 border-b border-border/40 pb-1">
-                {trimmed.replace("### ", "")}
+                {renderInlineFormatting(trimmed.replace("### ", ""))}
               </h3>
+            );
+          }
+
+          if (trimmed.startsWith("#### ")) {
+            return (
+              <h4 key={idx} className="text-sm font-bold text-foreground mt-2">
+                {renderInlineFormatting(trimmed.replace("#### ", ""))}
+              </h4>
             );
           }
 
@@ -264,7 +346,7 @@ export default function CollegeAdminAISearch({ settings }) {
 
           if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
             const content = trimmed.substring(2);
-            const isSubBullet = line.startsWith("   ") || line.startsWith("\t") || line.startsWith("  ");
+            const isSubBullet = block.text.startsWith("   ") || block.text.startsWith("\t") || block.text.startsWith("  ");
             return (
               <div
                 key={idx}
@@ -300,17 +382,65 @@ export default function CollegeAdminAISearch({ settings }) {
   };
 
   const renderInlineFormatting = (text) => {
-    // Simple inline bold parser: **bold**
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
+    if (!text) return null;
+
+    // Pattern to match markdown links [label](url), bold **bold**, code `code`
+    const tokens = [];
+    const regex = /(\[.*?\]\(.*?\)|\*\*.*?\*\*|`.*?`)/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        tokens.push({ type: "text", value: text.substring(lastIndex, match.index) });
+      }
+      const raw = match[0];
+      if (raw.startsWith("[") && raw.includes("](") && raw.endsWith(")")) {
+        const linkMatch = raw.match(/^\[(.*?)\]\((.*?)\)$/);
+        if (linkMatch) {
+          tokens.push({ type: "link", label: linkMatch[1], href: linkMatch[2] });
+        } else {
+          tokens.push({ type: "text", value: raw });
+        }
+      } else if (raw.startsWith("**") && raw.endsWith("**")) {
+        tokens.push({ type: "bold", value: raw.slice(2, -2) });
+      } else if (raw.startsWith("`") && raw.endsWith("`")) {
+        tokens.push({ type: "code", value: raw.slice(1, -1) });
+      }
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      tokens.push({ type: "text", value: text.substring(lastIndex) });
+    }
+
+    return tokens.map((token, i) => {
+      if (token.type === "link") {
+        return (
+          <Link
+            key={i}
+            href={token.href}
+            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all underline decoration-emerald-500/50 hover:decoration-emerald-500 mx-1 shadow-xs"
+          >
+            {token.label}
+          </Link>
+        );
+      }
+      if (token.type === "bold") {
         return (
           <strong key={i} className="font-semibold text-foreground">
-            {part.slice(2, -2)}
+            {token.value}
           </strong>
         );
       }
-      return part;
+      if (token.type === "code") {
+        return (
+          <code key={i} className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs text-foreground">
+            {token.value}
+          </code>
+        );
+      }
+      return token.value;
     });
   };
 
@@ -332,7 +462,7 @@ export default function CollegeAdminAISearch({ settings }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask or search anything about students, faculty, courses, library books, timetable..."
+                placeholder="Ask Gemini AI or search students, faculty, timetable, library records..."
                 className="w-full pl-10 pr-9 py-2.5 bg-background/80 hover:bg-background focus:bg-background rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-sm text-foreground placeholder:text-muted-foreground/70 transition-all"
                 disabled={loading}
               />
@@ -368,6 +498,39 @@ export default function CollegeAdminAISearch({ settings }) {
                   </>
                 )}
               </Button>
+            </div>
+          </div>
+
+          {/* Quick Prompts & Gemini Status */}
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/30 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-medium flex items-center gap-1 text-emerald-600 dark:text-emerald-400 mr-0.5">
+                <Sparkles className="w-3 h-3" />
+                Suggestions:
+              </span>
+              {[
+                "Everything in this database",
+                "Student remarks & conduct",
+                "Summary of today's schedule",
+                "List all teachers",
+                "Draft sports day announcement",
+                "How to track library books",
+              ].map((prompt, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSearch(prompt)}
+                  disabled={loading}
+                  className="px-2 py-0.5 rounded-full bg-muted/60 hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-300 border border-border/50 text-[11px] transition-colors cursor-pointer"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground ml-auto shrink-0">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">Gemini AI Active</span>
             </div>
           </div>
         </div>
@@ -407,8 +570,9 @@ export default function CollegeAdminAISearch({ settings }) {
                     AI Search Answer
                   </h4>
                   {result.isAiGenerated ? (
-                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
-                      Gemini AI
+                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                      Gemini AI {result.model ? `(${result.model})` : ""}
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-[10px] bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30">

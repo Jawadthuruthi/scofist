@@ -2970,7 +2970,7 @@ export default function Dashboard({
       />
 
       {activeRole === "College Admin" && (
-        <CollegeAdminAISearch settings={settings} />
+        <CollegeAdminAISearch settings={settings} apiKey={apiKey} />
       )}
 
       {error && <ErrorAlert message={error} />}
