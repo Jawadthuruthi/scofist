@@ -4,6 +4,17 @@ import cloudinary from "@/lib/cloudinary";
 export const dynamic = "force-dynamic";
 
 export async function POST(req) {
+  // ✅ Auth check: only authenticated users with the right role can upload gallery images
+  const xUser = req.headers.get("x-user");
+  if (!xUser) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+  const user = JSON.parse(xUser);
+  const allowedRoles = ["College Admin", "Program Committee"];
+  if (!user?.roles?.some((r) => allowedRoles.includes(r))) {
+    return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file");
@@ -12,6 +23,24 @@ export async function POST(req) {
     if (!file) {
       return NextResponse.json(
         { success: false, message: "No file provided" },
+        { status: 400 }
+      );
+    }
+
+    // File validation: must be an image and <= 10MB
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_IMAGE_SIZE) {
+      return NextResponse.json(
+        { success: false, message: "File exceeds maximum size of 10MB" },
+        { status: 400 }
+      );
+    }
+
+    const fileExt = (file.name || "").split(".").pop().toLowerCase();
+    const ALLOWED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "gif"];
+    if (!ALLOWED_IMAGE_EXTS.includes(fileExt)) {
+      return NextResponse.json(
+        { success: false, message: "Only image files (jpg, jpeg, png, webp, gif) are allowed" },
         { status: 400 }
       );
     }

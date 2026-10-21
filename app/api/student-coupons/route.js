@@ -146,8 +146,23 @@ export async function GET(req) {
     }
 }
 
+function isAuthorizedAdmin(req) {
+    const xUser = req.headers.get("x-user");
+    if (!xUser) return false;
+    try {
+        const user = JSON.parse(xUser);
+        return Boolean(user?.roles?.some((r) => ["Org Admin", "College Admin"].includes(r)));
+    } catch {
+        return false;
+    }
+}
+
 export async function DELETE(req) {
     try {
+        if (!isAuthorizedAdmin(req)) {
+            return apiResponse.error("Forbidden: Insufficient permissions", 403);
+        }
+
         await connectToDB();
         const { id } = await req.json();
 
@@ -169,6 +184,10 @@ export async function DELETE(req) {
 
 export async function PUT(req) {
     try {
+        if (!isAuthorizedAdmin(req)) {
+            return apiResponse.error("Forbidden: Insufficient permissions", 403);
+        }
+
         await connectToDB();
         const body = await req.json();
         const { id, couponNumber, couponAmount, totalPaid, paymentDate } = body;
@@ -220,6 +239,10 @@ export async function PUT(req) {
 
 export async function POST(req) {
     try {
+        if (!isAuthorizedAdmin(req)) {
+            return apiResponse.error("Forbidden: Insufficient permissions", 403);
+        }
+
         await connectToDB();
         const body = await req.json();
         const { studentId, academicYear, couponNumber, couponAmount, payment } = body;

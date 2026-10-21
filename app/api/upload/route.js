@@ -4,7 +4,27 @@ import cloudinary from "@/lib/cloudinary";
 export const dynamic = "force-dynamic";
 
 export async function POST(req) {
-  const isE2ETest = req.headers.get("x-e2e-test") === "true";
+  // ✅ FIX #2: Require a valid authenticated user — middleware injects x-user after JWT verification
+  const xUser = req.headers.get("x-user");
+  if (!xUser) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  let user;
+  try {
+    user = JSON.parse(xUser);
+  } catch (err) {
+    return NextResponse.json({ message: "Invalid user session" }, { status: 401 });
+  }
+
+  const allowedRoles = ["College Admin", "Program Committee", "Org Admin", "Teacher", "Spark Admin"];
+  if (!user?.roles?.some((r) => allowedRoles.includes(r))) {
+    return NextResponse.json({ message: "Forbidden: Insufficient permissions to upload" }, { status: 403 });
+  }
+
+  const isE2ETest =
+    process.env.NODE_ENV !== "production" &&
+    req.headers.get("x-e2e-test") === "true";
 
   if (isE2ETest) {
     return NextResponse.json(
@@ -20,7 +40,6 @@ export async function POST(req) {
   try {
     const formData = await req.formData();
     const file = formData.get("file");
-    console.log("Upload request received. File:", file ? file.name : "null", "Size:", file ? file.size : 0);
 
     if (!file) {
       return NextResponse.json(
@@ -29,13 +48,44 @@ export async function POST(req) {
       );
     }
 
+    // Limit maximum file size to 15MB
+    const MAX_FILE_SIZE = 15 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { message: "File exceeds maximum size limit of 15MB" },
+        { status: 400 }
+      );
+    }
+
+    // Get file extension and validate against allowed list
+    const fileName = file.name || "unnamed";
+    const fileExtension = fileName.split(".").pop().toLowerCase();
+    const ALLOWED_EXTENSIONS = [
+      "pdf",
+      "doc",
+      "docx",
+      "ppt",
+      "pptx",
+      "xls",
+      "xlsx",
+      "jpg",
+      "jpeg",
+      "png",
+      "webp",
+      "gif",
+      "txt",
+    ];
+
+    if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+      return NextResponse.json(
+        { message: `File type .${fileExtension} is not allowed` },
+        { status: 400 }
+      );
+    }
+
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Get file extension
-    const fileName = file.name;
-    const fileExtension = fileName.split(".").pop().toLowerCase();
 
     // Determine if it's a PDF or document (should be raw) vs image
     const isPdfOrDoc = [
@@ -46,6 +96,7 @@ export async function POST(req) {
       "pptx",
       "xls",
       "xlsx",
+      "txt",
     ].includes(fileExtension);
 
     // Upload to Cloudinary using upload_stream

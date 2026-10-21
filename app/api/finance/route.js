@@ -6,8 +6,30 @@ import Finance from "@/models/Finance";
 import { getFinanceSummary } from "@/libservices/financeService";
 import { NextResponse } from "next/server";
 
+function getAuthContext(req) {
+  const userHeader = req.headers.get("x-user");
+  let user = null;
+  try {
+    user = userHeader ? JSON.parse(userHeader) : null;
+  } catch (parseError) {
+    console.warn("Failed to parse x-user header:", parseError.message);
+  }
+
+  const allowedFinanceRoles = ["College Admin", "Org Admin", "Finance"];
+  const hasFinanceRole = user?.roles?.some((r) => allowedFinanceRoles.includes(r));
+  const activeRole = req.headers.get("active-role") || req.cookies.get("active-role")?.value;
+  const isCollegeAdmin = Boolean(user?.roles?.includes("College Admin") && activeRole === "College Admin");
+
+  return { user, hasFinanceRole, isCollegeAdmin, activeRole };
+}
+
 export async function GET(req) {
   try {
+    const { user, hasFinanceRole, isCollegeAdmin } = getAuthContext(req);
+    if (!user || !hasFinanceRole) {
+      return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
+    }
+
     await connectToDB();
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get("startDate");
@@ -17,16 +39,6 @@ export async function GET(req) {
     const type = searchParams.get("type");
     const accountType = searchParams.get("accountType") || "College"; // Default to College
     const accountName = searchParams.get("accountName"); // Get accountName
-    console.log("Finance API GET:", { accountType, accountName, allParams: Object.fromEntries(searchParams) });
-    const userHeader = req.headers.get("x-user");
-    let user = null;
-    try {
-      user = userHeader ? JSON.parse(userHeader) : null;
-    } catch (parseError) {
-      console.warn("Failed to parse x-user header:", parseError.message);
-    }
-    const activeRole = req.cookies.get("active-role")?.value;
-    const isCollegeAdmin = activeRole === "College Admin";
 
     const page = parseInt(searchParams.get("page")) || 1;
     const limitParam = searchParams.get("limit");
@@ -37,7 +49,6 @@ export async function GET(req) {
 
     if (isCollegeAdmin && accountType === "College") {
       // STRICT ISOLATION: Accounts are per-user for College Admins.
-      // If user identity is missing, refuse the request entirely to prevent data leaks.
       if (!user?._id) {
         return NextResponse.json(
           { success: false, error: "User identity required for College accounts" },
@@ -153,15 +164,10 @@ export async function POST(req) {
       recipient: body.recipient
     });
 
-    const userHeader = req.headers.get("x-user");
-    let user = null;
-    try {
-      user = userHeader ? JSON.parse(userHeader) : null;
-    } catch (parseError) {
-      console.warn("Failed to parse x-user header in POST:", parseError.message);
+    const { user, hasFinanceRole, isCollegeAdmin } = getAuthContext(req);
+    if (!user || !hasFinanceRole) {
+      return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
     }
-    const activeRole = req.cookies.get("active-role")?.value;
-    const isCollegeAdmin = activeRole === "College Admin";
 
     if (isCollegeAdmin && !user?._id) {
       return NextResponse.json(
@@ -189,6 +195,11 @@ export async function POST(req) {
 
 export async function PUT(req) {
   try {
+    const { user, hasFinanceRole, isCollegeAdmin } = getAuthContext(req);
+    if (!user || !hasFinanceRole) {
+      return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
+    }
+
     await connectToDB();
     const body = await req.json();
     const { ids, ...updateData } = body;
@@ -204,16 +215,6 @@ export async function PUT(req) {
     delete updateData._id;
     delete updateData.createdAt;
     delete updateData.updatedAt;
-
-    const userHeader = req.headers.get("x-user");
-    let user = null;
-    try {
-      user = userHeader ? JSON.parse(userHeader) : null;
-    } catch (parseError) {
-      console.warn("Failed to parse x-user header in PUT:", parseError.message);
-    }
-    const activeRole = req.cookies.get("active-role")?.value;
-    const isCollegeAdmin = activeRole === "College Admin";
 
     const query = { _id: { $in: ids } };
     if (isCollegeAdmin && updateData.accountType !== "Org") {
@@ -247,6 +248,11 @@ export async function PUT(req) {
 
 export async function DELETE(req) {
   try {
+    const { user, hasFinanceRole, isCollegeAdmin } = getAuthContext(req);
+    if (!user || !hasFinanceRole) {
+      return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
+    }
+
     await connectToDB();
     const body = await req.json();
     const { ids } = body;
@@ -257,16 +263,6 @@ export async function DELETE(req) {
         { status: 400 }
       );
     }
-
-    const userHeader = req.headers.get("x-user");
-    let user = null;
-    try {
-      user = userHeader ? JSON.parse(userHeader) : null;
-    } catch (parseError) {
-      console.warn("Failed to parse x-user header in DELETE:", parseError.message);
-    }
-    const activeRole = req.cookies.get("active-role")?.value;
-    const isCollegeAdmin = activeRole === "College Admin";
 
     const query = { _id: { $in: ids } };
     if (isCollegeAdmin) {

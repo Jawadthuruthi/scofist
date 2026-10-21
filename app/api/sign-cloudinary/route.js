@@ -5,7 +5,19 @@ import { apiResponse } from "@/lib/apiResponse";
 
 export async function POST(req) {
     try {
-        const activeRole = req.headers.get("active-role");
+        // ✅ FIX #3: Re-enabled auth — check x-user injected by middleware after JWT verification.
+        // Using x-user (server-injected) instead of active-role header (client-spoofable).
+        const xUser = req.headers.get("x-user");
+        if (!xUser) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        }
+
+        const user = JSON.parse(xUser);
+        const allowedRoles = ["College Admin", "Program Committee", "Org Admin", "Teacher", "Spark Admin"];
+        const hasPermission = user?.roles?.some((r) => allowedRoles.includes(r));
+        if (!hasPermission) {
+            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+        }
 
         // Explicitly configure Cloudinary here to ensure env vars are picked up
         cloudinary.config({
@@ -14,22 +26,19 @@ export async function POST(req) {
             api_secret: process.env.CLOUDINARY_API_SECRET,
         });
 
-        // Allow "College Admin" OR if the folder is "applications" (public submission)
-        // Ideally we should secure public submission differently, but for now we'll check the body/folder logic or just allow if header is set?
-        // In ApplicationForm.jsx, I set header "active-role": "College Admin".
-        // This is a client-side hack. Use it for now to restore functionality.
-
-        // if (activeRole !== "College Admin") {
-        //    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
-        // }
-
         const body = await req.json();
         const { folder = "downloads" } = body;
 
-        // Security check: Only allow specific folders
-        const allowedFolders = ["downloads", "applications", "profiles"];
-        if (!allowedFolders.includes(folder)) {
-            return NextResponse.json({ message: "Invalid folder" }, { status: 400 });
+        // Security check: Only allow specific folders based on role
+        const folderPermissions = {
+            downloads: ["College Admin", "Program Committee", "Org Admin", "Spark Admin"],
+            applications: ["College Admin", "Org Admin"],
+            profiles: ["College Admin", "Org Admin", "Teacher"],
+        };
+
+        const permittedRolesForFolder = folderPermissions[folder];
+        if (!permittedRolesForFolder || !user?.roles?.some((r) => permittedRolesForFolder.includes(r))) {
+            return NextResponse.json({ message: "Forbidden: Not allowed to upload to this folder" }, { status: 403 });
         }
 
         const timestamp = Math.round(new Date().getTime() / 1000);

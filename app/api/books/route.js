@@ -30,11 +30,21 @@ export async function GET(req, res) {
   }
 }
 
+function isAuthorizedCollegeAdmin(req) {
+  const xUser = req.headers.get("x-user");
+  if (!xUser) return false;
+  try {
+    const user = JSON.parse(xUser);
+    return Boolean(user?.roles?.includes("College Admin"));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req, res) {
   try {
-    const activeRole = req.headers.get("active-role");
-    if (activeRole !== "College Admin") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    if (!isAuthorizedCollegeAdmin(req)) {
+      return NextResponse.json({ message: "Unauthorized: College Admin role required" }, { status: 403 });
     }
 
     await connectToDB();
@@ -54,9 +64,8 @@ export async function POST(req, res) {
 
 export async function PUT(req) {
   try {
-    const activeRole = req.headers.get("active-role");
-    if (activeRole !== "College Admin") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    if (!isAuthorizedCollegeAdmin(req)) {
+      return NextResponse.json({ message: "Unauthorized: College Admin role required" }, { status: 403 });
     }
 
     await connectToDB();
@@ -93,9 +102,8 @@ export async function PUT(req) {
 
 export async function DELETE(req) {
   try {
-    const activeRole = req.headers.get("active-role");
-    if (activeRole !== "College Admin") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    if (!isAuthorizedCollegeAdmin(req)) {
+      return NextResponse.json({ message: "Unauthorized: College Admin role required" }, { status: 403 });
     }
 
     await connectToDB();

@@ -632,7 +632,9 @@ async function handleLoginPageRequest(req) {
     let destinationUrl;
     let targetActiveRole;
 
-    if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) {
+    // ✅ FIX #5: Strict regex — only allow safe internal paths (no protocol-relative URLs)
+    const SAFE_REDIRECT_PATTERN = /^\/[a-zA-Z0-9\-/_?=&]*$/;
+    if (redirectParam && SAFE_REDIRECT_PATTERN.test(redirectParam)) {
       destinationUrl = redirectParam;
       if (redirectParam.startsWith("/dashboard/my-periods") && isTeacher) {
         targetActiveRole = "Teacher";
@@ -684,13 +686,23 @@ async function handleLoginPageRequest(req) {
 }
 
 async function handleApiRequest(req) {
+  // ✅ HARDENING: Strip any client-sent x-user or active-role headers so they cannot be spoofed.
+  // The server is the only authority that sets these headers after cryptographic JWT verification.
+  const strippedHeaders = new Headers(req.headers);
+  strippedHeaders.delete("x-user");
+  strippedHeaders.delete("active-role");
+
   if (
-    req.nextUrl.pathname === "/api/upload" ||
-    req.nextUrl.pathname === "/api/upload/" ||
-    req.nextUrl.pathname === "/api/sign-cloudinary" ||
-    req.nextUrl.pathname === "/api/gallery/upload" ||
+    // ✅ FIX #2 continued: /api/upload and /api/gallery/upload removed from bypass
+    // — they now go through JWT verification so middleware injects x-user correctly.
+    // ✅ FIX #3: /api/sign-cloudinary removed — it now enforces its own auth
     req.nextUrl.pathname.startsWith("/api/og/")
-  ) return NextResponse.next();
+  ) {
+    // For truly public routes (og image generation), still strip x-user and active-role
+    return NextResponse.next({
+      request: { headers: strippedHeaders },
+    });
+  }
 
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key") || req.headers.get("x-api-key");
@@ -714,16 +726,22 @@ async function handleApiRequest(req) {
   ];
 
   if (req.method === "GET" && publicGet.includes(url.pathname)) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: strippedHeaders },
+    });
   }
 
   const authHeader = req.headers.get("authorization");
   if (cronSecret === process.env.CRON_SECRET || authHeader === `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: strippedHeaders },
+    });
   }
 
   if (req.nextUrl.pathname.includes("/api/auth")) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: strippedHeaders },
+    });
   }
 
   // Allow authenticated users (with valid JWT) to access API without API key
@@ -731,15 +749,23 @@ async function handleApiRequest(req) {
     try {
       const { payload } = await jwtVerify(authToken, SECRET_KEY);
 
+      const userRoles = Array.isArray(payload.roles) && payload.roles.length > 0 ? payload.roles : ["User"];
       const user = {
         _id: payload.userId,
-        roles: payload.roles || ["User"],
+        roles: userRoles,
         name: payload.name || "User",
         userId: payload.userId,
       };
 
-      const requestHeaders = new Headers(req.headers);
+      const requestHeaders = new Headers(strippedHeaders);
       requestHeaders.set("x-user", JSON.stringify(user));
+
+      // ✅ Validate active-role: only allow a role that actually belongs to the verified user's roles
+      const clientActiveRole = req.headers.get("active-role") || req.cookies.get("active-role")?.value;
+      const verifiedActiveRole = (clientActiveRole && userRoles.includes(clientActiveRole))
+        ? clientActiveRole
+        : userRoles[0];
+      requestHeaders.set("active-role", verifiedActiveRole);
       
       const res = NextResponse.next({
         request: {
@@ -761,11 +787,16 @@ async function handleApiRequest(req) {
     );
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: { headers: strippedHeaders },
+  });
 }
 
 async function handleAuthRequest(req, event) {
-  const isE2ETest = req.headers.get("x-e2e-test") === "true";
+  // ✅ FIX #1: E2E bypass ONLY allowed in non-production environments
+  const isE2ETest =
+    process.env.NODE_ENV !== "production" &&
+    req.headers.get("x-e2e-test") === "true";
 
   if (isE2ETest) {
     const activeRole = req.headers.get("active-role") || "College Admin";
@@ -1074,7 +1105,8 @@ function prepareResponse(req, token, user, newProfileToken = null) {
   // Set headers safely with try/catch
   try {
     res.headers.set("x-user", JSON.stringify(safeUser));
-    res.headers.set("x-auth-token", token);
+    // ✅ FIX #4: Removed x-auth-token header — JWT is already secure in httpOnly cookie.
+    // Sending it in a response header unnecessarily exposes it to page-level scripts.
   } catch (error) {
     console.error("Error setting headers:", error.message);
   }

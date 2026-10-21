@@ -7,7 +7,9 @@ export default async function SyllabusPage() {
   const cookieStore = cookies();
   const activeRole = cookieStore.get("active-role")?.value;
   const headersList = headers();
-  const isE2ETest = headersList.get("x-e2e-test") === "true";
+  const isE2ETest =
+    process.env.NODE_ENV !== "production" &&
+    headersList.get("x-e2e-test") === "true";
   const apiKey = process.env.API_KEY;
 
   let syllabuses = [];
