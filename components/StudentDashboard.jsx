@@ -873,6 +873,65 @@ export default function StudentDashboard({
     return renderCourseDisplay(list);
   }, [currentUser]);
 
+  const headerCourses = useMemo(() => {
+    const rawIslamic =
+      currentUser?.studentSpecificField?.islamicCourses ||
+      currentUser?.islamicCourses ||
+      [];
+    const rawAcademic =
+      currentUser?.studentSpecificField?.academicCourses ||
+      currentUser?.academicCourses ||
+      [];
+
+    const extractCourses = (list, type) => {
+      if (!Array.isArray(list)) return [];
+      let target = list.filter(
+        (c) =>
+          c &&
+          (!c.status || String(c.status).trim().toLowerCase() === "ongoing") &&
+          c.courseName?.trim()
+      );
+      if (target.length === 0) {
+        target = list.filter((c) => c && c.courseName?.trim());
+      }
+      return target.map((c) => ({ ...c, courseType: type }));
+    };
+
+    const combined = [
+      ...extractCourses(rawIslamic, "Islamic"),
+      ...extractCourses(rawAcademic, "Academic"),
+    ];
+
+    return combined.map((c) => {
+      const status = c.status || "Ongoing";
+      const yearStr = c.year
+        ? String(c.year).toLowerCase().startsWith("year")
+          ? String(c.year).trim()
+          : `Year ${String(c.year).trim()}`
+        : null;
+      const subInfo = [c.universityBoard?.trim() || null, yearStr]
+        .filter(Boolean)
+        .join(" • ");
+
+      const statusBadgeClass =
+        status === "Completed"
+          ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+          : status === "Pending"
+          ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
+          : status === "Dropped"
+          ? "bg-red-500/20 text-red-300 border-red-400/30"
+          : "bg-blue-400/20 text-blue-200 border-blue-400/30";
+
+      return {
+        ...c,
+        status,
+        yearStr,
+        subInfo,
+        statusBadgeClass,
+      };
+    });
+  }, [currentUser]);
+
   useEffect(() => {
     const fetchFunds = async () => {
       setFundsLoading(true);
@@ -1497,112 +1556,145 @@ export default function StudentDashboard({
         }
       `}</style>
 
-      <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="space-y-6 w-full">
         <PrintHeader title="STUDENT PROFILE" apiKey={apiKey} displayOnScreen={false} />
 
       {/* Premium Header */}
-      <div className="no-print relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 p-8 text-white shadow-xl mb-6">
+      <div className="no-print relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 p-6 sm:p-8 text-white shadow-xl mb-6">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left w-full md:w-auto">
-            {/* Mobile Header: Photo and Card side by side */}
-            <div className="flex flex-row items-center justify-between w-full md:w-auto gap-4">
-              <Avatar className="h-24 w-24 rounded-2xl border-4 border-white/20 shadow-2xl ring-4 ring-blue-500/20">
-                <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
-                <AvatarFallback className="bg-white/10 text-2xl font-bold backdrop-blur-md">
-                  {currentUser?.name?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              
-              {/* Status Badge for Mobile View */}
-              <div className="md:hidden flex flex-col items-end gap-2">
-                {currentUser?.studentSpecificField?.status && (
-                  <div className={cn(
-                    "px-3 py-1.5 rounded-xl border font-bold text-[10px] uppercase tracking-wider backdrop-blur-md shadow-lg flex items-center gap-1.5",
-                    currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
-                    currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
-                    currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
-                    "bg-slate-500/20 text-slate-400 border-slate-500/30"
-                  )}>
+            {/* Mobile & Desktop Header: Photo and Info side by side */}
+            <div className="flex flex-row items-start sm:items-center justify-between w-full md:w-auto gap-3 sm:gap-4">
+              <div className="flex flex-row items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                {/* Photo with Status directly underneath */}
+                <div className="flex flex-col items-center gap-1.5 shrink-0">
+                  <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-2xl border-2 sm:border-4 border-white/20 shadow-2xl ring-2 sm:ring-4 ring-blue-500/20 shrink-0">
+                    <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
+                    <AvatarFallback className="bg-white/10 text-xl sm:text-2xl font-bold backdrop-blur-md">
+                      {currentUser?.name?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* Status Badge directly under photo */}
+                  {currentUser?.studentSpecificField?.status && (
                     <div className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse" :
-                      currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400" :
-                      currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400" :
-                      "bg-slate-400"
-                    )} />
-                    {currentUser.studentSpecificField.status}
+                      "px-2 sm:px-2.5 py-0.5 rounded-lg border font-bold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider backdrop-blur-md shadow-sm flex items-center justify-center gap-1 sm:gap-1.5 text-center whitespace-nowrap",
+                      currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                      currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                      currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
+                      "bg-slate-500/20 text-slate-400 border-slate-500/30"
+                    )}>
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-1 ring-green-400/20" :
+                        currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-1 ring-red-400/20" :
+                        currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-1 ring-blue-400/20" :
+                        "bg-slate-400"
+                      )} />
+                      {currentUser.studentSpecificField.status}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Section next to Photo */}
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="flex flex-row md:flex-col items-baseline md:items-start gap-1.5 md:gap-0 mb-1 flex-wrap">
+                    <span className="text-blue-200 text-xs sm:text-sm font-medium tracking-wider uppercase md:mb-1 shrink-0">
+                      Welcome,
+                    </span>
+                    <h2 className="text-base sm:text-2xl md:text-4xl font-extrabold tracking-tight drop-shadow-md break-words">
+                      {currentUser?.name}
+                    </h2>
                   </div>
-                )}
-                {!hideHeader && (
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-blue-100/80 text-xs sm:text-sm">
+                    <span className="bg-white/10 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium backdrop-blur-sm border border-white/10 uppercase shrink-0">
+                      {currentUser?._id}
+                    </span>
+                    {currentUser?.studentSpecificField?.status === "Active" ? (
+                      <span className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
+                        {className || "No Class"} | {batchName || "No Batch"}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" />
+                        {batchName || "No Batch"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Edit Profile for Mobile View */}
+              {!hideHeader && (
+                <div className="md:hidden flex flex-col items-end shrink-0 self-start">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="mt-2 bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                    className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-1 h-7 px-2.5 text-[10px] font-bold uppercase tracking-wider transition-all"
                     onClick={() => setIsEditModalOpen(true)}
                   >
-                    <Edit2 className="h-3.5 w-3.5" />
-                    Edit Profile
+                    <Edit2 className="h-3 w-3" />
+                    Edit
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
-            {/* Info Section */}
-            <div>
-              <p className="text-blue-200 text-sm font-medium tracking-wider uppercase mb-1">Welcome,</p>
-              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 drop-shadow-md">
-                {currentUser?.name}
-              </h2>
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-blue-100/80">
-                <span className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm border border-white/10 uppercase">
-                  {currentUser?._id}
-                </span>
-                {currentUser?.studentSpecificField?.status === "Active" ? (
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-                    {className || "No Class"} | {batchName || "No Batch"}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                    {batchName || "No Batch"}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Status Badge for Desktop View */}
-          <div className="hidden md:flex flex-col items-end gap-2 min-w-[140px]">
-            {currentUser?.studentSpecificField?.status && (
-              <div className={cn(
-                "w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md shadow-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105",
-                currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
-                currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
-                currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
-                "bg-slate-500/20 text-slate-400 border-slate-500/30"
-              )}>
-                <div className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-2 ring-green-400/20" :
-                  currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-2 ring-red-400/20" :
-                  currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-2 ring-blue-400/20" :
-                  "bg-slate-400"
-                )} />
-                {currentUser.studentSpecificField.status}
+            {/* Mobile Courses Section: under name and photo in mobile view */}
+            {headerCourses && headerCourses.length > 0 && (
+              <div className="md:hidden flex flex-col gap-2 w-full mt-3 text-left">
+                {headerCourses.map((c, idx) => (
+                  <div 
+                    key={idx} 
+                    className="bg-white/10 backdrop-blur-md border border-white/15 rounded-xl p-3 shadow-sm w-full"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-white text-sm tracking-tight truncate">
+                        {c.courseName}
+                      </span>
+                      <span className={cn(
+                        "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border leading-none shrink-0 inline-flex items-center gap-1",
+                        c.statusBadgeClass
+                      )}>
+                        <span className={cn(
+                          "w-1 h-1 rounded-full",
+                          c.status === "Completed" ? "bg-emerald-400" :
+                          c.status === "Dropped" ? "bg-red-400" :
+                          "bg-blue-400 animate-pulse"
+                        )} />
+                        {c.status}
+                      </span>
+                    </div>
+                    {c.subInfo && (
+                      <div className="text-xs text-blue-200/90 mt-1 font-medium leading-tight">
+                        {c.subInfo}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
+          </div>
+
+          {/* Desktop Right Side: Edit Profile & Courses */}
+          <div className="hidden md:flex flex-col items-end gap-2.5 min-w-[240px] max-w-sm shrink-0">
             {!hideHeader && (
-              <div className="flex flex-col items-end gap-2 w-full">
+              <div className="flex items-center gap-2 justify-end w-full flex-wrap">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                  className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
                   onClick={() => setIsEditModalOpen(true)}
                 >
                   <Edit2 className="h-3.5 w-3.5" />
                   Edit Profile
                 </Button>
+              </div>
+            )}
+
+            {!hideHeader && (
+              <div className="flex flex-col items-end gap-2 w-full">
                 {currentUser?.profileUpdateStatus === "Pending" && (
                   <div className="flex flex-col items-center w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md bg-blue-500/10 text-blue-300 border-blue-500/20 animate-pulse">
                     <div className="flex items-center gap-2">
@@ -1636,6 +1728,41 @@ export default function StudentDashboard({
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Courses shown in the right side of blue color tag in desktop view */}
+            {headerCourses && headerCourses.length > 0 && (
+              <div className="flex flex-col gap-2 w-full mt-1">
+                {headerCourses.map((c, idx) => (
+                  <div 
+                    key={idx} 
+                    className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-xl px-3.5 py-2 transition-all shadow-sm text-left w-full"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-bold text-white text-xs sm:text-sm tracking-tight truncate">
+                        {c.courseName}
+                      </span>
+                      <span className={cn(
+                        "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border leading-none shrink-0 inline-flex items-center gap-1",
+                        c.statusBadgeClass
+                      )}>
+                        <span className={cn(
+                          "w-1 h-1 rounded-full",
+                          c.status === "Completed" ? "bg-emerald-400" :
+                          c.status === "Dropped" ? "bg-red-400" :
+                          "bg-blue-400 animate-pulse"
+                        )} />
+                        {c.status}
+                      </span>
+                    </div>
+                    {c.subInfo && (
+                      <div className="text-[11px] text-blue-200/90 mt-0.5 font-medium leading-tight">
+                        {c.subInfo}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

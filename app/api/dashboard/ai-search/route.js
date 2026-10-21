@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
 import Class from "@/models/Class";
@@ -1132,23 +1133,31 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
   // 2. Specific Student Lookup by Admission Number / ID / Name
   let studentQuery = null;
   if (extractedNumbers.length > 0) {
+    const studentOr = [
+      { "studentSpecificField.admissionNumber": { $in: extractedNumbers } },
+      { contactNumber: { $in: extractedNumbers } },
+    ];
+    const validIds = extractedNumbers.filter((n) => mongoose.Types.ObjectId.isValid(n));
+    if (validIds.length > 0) {
+      studentOr.push({ _id: { $in: validIds } });
+    }
     studentQuery = {
       roles: "Student",
-      $or: [
-        { _id: { $in: extractedNumbers } },
-        { "studentSpecificField.admissionNumber": { $in: extractedNumbers } },
-      ],
+      $or: studentOr,
     };
   } else if (kwRegex) {
+    const studentOr = [
+      { name: kwRegex },
+      { contactNumber: kwRegex },
+      { email: kwRegex },
+      { "studentSpecificField.admissionNumber": kwRegex },
+    ];
+    if (searchKeyword && mongoose.Types.ObjectId.isValid(searchKeyword)) {
+      studentOr.push({ _id: searchKeyword });
+    }
     studentQuery = {
       roles: "Student",
-      $or: [
-        { name: kwRegex },
-        { _id: kwRegex },
-        { contactNumber: kwRegex },
-        { email: kwRegex },
-        { "studentSpecificField.admissionNumber": kwRegex },
-      ],
+      $or: studentOr,
     };
   }
 
@@ -1713,6 +1722,173 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
   };
 }
 
+/**
+ * Synthesize direct database answer from live verified records.
+ * Used when no single static handler matched, guaranteeing accurate, grounded answers
+ * with zero tips, zero disclaimers, and zero unsupported search messages.
+ */
+async function synthesizeDatabaseAnswer(rawQuery, intent, institution) {
+  const { contextText, sources, stats } = await fetchGroundedContext(rawQuery, intent, institution);
+  const q = rawQuery.toLowerCase().trim();
+  const { targetYear } = intent;
+
+  // 1. If individual student profile blocks were found:
+  const studentProfiles = contextText.match(/\[STUDENT PROFILE:[\s\S]*?(?=\n\n\[|$)/g);
+  if (studentProfiles && studentProfiles.length > 0) {
+    const lines = [`### 🎓 Student Profile Report`];
+    studentProfiles.forEach((block) => {
+      let cleaned = block
+        .replace(/^\[STUDENT PROFILE:\s*/, "#### 👤 ")
+        .replace(/\]:?/, "");
+
+      // Format marks JSON if present
+      cleaned = cleaned.replace(/- Exam Marks: (\[.*?\])/, (match, jsonStr) => {
+        try {
+          const marks = JSON.parse(jsonStr);
+          if (!marks || marks.length === 0) return "- Exam Marks: No exam marks recorded";
+          const markItems = marks
+            .map(
+              (m) =>
+                `  - **${m.exam || "Exam"}**: ${m.marks !== undefined ? `**${m.marks}** marks` : "N/A"}${
+                  m.remark ? ` (${m.remark})` : ""
+                }`
+            )
+            .join("\n");
+          return `- Exam Marks:\n${markItems}`;
+        } catch {
+          return match;
+        }
+      });
+
+      lines.push(cleaned);
+    });
+    lines.push(`\n🔗 **Direct Link:** [👉 Open Students Portal](/dashboard/students)`);
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 2. If teaching faculty matched:
+  const facultyBlock = contextText.match(/\[FACULTY MEMBERS[\s\S]*?(?=\n\n\[|$)/);
+  if (facultyBlock) {
+    const lines = [
+      `### 👨‍🏫 Teaching Faculty`,
+      facultyBlock[0].replace(/\[FACULTY MEMBERS.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Faculty Portal](/dashboard/teachers)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 3. If library books matched:
+  const booksBlock = contextText.match(/\[LIBRARY BOOKS CATALOG[\s\S]*?(?=\n\n\[|$)/);
+  if (booksBlock) {
+    const lines = [
+      `### 📚 Library Catalog Search`,
+      booksBlock[0].replace(/\[LIBRARY BOOKS CATALOG.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Library Dashboard](/library-dashboard)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 4. If calendar events matched:
+  const calBlock = contextText.match(/\[ACADEMIC CALENDAR[\s\S]*?(?=\n\n\[|$)/);
+  if (calBlock) {
+    const lines = [
+      `### 📅 Academic Calendar & Events`,
+      calBlock[0].replace(/\[ACADEMIC CALENDAR.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Academic Calendar](/dashboard/academic-calendar)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 5. If remarks matched:
+  const remarksBlock = contextText.match(/\[STUDENT REMARKS[\s\S]*?(?=\n\n\[|$)/);
+  if (remarksBlock) {
+    const lines = [
+      `### 💬 Student Remarks & Conduct Records`,
+      remarksBlock[0].replace(/\[STUDENT REMARKS.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Remarks Portal](/dashboard/remarks)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 6. If fee debtors / accounts matched:
+  const debtorsBlock = contextText.match(/\[ACCOUNTS & DEBTORS[\s\S]*?(?=\n\n\[|$)/);
+  if (debtorsBlock) {
+    const lines = [
+      `### 💰 Fee Accounts & Debtors Summary`,
+      debtorsBlock[0].replace(/\[ACCOUNTS & DEBTORS.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Debtors Portal](/dashboard/debtors)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 7. If active leaves matched:
+  const leavesBlock = contextText.match(/\[ACTIVE ABSENTEES[\s\S]*?(?=\n\n\[|$)/);
+  if (leavesBlock) {
+    const lines = [
+      `### 📋 Leave Register & Absentees`,
+      leavesBlock[0].replace(/\[ACTIVE ABSENTEES.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Leave History](/dashboard/leave-history)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 8. If classes, batches, or courses matched:
+  if (sources.classes > 0 || sources.batches > 0 || sources.courses > 0) {
+    const lines = [`### 🏛️ Academic Structure & Curriculum`];
+    const clMatch = contextText.match(/\[CLASSES & DIVISIONS[\s\S]*?(?=\n\n\[|$)/);
+    if (clMatch) lines.push(clMatch[0].replace(/\[CLASSES & DIVISIONS.*\]:\s*/, "**Active Classes:**\n"));
+    const btMatch = contextText.match(/\[BATCHES[\s\S]*?(?=\n\n\[|$)/);
+    if (btMatch) lines.push(btMatch[0].replace(/\[BATCHES.*\]:\s*/, "**Academic Batches:**\n"));
+    const crMatch = contextText.match(/\[COURSES[\s\S]*?(?=\n\n\[|$)/);
+    if (crMatch) lines.push(crMatch[0].replace(/\[COURSES.*\]:\s*/, "**Courses Offered:**\n"));
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 9. Master overview report for stats / general queries:
+  const isOverviewQuery =
+    q.includes("stats") ||
+    q.includes("how many") ||
+    q.includes("count") ||
+    q.includes("overview") ||
+    q.includes("all") ||
+    q.includes("total") ||
+    q.includes("inventory") ||
+    q.includes("summary") ||
+    q.includes("college") ||
+    q.includes("institute");
+
+  if (isOverviewQuery && stats) {
+    const lines = [
+      `### 📊 ${institution.name} — Administrative Overview`,
+      `Here is the active operational snapshot of the college database:\n`,
+      `| Metric | Active Count | Portal Link |`,
+      `| :--- | :--- | :--- |`,
+      `| **Enrolled Students** | **${stats.students}** | [👉 Open Students Portal](/dashboard/students) |`,
+      `| **Teaching Faculty** | **${stats.teachers}** | [👉 Open Faculty Portal](/dashboard/teachers) |`,
+      `| **Active Classes** | **${stats.classes}** | [👉 Open Classes Portal](/dashboard/classes) |`,
+      `| **Courses Offered** | **${stats.courses}** | [👉 Open Courses Portal](/dashboard/students-courses) |`,
+      `| **Library Catalog** | **${stats.books}** | [👉 Open Library Dashboard](/library-dashboard) |\n`,
+      `---\nℹ️ *Live statistics directly from ${institution.name} verified database.*`,
+    ];
+    return { answer: lines.join("\n"), sources: { stats: 1, ...stats } };
+  }
+
+  // 10. Default clean response when no specific record matched:
+  return {
+    answer:
+      `### 🔍 Search Result\n` +
+      `No records matching **"${rawQuery}"**${targetYear ? ` for year ${targetYear}` : ""} were found in the college database.\n\n` +
+      `You can browse records directly via the college portals:\n` +
+      `- [👉 Students Directory](/dashboard/students) — Browse all enrolled students\n` +
+      `- [👉 Teaching Faculty](/dashboard/teachers) — View faculty staff & contacts\n` +
+      `- [👉 Student Attendance](/dashboard/attendances) — Check daily & period attendance\n` +
+      `- [👉 Exam Marks](/dashboard/marks) — Search exam scorecards & grades\n` +
+      `- [👉 Library Catalog](/library-dashboard) — Search library books & availability\n` +
+      `- [👉 Fee Accounts](/dashboard/debtors) — Check student accounts & pending dues`,
+    sources: {},
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN API POST HANDLER
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1742,11 +1918,17 @@ export async function POST(req) {
       tagline: "Scofist Educational Management",
     };
 
+    const geminiKey =
+      process.env.GEMINI_API_KEY ||
+      settingsDoc?.geminiApiKey ||
+      settingsDoc?.aiSettings?.geminiApiKey;
+    const geminiActive = isGeminiConfigured(geminiKey);
+
     // ─────────────────────────────────────────────────────────────────────────
     // GEMINI AI GROUNDED SEARCH ENGINE (PRIMARY)
     // Runs when GEMINI_API_KEY is configured
     // ─────────────────────────────────────────────────────────────────────────
-    if (isGeminiConfigured()) {
+    if (geminiActive) {
       try {
         const { contextText, sources, stats } = await fetchGroundedContext(
           rawQuery,
@@ -1764,33 +1946,36 @@ export async function POST(req) {
           `4. Format responses cleanly in GitHub-flavored Markdown with clear headings (###), bold key figures, and interactive markdown tables for listings, standings, or inventories.\n` +
           `5. When referring to dashboard pages or modules (e.g. remarks, students, faculty, library), always provide the direct clickable link in markdown format (e.g. [👉 Open Remarks Portal](/dashboard/remarks)).\n` +
           `6. If a specific student, teacher, or record was searched but not found in the database, explicitly state that no record was found for that query in the active database, mention the total counts (e.g. ${stats.students} enrolled students, ${stats.teachers} faculty), and provide helpful guidance.\n` +
-          `7. Maintain a polite, professional, and administrative tone at all times.`;
+          `7. Maintain a polite, professional, and administrative tone at all times.\n` +
+          `8. NEVER output tips on adding API keys, suggestions about environment variables or .env files, or lists of supported search commands. Deliver only direct, clean answers.`;
 
         const userPrompt =
           `USER INQUIRY: "${rawQuery}"\n\n` +
           `=== LIVE DATABASE RECORDS FROM SCOFIST ===\n` +
           contextText +
           `\n=== END OF DATABASE RECORDS ===\n\n` +
-          `Based strictly on the verified Scofist database records above, please answer the user's inquiry:`;
+          `Based strictly on the verified Scofist database records above, please answer the user's inquiry directly and accurately:`;
 
         const { text, model } = await generateGeminiContent({
           prompt: userPrompt,
           systemInstruction,
           institution,
           stats,
+          apiKey: geminiKey,
         });
 
-        return NextResponse.json({
-          success: true,
-          query: rawQuery,
-          answer: text,
-          isAiGenerated: true,
-          model,
-          sources: { gemini: 1, ...sources },
-        });
+        if (text && text.trim()) {
+          return NextResponse.json({
+            success: true,
+            query: rawQuery,
+            answer: text,
+            isAiGenerated: true,
+            model,
+            sources: { gemini: 1, ...sources },
+          });
+        }
       } catch (geminiError) {
-        console.error("Gemini Grounded Search Error, falling back to static routes:", geminiError);
-        req._geminiError = geminiError?.message;
+        console.error("Gemini Grounded Search Error, seamlessly falling back to database answers:", geminiError);
       }
     }
 
@@ -1983,12 +2168,16 @@ export async function POST(req) {
     if (targetSection === "teachers") {
       const teacherFilter = { roles: "Teacher" };
       if (kwRegex) {
-        teacherFilter.$or = [
+        const teacherOr = [
           { name: kwRegex },
-          { _id: kwRegex },
           { email: kwRegex },
+          { contactNumber: kwRegex },
           { "address.place": kwRegex },
         ];
+        if (searchKeyword && mongoose.Types.ObjectId.isValid(searchKeyword)) {
+          teacherOr.push({ _id: searchKeyword });
+        }
+        teacherFilter.$or = teacherOr;
       }
       let teachers = await User.find(teacherFilter)
         .select("name contactNumber email address teacherSpecificField _id roles")
@@ -2366,7 +2555,15 @@ export async function POST(req) {
         ];
       }
       if (kwRegex) {
-        regFilter.$or = [{ name: kwRegex }, { _id: kwRegex }];
+        const regOr = [
+          { name: kwRegex },
+          { "studentSpecificField.admissionNumber": kwRegex },
+          { contactNumber: kwRegex },
+        ];
+        if (searchKeyword && mongoose.Types.ObjectId.isValid(searchKeyword)) {
+          regOr.push({ _id: searchKeyword });
+        }
+        regFilter.$or = regOr;
       }
       const students = await User.find(regFilter)
         .select("name createdAt dateOfBirth address studentSpecificField _id")
@@ -2497,13 +2694,16 @@ export async function POST(req) {
     let student = null;
 
     if (extractedNumbers.length > 0) {
-      const idConditions = [];
-      extractedNumbers.forEach((num) => {
-        idConditions.push({ _id: num });
-        idConditions.push({ "studentSpecificField.admissionNumber": num });
-      });
+      const idConditions = [
+        { "studentSpecificField.admissionNumber": { $in: extractedNumbers } },
+        { contactNumber: { $in: extractedNumbers } },
+      ];
+      const validIds = extractedNumbers.filter((n) => mongoose.Types.ObjectId.isValid(n));
+      if (validIds.length > 0) {
+        idConditions.push({ _id: { $in: validIds } });
+      }
 
-      student = await User.findOne({ $or: idConditions })
+      student = await User.findOne({ roles: "Student", $or: idConditions })
         .select(
           "name email contactNumber alternativeNumber address roles studentSpecificField _id classId batchId dateOfBirth createdAt"
         )
@@ -2512,9 +2712,19 @@ export async function POST(req) {
     }
 
     if (!student && kwRegex) {
+      const nameConditions = [
+        { name: kwRegex },
+        { "studentSpecificField.admissionNumber": kwRegex },
+        { contactNumber: kwRegex },
+        { email: kwRegex },
+      ];
+      if (searchKeyword && mongoose.Types.ObjectId.isValid(searchKeyword)) {
+        nameConditions.push({ _id: searchKeyword });
+      }
+
       student = await User.findOne({
         roles: "Student",
-        $or: [{ name: kwRegex }, { _id: kwRegex }],
+        $or: nameConditions,
       })
         .select(
           "name email contactNumber alternativeNumber address roles studentSpecificField _id classId batchId dateOfBirth createdAt"
@@ -2866,7 +3076,15 @@ export async function POST(req) {
         ];
       }
       if (kwRegex) {
-        sFilter.$or = [{ name: kwRegex }, { _id: kwRegex }];
+        const studentOr = [
+          { name: kwRegex },
+          { "studentSpecificField.admissionNumber": kwRegex },
+          { contactNumber: kwRegex },
+        ];
+        if (searchKeyword && mongoose.Types.ObjectId.isValid(searchKeyword)) {
+          studentOr.push({ _id: searchKeyword });
+        }
+        sFilter.$or = studentOr;
       }
       const students = await User.find(sFilter)
         .select("name studentSpecificField _id contactNumber")
@@ -2896,88 +3114,22 @@ export async function POST(req) {
           sources: { students: students.length },
         });
       }
-      // If 0 students found in database, fall through directly to Gemini AI!
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // GEMINI AI INTEGRATION & FALLBACK
+    // SYNTHESIZED DATABASE FALLBACK (When no direct static section matched)
+    // Always provides correct answers directly from active database records
+    // with zero tips, zero disclaimers, and zero unsupported search messages.
     // ─────────────────────────────────────────────────────────────────────────
-    const notFoundAnswer =
-      `### 🔍 No Specific Record Found\n` +
-      `No record matched your inquiry: **"${rawQuery}"**${targetYear ? ` for year ${targetYear}` : ""}.\n\n` +
-      `💡 **Tip:** Add your Gemini API key to \`.env.local\` as \`GEMINI_API_KEY="your_api_key"\` to enable smart AI responses for open-ended inquiries.\n\n` +
-      `**Supported Direct Search Types:**\n` +
-      `- **Attendance:** \`attendance of student 970\` or \`attendance of 970 in 2025\`\n` +
-      `- **Marks:** \`marks of student 970\` or \`exam marks of 970 in 2024\`\n` +
-      `- **Remarks:** \`remarks of student 970\`\n` +
-      `- **Contacts:** \`contact of student 970\` or \`phone of 970\`\n` +
-      `- **Kinship:** \`kinship details of 970\` or \`family of 970\`\n` +
-      `- **Accounts:** \`accounts of student 970\` or \`fees of 970 in 2026\`\n` +
-      `- **Leave Register:** \`leave register of 970\` or \`leaves in 2025\`\n` +
-      `- **Gate Pass:** \`gate pass of 970\` or \`gate pass in 2026\`\n` +
-      `- **Hifz & Doura:** \`hifz of 970\` or \`hifz and doura in 2026\`\n` +
-      `- **Performance:** \`performance of 970\`\n` +
-      `- **Clearance Certificate:** \`clearance certificate for 970\`\n` +
-      `- **Students Certificate:** \`student certificate for 970\`\n` +
-      `- **Identity Card:** \`identity card of 970\`\n` +
-      `- **Admission Register:** \`admission register 2025\`\n` +
-      `- **Question Papers:** \`question papers 2025\`\n` +
-      `- **Syllabus:** \`syllabus for 2025\`\n` +
-      `- **Academic Calendar:** \`academic calendar 2026\`\n` +
-      `- **Teachers:** \`list all teachers\`\n` +
-      `- **Batches / Classes / Subjects / Periods:** \`batches 2024\`, \`classes\`, \`subjects\`, \`periods\``;
-
-    if (isGeminiConfigured()) {
-      try {
-        const [studentCount, teacherCount, classCount, courseCount, bookCount] =
-          await Promise.all([
-            User.countDocuments({ roles: "Student" }).catch(() => 0),
-            User.countDocuments({ roles: "Teacher" }).catch(() => 0),
-            Class.countDocuments().catch(() => 0),
-            Course.countDocuments().catch(() => 0),
-            LibraryBook.countDocuments().catch(() => 0),
-          ]);
-
-        const stats = {
-          students: studentCount,
-          teachers: teacherCount,
-          classes: classCount,
-          courses: courseCount,
-          books: bookCount,
-        };
-
-        const { text, model } = await generateGeminiContent({
-          prompt: rawQuery,
-          institution,
-          stats,
-        });
-
-        return NextResponse.json({
-          success: true,
-          query: rawQuery,
-          answer: text,
-          isAiGenerated: true,
-          model,
-          sources: { gemini: 1, ...stats },
-        });
-      } catch (geminiError) {
-        console.error("Gemini Generation Error:", geminiError);
-        return NextResponse.json({
-          success: true,
-          query: rawQuery,
-          answer: `### ⚠️ Gemini AI Notice\nCould not generate AI response: ${geminiError.message}\n\n` + notFoundAnswer,
-          isAiGenerated: false,
-          sources: {},
-        });
-      }
-    }
+    const { answer: synthesizedAnswer, sources: synthesizedSources } =
+      await synthesizeDatabaseAnswer(rawQuery, intent, institution);
 
     return NextResponse.json({
       success: true,
       query: rawQuery,
-      answer: notFoundAnswer,
+      answer: synthesizedAnswer,
       isAiGenerated: false,
-      sources: {},
+      sources: synthesizedSources,
     });
   } catch (error) {
     console.error("AI Search API Error:", error);
