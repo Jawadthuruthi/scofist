@@ -116,7 +116,8 @@ export default function CoursesDashboardCard({
 
     const getOrInitCourse = (name, type, defaultBoard = "") => {
       const cleanName = (name || "").trim();
-      const key = `${type.toLowerCase()}:${cleanName.toLowerCase()}`;
+      const cleanBoard = (defaultBoard || "").trim().toLowerCase();
+      const key = `${type.toLowerCase()}:${cleanName.toLowerCase()}:${cleanBoard}`;
       if (!courseMap.has(key)) {
         courseMap.set(key, {
           name: cleanName,
@@ -222,12 +223,12 @@ export default function CoursesDashboardCard({
     // Merge any missing from clientAggregatedCourses
     const map = new Map();
     sourceList.forEach((c) => {
-      const key = `${c.type.toLowerCase()}:${c.name.trim().toLowerCase()}`;
+      const key = `${c.type.toLowerCase()}:${c.name.trim().toLowerCase()}:${(c.universityBoard || "").trim().toLowerCase()}`;
       map.set(key, { ...c });
     });
 
     clientAggregatedCourses.forEach((c) => {
-      const key = `${c.type.toLowerCase()}:${c.name.trim().toLowerCase()}`;
+      const key = `${c.type.toLowerCase()}:${c.name.trim().toLowerCase()}:${(c.universityBoard || "").trim().toLowerCase()}`;
       if (!map.has(key)) {
         map.set(key, { ...c });
       } else {

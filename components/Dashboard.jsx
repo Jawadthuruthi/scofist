@@ -705,7 +705,8 @@ const StatsOverview = memo(({
 
     const getOrInitCourse = (name, type, defaultBoard = "") => {
       const cleanName = (name || "").trim();
-      const key = `${type.toLowerCase()}:${cleanName.toLowerCase()}`;
+      const cleanBoard = (defaultBoard || "").trim().toLowerCase();
+      const key = `${type.toLowerCase()}:${cleanName.toLowerCase()}:${cleanBoard}`;
       if (!courseMap.has(key)) {
         courseMap.set(key, {
           name: cleanName,
@@ -815,12 +816,12 @@ const StatsOverview = memo(({
     const sourceList = apiCourses && apiCourses.length > 0 ? apiCourses : clientAggregatedCourses;
     const map = new Map();
     sourceList.forEach((c) => {
-      const key = `${c.type.toLowerCase()}:${c.name.trim().toLowerCase()}`;
+      const key = `${c.type.toLowerCase()}:${c.name.trim().toLowerCase()}:${(c.universityBoard || "").trim().toLowerCase()}`;
       map.set(key, { ...c });
     });
 
     clientAggregatedCourses.forEach((c) => {
-      const key = `${c.type.toLowerCase()}:${c.name.trim().toLowerCase()}`;
+      const key = `${c.type.toLowerCase()}:${c.name.trim().toLowerCase()}:${(c.universityBoard || "").trim().toLowerCase()}`;
       if (!map.has(key)) {
         map.set(key, { ...c });
       } else {
@@ -1543,7 +1544,7 @@ const StatsOverview = memo(({
                   <TableBody>
                     {filteredCourses.map((course, idx) => (
                       <TableRow
-                        key={`${course.type}-${course.name}`}
+                        key={`${course.type}-${course.name}-${course.universityBoard || ""}`}
                         className="hover:bg-muted/40 transition-colors cursor-pointer group"
                         onClick={() => {
                           setSelectedCourseForModal(course);

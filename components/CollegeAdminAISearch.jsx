@@ -501,34 +501,9 @@ export default function CollegeAdminAISearch({ settings, apiKey }) {
             </div>
           </div>
 
-          {/* Quick Prompts & Gemini Status */}
-          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/30 text-xs">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-medium flex items-center gap-1 text-emerald-600 dark:text-emerald-400 mr-0.5">
-                <Sparkles className="w-3 h-3" />
-                Suggestions:
-              </span>
-              {[
-                "Everything in this database",
-                "Student remarks & conduct",
-                "Summary of today's schedule",
-                "List all teachers",
-                "Draft sports day announcement",
-                "How to track library books",
-              ].map((prompt, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSearch(prompt)}
-                  disabled={loading}
-                  className="px-2 py-0.5 rounded-full bg-muted/60 hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-300 border border-border/50 text-[11px] transition-colors cursor-pointer"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground ml-auto shrink-0">
+          {/* Gemini Status */}
+          <div className="mt-2.5 flex items-center justify-end gap-2 pt-2 border-t border-border/30 text-xs">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-medium text-emerald-600 dark:text-emerald-400">Gemini AI Active</span>
             </div>
@@ -580,7 +555,7 @@ export default function CollegeAdminAISearch({ settings, apiKey }) {
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground truncate max-w-xs sm:max-w-md">
+                <p className="text-xs text-muted-foreground line-clamp-2">
                   &ldquo;{result.query}&rdquo;
                 </p>
               </div>

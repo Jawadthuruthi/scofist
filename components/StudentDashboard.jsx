@@ -1248,7 +1248,8 @@ export default function StudentDashboard({
 
           const details = recordsForMonth.map((r, rIdx) => ({
             id: r._id || `${r.date}-${rIdx}-${r.periodNumber}`,
-            date: formatDateForDisplay(r.date),
+            date: formatDateShort(r.date) || r.date,
+            rawDate: r.date,
             present: r.present,
             subject: r.subjectName || "N/A",
             teacher: r.teacherName || "N/A",
@@ -2708,14 +2709,14 @@ export default function StudentDashboard({
             </CardHeader>
             <CardContent className="px-2 sm:px-4 pt-4 pb-6">
               <div className="max-h-[400px] overflow-auto border rounded-md w-full min-w-0">
-                <Table className="min-w-[450px] w-full">
+                <Table className="w-full">
                   <TableHeader className="bg-muted/50 sticky top-0 z-10">
                     <TableRow>
-                      <TableHead className="py-2 text-xs whitespace-nowrap">Month</TableHead>
-                      <TableHead className="py-2 text-xs whitespace-nowrap">Total</TableHead>
-                      <TableHead className="py-2 text-xs whitespace-nowrap">Present</TableHead>
-                      <TableHead className="py-2 text-xs whitespace-nowrap">Absent</TableHead>
-                      <TableHead className="py-2 text-xs text-right whitespace-nowrap">%</TableHead>
+                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Month</TableHead>
+                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Total</TableHead>
+                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Present</TableHead>
+                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Absent</TableHead>
+                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">%</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -2730,12 +2731,12 @@ export default function StudentDashboard({
                             }
                             className="cursor-pointer hover:bg-muted/50"
                           >
-                            <TableCell className="py-2 text-sm font-medium whitespace-nowrap">{row.month}</TableCell>
-                            <TableCell className="py-2 text-sm whitespace-nowrap">{row.totalPeriods}</TableCell>
-                            <TableCell className="py-2 text-sm whitespace-nowrap">{row.presentPeriods}</TableCell>
-                            <TableCell className="py-2 text-sm whitespace-nowrap">{(row.totalPeriods || 0) - (row.presentPeriods || 0)}</TableCell>
-                            <TableCell className="py-2 text-sm text-right whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${parseFloat(row.percentage) > 80 ? 'bg-green-100 text-green-700' :
+                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm font-medium whitespace-nowrap">{row.month}</TableCell>
+                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{row.totalPeriods}</TableCell>
+                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{row.presentPeriods}</TableCell>
+                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{(row.totalPeriods || 0) - (row.presentPeriods || 0)}</TableCell>
+                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
+                              <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-bold ${parseFloat(row.percentage) > 80 ? 'bg-green-100 text-green-700' :
                                 parseFloat(row.percentage) >= 50 ? 'bg-orange-100 text-orange-700' :
                                   'bg-red-100 text-red-700'
                                 }`}>
@@ -2746,23 +2747,25 @@ export default function StudentDashboard({
                           {expandedMonth === row.monthYear && (
                             <TableRow className="bg-muted/30">
                               <TableCell colSpan={5} className="p-0">
-                                <div className="p-3 sm:p-4 overflow-x-auto w-full min-w-0">
-                                  <Table className="border rounded-md bg-background min-w-[380px] w-full">
+                                <div className="p-1 sm:p-4 overflow-x-auto w-full min-w-0">
+                                  <Table className="border rounded-md bg-background w-full">
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead className="h-8 py-1 whitespace-nowrap">Date</TableHead>
-                                        <TableHead className="h-8 py-1 min-w-[180px]">Subject (Teacher)</TableHead>
-                                        <TableHead className="h-8 py-1 text-center whitespace-nowrap">Status</TableHead>
+                                        <TableHead className="h-8 py-1 px-1.5 sm:px-4 whitespace-nowrap text-xs">Date</TableHead>
+                                        <TableHead className="h-8 py-1 px-1.5 sm:px-4 text-xs">Subject (Teacher)</TableHead>
+                                        <TableHead className="h-8 py-1 px-1.5 sm:px-4 text-center whitespace-nowrap text-xs">Status</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                       {row.details.map((detail, dIdx) => (
-                                        <TableRow key={`${detail.date}-${dIdx}`} className="h-8">
-                                          <TableCell className="py-1 text-xs">{detail.date}</TableCell>
-                                          <TableCell className="py-1 text-xs font-medium">
+                                        <TableRow key={`${detail.id || detail.date}-${dIdx}`} className="h-8">
+                                          <TableCell className="py-1 px-1.5 sm:px-4 text-xs whitespace-nowrap">
+                                            {formatDateShort(detail.rawDate || detail.date) || detail.date}
+                                          </TableCell>
+                                          <TableCell className="py-1 px-1.5 sm:px-4 text-xs font-medium">
                                             {detail.subject} <span className="text-muted-foreground font-normal">({detail.teacher})</span>
                                           </TableCell>
-                                          <TableCell className="py-1 text-center whitespace-nowrap">
+                                          <TableCell className="py-1 px-1.5 sm:px-4 text-center whitespace-nowrap">
                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
                                               }`}>
                                               {detail.present ? "Present" : "Absent"}
