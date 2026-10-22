@@ -3,10 +3,12 @@ export const dynamic = "force-dynamic";
 
 import connectToDB from "@/lib/db";
 import Finance from "@/models/Finance";
+import User from "@/models/User";
+import jwt from "jsonwebtoken";
 import { getFinanceSummary } from "@/libservices/financeService";
 import { NextResponse } from "next/server";
 
-function getAuthContext(req) {
+async function getAuthContext(req) {
   const userHeader = req.headers.get("x-user");
   let user = null;
   try {
@@ -16,8 +18,43 @@ function getAuthContext(req) {
   }
 
   const allowedFinanceRoles = ["College Admin", "Org Admin", "Finance"];
-  const hasFinanceRole = user?.roles?.some((r) => allowedFinanceRoles.includes(r));
-  const activeRole = req.headers.get("active-role") || req.cookies.get("active-role")?.value;
+  let hasFinanceRole = user?.roles?.some((r) => allowedFinanceRoles.includes(r));
+  let activeRole = req.headers.get("active-role") || req.cookies.get("active-role")?.value;
+
+  // Fallback 1: check profile-cache cookie if roles are insufficient
+  if (!hasFinanceRole) {
+    const profileCacheCookie = req.cookies.get("profile-cache")?.value;
+    if (profileCacheCookie) {
+      try {
+        const decoded = jwt.decode(profileCacheCookie);
+        if (decoded && Array.isArray(decoded.roles)) {
+          user = { ...(user || {}), ...decoded, _id: decoded._id || decoded.userId || user?._id };
+          hasFinanceRole = user.roles.some((r) => allowedFinanceRoles.includes(r));
+        }
+      } catch (e) {
+        console.warn("Failed to decode profile-cache cookie in finance route:", e.message);
+      }
+    }
+  }
+
+  // Fallback 2: check DB if user ID is known but roles are still insufficient
+  if (!hasFinanceRole && user?._id) {
+    try {
+      await connectToDB();
+      const dbUser = await User.findById(user._id).select("roles name").lean();
+      if (dbUser && Array.isArray(dbUser.roles)) {
+        user = { ...user, roles: dbUser.roles, name: dbUser.name || user.name };
+        hasFinanceRole = user.roles.some((r) => allowedFinanceRoles.includes(r));
+      }
+    } catch (dbErr) {
+      console.warn("getAuthContext DB fallback error:", dbErr.message);
+    }
+  }
+
+  if (!activeRole || (user?.roles && !user.roles.includes(activeRole))) {
+    activeRole = user?.roles?.find((r) => allowedFinanceRoles.includes(r)) || user?.roles?.[0] || activeRole;
+  }
+
   const isCollegeAdmin = Boolean(user?.roles?.includes("College Admin") && activeRole === "College Admin");
 
   return { user, hasFinanceRole, isCollegeAdmin, activeRole };
@@ -25,7 +62,7 @@ function getAuthContext(req) {
 
 export async function GET(req) {
   try {
-    const { user, hasFinanceRole, isCollegeAdmin } = getAuthContext(req);
+    const { user, hasFinanceRole, isCollegeAdmin } = await getAuthContext(req);
     if (!user || !hasFinanceRole) {
       return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
     }
@@ -127,7 +164,7 @@ export async function GET(req) {
     }
 
     const total = await Finance.countDocuments(query);
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
 
     // Calculate Summary (Global Balance or Filtered Summary)
     // user._id is guaranteed non-null here for College Admin (401 guard above)
@@ -164,7 +201,7 @@ export async function POST(req) {
       recipient: body.recipient
     });
 
-    const { user, hasFinanceRole, isCollegeAdmin } = getAuthContext(req);
+    const { user, hasFinanceRole, isCollegeAdmin } = await getAuthContext(req);
     if (!user || !hasFinanceRole) {
       return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
     }
@@ -195,7 +232,7 @@ export async function POST(req) {
 
 export async function PUT(req) {
   try {
-    const { user, hasFinanceRole, isCollegeAdmin } = getAuthContext(req);
+    const { user, hasFinanceRole, isCollegeAdmin } = await getAuthContext(req);
     if (!user || !hasFinanceRole) {
       return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
     }
@@ -248,7 +285,7 @@ export async function PUT(req) {
 
 export async function DELETE(req) {
   try {
-    const { user, hasFinanceRole, isCollegeAdmin } = getAuthContext(req);
+    const { user, hasFinanceRole, isCollegeAdmin } = await getAuthContext(req);
     if (!user || !hasFinanceRole) {
       return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
     }

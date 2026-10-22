@@ -267,7 +267,7 @@ const pages = [
   {
     title: "Accounts",
     path: "/dashboard/accounts",
-    allowedRoles: ["College Admin", "Org Admin"],
+    allowedRoles: ["College Admin", "Org Admin", "Finance"],
   },
   {
     title: "Students Fund",
@@ -707,7 +707,7 @@ async function handleApiRequest(req) {
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key") || req.headers.get("x-api-key");
   const cronSecret = url.searchParams.get("cronSecret");
-  const authToken = req.cookies.get("auth-token")?.value;
+  const authToken = req.cookies.get("auth-token")?.value || req.cookies.get("custom-member-token")?.value;
 
   // Public GET endpoints that don't require API key
   const publicGet = [
@@ -748,31 +748,83 @@ async function handleApiRequest(req) {
   if (authToken) {
     try {
       const { payload } = await jwtVerify(authToken, SECRET_KEY);
+      const effectiveUserId = payload.userId || payload.email;
 
-      const userRoles = Array.isArray(payload.roles) && payload.roles.length > 0 ? payload.roles : ["User"];
+      let resolvedUser = null;
+
+      // 1. If payload directly has roles (new tokens / custom member), use it
+      const payloadRoles = Array.isArray(payload.roles) && payload.roles.length > 0
+        ? payload.roles
+        : (Array.isArray(payload.customRoles) && payload.customRoles.length > 0 ? payload.customRoles : null);
+
+      if (payloadRoles) {
+        resolvedUser = {
+          ...payload,
+          _id: payload.userId,
+          userId: payload.userId,
+          roles: payloadRoles,
+          name: payload.name || "User",
+        };
+      }
+
+      // 2. Check cookie-based profile cache (fastest for browser sessions)
+      if (!resolvedUser) {
+        const profileCacheToken = req.cookies.get("profile-cache")?.value;
+        if (profileCacheToken) {
+          try {
+            const { payload: cachedProfile } = await jwtVerify(profileCacheToken, SECRET_KEY);
+            if (
+              (cachedProfile.userId === effectiveUserId || cachedProfile._id === effectiveUserId) &&
+              Array.isArray(cachedProfile.roles) &&
+              cachedProfile.roles.length > 0
+            ) {
+              resolvedUser = cachedProfile;
+            }
+          } catch (err) {
+            // Profile cache token invalid or expired
+          }
+        }
+      }
+
+      // 3. Check memory cache (getUserFromCache)
+      if (!resolvedUser && effectiveUserId) {
+        const cachedEntry = getUserFromCache(effectiveUserId);
+        if (cachedEntry?.user && Array.isArray(cachedEntry.user.roles) && cachedEntry.user.roles.length > 0) {
+          resolvedUser = cachedEntry.user;
+        }
+      }
+
+      const clientActiveRole = req.headers.get("active-role") || req.cookies.get("active-role")?.value;
+
+      // Determine user roles: use resolvedUser.roles if available; otherwise trust clientActiveRole as fallback
+      const userRoles = Array.isArray(resolvedUser?.roles) && resolvedUser.roles.length > 0
+        ? resolvedUser.roles
+        : (Array.isArray(payload.roles) && payload.roles.length > 0
+          ? payload.roles
+          : (clientActiveRole ? [clientActiveRole] : ["User"]));
+
       const user = {
-        _id: payload.userId,
+        ...(resolvedUser || {}),
+        _id: resolvedUser?._id || payload.userId,
+        userId: resolvedUser?._id || payload.userId,
         roles: userRoles,
-        name: payload.name || "User",
-        userId: payload.userId,
+        name: resolvedUser?.name || payload.name || "User",
       };
 
       const requestHeaders = new Headers(strippedHeaders);
       requestHeaders.set("x-user", JSON.stringify(user));
 
       // ✅ Validate active-role: only allow a role that actually belongs to the verified user's roles
-      const clientActiveRole = req.headers.get("active-role") || req.cookies.get("active-role")?.value;
       const verifiedActiveRole = (clientActiveRole && userRoles.includes(clientActiveRole))
         ? clientActiveRole
         : userRoles[0];
       requestHeaders.set("active-role", verifiedActiveRole);
       
-      const res = NextResponse.next({
+      return NextResponse.next({
         request: {
           headers: requestHeaders,
         },
       });
-      return res;
     } catch (error) {
       // Token is invalid, continue to check API key
       console.error("Invalid auth token in API request:", error.message);
