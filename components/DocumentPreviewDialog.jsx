@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -19,6 +20,13 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
     if (open && item?.url) {
       setLoading(true);
       setHasError(false);
+
+      // Timeout fallback in case document or browser plugin does not fire onLoad
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 7000);
+
+      return () => clearTimeout(timer);
     }
   }, [open, item?.url]);
 
@@ -26,13 +34,13 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
 
   const title = item.title || "Document Preview";
   const rawUrl = item.url;
-  
+
   // Clean filename for download and display
   const filename = item.filename || `${title.replace(/[/\\?%*:|"<>]/g, "_")}.pdf`;
-  
+
   // Check if explicitly non-pdf (e.g. .docx, .doc, .ppt, .pptx)
   const isOfficeDoc = /\.(docx?|pptx?|xlsx?)$/i.test(rawUrl) || /\.(docx?|pptx?|xlsx?)$/i.test(filename);
-  
+
   // Use internal proxy with inline=true for PDF / general files
   // For office files, use Google Docs viewer as fallback
   const previewUrl = isOfficeDoc
@@ -112,10 +120,6 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
               className="w-full h-full border-0"
               title={title}
               onLoad={() => setLoading(false)}
-              onError={() => {
-                setLoading(false);
-                setHasError(true);
-              }}
             />
           )}
         </div>

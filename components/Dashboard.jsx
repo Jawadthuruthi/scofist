@@ -2950,8 +2950,17 @@ export default function Dashboard({
     }
   }
 
+  const isFriday = useMemo(() => {
+    if (dateParam) {
+      const [year, month, day] = dateParam.split("-");
+      return new Date(year, month - 1, day).getDay() === 5;
+    }
+    return currentDateObj.getDay() === 5;
+  }, [dateParam, currentDateObj]);
+
   const showTimeTable =
     isClient &&
+    !isFriday &&
     activeRole &&
     ["Teacher", "College Admin", "Org Admin"].includes(activeRole) &&
     settings?.general?.isWorkingDay;

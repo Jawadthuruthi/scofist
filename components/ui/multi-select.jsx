@@ -7,6 +7,8 @@ import {
   Search,
   WandSparkles,
   Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -68,6 +70,7 @@ export const MultiSelect = React.forwardRef(
       caseSensitive = false,
       readOnly = false,
       onOptionDelete = null,
+      onOptionEdit = null,
       noBadge = false,
       ...props
     },
@@ -682,22 +685,52 @@ export const MultiSelect = React.forwardRef(
                       )}
                       <span
                         className={cn(
-                          "flex-1",
+                          "flex-1 truncate",
                           option.isCustom && (dark ? "text-[#d4af37] font-medium" : "text-primary font-medium")
                         )}
                       >
                         {option.label}
                       </span>
-                      {onOptionDelete && !option.isCustom && (
+                      {(onOptionEdit || onOptionDelete) && !option.isCustom && (
                         <div
-                          className="ml-2 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOptionDelete(option.value);
-                          }}
-                          title={`Remove ${option.label} from list`}
+                          className="ml-2 flex items-center gap-1 shrink-0"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <XIcon className="h-3.5 w-3.5" />
+                          {onOptionEdit && (
+                            <div
+                              className="p-1 hover:bg-muted text-muted-foreground hover:text-primary rounded transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsPopoverOpen(false);
+                                onOptionEdit(option.value, option);
+                              }}
+                              title={`Edit ${option.label}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {onOptionDelete && (
+                            <div
+                              className={cn(
+                                "rounded transition-colors p-1",
+                                onOptionEdit
+                                  ? "hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                  : "hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsPopoverOpen(false);
+                                onOptionDelete(option.value, option);
+                              }}
+                              title={`Delete ${option.label}`}
+                            >
+                              {onOptionEdit ? (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              ) : (
+                                <XIcon className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                       {option.isCustom && (

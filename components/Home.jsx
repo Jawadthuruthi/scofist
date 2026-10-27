@@ -24,6 +24,7 @@ export default function Home({ settings }) {
 
   const institutionLogo = settings?.institution?.logo?.url;
   const institutionName = settings?.institution?.name;
+  const institutionTagline = settings?.institution?.tagline;
   const orgLogo = settings?.org?.logo?.url;
   const orgName = settings?.org?.name;
   const backgroundImage = settings?.institution?.institutionPhoto?.url;
@@ -146,7 +147,12 @@ export default function Home({ settings }) {
       </section>
 
       {/* Footer */}
-      <PublicFooter settings={settings} institutionName={institutionName} />
+      <PublicFooter
+        settings={settings}
+        institutionName={institutionName}
+        institutionTagline={institutionTagline}
+        showTagline={true}
+      />
       </div>
     </main>
   );

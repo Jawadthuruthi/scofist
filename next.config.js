@@ -45,8 +45,12 @@ const nextConfig = {
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' https://fonts.gstatic.com data:",
           "img-src 'self' data: blob: https://res.cloudinary.com",
-          "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com",
+          isDev
+            ? "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com ws: wss: http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*"
+            : "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com",
           "frame-src 'self' https://docs.google.com https://drive.google.com https://www.youtube.com https://www.youtube-nocookie.com https://res.cloudinary.com blob: data:",
+          "object-src 'self' blob: data:",
+          "worker-src 'self' blob:",
           isDev
             ? "frame-ancestors 'self' vscode-webview: http://localhost:* https://localhost:*"
             : "frame-ancestors 'self'",

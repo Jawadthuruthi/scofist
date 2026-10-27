@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { Instagram, MessageCircle, Youtube } from "lucide-react";
 
-export default function Footer({ settings, institutionName, year, variant }) {
+export default function Footer({
+  settings,
+  institutionName,
+  institutionTagline,
+  year,
+  variant,
+  showTagline,
+}) {
   const ensureAbsoluteUrl = (url) => {
     if (!url) return "";
     const trimmed = url.trim();
@@ -16,6 +23,11 @@ export default function Footer({ settings, institutionName, year, variant }) {
     }
     return `https://${trimmed}`;
   };
+
+  const tagline =
+    institutionTagline ||
+    settings?.institution?.tagline ||
+    "";
 
   const rawYear =
     year ||
@@ -34,14 +46,21 @@ export default function Footer({ settings, institutionName, year, variant }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 md:mb-0">
           {/* Institution */}
           <div>
-            {settings?.festival?.festivalThemeImage?.url ? (
+            {variant === "festival" && settings?.festival?.festivalThemeImage?.url ? (
               <img
                 src={settings.festival.festivalThemeImage.url}
                 alt="Festival Theme"
                 className="h-auto w-48 md:w-56 object-contain m-0 pt-4 pb-4 block drop-shadow-md"
               />
             ) : (
-              <h3 className="text-lg font-semibold mb-4">{institutionName || "Sadiya Dawa College"}</h3>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold">{institutionName || "Sadiya Dawa College"}</h3>
+                {showTagline && tagline && (
+                  <p className="text-sm text-gray-400 mt-1 leading-snug">
+                    {tagline}
+                  </p>
+                )}
+              </div>
             )}
             <p className="text-sm opacity-80 leading-relaxed pr-4">
               {variant === "festival" ? (

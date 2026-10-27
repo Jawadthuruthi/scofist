@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -65,6 +65,143 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const [filterYear, setFilterYear] = useState(null);
   const [filterSemester, setFilterSemester] = useState(null);
   const [filterCourse, setFilterCourse] = useState(null);
+
+  // Dynamic courses management
+  const [courses, setCourses] = useState(["BSIc(5 Years)", "HSIc(3 Years)", "HSIc(2 Years)"]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [editingCourseName, setEditingCourseName] = useState(null);
+  const [newCourseNameInput, setNewCourseNameInput] = useState("");
+  const [savingCourse, setSavingCourse] = useState(false);
+  const [deletingCourseName, setDeletingCourseName] = useState(null);
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
+
+  const fetchCourses = useCallback(async () => {
+    try {
+      setLoadingCourses(true);
+      const res = await fetch("/api/downloads/courses", {
+        headers: apiKey ? { "api-key": apiKey } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.courses && Array.isArray(data.courses) && data.courses.length > 0) {
+          setCourses(data.courses);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching courses:", err);
+    } finally {
+      setLoadingCourses(false);
+    }
+  }, [apiKey]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
+
+  const handleOptionEdit = (courseName) => {
+    setEditingCourseName(courseName);
+    setNewCourseNameInput(courseName);
+  };
+
+  const handleSaveCourseName = async () => {
+    const trimmed = newCourseNameInput.trim();
+    if (!trimmed || !editingCourseName) return;
+    if (trimmed === editingCourseName) {
+      setEditingCourseName(null);
+      return;
+    }
+
+    try {
+      setSavingCourse(true);
+      const res = await fetch("/api/downloads/courses", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "api-key": apiKey } : {}),
+        },
+        body: JSON.stringify({
+          oldName: editingCourseName,
+          newName: trimmed,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update course name");
+      }
+      toast.success(data.message || "Course name updated successfully");
+      if (course === editingCourseName) {
+        setCourse(trimmed);
+      }
+      if (filterCourse === editingCourseName) {
+        setFilterCourse(trimmed);
+      }
+      setEditingCourseName(null);
+      await fetchCourses();
+      await fetchDownloadsQuery.refetch();
+    } catch (err) {
+      console.error("Error updating course:", err);
+      toast.error(err.message || "Failed to update course");
+    } finally {
+      setSavingCourse(false);
+    }
+  };
+
+  const handleOptionDelete = (courseName) => {
+    setDeletingCourseName(courseName);
+  };
+
+  const handleConfirmDeleteCourse = async () => {
+    if (!deletingCourseName) return;
+
+    try {
+      setIsDeletingCourse(true);
+      const res = await fetch(
+        `/api/downloads/courses?name=${encodeURIComponent(deletingCourseName)}`,
+        {
+          method: "DELETE",
+          headers: apiKey ? { "api-key": apiKey } : {},
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete course");
+      }
+      toast.success(data.message || "Course deleted successfully");
+      if (course === deletingCourseName) {
+        setCourse("");
+      }
+      if (filterCourse === deletingCourseName) {
+        setFilterCourse(null);
+      }
+      setDeletingCourseName(null);
+      await fetchCourses();
+      await fetchDownloadsQuery.refetch();
+    } catch (err) {
+      console.error("Error deleting course:", err);
+      toast.error(err.message || "Failed to delete course");
+    } finally {
+      setIsDeletingCourse(false);
+    }
+  };
+
+  const handleCourseChange = async (val) => {
+    setCourse(val);
+    if (val && !courses.includes(val)) {
+      try {
+        await fetch("/api/downloads/courses", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(apiKey ? { "api-key": apiKey } : {}),
+          },
+          body: JSON.stringify({ name: val.trim() }),
+        });
+        fetchCourses();
+      } catch (err) {
+        console.error("Error saving new course:", err);
+      }
+    }
+  };
 
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
@@ -281,7 +418,12 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
 
   const years = [1, 2, 3, 4, 5];
   const semesters = [1, 2];
-  const courses = ["BSIc(5 Years)", "HSIc(3 Years)", "HSIc(2 Years)"];
+
+  const downloadsCountForDeletingCourse = useMemo(() => {
+    if (!deletingCourseName) return 0;
+    const all = fetchDownloadsQuery.data?.downloads || initialDownloads;
+    return all.filter((d) => d.course === deletingCourseName).length;
+  }, [deletingCourseName, fetchDownloadsQuery.data, initialDownloads]);
 
   return (
     <>
@@ -323,15 +465,13 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                   <MultiSelect
                     id="course"
                     value={course}
-                    onValueChange={setCourse}
-                    options={[
-                      { value: "BSIc(5 Years)", label: "BSIc(5 Years)" },
-                      { value: "HSIc(3 Years)", label: "HSIc(3 Years)" },
-                      { value: "HSIc(2 Years)", label: "HSIc(2 Years)" },
-                    ]}
+                    onValueChange={handleCourseChange}
+                    options={courses.map((c) => ({ value: c, label: c }))}
                     placeholder="Select or type a course"
                     freeSolo
                     multiSelect={false}
+                    onOptionEdit={activeRole === "College Admin" ? handleOptionEdit : undefined}
+                    onOptionDelete={activeRole === "College Admin" ? handleOptionDelete : undefined}
                   />
                 </div>
                 <div className="space-y-2 col-span-1">
@@ -443,22 +583,16 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <div className="space-y-2 col-span-2 md:col-span-2">
                 <Label>Filter by Course</Label>
-                <Select
-                  value={filterCourse ?? "all"}
-                  onValueChange={(v) => setFilterCourse(v === "all" ? null : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Courses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Courses</SelectItem>
-                    {courses.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  value={filterCourse || ""}
+                  onValueChange={(v) => setFilterCourse(v || null)}
+                  options={courses.map((c) => ({ value: c, label: c }))}
+                  placeholder="All Courses"
+                  noBadge={true}
+                  multiSelect={false}
+                  onOptionEdit={activeRole === "College Admin" ? handleOptionEdit : undefined}
+                  onOptionDelete={activeRole === "College Admin" ? handleOptionDelete : undefined}
+                />
               </div>
               <div className="space-y-2 col-span-1">
                 <Label>Filter by Year</Label>
@@ -520,19 +654,31 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                     </TableRow>
                   ) : (
                     filteredDownloads.map((download) => (
-                      <TableRow key={download._id}>
+                      <TableRow
+                        key={download._id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => {
+                          const filename = `${download.subject}_${download.course}_Year${download.year}_Sem${download.semester}.pdf`.replace(/\s+/g, "_");
+                          setPreviewItem({
+                            url: download.fileUrl,
+                            title: `${download.subject} — ${download.course} Year ${download.year} Sem ${download.semester}`,
+                            filename,
+                          });
+                        }}
+                      >
                         <TableCell>{download.course}</TableCell>
                         <TableCell>{download.year}</TableCell>
                         <TableCell>{download.semester}</TableCell>
                         <TableCell>{download.subject}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
+                              variant="outline"
+                              className="h-8 px-2 sm:px-3 text-xs"
                               title="Preview"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const filename = `${download.subject}_${download.course}_Year${download.year}_Sem${download.semester}.pdf`.replace(/\s+/g, "_");
                                 setPreviewItem({
                                   url: download.fileUrl,
@@ -541,7 +687,8 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                                 });
                               }}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-4 w-4 sm:mr-2" />
+                              <span className="hidden sm:inline">View</span>
                             </Button>
                             <Button
                               size="sm"
@@ -634,6 +781,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         onOpenChange={(open) => !open && setEditingDownload(null)}
         course={editCourse}
         setCourse={setEditCourse}
+        courses={courses}
         year={editYear}
         setYear={setEditYear}
         semester={editSemester}
@@ -649,6 +797,100 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         onOpenChange={(open) => !open && setPreviewItem(null)}
         item={previewItem}
       />
+
+      {/* Edit Course Name Dialog */}
+      <Dialog
+        open={!!editingCourseName}
+        onOpenChange={(open) => !open && setEditingCourseName(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Course Name</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-xs text-muted-foreground">
+              Update the name for this course. All existing question papers under{" "}
+              <span className="font-semibold text-foreground">"{editingCourseName}"</span>{" "}
+              will automatically be updated.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="courseNameInput">Course Name</Label>
+              <Input
+                id="courseNameInput"
+                value={newCourseNameInput}
+                onChange={(e) => setNewCourseNameInput(e.target.value)}
+                placeholder="Enter new course name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSaveCourseName();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditingCourseName(null)}
+              disabled={savingCourse}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveCourseName}
+              disabled={
+                savingCourse ||
+                !newCourseNameInput.trim() ||
+                newCourseNameInput.trim() === editingCourseName
+              }
+            >
+              {savingCourse && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Course Confirmation Dialog */}
+      <AlertDialog
+        open={!!deletingCourseName}
+        onOpenChange={(open) => !open && setDeletingCourseName(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Course</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the course{" "}
+              <span className="font-semibold text-foreground">
+                "{deletingCourseName}"
+              </span>
+              ?
+              {downloadsCountForDeletingCourse > 0 ? (
+                <span className="block mt-2 text-destructive font-medium">
+                  Warning: {downloadsCountForDeletingCourse} question paper(s) associated with this course will also be permanently deleted.
+                </span>
+              ) : (
+                <span className="block mt-1">
+                  This action cannot be undone.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingCourse}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteCourse}
+              disabled={isDeletingCourse}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingCourse && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+              Delete Course
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
@@ -659,6 +901,7 @@ const EditDialog = ({
   onOpenChange,
   course,
   setCourse,
+  courses = [],
   year,
   setYear,
   semester,
@@ -682,9 +925,9 @@ const EditDialog = ({
                 <SelectValue placeholder="Select Course" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="BSIc(5 Years)">BSIc(5 Years)</SelectItem>
-                <SelectItem value="HSIc(3 Years)">HSIc(3 Years)</SelectItem>
-                <SelectItem value="HSIc(2 Years)">HSIc(2 Years)</SelectItem>
+                {courses.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
