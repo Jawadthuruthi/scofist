@@ -698,11 +698,13 @@ export const MultiSelect = React.forwardRef(
                         >
                           {onOptionEdit && (
                             <div
-                              className="p-1 hover:bg-muted text-muted-foreground hover:text-primary rounded transition-colors"
+                              className="p-1 hover:bg-muted text-muted-foreground hover:text-primary rounded transition-colors cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setIsPopoverOpen(false);
-                                onOptionEdit(option.value, option);
+                                setTimeout(() => {
+                                  onOptionEdit(option.value, option);
+                                }, 50);
                               }}
                               title={`Edit ${option.label}`}
                             >
@@ -712,7 +714,7 @@ export const MultiSelect = React.forwardRef(
                           {onOptionDelete && (
                             <div
                               className={cn(
-                                "rounded transition-colors p-1",
+                                "rounded transition-colors p-1 cursor-pointer",
                                 onOptionEdit
                                   ? "hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                                   : "hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
@@ -720,7 +722,9 @@ export const MultiSelect = React.forwardRef(
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setIsPopoverOpen(false);
-                                onOptionDelete(option.value, option);
+                                setTimeout(() => {
+                                  onOptionDelete(option.value, option);
+                                }, 50);
                               }}
                               title={`Delete ${option.label}`}
                             >

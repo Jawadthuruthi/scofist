@@ -41,9 +41,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
-import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil, Eye } from "lucide-react";
+import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil, Eye, X, AlertTriangle } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -167,10 +169,10 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         throw new Error(data.message || "Failed to delete course");
       }
       toast.success(data.message || "Course deleted successfully");
-      if (course === deletingCourseName) {
+      if (course && deletingCourseName && course.trim().toLowerCase() === deletingCourseName.trim().toLowerCase()) {
         setCourse("");
       }
-      if (filterCourse === deletingCourseName) {
+      if (filterCourse && deletingCourseName && filterCourse.trim().toLowerCase() === deletingCourseName.trim().toLowerCase()) {
         setFilterCourse(null);
       }
       setDeletingCourseName(null);
@@ -422,7 +424,9 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const downloadsCountForDeletingCourse = useMemo(() => {
     if (!deletingCourseName) return 0;
     const all = fetchDownloadsQuery.data?.downloads || initialDownloads;
-    return all.filter((d) => d.course === deletingCourseName).length;
+    return all.filter(
+      (d) => d.course?.trim().toLowerCase() === deletingCourseName?.trim().toLowerCase()
+    ).length;
   }, [deletingCourseName, fetchDownloadsQuery.data, initialDownloads]);
 
   return (
@@ -737,26 +741,45 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                                       )}
                                     </Button>
                                   </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Are you sure?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete the file "
-                                        {download.subject}" from {download.course}{" "}
-                                        Year {download.year} Semester{" "}
-                                        {download.semester}. This action cannot be
-                                        undone.
-                                      </AlertDialogDescription>
+                                  <AlertDialogContent className="sm:max-w-md flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl">
+                                    <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+                                      <div className="p-2 rounded-lg bg-destructive/10 shrink-0 text-destructive">
+                                        <AlertTriangle className="h-5 w-5" />
+                                      </div>
+                                      <div className="flex-1 text-left space-y-0.5 min-w-0">
+                                        <AlertDialogTitle className="text-lg font-bold m-0 text-destructive">
+                                          Delete Question Paper?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription className="m-0 text-xs text-muted-foreground pt-0.5">
+                                          This file will be permanently removed
+                                        </AlertDialogDescription>
+                                      </div>
+                                      <AlertDialogCancel asChild>
+                                        <button
+                                          type="button"
+                                          className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+                                        >
+                                          <X className="h-5 w-5" />
+                                        </button>
+                                      </AlertDialogCancel>
                                     </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
+                                    <div className="p-5 text-sm text-muted-foreground space-y-2 leading-relaxed">
+                                      <p>
+                                        This will permanently delete the file{" "}
+                                        <strong className="text-foreground font-semibold">"{download.subject}"</strong>{" "}
+                                        from {download.course} Year {download.year} Semester {download.semester}.
+                                      </p>
+                                      <p className="text-xs text-destructive font-medium">
+                                        This action cannot be undone.
+                                      </p>
+                                    </div>
+                                    <AlertDialogFooter className="p-4 border-t bg-muted/20 flex flex-row items-center justify-end gap-3 w-full">
+                                      <AlertDialogCancel className="h-9 px-4 text-xs mt-0">
                                         Cancel
                                       </AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() => handleDelete(download)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        className="h-9 px-5 text-xs font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5 mt-0"
                                       >
                                         Delete
                                       </AlertDialogAction>
@@ -803,23 +826,43 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         open={!!editingCourseName}
         onOpenChange={(open) => !open && setEditingCourseName(null)}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Course Name</DialogTitle>
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-20 shrink-0">
+            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0 text-blue-600 dark:text-blue-400">
+              <Pencil className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <DialogTitle className="text-lg font-bold m-0 text-foreground">
+                Edit Course Name
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground m-0">
+                Update course name across all associated question papers
+              </DialogDescription>
+            </div>
+            <DialogClose
+              onClick={() => setEditingCourseName(null)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-xs text-muted-foreground">
+
+          <div className="p-5 space-y-4 flex-1">
+            <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground leading-relaxed">
               Update the name for this course. All existing question papers under{" "}
               <span className="font-semibold text-foreground">"{editingCourseName}"</span>{" "}
               will automatically be updated.
-            </p>
-            <div className="space-y-2">
-              <Label htmlFor="courseNameInput">Course Name</Label>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="courseNameInput" className="text-xs font-semibold">
+                Course Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="courseNameInput"
                 value={newCourseNameInput}
                 onChange={(e) => setNewCourseNameInput(e.target.value)}
                 placeholder="Enter new course name"
+                className="h-10 text-sm"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -830,24 +873,35 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
               />
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="p-4 border-t bg-muted/30 dark:bg-muted/10 flex items-center justify-end gap-2 shrink-0">
             <Button
+              type="button"
               variant="outline"
               onClick={() => setEditingCourseName(null)}
               disabled={savingCourse}
+              className="h-9 px-4 text-xs"
             >
               Cancel
             </Button>
             <Button
+              type="button"
               onClick={handleSaveCourseName}
               disabled={
                 savingCourse ||
                 !newCourseNameInput.trim() ||
                 newCourseNameInput.trim() === editingCourseName
               }
+              className="h-9 px-5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {savingCourse && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {savingCourse ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Changes</span>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -856,37 +910,72 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
       {/* Delete Course Confirmation Dialog */}
       <AlertDialog
         open={!!deletingCourseName}
-        onOpenChange={(open) => !open && setDeletingCourseName(null)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingCourse) {
+            setDeletingCourseName(null);
+          }
+        }}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Course</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the course{" "}
-              <span className="font-semibold text-foreground">
-                "{deletingCourseName}"
-              </span>
-              ?
-              {downloadsCountForDeletingCourse > 0 ? (
-                <span className="block mt-2 text-destructive font-medium">
-                  Warning: {downloadsCountForDeletingCourse} question paper(s) associated with this course will also be permanently deleted.
-                </span>
-              ) : (
-                <span className="block mt-1">
-                  This action cannot be undone.
-                </span>
-              )}
-            </AlertDialogDescription>
+        <AlertDialogContent className="sm:max-w-md flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-destructive/10 shrink-0 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <AlertDialogTitle className="text-lg font-bold m-0 text-destructive">
+                Delete Course?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-xs text-muted-foreground pt-0.5">
+                This course will be permanently removed
+              </AlertDialogDescription>
+            </div>
+            <AlertDialogCancel asChild>
+              <button
+                type="button"
+                disabled={isDeletingCourse}
+                className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </AlertDialogCancel>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingCourse}>Cancel</AlertDialogCancel>
+
+          <div className="p-5 text-sm text-muted-foreground space-y-2 leading-relaxed">
+            <p>
+              Are you sure you want to delete the course{" "}
+              <strong className="text-foreground font-semibold">
+                "{deletingCourseName}"
+              </strong>
+              ?
+            </p>
+            {downloadsCountForDeletingCourse > 0 ? (
+              <p className="text-xs text-destructive font-medium">
+                Warning: {downloadsCountForDeletingCourse} question paper(s) associated with this course will also be permanently deleted.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                This action cannot be undone.
+              </p>
+            )}
+          </div>
+
+          <AlertDialogFooter className="p-4 border-t bg-muted/20 flex flex-row items-center justify-end gap-3 w-full">
+            <AlertDialogCancel disabled={isDeletingCourse} className="h-9 px-4 text-xs mt-0">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDeleteCourse}
               disabled={isDeletingCourse}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="h-9 px-5 text-xs font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5 mt-0"
             >
-              {isDeletingCourse && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-              Delete Course
+              {isDeletingCourse ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -913,13 +1002,30 @@ const EditDialog = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Question Paper</DialogTitle>
+      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
+        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-20 shrink-0">
+          <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0 text-blue-600 dark:text-blue-400">
+            <Pencil className="h-5 w-5" />
+          </div>
+          <div className="flex-1 text-left space-y-0.5 min-w-0">
+            <DialogTitle className="text-lg font-bold m-0 text-foreground">
+              Edit Question Paper
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground m-0">
+              Update course, year, semester, or subject details
+            </DialogDescription>
+          </div>
+          <DialogClose
+            onClick={() => onOpenChange(false)}
+            className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+          >
+            <X className="h-5 w-5" />
+          </DialogClose>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Course</Label>
+
+        <div className="p-5 space-y-4 flex-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Course</Label>
             <Select value={course} onValueChange={setCourse}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Course" />
@@ -931,40 +1037,55 @@ const EditDialog = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Year</Label>
-            <Select value={String(year)} onValueChange={setYear}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4, 5].map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Year</Label>
+              <Select value={String(year)} onValueChange={setYear}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Semester</Label>
+              <Select value={String(semester)} onValueChange={setSemester}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2].map((s) => (
+                    <SelectItem key={s} value={String(s)}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Semester</Label>
-            <Select value={String(semester)} onValueChange={setSemester}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Semester" />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2].map((s) => (
-                  <SelectItem key={s} value={String(s)}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Subject</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Subject</Label>
             <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onSave} disabled={loading}>
+
+        <DialogFooter className="p-4 border-t bg-muted/30 dark:bg-muted/10 flex items-center justify-end gap-2 shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="h-9 px-4 text-xs"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={onSave}
+            disabled={loading}
+            className="h-9 px-5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white"
+          >
             {loading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
           </Button>
