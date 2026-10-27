@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 import { saveAs } from "file-saver";
 import { MultiSelect } from "@/components/ui/multi-select";
+import DocumentPreviewDialog from "./DocumentPreviewDialog";
 
 const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const [year, setYear] = useState(null);
@@ -434,7 +435,14 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                               variant="ghost"
                               className="h-8 w-8 p-0"
                               title="Preview"
-                              onClick={() => setPreviewItem({ url: syllabus.fileUrl, title: `${syllabus.course} Year ${syllabus.year} Syllabus` })}
+                              onClick={() => {
+                                const filename = `${syllabus.course}_Year${syllabus.year}_Syllabus.pdf`.replace(/\s+/g, "_");
+                                setPreviewItem({
+                                  url: syllabus.fileUrl,
+                                  title: `${syllabus.course} Year ${syllabus.year} Syllabus`,
+                                  filename,
+                                });
+                              }}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -567,22 +575,11 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
         </DialogContent>
       </Dialog>
       {/* PDF Preview Dialog */}
-      <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
-        <DialogContent className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-4 py-3 border-b shrink-0">
-            <DialogTitle className="text-sm font-semibold truncate">{previewItem?.title || "Preview"}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0">
-            {previewItem?.url && (
-              <iframe
-                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewItem.url)}&embedded=true`}
-                className="w-full h-full border-0"
-                title={previewItem?.title || "Document Preview"}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DocumentPreviewDialog
+        open={!!previewItem}
+        onOpenChange={(open) => !open && setPreviewItem(null)}
+        item={previewItem}
+      />
     </>
   );
 };

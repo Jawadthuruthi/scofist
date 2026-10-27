@@ -25,6 +25,7 @@ import Link from "next/link";
 import UpdateCard from "@/components/UpdateCard";
 import ShareModal from "@/components/ShareModal";
 import ProfileEditModal from "./ProfileEditModal";
+import DocumentPreviewDialog from "./DocumentPreviewDialog";
 import html2canvas from "html2canvas";
 import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate, copyToClipboard } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
@@ -218,22 +219,11 @@ function DownloadsTabContent({ apiKey }) {
   return (
     <div className="space-y-4">
       {/* PDF Preview Dialog */}
-      <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
-        <DialogContent className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-4 py-3 border-b shrink-0">
-            <DialogTitle className="text-sm font-semibold truncate">{previewItem?.title || "Preview"}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0">
-            {previewItem?.url && (
-              <iframe
-                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewItem.url)}&embedded=true`}
-                className="w-full h-full border-0"
-                title={previewItem?.title || "Document Preview"}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DocumentPreviewDialog
+        open={!!previewItem}
+        onOpenChange={(open) => !open && setPreviewItem(null)}
+        item={previewItem}
+      />
       {/* Sub-tab Switcher */}
       <div className="flex gap-2 border-b pb-3 overflow-x-auto no-scrollbar">
 
@@ -289,7 +279,14 @@ function DownloadsTabContent({ apiKey }) {
                         variant="ghost"
                         className="text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 h-8 w-8 p-0"
                         title="Preview"
-                        onClick={() => setPreviewItem({ url: d.fileUrl, title: `${d.subject} — ${d.course} Year ${d.year} Sem ${d.semester}` })}
+                        onClick={() => {
+                          const filename = `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_");
+                          setPreviewItem({
+                            url: d.fileUrl,
+                            title: `${d.subject} — ${d.course} Year ${d.year} Sem ${d.semester}`,
+                            filename,
+                          });
+                        }}
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
@@ -349,7 +346,14 @@ function DownloadsTabContent({ apiKey }) {
                         variant="ghost"
                         className="text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 h-8 w-8 p-0"
                         title="Preview"
-                        onClick={() => setPreviewItem({ url: s.fileUrl, title: `${s.fileName || 'Syllabus'} — ${s.course} Year ${s.year}` })}
+                        onClick={() => {
+                          const filename = `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_");
+                          setPreviewItem({
+                            url: s.fileUrl,
+                            title: `${s.fileName || 'Syllabus'} — ${s.course} Year ${s.year}`,
+                            filename,
+                          });
+                        }}
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
@@ -407,7 +411,14 @@ function DownloadsTabContent({ apiKey }) {
                         variant="ghost"
                         className="text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 h-8 w-8 p-0"
                         title="Preview"
-                        onClick={() => setPreviewItem({ url: b.fileUrl, title: b.name })}
+                        onClick={() => {
+                          const filename = `${b.name}.pdf`.replace(/[/\\?%*:|"<>]/g, "_").replace(/\s+/g, "_");
+                          setPreviewItem({
+                            url: b.fileUrl,
+                            title: b.name,
+                            filename,
+                          });
+                        }}
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>

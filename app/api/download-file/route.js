@@ -4,7 +4,8 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const fileUrl = searchParams.get("url");
-    const filename = searchParams.get("filename");
+    const filename = searchParams.get("filename") || "document.pdf";
+    const isInline = searchParams.get("inline") === "true";
 
     if (!fileUrl) {
       return NextResponse.json(
@@ -13,7 +14,15 @@ export async function GET(req) {
       );
     }
 
-    console.log("Downloading file from:", fileUrl);
+    // SSRF protection: only allow trusted Cloudinary hosts
+    if (!fileUrl.startsWith("https://res.cloudinary.com/") && !fileUrl.startsWith("http://res.cloudinary.com/")) {
+      return NextResponse.json(
+        { message: "Invalid file host" },
+        { status: 400 }
+      );
+    }
+
+    console.log("Fetching file from:", fileUrl);
     console.log("Requested filename:", filename);
 
     // Fetch the file from Cloudinary with proper headers
@@ -24,10 +33,6 @@ export async function GET(req) {
     });
 
     console.log("Cloudinary response status:", response.status);
-    console.log(
-      "Content-Type from Cloudinary:",
-      response.headers.get("content-type")
-    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -37,11 +42,17 @@ export async function GET(req) {
       );
     }
 
-    // Get the content type from Cloudinary's response
+    // Get the buffer
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Determine content type
     let contentType = response.headers.get("content-type");
 
-    // If no content-type or generic, determine from filename extension
-    if (!contentType || contentType === "application/octet-stream") {
+    // Check magic bytes for PDF
+    if (buffer.length >= 4 && buffer.slice(0, 4).toString() === "%PDF") {
+      contentType = "application/pdf";
+    } else if (!contentType || contentType === "application/octet-stream") {
       const ext = filename.toLowerCase().split(".").pop();
       const mimeTypes = {
         pdf: "application/pdf",
@@ -51,42 +62,38 @@ export async function GET(req) {
         pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         xls: "application/vnd.ms-excel",
         xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        webp: "image/webp",
       };
       contentType = mimeTypes[ext] || "application/octet-stream";
     }
 
-    console.log("Final Content-Type:", contentType);
+    console.log("Final Content-Type:", contentType, "isInline:", isInline);
 
-    // Get the buffer
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    console.log(
-      "File downloaded successfully, size:",
-      buffer.byteLength,
-      "bytes"
-    );
-
-    // Return the file with proper headers for download
-    // Use RFC 5987 encoding (filename*) to support Unicode/Arabic filenames in HTTP headers
+    // Format filename for headers (support UTF-8/Arabic)
     const encodedFilename = encodeURIComponent(filename).replace(/'/g, "%27");
-    const asciiFilename = filename.replace(/[^\x00-\x7F]/g, "_"); // ASCII fallback for older clients
+    const asciiFilename = filename.replace(/[^\x00-\x7F]/g, "_");
+
+    const dispositionType = isInline ? "inline" : "attachment";
 
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`,
+        "Content-Disposition": `${dispositionType}; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`,
         "Content-Length": buffer.byteLength.toString(),
-        "Cache-Control": "no-cache",
+        "Cache-Control": "public, max-age=3600, must-revalidate",
+        "X-Content-Type-Options": "nosniff",
       },
     });
 
   } catch (error) {
-    console.error("Download error:", error);
+    console.error("Download/Preview error:", error);
     return NextResponse.json(
       {
-        message: "Failed to download file",
+        message: "Failed to download/preview file",
         error: error.message,
       },
       { status: 500 }

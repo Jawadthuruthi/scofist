@@ -21,51 +21,58 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   async headers() {
+    const isDev = process.env.NODE_ENV === "development";
+    const securityHeaders = [
+      {
+        // Stops browsers from "sniffing" the MIME type, preventing
+        // content-type confusion attacks.
+        key: 'X-Content-Type-Options',
+        value: 'nosniff',
+      },
+      {
+        // Restricts which browser features (camera, mic, geolocation)
+        // this site can access — deny all by default.
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+      },
+      {
+        // Content Security Policy — restricts which external resources can be loaded.
+        // Explicitly allows framing for documents (Google Docs, Cloudinary, blob) and YouTube videos.
+        key: 'Content-Security-Policy',
+        value: [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "font-src 'self' https://fonts.gstatic.com data:",
+          "img-src 'self' data: blob: https://res.cloudinary.com",
+          "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com",
+          "frame-src 'self' https://docs.google.com https://drive.google.com https://www.youtube.com https://www.youtube-nocookie.com https://res.cloudinary.com blob: data:",
+          isDev
+            ? "frame-ancestors 'self' vscode-webview: http://localhost:* https://localhost:*"
+            : "frame-ancestors 'self'",
+        ].join('; '),
+      },
+      {
+        // Referrer Policy — limits how much referrer info is sent
+        // when navigating away from the site.
+        key: 'Referrer-Policy',
+        value: 'strict-origin-when-cross-origin',
+      },
+    ];
+
+    if (!isDev) {
+      securityHeaders.unshift({
+        // Prevents clickjacking by disallowing cross-domain embedding in production
+        key: 'X-Frame-Options',
+        value: 'SAMEORIGIN',
+      });
+    }
+
     return [
       // ── Security headers applied to every route ──────────────────────────
       {
         source: '/(.*)',
-        headers: [
-          {
-            // Prevents clickjacking by disallowing the site from being
-            // embedded in an <iframe> on another domain.
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            // Stops browsers from "sniffing" the MIME type, preventing
-            // content-type confusion attacks.
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            // Restricts which browser features (camera, mic, geolocation)
-            // this site can access — deny all by default.
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
-          },
-          {
-            // Content Security Policy — restricts which external resources
-            // (scripts, styles, images, fonts) can be loaded.
-            // Allows self + Cloudinary images + Google Fonts.
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com data:",
-              "img-src 'self' data: blob: https://res.cloudinary.com",
-              "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com",
-              "frame-ancestors 'none'",
-            ].join('; '),
-          },
-          {
-            // Referrer Policy — limits how much referrer info is sent
-            // when navigating away from the site.
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-        ],
+        headers: securityHeaders,
       },
       // ── Per-file headers ─────────────────────────────────────────────────
       {
