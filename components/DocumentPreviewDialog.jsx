@@ -32,7 +32,7 @@ function loadPdfJs() {
     const existingScript = document.getElementById("pdfjs-lib-script");
     if (existingScript) {
       existingScript.addEventListener("load", () => resolve(window.pdfjsLib));
-      existingScript.addEventListener("error", reject);
+      existingScript.addEventListener("error", () => reject(new Error("Failed to load PDF.js script")));
       return;
     }
     const script = document.createElement("script");
@@ -45,7 +45,7 @@ function loadPdfJs() {
       }
       resolve(window.pdfjsLib);
     };
-    script.onerror = reject;
+    script.onerror = () => reject(new Error("Failed to load PDF.js script"));
     document.body.appendChild(script);
   });
 }

@@ -502,7 +502,7 @@ function AwardPoster({ award, currentUser, festSettings }) {
     <div className="flex flex-col items-center gap-4">
       <div 
         ref={posterRef}
-        className="group relative flex flex-col items-center p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 w-full max-w-sm"
+        className="group relative flex flex-col items-center p-5 sm:p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 w-full max-w-sm min-w-0"
       >
         {/* Background Decorative Elements */}
         <div className={`absolute top-0 left-0 w-full h-32 bg-gradient-to-b ${bgGradient} opacity-10`} />
@@ -547,7 +547,7 @@ function AwardPoster({ award, currentUser, festSettings }) {
             </div>
         </div>
 
-        <div className="text-center space-y-3 pb-4">
+        <div className="text-center space-y-3 pb-4 w-full min-w-0 max-w-full">
             {award.type && !["ATTENDANCE TOPPER", "BEST READER", "STAR OF THE MONTH"].includes(award.type) && (
                 <h4 className={`text-[10px] font-black tracking-[0.3em] uppercase opacity-70 ${
                   award.color === 'amber' ? 'text-amber-600' :
@@ -561,7 +561,7 @@ function AwardPoster({ award, currentUser, festSettings }) {
                     {award.type}
                 </h4>
             )}
-            <h3 className="text-3xl font-black tracking-tight leading-tight text-zinc-900 dark:text-white whitespace-pre-line">
+            <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-zinc-900 dark:text-white whitespace-pre-line break-words max-w-full [overflow-wrap:anywhere]">
                 {award.title?.includes("of the Month") ? (
                   <>
                     {award.title.replace("of the Month", "").trim()}
@@ -570,10 +570,10 @@ function AwardPoster({ award, currentUser, festSettings }) {
                 ) : (award.title || "Achievement")}
             </h3>
             {award.subtitle && (
-                <p className="text-base font-bold text-zinc-500 dark:text-zinc-400">{award.subtitle}</p>
+                <p className="text-sm sm:text-base font-bold text-zinc-500 dark:text-zinc-400 break-words max-w-full">{award.subtitle}</p>
             )}
             {award.extraInfo && (
-                <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">{award.extraInfo}</p>
+                <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 break-words max-w-full">{award.extraInfo}</p>
             )}
             <div className="pt-6 flex flex-col items-center">
                 <div className={`px-6 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm font-black tracking-widest uppercase ${
@@ -1167,27 +1167,37 @@ export default function StudentDashboard({
   }, [currentUser, apiKey]);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchLibraryBooks = async (showLoading = true) => {
-      if (!apiKey || !isActiveStudent) return;
+      if (!apiKey || !isActiveStudent || activeTab !== "LIBRARY") return;
       if (showLoading) setLibraryBooksLoading(true);
       try {
         const res = await fetch("/api/library/books", {
           headers: { "Content-Type": "application/json", "api-key": apiKey }
         });
+        if (!res.ok) return;
         const result = await res.json();
-        if (result.success) {
+        if (isMounted && result.success) {
           setLibraryBooks(result.data || []);
         }
       } catch (error) {
-        console.error("Error fetching library books:", error);
+        if (showLoading) {
+          console.warn("Could not fetch library books:", error?.message || error);
+        }
       } finally {
-        if (showLoading) setLibraryBooksLoading(false);
+        if (isMounted && showLoading) setLibraryBooksLoading(false);
       }
     };
-    fetchLibraryBooks(true);
-    const interval = setInterval(() => fetchLibraryBooks(false), 15000); // Poll every 15s
-    return () => clearInterval(interval);
-  }, [apiKey, isActiveStudent]);
+
+    if (activeTab === "LIBRARY") {
+      fetchLibraryBooks(true);
+      const interval = setInterval(() => fetchLibraryBooks(false), 30000);
+      return () => {
+        isMounted = false;
+        clearInterval(interval);
+      };
+    }
+  }, [apiKey, isActiveStudent, activeTab]);
 
   useEffect(() => {
     if (!isActiveStudent && librarySubTab === "BOOKS") {
@@ -1196,25 +1206,28 @@ export default function StudentDashboard({
   }, [isActiveStudent, librarySubTab]);
 
   const fetchPendingRequests = async () => {
-    if (!apiKey || !currentUser._id) return;
+    if (!apiKey || !currentUser?._id || activeTab !== "LIBRARY") return;
     try {
       const res = await fetch(`/api/library/requests?studentId=${currentUser._id}&status=Pending`, {
         headers: { "Content-Type": "application/json", "api-key": apiKey }
       });
+      if (!res.ok) return;
       const result = await res.json();
       if (result.success) {
         setPendingRequests(result.data || []);
       }
     } catch (error) {
-      console.error("Error fetching pending requests:", error);
+      console.warn("Could not fetch pending requests:", error?.message || error);
     }
   };
 
   useEffect(() => {
-    fetchPendingRequests();
-    const interval = setInterval(fetchPendingRequests, 15000); // Poll every 15s
-    return () => clearInterval(interval);
-  }, [apiKey, currentUser._id]);
+    if (activeTab === "LIBRARY") {
+      fetchPendingRequests();
+      const interval = setInterval(fetchPendingRequests, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [apiKey, currentUser?._id, activeTab]);
 
   // Lazy-load articles only when ARTICLES tab is first opened
   useEffect(() => {
@@ -1573,83 +1586,100 @@ export default function StudentDashboard({
       {/* Premium Header */}
       <div className="no-print relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 p-6 sm:p-8 text-white shadow-xl mb-6">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left w-full md:w-auto">
-            {/* Mobile & Desktop Header: Photo and Info side by side */}
-            <div className="flex flex-row items-start sm:items-center justify-between w-full md:w-auto gap-3 sm:gap-4">
-              <div className="flex flex-row items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                {/* Photo with Status directly underneath */}
-                <div className="flex flex-col items-center gap-1.5 shrink-0">
-                  <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-2xl border-2 sm:border-4 border-white/20 shadow-2xl ring-2 sm:ring-4 ring-blue-500/20 shrink-0">
-                    <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
-                    <AvatarFallback className="bg-white/10 text-xl sm:text-2xl font-bold backdrop-blur-md">
-                      {currentUser?.name?.[0]}
-                    </AvatarFallback>
-                  </Avatar>
+          <div className="flex flex-col items-start gap-2 text-left w-full md:w-auto">
+            {/* Photo with Active Status underneath + Info with Edit/Approved underneath */}
+            <div className="flex flex-row items-start justify-start gap-2.5 sm:gap-3 w-full md:w-auto">
+              {/* Photo with Active Status directly underneath - FULL LEFT ALIGNED */}
+              <div className="flex flex-col items-start gap-1 shrink-0">
+                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-2xl border-2 sm:border-4 border-white/20 shadow-2xl ring-2 sm:ring-4 ring-blue-500/20 shrink-0">
+                  <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
+                  <AvatarFallback className="bg-white/10 text-xl sm:text-2xl font-bold backdrop-blur-md">
+                    {currentUser?.name?.[0]}
+                  </AvatarFallback>
+                </Avatar>
 
-                  {/* Status Badge directly under photo */}
-                  {currentUser?.studentSpecificField?.status && (
+                {/* Status Badge directly under photo - FULL LEFT ALIGNED */}
+                {currentUser?.studentSpecificField?.status && (
+                  <div className={cn(
+                    "px-2 sm:px-2.5 py-0.5 rounded-lg border font-bold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider backdrop-blur-md shadow-sm flex items-center justify-start gap-1 sm:gap-1.5 whitespace-nowrap",
+                    currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                    currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                    currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
+                    "bg-slate-500/20 text-slate-400 border-slate-500/30"
+                  )}>
                     <div className={cn(
-                      "px-2 sm:px-2.5 py-0.5 rounded-lg border font-bold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider backdrop-blur-md shadow-sm flex items-center justify-center gap-1 sm:gap-1.5 text-center whitespace-nowrap",
-                      currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
-                      currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
-                      currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
-                      "bg-slate-500/20 text-slate-400 border-slate-500/30"
-                    )}>
-                      <div className={cn(
-                        "w-1.5 h-1.5 rounded-full",
-                        currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-1 ring-green-400/20" :
-                        currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-1 ring-red-400/20" :
-                        currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-1 ring-blue-400/20" :
-                        "bg-slate-400"
-                      )} />
-                      {currentUser.studentSpecificField.status}
-                    </div>
+                      "w-1.5 h-1.5 rounded-full",
+                      currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-1 ring-green-400/20" :
+                      currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-1 ring-red-400/20" :
+                      currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-1 ring-blue-400/20" :
+                      "bg-slate-400"
+                    )} />
+                    {currentUser.studentSpecificField.status}
+                  </div>
+                )}
+              </div>
+
+              {/* Info Section next to Photo */}
+              <div className="min-w-0 flex-1 text-left">
+                <div className="flex flex-col items-start gap-0">
+                  <span className="text-blue-200 text-[11px] sm:text-xs font-medium tracking-wider uppercase leading-none mb-0.5 shrink-0">
+                    Welcome,
+                  </span>
+                  <h2 className="text-base sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight drop-shadow-md break-words leading-tight">
+                    {currentUser?.name}
+                  </h2>
+                </div>
+
+                {/* 970 and PLUS TWO | G-VIBE side by side in mobile view as well */}
+                <div className="flex flex-row items-center gap-1.5 sm:gap-2 text-blue-100/90 text-xs sm:text-sm mt-1 whitespace-nowrap overflow-hidden">
+                  <span className="bg-white/10 px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur-sm border border-white/10 uppercase shrink-0">
+                    {currentUser?._id}
+                  </span>
+                  {currentUser?.studentSpecificField?.status === "Active" ? (
+                    <span className="flex items-center gap-1 text-[11px] sm:text-sm font-medium truncate">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
+                      <span className="truncate">{className || "No Class"} | {batchName || "No Batch"}</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[11px] sm:text-sm font-medium truncate">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" />
+                      <span className="truncate">{batchName || "No Batch"}</span>
+                    </span>
                   )}
                 </div>
 
-                {/* Info Section next to Photo */}
-                <div className="min-w-0 flex-1 text-left">
-                  <div className="flex flex-row md:flex-col items-baseline md:items-start gap-1.5 md:gap-0 mb-1 flex-wrap">
-                    <span className="text-blue-200 text-xs sm:text-sm font-medium tracking-wider uppercase md:mb-1 shrink-0">
-                      Welcome,
-                    </span>
-                    <h2 className="text-base sm:text-2xl md:text-4xl font-extrabold tracking-tight drop-shadow-md break-words">
-                      {currentUser?.name}
-                    </h2>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-blue-100/80 text-xs sm:text-sm">
-                    <span className="bg-white/10 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium backdrop-blur-sm border border-white/10 uppercase shrink-0">
-                      {currentUser?._id}
-                    </span>
-                    {currentUser?.studentSpecificField?.status === "Active" ? (
-                      <span className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
-                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
-                        {className || "No Class"} | {batchName || "No Batch"}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
-                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" />
-                        {batchName || "No Batch"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Edit Profile for Mobile View */}
-              {!hideHeader && (
-                <div className="md:hidden flex flex-col items-end shrink-0 self-start">
+                {/* Edit Profile, Approved directly under 970 and PLUS TWO | G-VIBE in desktop and mobile */}
+                <div className="flex items-center gap-1.5 sm:gap-2 justify-start flex-wrap mt-1.5 sm:mt-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-1 h-7 px-2.5 text-[10px] font-bold uppercase tracking-wider transition-all"
+                    className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-1.5 h-6 sm:h-7 px-2 sm:px-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
                     onClick={() => setIsEditModalOpen(true)}
                   >
-                    <Edit2 className="h-3 w-3" />
-                    Edit
+                    <Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <span>Edit Profile</span>
                   </Button>
+
+                  {currentUser?.profileUpdateStatus === "Pending" && (
+                    <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-blue-500/20 text-blue-300 border-blue-500/30 animate-pulse whitespace-nowrap">
+                      <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
+                      <span>Requested</span>
+                    </div>
+                  )}
+                  {currentUser?.profileUpdateStatus === "Verified" && (
+                    <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-green-500/20 text-green-300 border-green-500/30 whitespace-nowrap">
+                      <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
+                      <span>Approved</span>
+                    </div>
+                  )}
+                  {currentUser?.profileUpdateStatus === "Rejected" && (
+                    <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-red-500/20 text-red-300 border-red-500/30 whitespace-nowrap">
+                      <XCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
+                      <span>Rejected</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Mobile Courses Section: under name and photo in mobile view */}
@@ -1688,60 +1718,8 @@ export default function StudentDashboard({
             )}
           </div>
 
-          {/* Desktop Right Side: Edit Profile & Courses */}
+          {/* Desktop Right Side: Courses */}
           <div className="hidden md:flex flex-col items-end gap-2.5 min-w-[240px] max-w-sm shrink-0">
-            {!hideHeader && (
-              <div className="flex items-center gap-2 justify-end w-full flex-wrap">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
-                  onClick={() => setIsEditModalOpen(true)}
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                  Edit Profile
-                </Button>
-              </div>
-            )}
-
-            {!hideHeader && (
-              <div className="flex flex-col items-end gap-2 w-full">
-                {currentUser?.profileUpdateStatus === "Pending" && (
-                  <div className="flex flex-col items-center w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md bg-blue-500/10 text-blue-300 border-blue-500/20 animate-pulse">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3" />
-                      Requested
-                    </div>
-                    {currentUser.profileRequestDate && (
-                      <span className="text-[10px] text-blue-300/60 font-medium mt-0.5">{formatDateShort(currentUser.profileRequestDate)}</span>
-                    )}
-                  </div>
-                )}
-                {currentUser?.profileUpdateStatus === "Verified" && (
-                  <div className="flex flex-col items-center w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md bg-green-500/10 text-green-300 border-green-500/20">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-3 w-3" />
-                      Approved
-                    </div>
-                    {currentUser.profileActionDate && (
-                      <span className="text-[10px] text-green-300/60 font-medium mt-0.5">{formatDateShort(currentUser.profileActionDate)}</span>
-                    )}
-                  </div>
-                )}
-                {currentUser?.profileUpdateStatus === "Rejected" && (
-                  <div className="flex flex-col items-center w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md bg-red-500/10 text-red-300 border-red-500/20">
-                    <div className="flex items-center gap-2">
-                      <XCircle className="h-3 w-3" />
-                      Rejected
-                    </div>
-                    {currentUser.profileActionDate && (
-                      <span className="text-[10px] text-red-300/60 font-medium mt-0.5">{formatDateShort(currentUser.profileActionDate)}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Courses shown in the right side of blue color tag in desktop view */}
             {headerCourses && headerCourses.length > 0 && (
               <div className="flex flex-col gap-2 w-full mt-1">
@@ -1792,7 +1770,7 @@ export default function StudentDashboard({
           { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
           { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
           { id: "MARKS", label: "Marks", icon: FileText, color: "indigo" },
-          { id: "NOTIFICATIONS", label: "Notifications", icon: Bell, color: "cyan" },
+          { id: "ALERTS", label: "Alerts", icon: Bell, color: "cyan" },
           { id: "DOWNLOADS", label: "Downloads", icon: Download, color: "teal" },
           { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
           { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
@@ -1801,7 +1779,7 @@ export default function StudentDashboard({
           { id: "UPDATES", label: "Updates", icon: Megaphone, color: "pink" },
         ].map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = activeTab === item.id || (item.id === "ALERTS" && activeTab === "NOTIFICATIONS");
           
           // Color mapping for all navigation items
           const colorStyles = {
@@ -1825,22 +1803,22 @@ export default function StudentDashboard({
           return (
             <Card 
               key={item.id}
-              className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden ${
+              className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden w-full min-w-0 ${
                 isActive 
                   ? `${s.activeBorder} ${s.activeBg}` 
                   : "border-transparent bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-800"
               }`}
               onClick={() => handleTabChange(item.id)}
             >
-              <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
-                <div className={`p-3 rounded-xl transition-all duration-300 ${
+              <CardContent className="p-2 sm:p-3 md:p-4 flex flex-col items-center justify-center text-center gap-1.5 sm:gap-2 md:gap-3 w-full min-w-0">
+                <div className={`p-2 sm:p-2.5 md:p-3 rounded-xl transition-all duration-300 shrink-0 ${
                   isActive 
                     ? `${s.iconActiveBg} text-white shadow-lg scale-110` 
                     : `${s.iconInactiveBg} ${s.iconInactiveText} group-hover:scale-110`
                 }`}>
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
-                <span className={`text-sm font-bold tracking-wide ${
+                <span className={`text-[11px] sm:text-xs md:text-sm font-bold tracking-tight sm:tracking-wide text-center break-words w-full max-w-full leading-tight [overflow-wrap:anywhere] ${
                   isActive ? s.labelActive : "text-slate-600 dark:text-slate-400"
                 }`}>
                   {item.label}
@@ -2108,7 +2086,7 @@ export default function StudentDashboard({
               Pending Transactions
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-6 pt-0">
             <div className="max-h-[400px] overflow-auto rounded-md border min-h-[100px] w-full min-w-0">
               {fundsLoading ? (
                 <div className="flex items-center justify-center py-10">
@@ -2116,26 +2094,26 @@ export default function StudentDashboard({
                   <span className="ml-2 text-sm text-muted-foreground">Loading financial records...</span>
                 </div>
               ) : displayFunds && displayFunds.length > 0 ? (
-                <Table className="min-w-[450px] w-full">
+                <Table className="w-full">
                   <TableHeader className="bg-muted/50 sticky top-0 z-10">
                     <TableRow>
-                      <TableHead className="w-[60px] py-2 whitespace-nowrap">Sl No</TableHead>
-                      <TableHead className="py-2 min-w-[200px]">Fund Name</TableHead>
-                      <TableHead className="py-2 text-right whitespace-nowrap min-w-[100px]">Balance</TableHead>
+                      <TableHead className="w-10 sm:w-14 py-2 px-1.5 sm:px-3 text-center whitespace-nowrap text-xs sm:text-sm">#</TableHead>
+                      <TableHead className="py-2 px-2 sm:px-4 text-xs sm:text-sm">Fund Name</TableHead>
+                      <TableHead className="py-2 px-2 sm:px-4 text-right whitespace-nowrap w-24 sm:w-32 text-xs sm:text-sm">Balance</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {displayFunds.map((item, index) => (
                       <TableRow key={index} className="group hover:bg-muted/30 transition-colors">
-                        <TableCell className="py-2 text-muted-foreground font-medium">{index + 1}</TableCell>
-                        <TableCell className="py-2">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-sm text-emerald-900 dark:text-emerald-200">{item.label}</span>
-                            {item.subLabel && <span className="text-[10px] text-muted-foreground uppercase">{item.subLabel}</span>}
+                        <TableCell className="py-2 px-1.5 sm:px-3 text-center text-muted-foreground font-medium text-xs sm:text-sm">{index + 1}</TableCell>
+                        <TableCell className="py-2 px-2 sm:px-4">
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 break-words">{item.label}</span>
+                            {item.subLabel && <span className="text-[9px] sm:text-[10px] text-muted-foreground uppercase break-words">{item.subLabel}</span>}
                           </div>
                         </TableCell>
                         <TableCell 
-                          className={`py-2 text-right font-bold text-sm cursor-pointer hover:underline decoration-dotted ${item.value < 0 ? 'text-red-600' : 'text-green-600'}`}
+                          className={`py-2 px-2 sm:px-4 text-right font-bold text-xs sm:text-sm cursor-pointer hover:underline decoration-dotted whitespace-nowrap ${item.value < 0 ? 'text-red-600' : 'text-green-600'}`}
                           onClick={() => {
                             if (item.isCoupon) {
                               setIsCouponModalOpen(true);
@@ -2151,10 +2129,10 @@ export default function StudentDashboard({
                     ))}
                     {/* Total Summary Row */}
                     <TableRow className="bg-muted/40 font-bold border-t-2 border-muted hover:bg-muted/40">
-                      <TableCell colSpan={2} className="py-3 text-emerald-800 dark:text-emerald-300 uppercase tracking-wider text-xs">
+                      <TableCell colSpan={2} className="py-2.5 sm:py-3 px-2 sm:px-4 text-emerald-800 dark:text-emerald-300 uppercase tracking-wider text-[11px] sm:text-xs">
                         Total Pending Balance
                       </TableCell>
-                      <TableCell className={`py-3 text-right text-base ${totalPending < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <TableCell className={`py-2.5 sm:py-3 px-2 sm:px-4 text-right text-sm sm:text-base whitespace-nowrap ${totalPending < 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {(totalPending || 0).toFixed(2)}
                       </TableCell>
                     </TableRow>
@@ -2171,7 +2149,7 @@ export default function StudentDashboard({
               {/* Standard Fund Details Modal */}
               <Dialog open={isStandardModalOpen} onOpenChange={setIsStandardModalOpen}>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto [&>button.absolute]:hidden p-0 gap-0">
-                  <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background sticky top-0 z-20">
+                  <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-3 sm:px-5 py-3 sm:py-4 border-b space-y-0 bg-background sticky top-0 z-20">
                     <div className="p-2 rounded-lg bg-primary/10">
                       <IndianRupee className="h-5 w-5 text-primary" />
                     </div>
@@ -2187,26 +2165,26 @@ export default function StudentDashboard({
                       <X className="h-5 w-5" />
                     </DialogClose>
                   </DialogHeader>
-                  <div className="p-5 space-y-8">
+                  <div className="p-3 sm:p-5 space-y-5 sm:space-y-8 w-full min-w-0 overflow-hidden">
                     {/* Collection Breakdown */}
                     <div>
                       <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                         <User className="h-4 w-4" />
                         Collection Breakdown
                       </h3>
-                      <div className="overflow-x-auto w-full min-w-0 rounded-md border">
-                        <Table className="min-w-[320px] w-full">
-                          <TableHeader>
+                      <div className="w-full min-w-0 rounded-md border overflow-hidden">
+                        <Table className="w-full table-fixed">
+                          <TableHeader className="bg-muted/50">
                             <TableRow>
-                              <TableHead>Role Holder</TableHead>
-                              <TableHead className="text-right">Balance</TableHead>
+                              <TableHead className="py-2 px-2 sm:px-3 text-xs w-[60%]">Role Holder</TableHead>
+                              <TableHead className="py-2 px-2 sm:px-3 text-right text-xs w-[40%]">Balance</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {(selectedStandardFund?.records || []).map((record, i) => (
                               <TableRow key={i}>
-                                <TableCell>{record.holder}</TableCell>
-                                <TableCell className={`text-right font-bold ${(record.value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                <TableCell className="py-2 px-2 sm:px-3 text-xs break-words">{record.holder}</TableCell>
+                                <TableCell className={`py-2 px-2 sm:px-3 text-right font-bold text-xs whitespace-nowrap ${(record.value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                                   {(record.value || 0).toFixed(2)}
                                 </TableCell>
                               </TableRow>
@@ -2222,13 +2200,13 @@ export default function StudentDashboard({
                         <Clock className="h-4 w-4" />
                         Fund History
                       </h3>
-                      <div className="rounded-md border overflow-x-auto w-full min-w-0">
-                        <Table className="min-w-[360px] w-full">
+                      <div className="rounded-md border w-full min-w-0 overflow-hidden">
+                        <Table className="w-full table-fixed">
                           <TableHeader className="bg-muted/50">
                             <TableRow>
-                              <TableHead className="py-2 whitespace-nowrap">Date</TableHead>
-                              <TableHead className="py-2 text-right whitespace-nowrap">Transactions</TableHead>
-                              <TableHead className="py-2 text-right whitespace-nowrap">Balance</TableHead>
+                              <TableHead className="py-2 px-1.5 sm:px-3 text-xs w-[32%] sm:w-[30%]">Date</TableHead>
+                              <TableHead className="py-2 px-1.5 sm:px-3 text-right text-xs w-[38%] sm:w-[40%]">Transactions</TableHead>
+                              <TableHead className="py-2 px-1.5 sm:px-3 text-right text-xs w-[30%] sm:w-[30%]">Balance</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -2237,30 +2215,30 @@ export default function StudentDashboard({
                                 .sort((a, b) => new Date(b.date) - new Date(a.date)) // Newest first for display
                                 .map((t, idx) => (
                                   <TableRow key={idx}>
-                                    <TableCell className="py-2 text-xs leading-tight">
-                                      <div className="flex flex-col">
-                                        <span className="font-medium">{formatDateShort(t.date)}</span>
-                                        <span className="text-muted-foreground">
-                                          {new Date(t.date).toLocaleTimeString("en-US", {
+                                    <TableCell className="py-2 px-1.5 sm:px-3 text-xs leading-tight">
+                                      <div className="flex flex-col min-w-0">
+                                        <span className="font-medium whitespace-nowrap text-[11px] sm:text-xs">{formatDateShort(t.date)}</span>
+                                        <span className="text-muted-foreground text-[9px] sm:text-[10px] whitespace-nowrap">
+                                          {t.date && !isNaN(new Date(t.date).getTime()) ? new Date(t.date).toLocaleTimeString("en-US", {
                                             hour: "2-digit",
                                             minute: "2-digit",
                                             hour12: true,
-                                          })}
+                                          }) : ""}
                                         </span>
                                       </div>
                                     </TableCell>
-                                    <TableCell className={`py-2 text-xs text-right font-bold ${t.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
-                                      <div className="flex flex-col items-end gap-0.5">
-                                        <span>{t.type === 'Withdrawal' ? '-' : '+'}{(t.amount || 0).toFixed(2)}</span>
+                                    <TableCell className={`py-2 px-1.5 sm:px-3 text-xs text-right font-bold ${t.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
+                                      <div className="flex flex-col items-end gap-0.5 min-w-0">
+                                        <span className="text-[11px] sm:text-xs whitespace-nowrap">{t.type === 'Withdrawal' ? '-' : '+'}{(t.amount || 0).toFixed(2)}</span>
                                         {t.note && (
-                                          <span className="text-[10px] font-normal text-muted-foreground leading-tight max-w-[140px] text-right">
+                                          <span className="text-[9px] sm:text-[10px] font-normal text-muted-foreground leading-tight text-right break-words line-clamp-2 max-w-full">
                                             {t.note}
                                           </span>
                                         )}
                                       </div>
                                     </TableCell>
-                                    <TableCell className={`py-2 text-xs text-right font-bold ${t.calculatedBalance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                      {t.calculatedBalance?.toFixed(2) || "0.00"}
+                                    <TableCell className={`py-2 px-1.5 sm:px-3 text-xs text-right font-bold whitespace-nowrap ${t.calculatedBalance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                      <span className="text-[11px] sm:text-xs">{t.calculatedBalance?.toFixed(2) || "0.00"}</span>
                                     </TableCell>
                                   </TableRow>
                                 ))
@@ -3218,21 +3196,21 @@ export default function StudentDashboard({
         </Card>
       )}
 
-      {activeTab === "NOTIFICATIONS" && (
-        <Card className="flex flex-col card-print-break mt-5">
+      {(activeTab === "ALERTS" || activeTab === "NOTIFICATIONS") && (
+        <Card className="flex flex-col card-print-break mt-5 overflow-hidden w-full min-w-0">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Bell className="h-5 w-5 text-cyan-500" />
-              Notifications
+            <CardTitle className="text-lg font-bold flex items-center gap-2 break-words">
+              <Bell className="h-5 w-5 text-cyan-500 shrink-0" />
+              Alerts
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1">
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <div className="p-5 rounded-2xl bg-cyan-100 dark:bg-cyan-900/20 mb-4">
+          <CardContent className="flex-1 w-full min-w-0">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-center px-4">
+              <div className="p-5 rounded-2xl bg-cyan-100 dark:bg-cyan-900/20 mb-4 shrink-0">
                 <Bell className="h-10 w-10 text-cyan-500 opacity-60" />
               </div>
-              <p className="text-base font-semibold text-cyan-700 dark:text-cyan-300 mb-1">No Notifications</p>
-              <p className="text-sm text-muted-foreground">You have no notifications at this time.</p>
+              <p className="text-base font-semibold text-cyan-700 dark:text-cyan-300 mb-1 break-words">No Alerts</p>
+              <p className="text-sm text-muted-foreground break-words max-w-full">You have no alerts at this time.</p>
             </div>
           </CardContent>
         </Card>

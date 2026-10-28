@@ -599,7 +599,7 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                             classes={classes}
                             batches={batches}
                             updates={updates}
-                            hideHeader={true}
+                            hideHeader={false}
                             showKinship={true}
                             debtBalances={debtBalances}
                         />

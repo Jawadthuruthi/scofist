@@ -57,13 +57,16 @@ export async function GET(req) {
       }
     } else if (activeRole === "Literary Leader") {
       query.teacherId = user.userId;
+    } else if (activeRole === "Student") {
+      // Students can only view their own performance records - force-filter by their own userId
+      if (user?.userId) { query.studentId = user.userId; } else { return apiResponse.error("Unauthorized session.", 401); }
     } else if (activeRole !== "College Admin") {
       return apiResponse.error("You are not authorized to view performances.", 403);
     }
 
     // classId is already handled for Teachers above to prevent overriding assigned classes
     if (filterParams.classId && activeRole !== "Teacher") query.classId = filterParams.classId;
-    if (filterParams.studentId) query.studentId = filterParams.studentId;
+    if (filterParams.studentId && activeRole !== "Student") query.studentId = filterParams.studentId;
     if (filterParams.status) query.status = filterParams.status;
     if (filterParams.teacherId) query.teacherId = filterParams.teacherId;
     if (filterParams.comments) query.comments = { $regex: filterParams.comments, $options: "i" };
