@@ -19,20 +19,20 @@ export default async function BatchesPage() {
       throw error;
     }
 
-    const batchesData = await Batch.find({}).select("_id name startYear endYear").sort({ startYear: -1, endYear: -1 }).lean();
-    const classesData = await Class.find({}).select("_id name shortname status").lean();
-    
+    const batchesData = await Batch.find({}).select("_id name startYear endYear status").sort({ startYear: -1, endYear: -1 }).lean({ virtuals: true });
+    const classesData = await Class.find({}).select("_id name shortname status batchId").lean();
+
     // Fetch the last student ID
     const lastStudent = await User.findOne({ roles: "Student" })
       .select("_id")
       .sort({ createdAt: -1 })
       .lean();
-    
+
     const lastStudentId = lastStudent?._id || "None";
 
     classesData.sort((a, b) => a._id.localeCompare(b._id, undefined, { numeric: true, sensitivity: 'base' }));
 
-    const batches = JSON.parse(JSON.stringify(batchesData));
+    const batches = JSON.parse(JSON.stringify(batchesData)).map(b => ({ ...b, academicYear: b.academicYear || (b.startYear && b.endYear ? `${b.startYear}-${(b.endYear % 100).toString().padStart(2, "0")}` : "") }));
     const classes = JSON.parse(JSON.stringify(classesData));
 
     return <StudentsClient batches={batches} classes={classes} activeRole={activeRole} apiKey={process.env.API_KEY} lastStudentId={lastStudentId} />;

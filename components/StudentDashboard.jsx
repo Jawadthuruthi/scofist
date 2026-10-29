@@ -19,13 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, Newspaper, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle, Share2, X } from "lucide-react";
+import { ChevronDown, Check, Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, Newspaper, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle, Share2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import UpdateCard from "@/components/UpdateCard";
 import ShareModal from "@/components/ShareModal";
 import ProfileEditModal from "./ProfileEditModal";
 import DocumentPreviewDialog from "./DocumentPreviewDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import html2canvas from "html2canvas";
 import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate, copyToClipboard } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
@@ -83,13 +84,84 @@ const ProfileField = ({ label, subLabel, value, isBold }) =>
     </>
   ) : null;
 
+function HeaderFilter({ label, value, onChange, options, color = "teal" }) {
+  const active = Boolean(value);
+  const colorMap = {
+    teal: {
+      activeText: "text-teal-700 dark:text-teal-300 font-bold",
+      badge: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800",
+      itemActive: "bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 font-semibold",
+    },
+    indigo: {
+      activeText: "text-indigo-700 dark:text-indigo-300 font-bold",
+      badge: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800",
+      itemActive: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 font-semibold",
+    },
+    amber: {
+      activeText: "text-amber-700 dark:text-amber-300 font-bold",
+      badge: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+      itemActive: "bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 font-semibold",
+    },
+  };
+  const theme = colorMap[color] || colorMap.teal;
+
+  return (
+    <div className="flex flex-col sm:inline-flex sm:flex-row sm:items-center items-start gap-0.5 sm:gap-1">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "inline-flex items-center gap-1 uppercase font-bold text-xs hover:text-foreground focus:outline-none transition-colors group",
+              active ? theme.activeText : "text-foreground"
+            )}
+            title={`Filter ${label}`}
+          >
+            <span>{label}</span>
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", active ? theme.activeText : "text-muted-foreground group-hover:text-foreground")} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-[120px] max-h-60 overflow-y-auto z-50">
+          <DropdownMenuItem
+            onClick={() => onChange("")}
+            className={cn("flex items-center justify-between text-xs cursor-pointer", !value && theme.itemActive)}
+          >
+            <span>All</span>
+            {!value && <Check className="h-3.5 w-3.5 ml-2" />}
+          </DropdownMenuItem>
+          {options.map((opt) => (
+            <DropdownMenuItem
+              key={opt}
+              onClick={() => onChange(String(opt))}
+              className={cn("flex items-center justify-between text-xs cursor-pointer", String(value) === String(opt) && theme.itemActive)}
+            >
+              <span>{opt}</span>
+              {String(value) === String(opt) && <Check className="h-3.5 w-3.5 ml-2" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {active && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] normal-case border font-medium mt-0.5 sm:mt-0 max-w-full truncate", theme.badge)}
+          title="Clear filter"
+        >
+          <span className="truncate">{value}</span>
+          <X className="h-2.5 w-2.5 shrink-0 opacity-70 hover:opacity-100" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function DownloadsTabContent({ apiKey }) {
   React.useEffect(() => {
     console.log("DownloadsTabContent initialized with apiKey:", apiKey ? "Present" : "Missing");
   }, [apiKey]);
 
   const [activeSubTab, setActiveSubTab] = React.useState("PAPERS");
-
 
   // -- Question Papers --
   const [papers, setPapers] = React.useState([]);
@@ -105,6 +177,42 @@ function DownloadsTabContent({ apiKey }) {
   const [books, setBooks] = React.useState([]);
   const [booksLoading, setBooksLoading] = React.useState(false);
   const [booksLoaded, setBooksLoaded] = React.useState(false);
+
+  // -- Filters: Papers --
+  const [paperFilterCourse, setPaperFilterCourse] = React.useState("");
+  const [paperFilterYear, setPaperFilterYear] = React.useState("");
+  const [paperFilterSem, setPaperFilterSem] = React.useState("");
+
+  // -- Filters: Syllabus --
+  const [syllabusFilterCourse, setSyllabusFilterCourse] = React.useState("");
+  const [syllabusFilterYear, setSyllabusFilterYear] = React.useState("");
+
+  // -- Filters: Books --
+  const [bookFilterCourse, setBookFilterCourse] = React.useState("");
+
+  // Derived unique options
+  const paperCourses = React.useMemo(() => [...new Set(papers.map(p => p.course).filter(Boolean))].sort(), [papers]);
+  const paperYears = React.useMemo(() => [...new Set(papers.map(p => String(p.year)).filter(Boolean))].sort((a,b) => Number(a)-Number(b)), [papers]);
+  const paperSems = React.useMemo(() => [...new Set(papers.map(p => String(p.semester)).filter(Boolean))].sort((a,b) => Number(a)-Number(b)), [papers]);
+  const syllabusCourses = React.useMemo(() => [...new Set(syllabuses.map(s => s.course).filter(Boolean))].sort(), [syllabuses]);
+  const syllabusYears = React.useMemo(() => [...new Set(syllabuses.map(s => String(s.year)).filter(Boolean))].sort(), [syllabuses]);
+  const bookCourses = React.useMemo(() => [...new Set(books.map(b => b.course).filter(Boolean))].sort(), [books]);
+
+  // Filtered data
+  const filteredPapers = React.useMemo(() => papers.filter(d =>
+    (!paperFilterCourse || d.course === paperFilterCourse) &&
+    (!paperFilterYear || String(d.year) === paperFilterYear) &&
+    (!paperFilterSem || String(d.semester) === paperFilterSem)
+  ), [papers, paperFilterCourse, paperFilterYear, paperFilterSem]);
+
+  const filteredSyllabuses = React.useMemo(() => syllabuses.filter(s =>
+    (!syllabusFilterCourse || s.course === syllabusFilterCourse) &&
+    (!syllabusFilterYear || String(s.year) === syllabusFilterYear)
+  ), [syllabuses, syllabusFilterCourse, syllabusFilterYear]);
+
+  const filteredBooks = React.useMemo(() => books.filter(b =>
+    (!bookFilterCourse || b.course === bookFilterCourse)
+  ), [books, bookFilterCourse]);
 
   // Lazy-load each tab's data only when first opened
   React.useEffect(() => {
@@ -136,6 +244,33 @@ function DownloadsTabContent({ apiKey }) {
 
   const [downloadingId, setDownloadingId] = React.useState(null);
   const [previewItem, setPreviewItem] = React.useState(null); // { url, title }
+
+  const previewPaper = (d) => {
+    const filename = `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_");
+    setPreviewItem({
+      url: d.fileUrl,
+      title: `${d.subject} — ${d.course} Year ${d.year} Sem ${d.semester}`,
+      filename,
+    });
+  };
+
+  const previewSyllabus = (s) => {
+    const filename = `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_");
+    setPreviewItem({
+      url: s.fileUrl,
+      title: `${s.fileName || 'Syllabus'} — ${s.course} Year ${s.year}`,
+      filename,
+    });
+  };
+
+  const previewBook = (b) => {
+    const filename = `${b.name}.pdf`.replace(/[/\\?%*:|"<>]/g, "_").replace(/\s+/g, "_");
+    setPreviewItem({
+      url: b.fileUrl,
+      title: b.name,
+      filename,
+    });
+  };
 
   const handleDownload = async (fileUrl, filename, downloadId) => {
     if (!fileUrl) return;
@@ -187,21 +322,19 @@ function DownloadsTabContent({ apiKey }) {
       console.error("Download failed:", error);
       toast.error(error.message || "Failed to download file");
     } finally {
-
       setDownloadingId(null);
     }
   };
 
-
   const subTabs = [
-    { id: "PAPERS", label: "Question Papers", icon: FileText, color: "text-teal-600 dark:text-teal-400", activeBg: "bg-teal-50 dark:bg-teal-900/20 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300" },
-    { id: "SYLLABUS", label: "Syllabus", icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", activeBg: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300" },
-    { id: "BOOKS", label: "Books", icon: BookOpen, color: "text-amber-600 dark:text-amber-400", activeBg: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" },
+    { id: "PAPERS", label: "Question Papers", mobileLabel: "Questions", icon: FileText, color: "text-teal-600 dark:text-teal-400", activeBg: "bg-teal-50 dark:bg-teal-900/20 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300" },
+    { id: "SYLLABUS", label: "Syllabus", mobileLabel: "Syllabus", icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", activeBg: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300" },
+    { id: "BOOKS", label: "Books", mobileLabel: "Books", icon: BookOpen, color: "text-amber-600 dark:text-amber-400", activeBg: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" },
   ];
 
   const EmptyState = ({ icon: Icon, color, label }) => (
     <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-      <div className={`p-5 rounded-2xl mb-4 bg-muted/30`}>
+      <div className="p-5 rounded-2xl mb-4 bg-muted/30">
         <Icon className={`h-10 w-10 opacity-40 ${color}`} />
       </div>
       <p className="text-sm font-semibold mb-1">No {label} Available</p>
@@ -226,7 +359,6 @@ function DownloadsTabContent({ apiKey }) {
       />
       {/* Sub-tab Switcher */}
       <div className="flex gap-2 border-b pb-3 overflow-x-auto no-scrollbar">
-
         {subTabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -234,14 +366,15 @@ function DownloadsTabContent({ apiKey }) {
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 shrink-0 ${
                 isActive
                   ? tab.activeBg
                   : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
               }`}
             >
-              <Icon className={`h-4 w-4 ${isActive ? "" : tab.color}`} />
-              {tab.label}
+              <Icon className={`h-4 w-4 shrink-0 ${isActive ? "" : tab.color}`} />
+              <span className="sm:hidden">{tab.mobileLabel || tab.label}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
             </button>
           );
         })}
@@ -253,48 +386,57 @@ function DownloadsTabContent({ apiKey }) {
         !papers.length ? <EmptyState icon={FileText} color="text-teal-500" label="Question Papers" /> :
         <div className="rounded-md border overflow-hidden overflow-x-auto">
           <Table className="min-w-[500px]">
-
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">Course</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">Year</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">Sem</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">
+                  <HeaderFilter label="Course" value={paperFilterCourse} onChange={setPaperFilterCourse} options={paperCourses} color="teal" />
+                </TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">
+                  <HeaderFilter label="Year" value={paperFilterYear} onChange={setPaperFilterYear} options={paperYears} color="teal" />
+                </TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">
+                  <HeaderFilter label="Sem" value={paperFilterSem} onChange={setPaperFilterSem} options={paperSems} color="teal" />
+                </TableHead>
                 <TableHead className="py-3 text-xs font-bold uppercase">Subject</TableHead>
                 <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {papers.map((d, idx) => (
-                <TableRow key={d._id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="py-2.5 text-sm text-muted-foreground">{idx + 1}</TableCell>
-                  <TableCell className="py-2.5 text-sm">{d.course}</TableCell>
-                  <TableCell className="py-2.5 text-sm">Year {d.year}</TableCell>
-                  <TableCell className="py-2.5 text-sm">Sem {d.semester}</TableCell>
+              {filteredPapers.map((d, idx) => (
+                <TableRow
+                  key={d._id}
+                  onClick={() => previewPaper(d)}
+                  className="hover:bg-muted/30 transition-colors cursor-pointer"
+                >
+                  <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
+                  <TableCell className="py-2.5 text-sm pl-1 sm:pl-2">{d.course}</TableCell>
+                  <TableCell className="py-2.5 text-sm">{d.year}</TableCell>
+                  <TableCell className="py-2.5 text-sm">{d.semester}</TableCell>
                   <TableCell className="py-2.5 text-sm font-semibold text-teal-700 dark:text-teal-300">{d.subject}</TableCell>
                   <TableCell className="py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 h-8 w-8 p-0"
+                        variant="outline"
+                        className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
                         title="Preview"
-                        onClick={() => {
-                          const filename = `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_");
-                          setPreviewItem({
-                            url: d.fileUrl,
-                            title: `${d.subject} — ${d.course} Year ${d.year} Sem ${d.semester}`,
-                            filename,
-                          });
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          previewPaper(d);
                         }}
                       >
-                        <Eye className="h-3.5 w-3.5" />
+                        <Eye className="h-3.5 w-3.5 sm:mr-1" />
+                        <span className="hidden sm:inline">View</span>
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
                         className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20" 
-                        onClick={() => handleDownload(d.fileUrl, `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_"), d._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(d.fileUrl, `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_"), d._id);
+                        }}
                         disabled={downloadingId === d._id}
                       >
                         {downloadingId === d._id ? (
@@ -308,7 +450,6 @@ function DownloadsTabContent({ apiKey }) {
                       </Button>
                     </div>
                   </TableCell>
-
                 </TableRow>
               ))}
             </TableBody>
@@ -322,46 +463,51 @@ function DownloadsTabContent({ apiKey }) {
         !syllabuses.length ? <EmptyState icon={FileText} color="text-indigo-500" label="Syllabuses" /> :
         <div className="rounded-md border overflow-hidden overflow-x-auto">
           <Table className="min-w-[400px]">
-
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">Course</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">Year</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">File Name</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">
+                  <HeaderFilter label="Course" value={syllabusFilterCourse} onChange={setSyllabusFilterCourse} options={syllabusCourses} color="indigo" />
+                </TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">
+                  <HeaderFilter label="Year" value={syllabusFilterYear} onChange={setSyllabusFilterYear} options={syllabusYears} color="indigo" />
+                </TableHead>
                 <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {syllabuses.map((s, idx) => (
-                <TableRow key={s._id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="py-2.5 text-sm text-muted-foreground">{idx + 1}</TableCell>
-                  <TableCell className="py-2.5 text-sm">{s.course}</TableCell>
+              {filteredSyllabuses.map((s, idx) => (
+                <TableRow
+                  key={s._id}
+                  onClick={() => previewSyllabus(s)}
+                  className="hover:bg-muted/30 transition-colors cursor-pointer"
+                >
+                  <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
+                  <TableCell className="py-2.5 text-sm pl-1 sm:pl-2">{s.course}</TableCell>
                   <TableCell className="py-2.5 text-sm">{s.year}</TableCell>
-                  <TableCell className="py-2.5 text-sm font-semibold text-indigo-700 dark:text-indigo-300">{s.fileName || "Syllabus"}</TableCell>
                   <TableCell className="py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 h-8 w-8 p-0"
+                        variant="outline"
+                        className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                         title="Preview"
-                        onClick={() => {
-                          const filename = `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_");
-                          setPreviewItem({
-                            url: s.fileUrl,
-                            title: `${s.fileName || 'Syllabus'} — ${s.course} Year ${s.year}`,
-                            filename,
-                          });
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          previewSyllabus(s);
                         }}
                       >
-                        <Eye className="h-3.5 w-3.5" />
+                        <Eye className="h-3.5 w-3.5 sm:mr-1" />
+                        <span className="hidden sm:inline">View</span>
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
                         className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" 
-                        onClick={() => handleDownload(s.fileUrl, `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_"), s._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(s.fileUrl, `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_"), s._id);
+                        }}
                         disabled={downloadingId === s._id}
                       >
                         {downloadingId === s._id ? (
@@ -375,7 +521,6 @@ function DownloadsTabContent({ apiKey }) {
                       </Button>
                     </div>
                   </TableCell>
-
                 </TableRow>
               ))}
             </TableBody>
@@ -389,44 +534,49 @@ function DownloadsTabContent({ apiKey }) {
         !books.length ? <EmptyState icon={BookOpen} color="text-amber-500" label="Books" /> :
         <div className="rounded-md border overflow-hidden overflow-x-auto">
           <Table className="min-w-[380px]">
-
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">Book Name</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">Course</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">Book Name</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">
+                  <HeaderFilter label="Course" value={bookFilterCourse} onChange={setBookFilterCourse} options={bookCourses} color="amber" />
+                </TableHead>
                 <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {books.map((b, idx) => (
-                <TableRow key={b._id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="py-2.5 text-sm text-muted-foreground">{idx + 1}</TableCell>
-                  <TableCell className="py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-300">{b.name}</TableCell>
+              {filteredBooks.map((b, idx) => (
+                <TableRow
+                  key={b._id}
+                  onClick={() => previewBook(b)}
+                  className="hover:bg-muted/30 transition-colors cursor-pointer"
+                >
+                  <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
+                  <TableCell className="py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-300 pl-1 sm:pl-2">{b.name}</TableCell>
                   <TableCell className="py-2.5 text-sm">{b.course || "—"}</TableCell>
                   <TableCell className="py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 h-8 w-8 p-0"
+                        variant="outline"
+                        className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                         title="Preview"
-                        onClick={() => {
-                          const filename = `${b.name}.pdf`.replace(/[/\\?%*:|"<>]/g, "_").replace(/\s+/g, "_");
-                          setPreviewItem({
-                            url: b.fileUrl,
-                            title: b.name,
-                            filename,
-                          });
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          previewBook(b);
                         }}
                       >
-                        <Eye className="h-3.5 w-3.5" />
+                        <Eye className="h-3.5 w-3.5 sm:mr-1" />
+                        <span className="hidden sm:inline">View</span>
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
                         className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20" 
-                        onClick={() => handleDownload(b.fileUrl, `${b.name}.pdf`.replace(/\s+/g, "_"), b._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(b.fileUrl, `${b.name}.pdf`.replace(/\s+/g, "_"), b._id);
+                        }}
                         disabled={downloadingId === b._id}
                       >
                         {downloadingId === b._id ? (
@@ -440,7 +590,6 @@ function DownloadsTabContent({ apiKey }) {
                       </Button>
                     </div>
                   </TableCell>
-
                 </TableRow>
               ))}
             </TableBody>

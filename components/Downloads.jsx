@@ -494,14 +494,14 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                   </Select>
                 </div>
                 <div className="space-y-2 col-span-1">
-                  <Label htmlFor="semester">Semester</Label>
+                  <Label htmlFor="semester">Sem</Label>
                   <Select
                     id="semester"
                     value={semester}
                     onValueChange={setSemester}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Semester" />
+                      <SelectValue placeholder="Select Sem" />
                     </SelectTrigger>
                     <SelectContent>
                       {[1, 2].map((s) => (
@@ -618,19 +618,19 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                 </Select>
               </div>
               <div className="space-y-2 col-span-1">
-                <Label>Filter by Semester</Label>
+                <Label>Filter by Sem</Label>
                 <Select
                   value={filterSemester ?? "all"}
                   onValueChange={(v) => setFilterSemester(v === "all" ? null : v)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="All Semesters" />
+                    <SelectValue placeholder="All Sems" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Semesters</SelectItem>
+                    <SelectItem value="all">All Sems</SelectItem>
                     {semesters.map((s) => (
                       <SelectItem key={s} value={String(s)}>
-                        Semester {s}
+                        Sem {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -644,7 +644,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                   <TableRow>
                     <TableHead>Course</TableHead>
                     <TableHead>Year</TableHead>
-                    <TableHead>Semester</TableHead>
+                    <TableHead>Sem</TableHead>
                     <TableHead>Subject</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -767,7 +767,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                                       <p>
                                         This will permanently delete the file{" "}
                                         <strong className="text-foreground font-semibold">"{download.subject}"</strong>{" "}
-                                        from {download.course} Year {download.year} Semester {download.semester}.
+                                        from {download.course} Year {download.year} Sem {download.semester}.
                                       </p>
                                       <p className="text-xs text-destructive font-medium">
                                         This action cannot be undone.
@@ -1012,7 +1012,7 @@ const EditDialog = ({
               Edit Question Paper
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground m-0">
-              Update course, year, semester, or subject details
+              Update course, year, sem, or subject details
             </DialogDescription>
           </div>
           <DialogClose
@@ -1052,10 +1052,10 @@ const EditDialog = ({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Semester</Label>
+              <Label className="text-xs font-semibold">Sem</Label>
               <Select value={String(semester)} onValueChange={setSemester}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Semester" />
+                  <SelectValue placeholder="Select Sem" />
                 </SelectTrigger>
                 <SelectContent>
                   {[1, 2].map((s) => (

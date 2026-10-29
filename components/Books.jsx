@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -10,13 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -36,13 +29,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil, Eye } from "lucide-react";
+import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil, Eye, AlertTriangle, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -62,6 +57,146 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   const [filterName, setFilterName] = useState("");
   const [filterCourse, setFilterCourse] = useState("all");
   const [previewItem, setPreviewItem] = useState(null);
+
+  // Dynamic courses management
+  const [courses, setCourses] = useState(["BSIc(5 Years)", "HSIc(3 Years)", "HSIc(2 Years)"]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [editingCourseName, setEditingCourseName] = useState(null);
+  const [newCourseNameInput, setNewCourseNameInput] = useState("");
+  const [savingCourse, setSavingCourse] = useState(false);
+  const [deletingCourseName, setDeletingCourseName] = useState(null);
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
+
+  const fetchCourses = useCallback(async () => {
+    try {
+      setLoadingCourses(true);
+      const res = await fetch("/api/downloads/courses", {
+        headers: apiKey ? { "api-key": apiKey } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.courses && Array.isArray(data.courses) && data.courses.length > 0) {
+          setCourses(data.courses);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching courses:", err);
+    } finally {
+      setLoadingCourses(false);
+    }
+  }, [apiKey]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
+
+  const handleCourseChange = async (val) => {
+    setCourse(val);
+    if (val && !courses.includes(val)) {
+      try {
+        await fetch("/api/downloads/courses", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(apiKey ? { "api-key": apiKey } : {}),
+          },
+          body: JSON.stringify({ name: val.trim() }),
+        });
+        fetchCourses();
+      } catch (err) {
+        console.error("Error saving new course:", err);
+      }
+    }
+  };
+
+  const handleOptionEdit = (courseName) => {
+    setEditingCourseName(courseName);
+    setNewCourseNameInput(courseName);
+  };
+
+  const handleSaveCourseName = async () => {
+    const trimmed = newCourseNameInput.trim();
+    if (!trimmed || !editingCourseName) return;
+    if (trimmed === editingCourseName) {
+      setEditingCourseName(null);
+      return;
+    }
+
+    try {
+      setSavingCourse(true);
+      const res = await fetch("/api/downloads/courses", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "api-key": apiKey } : {}),
+        },
+        body: JSON.stringify({
+          oldName: editingCourseName,
+          newName: trimmed,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update course name");
+      }
+      toast.success(data.message || "Course name updated successfully");
+      if (course === editingCourseName) {
+        setCourse(trimmed);
+      }
+      if (filterCourse === editingCourseName) {
+        setFilterCourse(trimmed);
+      }
+      if (editCourse === editingCourseName) {
+        setEditCourse(trimmed);
+      }
+      setEditingCourseName(null);
+      await fetchCourses();
+      await fetchBooksQuery.refetch();
+    } catch (err) {
+      console.error("Error updating course:", err);
+      toast.error(err.message || "Failed to update course");
+    } finally {
+      setSavingCourse(false);
+    }
+  };
+
+  const handleOptionDelete = (courseName) => {
+    setDeletingCourseName(courseName);
+  };
+
+  const handleConfirmDeleteCourse = async () => {
+    if (!deletingCourseName) return;
+
+    try {
+      setIsDeletingCourse(true);
+      const res = await fetch(
+        `/api/downloads/courses?name=${encodeURIComponent(deletingCourseName)}`,
+        {
+          method: "DELETE",
+          headers: apiKey ? { "api-key": apiKey } : {},
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete course");
+      }
+      toast.success(data.message || "Course deleted successfully");
+      if (course && deletingCourseName && course.trim().toLowerCase() === deletingCourseName.trim().toLowerCase()) {
+        setCourse("");
+      }
+      if (filterCourse && deletingCourseName && filterCourse.trim().toLowerCase() === deletingCourseName.trim().toLowerCase()) {
+        setFilterCourse("all");
+      }
+      setDeletingCourseName(null);
+      await fetchCourses();
+      await fetchBooksQuery.refetch();
+    } catch (err) {
+      console.error("Error deleting course:", err);
+      toast.error(err.message || "Failed to delete course");
+    } finally {
+      setIsDeletingCourse(false);
+    }
+  };
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud("books", apiKey);
   const fetchBooksQuery = useFetchItems(
@@ -191,7 +326,6 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
         }
       }
 
-
       const filename = `${book.name}.pdf`.replace(/\s+/g, "_");
       const proxyUrl = `/api/download-file?url=${encodeURIComponent(
         url
@@ -242,7 +376,13 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
     return fetchBooksQuery.data?.books || [];
   }, [fetchBooksQuery.data]);
 
-  const courses = ["BSIc(5 Years)", "HSIc(3 Years)", "HSIc(2 Years)"];
+  const booksCountForDeletingCourse = useMemo(() => {
+    if (!deletingCourseName) return 0;
+    const all = fetchBooksQuery.data?.books || initialBooks || [];
+    return all.filter(
+      (b) => b.course?.trim().toLowerCase() === deletingCourseName?.trim().toLowerCase()
+    ).length;
+  }, [deletingCourseName, fetchBooksQuery.data, initialBooks]);
 
   return (
     <>
@@ -261,11 +401,13 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                   <MultiSelect
                     id="course"
                     value={course}
-                    onValueChange={setCourse}
+                    onValueChange={handleCourseChange}
                     options={courses.map((c) => ({ value: c, label: c }))}
                     placeholder="Select or type a course"
                     freeSolo
                     multiSelect={false}
+                    onOptionEdit={activeRole === "College Admin" ? handleOptionEdit : undefined}
+                    onOptionDelete={activeRole === "College Admin" ? handleOptionDelete : undefined}
                   />
                 </div>
                 <div className="space-y-2">
@@ -337,19 +479,16 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
                 <Label>Filter by Course</Label>
-                <Select value={filterCourse} onValueChange={setFilterCourse}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Courses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Courses</SelectItem>
-                    {courses.map((s) => (
-                      <SelectItem key={s} value={String(s)}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  value={filterCourse === "all" ? "" : filterCourse}
+                  onValueChange={(v) => setFilterCourse(v || "all")}
+                  options={courses.map((c) => ({ value: c, label: c }))}
+                  placeholder="All Courses"
+                  noBadge={true}
+                  multiSelect={false}
+                  onOptionEdit={activeRole === "College Admin" ? handleOptionEdit : undefined}
+                  onOptionDelete={activeRole === "College Admin" ? handleOptionDelete : undefined}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Filter by Book Name</Label>
@@ -386,8 +525,8 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                           <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
+                              variant="outline"
+                              className="h-8 px-2 sm:px-3 text-xs"
                               title="Preview"
                               onClick={() => {
                                 const filename = `${book.name}_${book.course}`.replace(/[/\\?%*:|"<>]/g, "_").replace(/\s+/g, "_") + ".pdf";
@@ -398,7 +537,8 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                                 });
                               }}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-4 w-4 sm:mr-1.5" />
+                              <span className="hidden sm:inline">View</span>
                             </Button>
                             <Button
                               size="sm"
@@ -478,6 +618,8 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Book Dialog */}
       <Dialog open={!!editingBook} onOpenChange={(open) => !open && setEditingBook(null)}>
         <DialogContent>
           <DialogHeader>
@@ -486,16 +628,16 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Course</Label>
-              <Select value={editCourse} onValueChange={setEditCourse}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Course" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courses.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                value={editCourse}
+                onValueChange={setEditCourse}
+                options={courses.map((c) => ({ value: c, label: c }))}
+                placeholder="Select or type a course"
+                freeSolo
+                multiSelect={false}
+                onOptionEdit={activeRole === "College Admin" ? handleOptionEdit : undefined}
+                onOptionDelete={activeRole === "College Admin" ? handleOptionDelete : undefined}
+              />
             </div>
             <div className="space-y-2">
               <Label>Book Name</Label>
@@ -515,6 +657,167 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Course Name Dialog */}
+      <Dialog
+        open={!!editingCourseName}
+        onOpenChange={(open) => !open && setEditingCourseName(null)}
+      >
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-20 shrink-0">
+            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0 text-blue-600 dark:text-blue-400">
+              <Pencil className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <DialogTitle className="text-lg font-bold m-0 text-foreground">
+                Edit Course Name
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground m-0">
+                Update course name across all associated books and records
+              </DialogDescription>
+            </div>
+            <DialogClose
+              onClick={() => setEditingCourseName(null)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
+          </DialogHeader>
+
+          <div className="p-5 space-y-4 flex-1">
+            <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground leading-relaxed">
+              Update the name for this course. All existing books and records under{" "}
+              <span className="font-semibold text-foreground">"{editingCourseName}"</span>{" "}
+              will automatically be updated.
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="courseNameInput" className="text-xs font-semibold">
+                Course Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="courseNameInput"
+                value={newCourseNameInput}
+                onChange={(e) => setNewCourseNameInput(e.target.value)}
+                placeholder="Enter new course name"
+                className="h-10 text-sm"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSaveCourseName();
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="p-4 border-t bg-muted/30 dark:bg-muted/10 flex items-center justify-end gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditingCourseName(null)}
+              disabled={savingCourse}
+              className="h-9 px-4 text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveCourseName}
+              disabled={
+                savingCourse ||
+                !newCourseNameInput.trim() ||
+                newCourseNameInput.trim() === editingCourseName
+              }
+              className="h-9 px-5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {savingCourse ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Changes</span>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Course Confirmation Dialog */}
+      <AlertDialog
+        open={!!deletingCourseName}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingCourse) {
+            setDeletingCourseName(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-destructive/10 shrink-0 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <AlertDialogTitle className="text-lg font-bold m-0 text-destructive">
+                Delete Course?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-xs text-muted-foreground pt-0.5">
+                This course will be permanently removed
+              </AlertDialogDescription>
+            </div>
+            <AlertDialogCancel asChild>
+              <button
+                type="button"
+                disabled={isDeletingCourse}
+                className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </AlertDialogCancel>
+          </AlertDialogHeader>
+
+          <div className="p-5 text-sm text-muted-foreground space-y-2 leading-relaxed">
+            <p>
+              Are you sure you want to delete the course{" "}
+              <strong className="text-foreground font-semibold">
+                "{deletingCourseName}"
+              </strong>
+              ?
+            </p>
+            {booksCountForDeletingCourse > 0 ? (
+              <p className="text-xs text-destructive font-medium">
+                Warning: {booksCountForDeletingCourse} book(s) associated with this course will also be permanently deleted.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                This action cannot be undone.
+              </p>
+            )}
+          </div>
+
+          <AlertDialogFooter className="p-4 border-t bg-muted/20 flex flex-row items-center justify-end gap-3 w-full">
+            <AlertDialogCancel disabled={isDeletingCourse} className="h-9 px-4 text-xs mt-0">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteCourse}
+              disabled={isDeletingCourse}
+              className="h-9 px-5 text-xs font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5 mt-0"
+            >
+              {isDeletingCourse ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* PDF Preview Dialog */}
       <DocumentPreviewDialog
         open={!!previewItem}
