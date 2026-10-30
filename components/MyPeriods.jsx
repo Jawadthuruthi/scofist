@@ -44,6 +44,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import Cookies from "js-cookie";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { useRef } from "react";
@@ -89,6 +90,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   // ── Snapshot state for historical dates ─────────────────────────────
   const [snapshotData, setSnapshotData] = useState(null);
   const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // ── Bulk reason state ────────────────────────────────────────────────
   const [bulkReasonOpen, setBulkReasonOpen] = useState(false);
@@ -168,6 +170,13 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const { useFetchItems: useFetchPeriods } = useCrud("periods", apiKey);
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", apiKey);
   const { useFetchItems: useFetchUsers } = useCrud("users", apiKey);
+  const { useFetchItems: useFetchSubjects } = useCrud("subjects", apiKey);
+
+  const subjectsQuery = useFetchSubjects(0, 0, {}, {
+    staleTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false,
+  });
+  const subjects = useMemo(() => subjectsQuery.data?.subjects || [], [subjectsQuery.data?.subjects]);
 
   const usersQuery = useFetchUsers(0, 0, { roles: "Teacher" }, { 
     staleTime: 1000 * 60 * 60,
@@ -474,15 +483,25 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             if (slot.day !== today) return false;
             return !slot.validTo;
           })
-          .map((slot) => ({
-            ...slot,
-            classId: timeTable.classId,
-            periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
-          }));
+          .map((slot) => {
+            let subjectInfo = slot.subjectId;
+            const subId = getCleanId(slot.subjectId);
+            if (!subjectInfo?.name && subId) {
+              const foundSub = subjects.find((s) => s._id === subId);
+              if (foundSub) subjectInfo = foundSub;
+            }
+
+            return {
+              ...slot,
+              classId: timeTable.classId,
+              subjectId: subjectInfo,
+              periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
+            };
+          });
       });
     } else {
       // Viewing PAST DAY: do NOT show/mix current timetable slots!
-      if (snapshotData?.slots) {
+      if (snapshotData?.slots && snapshotData.slots.length > 0) {
         // Authoritative snapshot for that date
         scheduledSlots = (snapshotData.slots || [])
           .filter((slot) => {
@@ -506,15 +525,21 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             }
 
             let subjectInfo = slot.subjectId;
-            if (!subjectInfo?.name) {
-              for (const tt of timeTablesQuery.data?.timeTables || []) {
-                for (const ts of tt.timeSlots || []) {
-                  if (getCleanId(ts.subjectId) === getCleanId(slot.subjectId) && ts.subjectId?.name) {
-                    subjectInfo = ts.subjectId;
-                    break;
+            const subId = getCleanId(slot.subjectId);
+            if (!subjectInfo?.name && subId) {
+              const foundSub = subjects.find((s) => s._id === subId);
+              if (foundSub) {
+                subjectInfo = foundSub;
+              } else {
+                for (const tt of timeTablesQuery.data?.timeTables || []) {
+                  for (const ts of tt.timeSlots || []) {
+                    if (getCleanId(ts.subjectId) === subId && ts.subjectId?.name) {
+                      subjectInfo = ts.subjectId;
+                      break;
+                    }
                   }
+                  if (subjectInfo?.name) break;
                 }
-                if (subjectInfo?.name) break;
               }
             }
 
@@ -527,32 +552,55 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             };
           });
       } else {
-        // Fallback: reconstruct from validFrom/validTo history only
-        scheduledSlots = timeTablesQuery.data.timeTables.flatMap((timeTable) => {
-          const classSection = timeTable.classId?.section || "";
-          if (classSection === "Senior Da-awa" && !isSeniorOn) return [];
-          if (classSection === "Junior Da-awa" && !isJuniorOn) return [];
-
-          return (timeTable.timeSlots || [])
-            .filter((slot) => {
-              const slotTeacherId = getCleanId(slot.teacherId);
-              if (slotTeacherId !== String(teacherId)) return false;
-              if (slot.day !== today) return false;
-
-              const validFromDS = slot.validFrom ? safeFormatDate(slot.validFrom) : null;
-              const validToDS = slot.validTo ? safeFormatDate(slot.validTo) : null;
-
-              const isStarted = !validFromDS || validFromDS <= formattedDate;
-              const isNotEnded = !validToDS || validToDS > formattedDate;
-
-              return isStarted && isNotEnded;
-            })
-            .map((slot) => ({
-              ...slot,
-              classId: timeTable.classId,
-              periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
-            }));
+        // Fallback: reconstruct from validFrom/validTo history
+        let minValidFromDS = null;
+        (timeTablesQuery.data?.timeTables || []).forEach((tt) => {
+          (tt.timeSlots || []).forEach((slot) => {
+            if (slot.validFrom) {
+              const ds = safeFormatDate(slot.validFrom);
+              if (!minValidFromDS || ds < minValidFromDS) minValidFromDS = ds;
+            }
+          });
         });
+
+        const slotMap = new Map();
+        (timeTablesQuery.data?.timeTables || []).forEach((timeTable) => {
+          const classSection = timeTable.classId?.section || "";
+          if (classSection === "Senior Da-awa" && !isSeniorOn) return;
+          if (classSection === "Junior Da-awa" && !isJuniorOn) return;
+
+          (timeTable.timeSlots || []).forEach((slot) => {
+            const slotTeacherId = getCleanId(slot.teacherId);
+            if (slotTeacherId !== String(teacherId)) return;
+            if (slot.day !== today) return;
+
+            const validFromDS = slot.validFrom ? safeFormatDate(slot.validFrom) : null;
+            const validToDS = slot.validTo ? safeFormatDate(slot.validTo) : null;
+
+            const isStarted = !validFromDS || validFromDS <= formattedDate || (minValidFromDS && formattedDate < minValidFromDS && validFromDS === minValidFromDS);
+            const isNotEnded = !validToDS || validToDS > formattedDate;
+
+            if (isStarted && isNotEnded) {
+              const key = `${getCleanId(timeTable.classId)}:${slot.periodNumber}`;
+              const existing = slotMap.get(key);
+              if (!existing || (!slot.validTo && existing.validTo)) {
+                let subjectInfo = slot.subjectId;
+                const subId = getCleanId(slot.subjectId);
+                if (!subjectInfo?.name && subId) {
+                  const foundSub = subjects.find((s) => s._id === subId);
+                  if (foundSub) subjectInfo = foundSub;
+                }
+                slotMap.set(key, {
+                  ...slot,
+                  classId: timeTable.classId,
+                  subjectId: subjectInfo,
+                  periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
+                });
+              }
+            }
+          });
+        });
+        scheduledSlots = Array.from(slotMap.values());
       }
     }
 
@@ -567,16 +615,25 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             slot.periodNumber === att.periodNumber
         );
       })
-      .map((att) => ({
-        _id: att._id,
-        periodNumber: att.periodNumber,
-        day: att.day || today,
-        classId: att.classId,
-        subjectId: att.subjectId,
-        teacherId: att.teacherId,
-        periodDetails: periods.find((p) => p.periodNumber === att.periodNumber),
-        _fromAttendance: true,
-      }));
+      .map((att) => {
+        let subjectInfo = att.subjectId;
+        const subId = getCleanId(att.subjectId);
+        if (!subjectInfo?.name && subId) {
+          const foundSub = subjects.find((s) => s._id === subId);
+          if (foundSub) subjectInfo = foundSub;
+        }
+
+        return {
+          _id: att._id,
+          periodNumber: att.periodNumber,
+          day: att.day || today,
+          classId: att.classId,
+          subjectId: subjectInfo,
+          teacherId: att.teacherId,
+          periodDetails: periods.find((p) => p.periodNumber === att.periodNumber),
+          _fromAttendance: true,
+        };
+      });
 
     // Include slots where a leave reason was recorded for this date
     // if not already present in scheduledSlots or attendedSlots
@@ -605,12 +662,33 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
           if (foundTT?.classId) classInfo = foundTT.classId;
         }
 
+        // Try to find the scheduled subject for this class, period, and day
+        let subjectInfo = null;
+        for (const tt of timeTablesQuery.data?.timeTables || []) {
+          if (getCleanId(tt.classId) === getCleanId(lr.classId)) {
+            for (const ts of tt.timeSlots || []) {
+              if (ts.day === today && ts.periodNumber === lr.periodNumber) {
+                subjectInfo = ts.subjectId;
+                break;
+              }
+            }
+          }
+          if (subjectInfo) break;
+        }
+        if (subjectInfo) {
+          const subId = getCleanId(subjectInfo);
+          if (!subjectInfo?.name && subId) {
+            const foundSub = subjects.find((s) => s._id === subId);
+            if (foundSub) subjectInfo = foundSub;
+          }
+        }
+
         return {
           _id: lr._id,
           periodNumber: lr.periodNumber,
           day: today,
           classId: classInfo,
-          subjectId: null,
+          subjectId: subjectInfo,
           teacherId: lr.teacherId,
           periodDetails: periods.find((p) => p.periodNumber === lr.periodNumber),
           _fromLeave: true,
@@ -642,6 +720,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     isViewingToday,
     isSelectedDateSeniorOn,
     isSelectedDateJuniorOn,
+    subjects,
     getCleanId,
   ]);
 
@@ -814,7 +893,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
       return;
     }
     
-    const subjectName = slot.subjectId?.name || "this subject";
+    const subjectName =
+      slot.subjectId?.name ||
+      (slot.subjectId ? subjects.find((s) => s._id === getCleanId(slot.subjectId))?.name : null) ||
+      "this subject";
     
     // Use pre-fetched attendanceData from attendanceQuery
     const absentStudents = attendanceRecord.attendanceData?.filter(student => !student.present) || [];
@@ -1099,29 +1181,65 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         </div>
         <div className="flex flex-row items-center justify-between w-full mb-3 gap-2 overflow-hidden">
           {/* Day selector */}
-          <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
+          <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0 bg-background">
             {(isPrincipal || settings?.general?.allowPreviousDayAttendance !== false) && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r"
+                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r hover:bg-accent"
                 onClick={() => {
                   const newDate = new Date(selectedDateState);
                   newDate.setDate(newDate.getDate() - 1);
                   setSelectedDateState(newDate);
                 }}
+                title="Previous Day"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
-            <div className="py-1.5 px-3 md:px-6 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
+            <div className="py-1.5 px-3 md:px-5 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
               {date}
             </div>
+            {(isPrincipal || settings?.general?.allowPreviousDayAttendance !== false) && (
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent text-muted-foreground hover:text-foreground"
+                    title="Select date from calendar"
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDateState}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        const todayIST = getISTDate();
+                        if (newDate <= todayIST) {
+                          setSelectedDateState(newDate);
+                          setDatePickerOpen(false);
+                        }
+                      }
+                    }}
+                    disabled={(d) => {
+                      const todayIST = getISTDate();
+                      todayIST.setHours(23, 59, 59, 999);
+                      return d > todayIST;
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
             {(isPrincipal || settings?.general?.allowPreviousDayAttendance !== false) && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l"
+                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent"
                 onClick={() => {
                   const newDate = new Date(selectedDateState);
                   newDate.setDate(newDate.getDate() + 1);
@@ -1130,6 +1248,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                   }
                 }}
                 disabled={formatDate(selectedDateState) === formatDate(getISTDate())}
+                title="Next Day"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -1292,11 +1411,15 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                             {slot.classId?.name || (typeof slot.classId === "string" ? slot.classId : "-")}
                           </div>
                           <div className="text-xs md:hidden mt-1 text-muted-foreground">
-                            {slot.subjectId?.name || (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
+                            {slot.subjectId?.name ||
+                              (slot.subjectId ? subjects.find((s) => s._id === getCleanId(slot.subjectId))?.name : null) ||
+                              (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {slot.subjectId?.name || (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
+                          {slot.subjectId?.name ||
+                            (slot.subjectId ? subjects.find((s) => s._id === getCleanId(slot.subjectId))?.name : null) ||
+                            (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
                         </TableCell>
                         <TableCell className="text-left md:text-center align-middle pl-0 md:pl-4">
                           {isAttendanceMarked(slot) ? (
