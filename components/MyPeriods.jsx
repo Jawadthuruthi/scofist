@@ -461,6 +461,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
 
   // Memoize and process timetable data more efficiently
   const filteredSlots = useMemo(() => {
+    // While loading snapshot for past date, do NOT render or flash current timetable!
+    if (!isViewingToday && snapshotLoading) return [];
     if (!timeTablesQuery.data?.timeTables || !periods.length) return [];
 
     // Use per-date working status (historical log) for section-level filtering
@@ -552,55 +554,49 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             };
           });
       } else {
-        // Fallback: reconstruct from validFrom/validTo history
-        let minValidFromDS = null;
-        (timeTablesQuery.data?.timeTables || []).forEach((tt) => {
-          (tt.timeSlots || []).forEach((slot) => {
-            if (slot.validFrom) {
-              const ds = safeFormatDate(slot.validFrom);
-              if (!minValidFromDS || ds < minValidFromDS) minValidFromDS = ds;
-            }
-          });
-        });
+        // Fallback: reconstruct from validFrom/validTo history ONLY for dates on or after 2026-10-24
+        // For dates prior to 2026-10-24, NEVER pull the current live timetable!
+        if (formattedDate >= "2026-10-24") {
+          const slotMap = new Map();
+          (timeTablesQuery.data?.timeTables || []).forEach((timeTable) => {
+            const classSection = timeTable.classId?.section || "";
+            if (classSection === "Senior Da-awa" && !isSeniorOn) return;
+            if (classSection === "Junior Da-awa" && !isJuniorOn) return;
 
-        const slotMap = new Map();
-        (timeTablesQuery.data?.timeTables || []).forEach((timeTable) => {
-          const classSection = timeTable.classId?.section || "";
-          if (classSection === "Senior Da-awa" && !isSeniorOn) return;
-          if (classSection === "Junior Da-awa" && !isJuniorOn) return;
+            (timeTable.timeSlots || []).forEach((slot) => {
+              const slotTeacherId = getCleanId(slot.teacherId);
+              if (slotTeacherId !== String(teacherId)) return;
+              if (slot.day !== today) return;
 
-          (timeTable.timeSlots || []).forEach((slot) => {
-            const slotTeacherId = getCleanId(slot.teacherId);
-            if (slotTeacherId !== String(teacherId)) return;
-            if (slot.day !== today) return;
+              const validFromDS = slot.validFrom ? safeFormatDate(slot.validFrom) : null;
+              const validToDS = slot.validTo ? safeFormatDate(slot.validTo) : null;
 
-            const validFromDS = slot.validFrom ? safeFormatDate(slot.validFrom) : null;
-            const validToDS = slot.validTo ? safeFormatDate(slot.validTo) : null;
+              const isStarted = !validFromDS || validFromDS <= formattedDate;
+              const isNotEnded = !validToDS || validToDS > formattedDate;
 
-            const isStarted = !validFromDS || validFromDS <= formattedDate || (minValidFromDS && formattedDate < minValidFromDS && validFromDS === minValidFromDS);
-            const isNotEnded = !validToDS || validToDS > formattedDate;
-
-            if (isStarted && isNotEnded) {
-              const key = `${getCleanId(timeTable.classId)}:${slot.periodNumber}`;
-              const existing = slotMap.get(key);
-              if (!existing || (!slot.validTo && existing.validTo)) {
-                let subjectInfo = slot.subjectId;
-                const subId = getCleanId(slot.subjectId);
-                if (!subjectInfo?.name && subId) {
-                  const foundSub = subjects.find((s) => s._id === subId);
-                  if (foundSub) subjectInfo = foundSub;
+              if (isStarted && isNotEnded) {
+                const key = `${getCleanId(timeTable.classId)}:${slot.periodNumber}`;
+                const existing = slotMap.get(key);
+                if (!existing || (validFromDS && (!existing._validFromDS || validFromDS > existing._validFromDS))) {
+                  let subjectInfo = slot.subjectId;
+                  const subId = getCleanId(slot.subjectId);
+                  if (!subjectInfo?.name && subId) {
+                    const foundSub = subjects.find((s) => s._id === subId);
+                    if (foundSub) subjectInfo = foundSub;
+                  }
+                  slotMap.set(key, {
+                    ...slot,
+                    _validFromDS: validFromDS,
+                    classId: timeTable.classId,
+                    subjectId: subjectInfo,
+                    periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
+                  });
                 }
-                slotMap.set(key, {
-                  ...slot,
-                  classId: timeTable.classId,
-                  subjectId: subjectInfo,
-                  periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
-                });
               }
-            }
+            });
           });
-        });
-        scheduledSlots = Array.from(slotMap.values());
+          scheduledSlots = Array.from(slotMap.values());
+        }
       }
     }
 
@@ -718,6 +714,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     today,
     formattedDate,
     isViewingToday,
+    snapshotLoading,
     isSelectedDateSeniorOn,
     isSelectedDateJuniorOn,
     subjects,

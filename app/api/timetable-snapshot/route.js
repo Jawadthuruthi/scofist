@@ -23,6 +23,16 @@ const getDS = (date) => {
 
 const WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
+// Era 1 stable baseline dates (pre-Oct 24, 2026) for each weekday
+const ERA1_BASELINE_DATES = {
+  Saturday: "2026-10-10",
+  Sunday: "2026-10-04",
+  Monday: "2026-10-05",
+  Tuesday: "2026-10-06",
+  Wednesday: "2026-10-07",
+  Thursday: "2026-10-08",
+};
+
 /**
  * GET /api/timetable-snapshot?date=YYYY-MM-DD&populate=true
  *
@@ -57,31 +67,26 @@ export async function GET(req) {
       DailyTimetableSnapshot.findOne({ dateString: date })
     ).lean();
 
-    // If no snapshot exists OR snapshot has empty slots on a working day in the past,
-    // auto-reconstruct it from TimeTable history so past dates always have full periods!
+    // If no snapshot exists OR snapshot has empty/truncated slots (<20 slots) on a working day in the past,
+    // auto-reconstruct it so past dates always have full periods and never mix with current timetable!
     const isInvalidOrEmptyWorkingSnapshot =
       snapshot &&
       snapshot.isWorkingDay !== false &&
-      (!snapshot.slots || snapshot.slots.length === 0);
+      (!snapshot.slots || snapshot.slots.length < 20);
 
     if (!snapshot || isInvalidOrEmptyWorkingSnapshot) {
       const todayDS = getDS(new Date());
       if (date < todayDS) {
-        // Reconstruct the slot state for this past date from validFrom/validTo history
-        const [timeTables, settings] = await Promise.all([
-          TimeTable.find({}).lean(),
-          Settings.findOne({}).lean(),
-        ]);
-
-        const nonWorkingSet = new Set(
-          (settings?.general?.nonWorkingDays || []).map((dt) => getDS(dt))
-        );
-        const isNonWorking = nonWorkingSet.has(date);
-
         const [y, m, d] = date.split("-").map(Number);
         const dateUTC = new Date(Date.UTC(y, m - 1, d));
         // Derive weekday from the date string reliably
         const dayName = WEEKDAYS[dateUTC.getUTCDay()];
+
+        const settings = await Settings.findOne({}).lean();
+        const nonWorkingSet = new Set(
+          (settings?.general?.nonWorkingDays || []).map((dt) => getDS(dt))
+        );
+        const isNonWorking = dayName === "Friday" || nonWorkingSet.has(date);
 
         if (isNonWorking) {
           await DailyTimetableSnapshot.updateOne(
@@ -89,19 +94,31 @@ export async function GET(req) {
             { $set: { date: dateUTC, dateString: date, isWorkingDay: false, slots: [] } },
             { upsert: true }
           );
-        } else {
-          // Find earliest validFrom across all timetables
-          let minValidFromDS = null;
-          timeTables.forEach((tt) => {
-            (tt.timeSlots || []).forEach((slot) => {
-              if (slot.validFrom) {
-                const ds = getDS(slot.validFrom);
-                if (!minValidFromDS || ds < minValidFromDS) minValidFromDS = ds;
-              }
-            });
-          });
+        } else if (date < "2026-10-24") {
+          // Era 1 (dates prior to Oct 24, 2026): use stable Era 1 baseline snapshot for this weekday!
+          const baselineDate = ERA1_BASELINE_DATES[dayName];
+          const baselineSnap = baselineDate
+            ? await DailyTimetableSnapshot.findOne({ dateString: baselineDate }).lean()
+            : null;
 
+          const slots = (baselineSnap?.slots || []).map((s) => ({
+            classId: String(s.classId),
+            teacherId: s.teacherId ? String(s.teacherId) : undefined,
+            subjectId: s.subjectId ? String(s.subjectId) : undefined,
+            periodNumber: s.periodNumber,
+            day: dayName,
+          }));
+
+          await DailyTimetableSnapshot.updateOne(
+            { dateString: date },
+            { $set: { date: dateUTC, dateString: date, isWorkingDay: true, slots } },
+            { upsert: true }
+          );
+        } else {
+          // Era 3 (dates on or after Oct 24, 2026): reconstruct from TimeTable history for this specific date
+          const timeTables = await TimeTable.find({}).lean();
           const slotMap = new Map();
+
           timeTables.forEach((tt) => {
             (tt.timeSlots || []).forEach((slot) => {
               if (slot.day !== dayName) return;
@@ -110,26 +127,36 @@ export async function GET(req) {
               const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
               const vtDS = slot.validTo ? getDS(slot.validTo) : null;
 
-              const isStarted = !validFromDS || validFromDS <= date || (minValidFromDS && date < minValidFromDS && validFromDS === minValidFromDS);
+              const isStarted = !validFromDS || validFromDS <= date;
               const isNotEnded = !vtDS || vtDS > date;
 
               if (isStarted && isNotEnded) {
                 const key = `${String(tt.classId)}:${slot.periodNumber}`;
                 const existing = slotMap.get(key);
-                if (!existing || (!slot.validTo && existing.validTo)) {
+                if (!existing) {
                   slotMap.set(key, {
                     classId:      String(tt.classId),
                     teacherId:    slot.teacherId ? String(slot.teacherId) : undefined,
                     subjectId:    slot.subjectId ? String(slot.subjectId) : undefined,
                     periodNumber: slot.periodNumber,
                     day:          dayName,
+                    _validFromDS: validFromDS,
+                  });
+                } else if (validFromDS && (!existing._validFromDS || validFromDS > existing._validFromDS)) {
+                  slotMap.set(key, {
+                    classId:      String(tt.classId),
+                    teacherId:    slot.teacherId ? String(slot.teacherId) : undefined,
+                    subjectId:    slot.subjectId ? String(slot.subjectId) : undefined,
+                    periodNumber: slot.periodNumber,
+                    day:          dayName,
+                    _validFromDS: validFromDS,
                   });
                 }
               }
             });
           });
 
-          const slots = Array.from(slotMap.values());
+          const slots = Array.from(slotMap.values()).map(({ _validFromDS, ...s }) => s);
 
           await DailyTimetableSnapshot.updateOne(
             { dateString: date },
@@ -201,7 +228,7 @@ export async function POST(req) {
         continue;
       }
 
-      const isNonWorking = nonWorkingDaySet.has(ds);
+      const isNonWorking = dayName === "Friday" || nonWorkingDaySet.has(ds);
       const [y, m, d] = ds.split("-").map(Number);
       const dateUTC = new Date(Date.UTC(y, m - 1, d));
 
@@ -216,47 +243,62 @@ export async function POST(req) {
         continue;
       }
 
-      // Find earliest validFrom across all timetables
-      let minValidFromDS = null;
-      timeTables.forEach((tt) => {
-        (tt.timeSlots || []).forEach((slot) => {
-          if (slot.validFrom) {
-            const dStr = getDS(slot.validFrom);
-            if (!minValidFromDS || dStr < minValidFromDS) minValidFromDS = dStr;
-          }
-        });
-      });
+      let slots = [];
+      if (ds < "2026-10-24") {
+        // Era 1
+        const baselineDate = ERA1_BASELINE_DATES[dayName];
+        const baselineSnap = baselineDate
+          ? await DailyTimetableSnapshot.findOne({ dateString: baselineDate }).lean()
+          : null;
 
-      // Build slots active on this date
-      const slotMap = new Map();
-      timeTables.forEach((tt) => {
-        (tt.timeSlots || []).forEach((slot) => {
-          if (slot.day !== dayName) return;
-          if (!slot.teacherId && !slot.subjectId) return;
+        slots = (baselineSnap?.slots || []).map((s) => ({
+          classId: String(s.classId),
+          teacherId: s.teacherId ? String(s.teacherId) : undefined,
+          subjectId: s.subjectId ? String(s.subjectId) : undefined,
+          periodNumber: s.periodNumber,
+          day: dayName,
+        }));
+      } else {
+        // Era 3
+        const slotMap = new Map();
+        timeTables.forEach((tt) => {
+          (tt.timeSlots || []).forEach((slot) => {
+            if (slot.day !== dayName) return;
+            if (!slot.teacherId && !slot.subjectId) return;
 
-          const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
-          const validToDS   = slot.validTo ? getDS(slot.validTo) : null;
+            const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
+            const validToDS   = slot.validTo ? getDS(slot.validTo) : null;
 
-          const isStarted = !validFromDS || validFromDS <= ds || (minValidFromDS && ds < minValidFromDS && validFromDS === minValidFromDS);
-          const isNotEnded = !validToDS || validToDS > ds;
+            const isStarted = !validFromDS || validFromDS <= ds;
+            const isNotEnded = !validToDS || validToDS > ds;
 
-          if (isStarted && isNotEnded) {
-            const key = `${String(tt.classId)}:${slot.periodNumber}`;
-            const existing = slotMap.get(key);
-            if (!existing || (!slot.validTo && existing.validTo)) {
-              slotMap.set(key, {
-                classId:      String(tt.classId),
-                teacherId:    slot.teacherId ? String(slot.teacherId) : undefined,
-                subjectId:    slot.subjectId ? String(slot.subjectId) : undefined,
-                periodNumber: slot.periodNumber,
-                day:          dayName,
-              });
+            if (isStarted && isNotEnded) {
+              const key = `${String(tt.classId)}:${slot.periodNumber}`;
+              const existing = slotMap.get(key);
+              if (!existing) {
+                slotMap.set(key, {
+                  classId:      String(tt.classId),
+                  teacherId:    slot.teacherId ? String(slot.teacherId) : undefined,
+                  subjectId:    slot.subjectId ? String(slot.subjectId) : undefined,
+                  periodNumber: slot.periodNumber,
+                  day:          dayName,
+                  _validFromDS: validFromDS,
+                });
+              } else if (validFromDS && (!existing._validFromDS || validFromDS > existing._validFromDS)) {
+                slotMap.set(key, {
+                  classId:      String(tt.classId),
+                  teacherId:    slot.teacherId ? String(slot.teacherId) : undefined,
+                  subjectId:    slot.subjectId ? String(slot.subjectId) : undefined,
+                  periodNumber: slot.periodNumber,
+                  day:          dayName,
+                  _validFromDS: validFromDS,
+                });
+              }
             }
-          }
+          });
         });
-      });
-
-      const slots = Array.from(slotMap.values());
+        slots = Array.from(slotMap.values()).map(({ _validFromDS, ...s }) => s);
+      }
 
       await DailyTimetableSnapshot.updateOne(
         { dateString: ds },
