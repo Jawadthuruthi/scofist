@@ -60,6 +60,15 @@ const leaveReasons = [
   "Hospital",
 ];
 
+const safeFormatDate = (d) => {
+  if (!d) return null;
+  try {
+    return formatDate(d);
+  } catch {
+    return null;
+  }
+};
+
 const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -117,8 +126,16 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const router = useRouter();
 
   const handleNavigation = (slot) => {
+    const cId = slot.classId?._id || slot.classId || "";
+    const bId =
+      slot.classId?.batchId?._id ||
+      slot.classId?.batchId ||
+      slot.batchId?._id ||
+      slot.batchId ||
+      "";
+    const sId = slot.subjectId?._id || slot.subjectId || "";
     router.push(
-      `/dashboard/attendances?classId=${slot.classId?._id}&batchId=${slot.classId.batchId}&subjectId=${slot.subjectId?._id}&periodNumber=${slot.periodNumber}&day=${slot.day}&date=${formattedDate}`
+      `/dashboard/attendances?classId=${cId}&batchId=${bId}&subjectId=${sId}&periodNumber=${slot.periodNumber}&day=${slot.day || today}&date=${formattedDate}`
     );
   };
   // Use refs or state instead of deriving too many values
@@ -409,10 +426,26 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         if (classSection === "Senior Da-awa" && !isSeniorOn) return [];
         if (classSection === "Junior Da-awa" && !isJuniorOn) return [];
 
-        return timeTable.timeSlots
-          .filter(
-            (slot) => slot.teacherId?._id === teacherId && slot.day === today && !slot.validTo
-          )
+        return (timeTable.timeSlots || [])
+          .filter((slot) => {
+            const slotTeacherId = slot.teacherId?._id || slot.teacherId;
+            if (String(slotTeacherId) !== String(teacherId)) return false;
+            if (slot.day !== today) return false;
+
+            if (isViewingToday) {
+              return !slot.validTo;
+            }
+
+            // For past dates: check if the slot was active on the selected date (formattedDate)
+            const effectiveVF = slot.validFrom || timeTable.createdAt;
+            const validFromDS = safeFormatDate(effectiveVF);
+            const validToDS = safeFormatDate(slot.validTo);
+
+            const isStarted = !validFromDS || validFromDS <= formattedDate;
+            const isNotEnded = !validToDS || validToDS > formattedDate;
+
+            return isStarted && isNotEnded;
+          })
           .map((slot) => ({
             ...slot,
             classId: timeTable.classId,
@@ -423,8 +456,52 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
       }
     );
 
-    return teachersSlots.sort((a, b) => a.periodNumber - b.periodNumber);
-  }, [timeTablesQuery.data?.timeTables, periods, teacherId, today, isSelectedDateSeniorOn, isSelectedDateJuniorOn]);
+    // Also include any slots where attendance was marked by this teacher on this date
+    // (e.g. substitute periods or slots from modified/reset timetables)
+    const attendedSlots = (attendanceQuery.data?.attendances || [])
+      .filter((att) => {
+        const attClassId = String(att.classId?._id || att.classId || "");
+        return !teachersSlots.some(
+          (slot) =>
+            String(slot.classId?._id || slot.classId || "") === attClassId &&
+            slot.periodNumber === att.periodNumber
+        );
+      })
+      .map((att) => ({
+        _id: att._id,
+        periodNumber: att.periodNumber,
+        day: att.day || today,
+        classId: att.classId,
+        subjectId: att.subjectId,
+        teacherId: att.teacherId,
+        periodDetails: periods.find((p) => p.periodNumber === att.periodNumber),
+        _fromAttendance: true,
+      }));
+
+    // Deduplicate in case multiple historical slots exist for the same period
+    const combined = [...teachersSlots, ...attendedSlots];
+    const uniqueMap = new Map();
+    combined.forEach((slot) => {
+      const key = `${slot.classId?._id || slot.classId}:${slot.periodNumber}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, slot);
+      }
+    });
+
+    return Array.from(uniqueMap.values()).sort(
+      (a, b) => a.periodNumber - b.periodNumber
+    );
+  }, [
+    timeTablesQuery.data?.timeTables,
+    attendanceQuery.data?.attendances,
+    periods,
+    teacherId,
+    today,
+    formattedDate,
+    isViewingToday,
+    isSelectedDateSeniorOn,
+    isSelectedDateJuniorOn,
+  ]);
 
   // Precompute attendance status once
   const attendanceStatus = useMemo(() => {
@@ -432,8 +509,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
 
     const statusMap = {};
     attendanceQuery.data.attendances.forEach((attendance) => {
-      const key = `${attendance.classId?._id}:${attendance.subjectId?._id}:${attendance.periodNumber}`;
-      statusMap[key] = attendance;
+      const cId = String(attendance.classId?._id || attendance.classId || "");
+      const sId = String(attendance.subjectId?._id || attendance.subjectId || "");
+      statusMap[`${cId}:${sId}:${attendance.periodNumber}`] = attendance;
+      statusMap[`${cId}:${attendance.periodNumber}`] = attendance;
     });
 
     return statusMap;
@@ -464,8 +543,12 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const isAttendanceMarked = useCallback(
     (slot) => {
       if (!slot) return false;
-      const key = `${slot.classId?._id}:${slot.subjectId?._id}:${slot.periodNumber}`;
-      return !!attendanceStatus[key];
+      const cId = String(slot.classId?._id || slot.classId || "");
+      const sId = String(slot.subjectId?._id || slot.subjectId || "");
+      return !!(
+        attendanceStatus[`${cId}:${sId}:${slot.periodNumber}`] ||
+        attendanceStatus[`${cId}:${slot.periodNumber}`]
+      );
     },
     [attendanceStatus]
   );
@@ -490,9 +573,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         slotsToUpdate.map((slot) =>
           addLeaveRecord.mutateAsync({
             teacherId,
-            classId: slot.classId._id,
+            classId: slot.classId?._id || slot.classId,
             periodNumber: slot.periodNumber,
-            date: getISTDate(),
+            date: selectedDateState,
             leaveReason: bulkReason,
           })
         )
@@ -541,7 +624,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         teacherId,
         classId,
         periodNumber,
-        date: getISTDate(),
+        date: selectedDateState,
         leaveReason: reason,
       });
       toast.success("Leave reason submitted successfully.");
@@ -576,8 +659,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const handleWhatsAppClick = async (e, slot) => {
     e.stopPropagation();
     
-    const key = `${slot.classId?._id}:${slot.subjectId?._id}:${slot.periodNumber}`;
-    const attendanceRecord = attendanceStatus[key];
+    const cId = String(slot.classId?._id || slot.classId || "");
+    const sId = String(slot.subjectId?._id || slot.subjectId || "");
+    const key = `${cId}:${sId}:${slot.periodNumber}`;
+    const attendanceRecord = attendanceStatus[key] || attendanceStatus[`${cId}:${slot.periodNumber}`];
     
     if (!attendanceRecord || typeof attendanceRecord !== "object") {
       toast.error("Attendance not found or not marked yet.");
@@ -602,7 +687,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
 
     let leaveRecordsData = [];
     try {
-      const response = await fetchItems("leave-records", apiKey, 0, 0, { classId: slot.classId?._id, isArrived: "false" });
+      const response = await fetchItems("leave-records", apiKey, 0, 0, { classId: slot.classId?._id || slot.classId, isArrived: "false" });
       leaveRecordsData = response?.["leave-records"] || [];
     } catch (err) {
       console.error("Failed to fetch leave records:", err);
@@ -994,7 +1079,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                             .map((slot) =>
                               leaveRecords.find(
                                 (record) =>
-                                  String(record.classId?._id || record.classId) === String(slot.classId?._id) &&
+                                  String(record.classId?._id || record.classId) === String(slot.classId?._id || slot.classId) &&
                                   record.periodNumber === slot.periodNumber &&
                                   formatDate(new Date(record.date)) === formattedDate
                               )
@@ -1021,13 +1106,13 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                   {filteredSlots.map((slot) => {
                     const leaveRecord = leaveRecords.find(
                       (record) =>
-                        String(record.classId?._id || record.classId) === String(slot.classId?._id) &&
+                        String(record.classId?._id || record.classId) === String(slot.classId?._id || slot.classId) &&
                         record.periodNumber === slot.periodNumber &&
                         formatDate(new Date(record.date)) === formattedDate
                     );
                     return (
                       <TableRow
-                        key={slot._id}
+                        key={slot._id || `${slot.classId?._id || slot.classId}-${slot.periodNumber}`}
                         className="hover:bg-accent/50"
                         onClick={() => {
                           handleNavigation(slot);
@@ -1082,9 +1167,13 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const key = `${slot.classId?._id}:${slot.subjectId?._id}:${slot.periodNumber}`;
+                                  const cId = String(slot.classId?._id || slot.classId || "");
+                                  const sId = String(slot.subjectId?._id || slot.subjectId || "");
+                                  const key = `${cId}:${sId}:${slot.periodNumber}`;
                                   setPerformanceSlot(slot);
-                                  setPerformanceAttendanceRecord(attendanceStatus[key]);
+                                  setPerformanceAttendanceRecord(
+                                    attendanceStatus[key] || attendanceStatus[`${cId}:${slot.periodNumber}`]
+                                  );
                                   setPerformanceModalOpen(true);
                                 }}
                                 className="text-indigo-500 hover:text-indigo-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-indigo-50 inline-flex items-center justify-center gap-1.5"
@@ -1100,7 +1189,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpen(true);
-                                setClassId(slot.classId._id);
+                                setClassId(slot.classId?._id || slot.classId);
                                 setPeriodNumber(slot.periodNumber);
                                 setReason(leaveRecord?.leaveReason || "");
                                 setSelectedRecordId(leaveRecord?._id || "");
