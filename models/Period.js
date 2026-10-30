@@ -5,7 +5,6 @@ const periodSchema = new Schema(
     periodNumber: {
       type: Number,
       required: true,
-      unique: true,
       index: true,
     },
     startTime: {
@@ -18,6 +17,11 @@ const periodSchema = new Schema(
       required: true,
       trim: true,
     },
+    isSpecialDay: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -25,6 +29,9 @@ const periodSchema = new Schema(
     toObject: { virtuals: true },
   }
 );
+
+// Compound unique index so periodNumber is unique per day type (Normal Day vs Special Day)
+periodSchema.index({ periodNumber: 1, isSpecialDay: 1 }, { unique: true });
 
 // Validate times at the schema level instead of individual fields
 periodSchema.path("startTime").validate(function (value) {
@@ -103,20 +110,31 @@ periodSchema.pre("save", async function (next) {
         return next(new Error("Start time must be before end time"));
       }
 
-      // First check for duplicate period number
+      const isSpecial = Boolean(this.isSpecialDay);
+      const dayFilter = isSpecial ? { isSpecialDay: true } : { isSpecialDay: { $ne: true } };
+
+      // First check for duplicate period number within the same day type
       const duplicatePeriod = await this.constructor.findOne({
         periodNumber: this.periodNumber,
+        ...dayFilter,
         _id: { $ne: this?._id },
       });
 
       if (duplicatePeriod) {
-        return next(new Error("Period number already exists"));
+        return next(
+          new Error(
+            `Period number ${this.periodNumber} already exists for ${
+              isSpecial ? "Special Day" : "Normal Day"
+            }`
+          )
+        );
       }
 
       // Check period number ordering (periods with lower numbers should start earlier)
       if (this.periodNumber > 1) {
         const earlierPeriods = await this.constructor.find({
           periodNumber: { $lt: this.periodNumber },
+          ...dayFilter,
           _id: { $ne: this?._id },
         });
 
@@ -136,9 +154,9 @@ periodSchema.pre("save", async function (next) {
         }
       }
 
-      // Then check for time overlaps by fetching all periods
-      // We exclude the current document if it exists
+      // Then check for time overlaps by fetching all periods within the same day type
       const allPeriods = await this.constructor.find({
+        ...dayFilter,
         _id: { $ne: this?._id },
       });
 
@@ -164,6 +182,16 @@ periodSchema.pre("save", async function (next) {
   }
 });
 
+// Refresh model if schema updated during hot-reload
+if (models.Period && !models.Period.schema.path("isSpecialDay")) {
+  delete models.Period;
+}
+
 const Period = models.Period || model("Period", periodSchema);
+
+// Safely drop legacy single-field unique index if it exists in the MongoDB collection
+if (Period.collection) {
+  Period.collection.dropIndex("periodNumber_1").catch(() => {});
+}
 
 export default Period;

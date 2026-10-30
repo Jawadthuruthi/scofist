@@ -28,6 +28,7 @@ const getApiEndpoints = (dateStr) => [
 
   {
     pathname: "periods",
+    revalidate: 0,
   },
   {
     pathname: "attendances",

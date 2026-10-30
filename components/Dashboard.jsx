@@ -3001,6 +3001,11 @@ export default function Dashboard({
                   <CardTitle className="flex items-center space-x-2">
                     <Calendar className="h-5 w-5" />
                     <span>Today's Schedule</span>
+                    {settings?.general?.isSpecialDay && (
+                      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-semibold ml-2">
+                        Special Day Timetable
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription>
                     View scheduled classes for Today

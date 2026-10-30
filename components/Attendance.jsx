@@ -142,7 +142,9 @@ const Attendance = ({ apiKey, teacherId }) => {
     null,
     { periodNumber },
     {
-      staleTime: 1000 * 60 * 60, // 1 hour - periods are static
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: true,
+      refetchOnMount: "always",
       enabled: !!periodNumber,
     }
   );

@@ -169,8 +169,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     0,
     {},
     {
-      staleTime: 1000 * 60 * 60,
-      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: true,
+      refetchOnMount: "always",
     }
   );
 
@@ -863,7 +864,18 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         <div>
           <Header
             title="MY PERIODS"
-            subTitle="View Schedule & Take Attendance"
+            subTitle={
+              periodsQuery.data?.isSpecialDayActive ? (
+                <span className="flex items-center gap-2">
+                  <span>View Schedule & Take Attendance</span>
+                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-semibold">
+                    Special Day Timings
+                  </Badge>
+                </span>
+              ) : (
+                "View Schedule & Take Attendance"
+              )
+            }
           />
         </div>
         <div className="flex flex-row items-center justify-between w-full mb-3 gap-2 overflow-hidden">
