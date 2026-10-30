@@ -324,13 +324,12 @@ export default function PeriodsManagementClient({
       size="sm"
       onClick={() => setIsScheduleModalOpen(true)}
       disabled={isActivating}
-      className="h-9 px-3 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shrink-0 select-none hover:bg-muted text-foreground border-border shadow-xs cursor-pointer"
+      className="h-9 px-2.5 sm:px-3 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shrink-0 select-none hover:bg-muted text-foreground border-border shadow-xs cursor-pointer"
       title="Manage Schedule"
       aria-label="Manage Schedule"
     >
       <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
       <span className="hidden sm:inline">Manage Schedule</span>
-      <span className="sm:hidden">Schedule</span>
     </Button>
   );
 
@@ -583,7 +582,7 @@ export default function PeriodsManagementClient({
                         </div>
                         {schedule.id === "thursday" && autoThursdaySchedule ? (
                           <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
-                            Active on all Thursdays automatically
+                            Active on all Thursdays
                           </p>
                         ) : schedule.periodsCount !== undefined ? (
                           <p className="text-xs text-muted-foreground mt-0.5">
