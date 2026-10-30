@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,35 +9,53 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
+const formatDate = (dateVal) => {
+  if (!dateVal) return "";
+  try {
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
+  } catch {
+    return "";
+  }
+};
+
+const getInitialFormData = (user) => ({
+  name: user?.name || "",
+  email: user?.email || "",
+  contactNumber: user?.contactNumber || "",
+  alternativeNumber: user?.alternativeNumber || "",
+  dateOfBirth: formatDate(user?.dateOfBirth),
+  address: {
+    houseName: user?.address?.houseName || user?.houseName || "",
+    place: user?.address?.place || user?.place || "",
+    locationPoint: user?.address?.locationPoint || user?.locationPoint || "",
+    postOffice: user?.address?.postOffice || user?.postOffice || "",
+    district: user?.address?.district || user?.district || "",
+    state: user?.address?.state || user?.state || "",
+    pin: user?.address?.pin || user?.pin || "",
+  },
+  studentSpecificField: {
+    admissionNumber: user?.studentSpecificField?.admissionNumber || user?.admissionNumber || "",
+    bloodGroup: user?.studentSpecificField?.bloodGroup || user?.bloodGroup || "",
+    aadharNo: user?.studentSpecificField?.aadharNo || user?.aadharNo || "",
+    guardianName: user?.studentSpecificField?.guardianName || user?.guardianName || "",
+    guardianContactNumber: user?.studentSpecificField?.guardianContactNumber || user?.guardianContactNumber || "",
+    guardianAlternativeNumber: user?.studentSpecificField?.guardianAlternativeNumber || user?.guardianAlternativeNumber || "",
+    relationship: user?.studentSpecificField?.relationship || user?.relationship || "",
+    islamicQualification: user?.studentSpecificField?.islamicQualification || user?.islamicQualification || "",
+    academicQualification: user?.studentSpecificField?.academicQualification || user?.academicQualification || "",
+  }
+});
+
 export default function ProfileEditModal({ user, open, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    contactNumber: user?.contactNumber || "",
-    alternativeNumber: user?.alternativeNumber || "",
-    dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split("T")[0] : "",
-    address: {
-      houseName: user?.address?.houseName || user?.houseName || "",
-      place: user?.address?.place || user?.place || "",
-      locationPoint: user?.address?.locationPoint || user?.locationPoint || "",
-      postOffice: user?.address?.postOffice || user?.postOffice || "",
-      district: user?.address?.district || user?.district || "",
-      state: user?.address?.state || user?.state || "",
-      pin: user?.address?.pin || user?.pin || "",
-    },
-    studentSpecificField: {
-      admissionNumber: user?.studentSpecificField?.admissionNumber || user?.admissionNumber || "",
-      bloodGroup: user?.studentSpecificField?.bloodGroup || user?.bloodGroup || "",
-      aadharNo: user?.studentSpecificField?.aadharNo || user?.aadharNo || "",
-      guardianName: user?.studentSpecificField?.guardianName || user?.guardianName || "",
-      guardianContactNumber: user?.studentSpecificField?.guardianContactNumber || user?.guardianContactNumber || "",
-      guardianAlternativeNumber: user?.studentSpecificField?.guardianAlternativeNumber || user?.guardianAlternativeNumber || "",
-      relationship: user?.studentSpecificField?.relationship || user?.relationship || "",
-      islamicQualification: user?.studentSpecificField?.islamicQualification || user?.islamicQualification || "",
-      academicQualification: user?.studentSpecificField?.academicQualification || user?.academicQualification || "",
+  const [formData, setFormData] = useState(() => getInitialFormData(user));
+
+  useEffect(() => {
+    if (open && user) {
+      setFormData(getInitialFormData(user));
     }
-  });
+  }, [open, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -99,7 +117,7 @@ export default function ProfileEditModal({ user, open, onClose, onSuccess }) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: user._id,
+          userId: user?._id || user?.userId || user?.id,
           pendingChanges: transformedData
         })
       });

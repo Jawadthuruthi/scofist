@@ -12,9 +12,8 @@ const columnsConfig = [
     minWidth: 50,
   },
   { accessorKey: "periodNumber", header: "Period No." },
-  { accessorKey: "startTime", header: "Start Time" },
-  { accessorKey: "endTime", header: "End Time" },
-  { accessorKey: "formattedTime", header: "12 Hours Format" },
+  { accessorKey: "startTime", header: "Start Time", type: ["time"] },
+  { accessorKey: "endTime", header: "End Time", type: ["time"] },
 ];
 
 const formFields = [

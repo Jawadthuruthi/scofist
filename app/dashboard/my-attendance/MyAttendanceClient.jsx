@@ -162,17 +162,17 @@ const MyAttendanceClient = ({ user, apiKey }) => {
     <div className="space-y-4">
       <Card className="border shadow-sm">
         <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-4">
-            <CardTitle className="text-xl font-bold">Attendance Summary</CardTitle>
+          <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start gap-3 sm:gap-4">
+            <CardTitle className="text-lg sm:text-xl font-bold">Attendance Summary</CardTitle>
             <div className="flex items-center gap-2">
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[130px] bg-background border shadow-sm h-8">
+                <SelectTrigger className="w-[90px] sm:w-[100px] bg-background border shadow-sm h-8">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent>
                   {yearOptions.map((year) => (
                     <SelectItem key={year} value={year}>
-                      Year {year}
+                      {year}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -190,11 +190,11 @@ const MyAttendanceClient = ({ user, apiKey }) => {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Month</TableHead>
-                  <TableHead className="text-center font-semibold">Total Classes</TableHead>
-                  <TableHead className="text-center font-semibold">Present</TableHead>
-                  <TableHead className="text-center font-semibold">Absent</TableHead>
-                  <TableHead className="text-right font-bold">Percentage</TableHead>
+                  <TableHead className="px-2 sm:px-4">Month</TableHead>
+                  <TableHead className="text-center font-semibold px-1 sm:px-2">Total</TableHead>
+                  <TableHead className="text-center font-semibold px-1 sm:px-2">Present</TableHead>
+                  <TableHead className="text-center font-semibold px-1 sm:px-2">Absent</TableHead>
+                  <TableHead className="text-center font-bold px-1 sm:px-2">%</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -207,25 +207,25 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                 ) : (
                   monthlyStats.map((stat, index) => (
                     <TableRow key={stat.monthKey} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-semibold text-primary">
+                      <TableCell className="font-semibold text-primary px-2 sm:px-4">
                         {stat.monthName}
                       </TableCell>
-                      <TableCell className="text-center">{stat.total}</TableCell>
+                      <TableCell className="text-center px-1 sm:px-2">{stat.total}</TableCell>
                       <TableCell 
-                        className="text-center text-green-600 font-bold cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                        className="text-center text-green-600 font-bold cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors px-1 sm:px-2"
                         onClick={() => handleShowDetails(stat.monthName, "Present", stat.presentRecords)}
                         title="Click to view details"
                       >
                         {stat.present}
                       </TableCell>
                       <TableCell 
-                        className="text-center text-red-500 font-bold cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        className="text-center text-red-500 font-bold cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors px-1 sm:px-2"
                         onClick={() => handleShowDetails(stat.monthName, "Absent", stat.absentRecords)}
                         title="Click to view details"
                       >
                         {stat.absent}
                       </TableCell>
-                      <TableCell className="text-right font-black tabular-nums">
+                      <TableCell className="text-center font-black tabular-nums px-1 sm:px-2">
                         <span className={parseFloat((stat.present / stat.total * 100)) >= 75 ? "text-green-600" : "text-orange-600"}>
                           {stat.total > 0
                             ? ((stat.present / stat.total) * 100).toFixed(2)

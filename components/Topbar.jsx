@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useSidebar } from "./ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import TeacherProfileEditModal from "./TeacherProfileEditModal";
+import ProfileEditModal from "./ProfileEditModal";
 import {
   Card,
   CardDescription,
@@ -28,7 +29,7 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
   const [activeRole, setActiveRole] = useState(activeRoleProp || null);
   const [imageError, setImageError] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const isTeacher = user?.roles?.includes("Teacher");
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (initialFestival) {
@@ -125,8 +126,10 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
 
   const isJudgePortal = pathname?.startsWith("/judge-portal");
   const effectiveRole =
-    activeRole ||
-    (typeof window !== "undefined" ? Cookies.get("active-role") : null);
+    activeRole || (typeof window !== "undefined" ? Cookies.get("active-role") : null);
+  const isStudent = effectiveRole === "Student" || (user?.roles?.includes("Student") && effectiveRole !== "Teacher");
+  const isTeacher = !isStudent && (effectiveRole === "Teacher" || user?.roles?.includes("Teacher"));
+  const canEditProfile = isTeacher || isStudent;
 
   const isAllowedRole =
     effectiveRole === "Program Committee" ||
@@ -193,7 +196,7 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
           {renderThemeToggle()}
         </Button>
 
-        <Popover>
+        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="User menu" className="rounded-full overflow-hidden">
               <Avatar className="h-8 w-8">
@@ -228,32 +231,35 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
               </CardHeader>
               <CardHeader className="flex items-center space-x-4 pt-6">
                 <Avatar className="h-12 w-12 border-2 border-primary/10">
-                  <AvatarImage src={user.profilePic?.url} alt={user.name} />
+                  <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} />
                   <AvatarFallback className="bg-primary/5 text-primary font-bold">
-                    {user.name.charAt(0)}
+                    {user?.name?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col overflow-hidden">
                   <CardTitle className="text-base truncate">
-                    {user.name}
+                    {user?.name || "User"}
                   </CardTitle>
                   <CardDescription className="text-xs truncate">
-                    {user.email}
+                    {user?.email || ""}
                   </CardDescription>
                 </div>
               </CardHeader>
               <CardFooter className="flex-col gap-2">
-                {isTeacher && (
+                {canEditProfile && (
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => setIsEditModalOpen(true)}
+                    onClick={() => {
+                      setIsPopoverOpen(false);
+                      setIsEditModalOpen(true);
+                    }}
                   >
                     Edit Profile
                   </Button>
                 )}
                 <Button
-                  variant={isTeacher ? "default" : "outline"}
+                  variant={canEditProfile ? "default" : "outline"}
                   className="w-full"
                   onClick={handleLogout}
                 >
@@ -267,6 +273,16 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
 
       {isTeacher && (
         <TeacherProfileEditModal
+          user={user}
+          open={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={() => {
+            window.location.reload();
+          }}
+        />
+      )}
+      {isStudent && (
+        <ProfileEditModal
           user={user}
           open={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}

@@ -40,7 +40,7 @@ import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { applyPrintStyles, removePrintStyles, formatDateForDisplay, formatDateMonthYear, cn, sortClasses } from "@/lib/utils";
+import { applyPrintStyles, removePrintStyles, formatDateForDisplay, formatDateMonthYear, formatTime12Hour, cn, sortClasses } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
@@ -674,6 +674,8 @@ const DataTableComponent = ({
           if (value !== null && value !== undefined) {
             if (col.type?.includes("date")) {
               valueStr = formatDateForDisplay(value);
+            } else if (col.type?.includes("time") || col.type?.includes("12Hours") || col.type?.includes("time12")) {
+              valueStr = formatTime12Hour(value);
             } else if (col.type?.includes("array") || Array.isArray(value)) {
               valueStr = Array.isArray(value) ? value.join(", ") : value;
             } else if (col.type?.includes("nestedObject") || typeof value === "object") {

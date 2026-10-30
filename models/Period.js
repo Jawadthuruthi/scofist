@@ -70,6 +70,28 @@ periodSchema.virtual("formattedTime").get(function () {
   return `${formattedStartTime} - ${formattedEndTime}`;
 });
 
+periodSchema.virtual("formattedStartTime").get(function () {
+  if (!this.startTime) return "";
+  const startTime = new Date(`2000-01-01T${this.startTime}`);
+  if (isNaN(startTime.getTime())) return this.startTime;
+  const startTimeHours = startTime.getHours();
+  const startTimeMinutes = startTime.getMinutes().toString().padStart(2, "0");
+  const startTimePeriod = startTimeHours >= 12 ? "PM" : "AM";
+  const formattedStartHours = startTimeHours % 12 || 12;
+  return `${formattedStartHours}:${startTimeMinutes} ${startTimePeriod}`;
+});
+
+periodSchema.virtual("formattedEndTime").get(function () {
+  if (!this.endTime) return "";
+  const endTime = new Date(`2000-01-01T${this.endTime}`);
+  if (isNaN(endTime.getTime())) return this.endTime;
+  const endTimeHours = endTime.getHours();
+  const endTimeMinutes = endTime.getMinutes().toString().padStart(2, "0");
+  const endTimePeriod = endTimeHours >= 12 ? "PM" : "AM";
+  const formattedEndHours = endTimeHours % 12 || 12;
+  return `${formattedEndHours}:${endTimeMinutes} ${endTimePeriod}`;
+});
+
 periodSchema.pre("save", async function (next) {
   if (this.startTime && this.endTime) {
     try {

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle, UserPlus, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { CLASS_ORDER } from "@/lib/utils";
+import { CLASS_ORDER, formatTime12Hour } from "@/lib/utils";
 import LiteraryWhatsAppAction from "@/components/LiteraryWhatsAppAction";
 import LiteraryWhatsAppBulkAction from "@/components/LiteraryWhatsAppBulkAction";
 import LiteraryPerformanceAction from "@/components/LiteraryPerformanceAction";
@@ -242,6 +242,14 @@ const useTableColumns = (columnConfig, onCellClick) => {
           day: "numeric",
         });
         return <div>{date === "Invalid Date" ? "-" : date}</div>;
+      };
+    }
+
+    // Apply 12-hour time formatting if type includes "time" or "12Hours"
+    if (col.type?.includes("time") || col.type?.includes("12Hours") || col.type?.includes("time12")) {
+      columnDefinition.cell = ({ row }) => {
+        const val = row.getValue(col.accessorKey);
+        return <div>{formatTime12Hour(val)}</div>;
       };
     }
 
