@@ -426,33 +426,66 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         if (classSection === "Senior Da-awa" && !isSeniorOn) return [];
         if (classSection === "Junior Da-awa" && !isJuniorOn) return [];
 
-        return (timeTable.timeSlots || [])
-          .filter((slot) => {
-            const slotTeacherId = slot.teacherId?._id || slot.teacherId;
-            if (String(slotTeacherId) !== String(teacherId)) return false;
-            if (slot.day !== today) return false;
+        const daySlots = (timeTable.timeSlots || []).filter((s) => s.day === today);
 
-            if (isViewingToday) {
-              return !slot.validTo;
+        // Group slots for this day by periodNumber
+        const slotsByPeriod = {};
+        daySlots.forEach((slot) => {
+          if (!slotsByPeriod[slot.periodNumber]) {
+            slotsByPeriod[slot.periodNumber] = [];
+          }
+          slotsByPeriod[slot.periodNumber].push(slot);
+        });
+
+        const activeSlotsForClass = [];
+
+        Object.keys(slotsByPeriod).forEach((periodNumStr) => {
+          const periodSlots = slotsByPeriod[periodNumStr];
+
+          let activeSlot = null;
+
+          if (isViewingToday) {
+            // Today: currently active slot (not invalidated)
+            activeSlot = periodSlots.find((s) => !s.validTo);
+          } else {
+            // Past date:
+            // 1. Check if there was an old timetable slot active on formattedDate (invalidated after formattedDate)
+            const historicalSlots = periodSlots.filter((s) => s.validTo);
+            const oldActiveSlot = historicalSlots.find((s) => {
+              const vtDS = safeFormatDate(s.validTo);
+              const vfDS = safeFormatDate(s.validFrom);
+              const isNotEnded = vtDS && vtDS > formattedDate;
+              const isStarted = !vfDS || vfDS <= formattedDate;
+              return isNotEnded && isStarted;
+            });
+
+            if (oldActiveSlot) {
+              activeSlot = oldActiveSlot;
+            } else {
+              // 2. If no old slot was active on formattedDate:
+              // Use the current slot if not invalidated
+              const currentSlot = periodSlots.find((s) => !s.validTo);
+              if (currentSlot) {
+                activeSlot = currentSlot;
+              }
             }
+          }
 
-            // For past dates: check if the slot was active on the selected date (formattedDate)
-            const effectiveVF = slot.validFrom || timeTable.createdAt;
-            const validFromDS = safeFormatDate(effectiveVF);
-            const validToDS = safeFormatDate(slot.validTo);
+          if (activeSlot) {
+            const slotTeacherId = activeSlot.teacherId?._id || activeSlot.teacherId;
+            if (String(slotTeacherId) === String(teacherId)) {
+              activeSlotsForClass.push({
+                ...activeSlot,
+                classId: timeTable.classId,
+                periodDetails: periods.find(
+                  (p) => p.periodNumber === activeSlot.periodNumber
+                ),
+              });
+            }
+          }
+        });
 
-            const isStarted = !validFromDS || validFromDS <= formattedDate;
-            const isNotEnded = !validToDS || validToDS > formattedDate;
-
-            return isStarted && isNotEnded;
-          })
-          .map((slot) => ({
-            ...slot,
-            classId: timeTable.classId,
-            periodDetails: periods.find(
-              (p) => p.periodNumber === slot.periodNumber
-            ),
-          }));
+        return activeSlotsForClass;
       }
     );
 
@@ -1081,7 +1114,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                                 (record) =>
                                   String(record.classId?._id || record.classId) === String(slot.classId?._id || slot.classId) &&
                                   record.periodNumber === slot.periodNumber &&
-                                  formatDate(new Date(record.date)) === formattedDate
+                                  (safeFormatDate(record.date) === formattedDate || !record.date)
                               )
                             )
                             .filter(Boolean);
@@ -1108,7 +1141,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                       (record) =>
                         String(record.classId?._id || record.classId) === String(slot.classId?._id || slot.classId) &&
                         record.periodNumber === slot.periodNumber &&
-                        formatDate(new Date(record.date)) === formattedDate
+                        (safeFormatDate(record.date) === formattedDate || !record.date)
                     );
                     return (
                       <TableRow
