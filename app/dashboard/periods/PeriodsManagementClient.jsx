@@ -106,9 +106,9 @@ export default function PeriodsManagementClient({
     initialSchedules.length > 0
       ? initialSchedules
       : [
-          { id: "normal", name: "Normal Schedule", isDefault: true },
-          { id: "thursday", name: "Thursday Schedule", isDefault: true },
-        ]
+        { id: "normal", name: "Normal Schedule", isDefault: true },
+        { id: "thursday", name: "Thursday Schedule", isDefault: true },
+      ]
   );
   const [activeScheduleId, setActiveScheduleId] = useState(
     initialActiveSchedule || "normal"

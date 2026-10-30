@@ -958,11 +958,19 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             </div>
           ) : filteredSlots.length > 0 && isSelectedDateWorkingDay ? (
             <div className="space-y-2">
-              <div className="flex items-center justify-center w-full">
-                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 text-xs sm:text-sm font-semibold px-3 py-1">
-                  {periodsQuery.data?.activeScheduleName || "Normal Schedule"}
-                </Badge>
-              </div>
+              {((periodsQuery.data?.activeSchedule && periodsQuery.data.activeSchedule !== "normal") ||
+                (!periodsQuery.data?.activeSchedule && periodsQuery.data?.isSpecialDayActive)) &&
+                periodsQuery.data?.activeScheduleName &&
+                periodsQuery.data.activeScheduleName !== "Normal Schedule" && (
+                  <div className="flex items-center justify-center w-full">
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 text-xs sm:text-sm font-semibold px-3 py-1 cursor-default select-none pointer-events-none hover:bg-emerald-500/15 hover:text-emerald-700"
+                    >
+                      {periodsQuery.data.activeScheduleName}
+                    </Badge>
+                  </div>
+                )}
               <div className="overflow-x-auto border rounded-md">
               <Table>
                 <TableHeader>
