@@ -120,8 +120,7 @@ export async function GET(req) {
     timeTables.forEach((tt) => {
       tt.timeSlots.forEach((slot) => {
         if (slot.day === todayDay) {
-          const effectiveValidFrom = slot.validFrom || tt.updatedAt || tt.createdAt;
-          const validFromDS = effectiveValidFrom ? getDS(effectiveValidFrom) : null;
+          const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
           const validToDS = slot.validTo ? getDS(slot.validTo) : null;
 
           if ((!validFromDS || todayDS >= validFromDS) && (!validToDS || todayDS < validToDS)) {

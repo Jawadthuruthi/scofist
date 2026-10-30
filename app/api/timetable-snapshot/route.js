@@ -2,6 +2,9 @@ import connectToDB from "@/lib/db";
 import DailyTimetableSnapshot from "@/models/DailyTimetableSnapshot";
 import TimeTable from "@/models/TimeTable";
 import Settings from "@/models/Settings";
+import Class from "@/models/Class";
+import Subject from "@/models/Subject";
+import User from "@/models/User";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +24,7 @@ const getDS = (date) => {
 const WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 /**
- * GET /api/timetable-snapshot?date=YYYY-MM-DD
+ * GET /api/timetable-snapshot?date=YYYY-MM-DD&populate=true
  *
  * Returns the stored timetable snapshot for a given date.
  * If no snapshot exists (date not yet covered), returns { snapshot: null }
@@ -32,12 +35,27 @@ export async function GET(req) {
     await connectToDB();
     const { searchParams } = new URL(req.url);
     const date = searchParams.get("date"); // "YYYY-MM-DD"
+    const shouldPopulate = searchParams.get("populate") === "true";
 
     if (!date) {
       return NextResponse.json({ error: "date param required" }, { status: 400 });
     }
 
-    let snapshot = await DailyTimetableSnapshot.findOne({ dateString: date }).lean();
+    const applyPopulate = (q) => {
+      if (!shouldPopulate) return q;
+      return q
+        .populate({
+          path: "slots.classId",
+          select: "name shortname batchId section",
+          populate: { path: "batchId", select: "name" },
+        })
+        .populate("slots.subjectId", "name")
+        .populate("slots.teacherId", "name");
+    };
+
+    let snapshot = await applyPopulate(
+      DailyTimetableSnapshot.findOne({ dateString: date })
+    ).lean();
 
     // If no snapshot exists AND the date is strictly in the past, auto-backfill it
     // so this date is permanently recorded and future timetable changes can't affect it.
@@ -73,12 +91,11 @@ export async function GET(req) {
               if (slot.day !== dayName) return;
               if (!slot.teacherId && !slot.subjectId) return; // skip reset/empty slots
 
-              const effectiveVF = slot.validFrom || tt.updatedAt || tt.createdAt;
-              const vfDS = effectiveVF ? getDS(effectiveVF) : null;
-              const vtDS = slot.validTo  ? getDS(slot.validTo)  : null;
+              const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
+              const vtDS = slot.validTo ? getDS(slot.validTo) : null;
 
-              const isStarted  = !vfDS || vfDS <= date;
-              const isNotEnded = !vtDS || vtDS >  date;
+              const isStarted = !validFromDS || validFromDS <= date;
+              const isNotEnded = !vtDS || vtDS > date;
 
               if (isStarted && isNotEnded) {
                 slots.push({
@@ -100,7 +117,9 @@ export async function GET(req) {
         }
 
         // Return the freshly created snapshot
-        snapshot = await DailyTimetableSnapshot.findOne({ dateString: date }).lean();
+        snapshot = await applyPopulate(
+          DailyTimetableSnapshot.findOne({ dateString: date })
+        ).lean();
       }
     }
 
@@ -182,8 +201,7 @@ export async function POST(req) {
           if (slot.day !== dayName) return;
           if (!slot.teacherId || !slot.subjectId) return;
 
-          const effectiveValidFrom = slot.validFrom || tt.updatedAt || tt.createdAt;
-          const validFromDS = effectiveValidFrom ? getDS(effectiveValidFrom) : null;
+          const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
           const validToDS   = slot.validTo ? getDS(slot.validTo) : null;
 
           const isStarted  = !validFromDS || validFromDS <= ds;

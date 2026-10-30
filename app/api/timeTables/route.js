@@ -68,11 +68,10 @@ const ensureTodaySnapshotExists = async () => {
         if (slot.day !== dayName) return;
         if (!slot.teacherId && !slot.subjectId) return; // skip empty/reset slots
 
-        const effectiveVF = slot.validFrom || tt.updatedAt || tt.createdAt;
-        const vfDS = effectiveVF ? getISTDateString(effectiveVF) : null;
+        const validFromDS = slot.validFrom ? getISTDateString(slot.validFrom) : null;
         const vtDS = slot.validTo  ? getISTDateString(slot.validTo)  : null;
 
-        const isStarted  = !vfDS || vfDS <= todayDS;
+        const isStarted  = !validFromDS || validFromDS <= todayDS;
         const isNotEnded = !vtDS || vtDS >  todayDS;
 
         if (isStarted && isNotEnded) {

@@ -69,6 +69,12 @@ const safeFormatDate = (d) => {
   }
 };
 
+const getCleanId = (val) => {
+  if (!val) return "";
+  if (typeof val === "object") return String(val._id || val.id || "");
+  return String(val);
+};
+
 const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -79,6 +85,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [periodNumber, setPeriodNumber] = useState("");
   const [selectedRecordId, setSelectedRecordId] = useState("");
   const [error, setError] = useState(false);
+
+  // ── Snapshot state for historical dates ─────────────────────────────
+  const [snapshotData, setSnapshotData] = useState(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
 
   // ── Bulk reason state ────────────────────────────────────────────────
   const [bulkReasonOpen, setBulkReasonOpen] = useState(false);
@@ -126,14 +136,11 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const router = useRouter();
 
   const handleNavigation = (slot) => {
-    const cId = slot.classId?._id || slot.classId || "";
+    const cId = getCleanId(slot.classId);
     const bId =
-      slot.classId?.batchId?._id ||
-      slot.classId?.batchId ||
-      slot.batchId?._id ||
-      slot.batchId ||
-      "";
-    const sId = slot.subjectId?._id || slot.subjectId || "";
+      getCleanId(slot.classId?.batchId) ||
+      getCleanId(slot.batchId);
+    const sId = getCleanId(slot.subjectId);
     router.push(
       `/dashboard/attendances?classId=${cId}&batchId=${bId}&subjectId=${sId}&periodNumber=${slot.periodNumber}&day=${slot.day || today}&date=${formattedDate}`
     );
@@ -325,9 +332,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   //    occasion name onto past working days when today is non-working)
   const isSelectedDateWorkingDay = useMemo(() => {
     if (selectedDateIsNonWorking) return false;
+    if (!isViewingToday && snapshotData && snapshotData.isWorkingDay === false) return false;
     if (isViewingToday) return settings?.general?.isWorkingDay !== false;
     return true; // past day, not in the non-working log → it was a working day
-  }, [selectedDateIsNonWorking, isViewingToday, settings]);
+  }, [selectedDateIsNonWorking, isViewingToday, settings, snapshotData]);
 
   const isSelectedDateSeniorOn = useMemo(() => {
     if (selectedDateSeniorIsNonWorking) return false;
@@ -340,6 +348,39 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     if (isViewingToday) return settings?.general?.juniorDaawa?.isWorkingDay !== false;
     return true;
   }, [selectedDateJuniorIsNonWorking, isViewingToday, settings]);
+
+  // Fetch timetable snapshot whenever the user browses a past date
+  useEffect(() => {
+    if (isViewingToday || !formattedDate) {
+      setSnapshotData(null);
+      setSnapshotLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    setSnapshotLoading(true);
+    fetch(`/api/timetable-snapshot?date=${formattedDate}&populate=true`, {
+      credentials: "include",
+      headers: { "api-key": apiKey },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (isMounted) {
+          setSnapshotData(data?.snapshot || null);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching snapshot:", err);
+        if (isMounted) setSnapshotData(null);
+      })
+      .finally(() => {
+        if (isMounted) setSnapshotLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formattedDate, isViewingToday, apiKey]);
 
   const { useFetchItems: useFetchCalendarEvents } = useCrud("academic-calendar", apiKey);
 
@@ -417,86 +458,112 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     const isSeniorOn = isSelectedDateSeniorOn;
     const isJuniorOn = isSelectedDateJuniorOn;
 
-    // Process all timeTables in one pass
-    const teachersSlots = timeTablesQuery.data.timeTables.flatMap(
-      (timeTable) => {
-        const classSection = timeTable.classId?.section || "";
+    let scheduledSlots = [];
 
-        // Skip slots from off sections
+    if (isViewingToday) {
+      // Viewing TODAY: strictly use active slots (!slot.validTo) from current timetable.
+      scheduledSlots = timeTablesQuery.data.timeTables.flatMap((timeTable) => {
+        const classSection = timeTable.classId?.section || "";
         if (classSection === "Senior Da-awa" && !isSeniorOn) return [];
         if (classSection === "Junior Da-awa" && !isJuniorOn) return [];
 
-        const daySlots = (timeTable.timeSlots || []).filter((s) => s.day === today);
+        return (timeTable.timeSlots || [])
+          .filter((slot) => {
+            const slotTeacherId = getCleanId(slot.teacherId);
+            if (slotTeacherId !== String(teacherId)) return false;
+            if (slot.day !== today) return false;
+            return !slot.validTo;
+          })
+          .map((slot) => ({
+            ...slot,
+            classId: timeTable.classId,
+            periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
+          }));
+      });
+    } else {
+      // Viewing PAST DAY: do NOT show/mix current timetable slots!
+      if (snapshotData?.slots) {
+        // Authoritative snapshot for that date
+        scheduledSlots = (snapshotData.slots || [])
+          .filter((slot) => {
+            const slotTeacherId = getCleanId(slot.teacherId);
+            if (slotTeacherId !== String(teacherId)) return false;
+            if (slot.day !== today) return false;
 
-        // Group slots for this day by periodNumber
-        const slotsByPeriod = {};
-        daySlots.forEach((slot) => {
-          if (!slotsByPeriod[slot.periodNumber]) {
-            slotsByPeriod[slot.periodNumber] = [];
-          }
-          slotsByPeriod[slot.periodNumber].push(slot);
-        });
+            const classSection = slot.classId?.section || "";
+            if (classSection === "Senior Da-awa" && !isSeniorOn) return false;
+            if (classSection === "Junior Da-awa" && !isJuniorOn) return false;
 
-        const activeSlotsForClass = [];
+            return true;
+          })
+          .map((slot) => {
+            let classInfo = slot.classId;
+            if (!classInfo?.name) {
+              const foundTT = timeTablesQuery.data?.timeTables?.find(
+                (tt) => getCleanId(tt.classId) === getCleanId(slot.classId)
+              );
+              if (foundTT?.classId) classInfo = foundTT.classId;
+            }
 
-        Object.keys(slotsByPeriod).forEach((periodNumStr) => {
-          const periodSlots = slotsByPeriod[periodNumStr];
-
-          let activeSlot = null;
-
-          if (isViewingToday) {
-            // Today: currently active slot (not invalidated)
-            activeSlot = periodSlots.find((s) => !s.validTo);
-          } else {
-            // Past date:
-            // 1. Check if there was an old timetable slot active on formattedDate (invalidated after formattedDate)
-            const historicalSlots = periodSlots.filter((s) => s.validTo);
-            const oldActiveSlot = historicalSlots.find((s) => {
-              const vtDS = safeFormatDate(s.validTo);
-              const vfDS = safeFormatDate(s.validFrom);
-              const isNotEnded = vtDS && vtDS > formattedDate;
-              const isStarted = !vfDS || vfDS <= formattedDate;
-              return isNotEnded && isStarted;
-            });
-
-            if (oldActiveSlot) {
-              activeSlot = oldActiveSlot;
-            } else {
-              // 2. If no old slot was active on formattedDate:
-              // Use the current slot if not invalidated
-              const currentSlot = periodSlots.find((s) => !s.validTo);
-              if (currentSlot) {
-                activeSlot = currentSlot;
+            let subjectInfo = slot.subjectId;
+            if (!subjectInfo?.name) {
+              for (const tt of timeTablesQuery.data?.timeTables || []) {
+                for (const ts of tt.timeSlots || []) {
+                  if (getCleanId(ts.subjectId) === getCleanId(slot.subjectId) && ts.subjectId?.name) {
+                    subjectInfo = ts.subjectId;
+                    break;
+                  }
+                }
+                if (subjectInfo?.name) break;
               }
             }
-          }
 
-          if (activeSlot) {
-            const slotTeacherId = activeSlot.teacherId?._id || activeSlot.teacherId;
-            if (String(slotTeacherId) === String(teacherId)) {
-              activeSlotsForClass.push({
-                ...activeSlot,
-                classId: timeTable.classId,
-                periodDetails: periods.find(
-                  (p) => p.periodNumber === activeSlot.periodNumber
-                ),
-              });
-            }
-          }
+            return {
+              ...slot,
+              classId: classInfo,
+              subjectId: subjectInfo,
+              periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
+              _fromSnapshot: true,
+            };
+          });
+      } else {
+        // Fallback: reconstruct from validFrom/validTo history only
+        scheduledSlots = timeTablesQuery.data.timeTables.flatMap((timeTable) => {
+          const classSection = timeTable.classId?.section || "";
+          if (classSection === "Senior Da-awa" && !isSeniorOn) return [];
+          if (classSection === "Junior Da-awa" && !isJuniorOn) return [];
+
+          return (timeTable.timeSlots || [])
+            .filter((slot) => {
+              const slotTeacherId = getCleanId(slot.teacherId);
+              if (slotTeacherId !== String(teacherId)) return false;
+              if (slot.day !== today) return false;
+
+              const validFromDS = slot.validFrom ? safeFormatDate(slot.validFrom) : null;
+              const validToDS = slot.validTo ? safeFormatDate(slot.validTo) : null;
+
+              const isStarted = !validFromDS || validFromDS <= formattedDate;
+              const isNotEnded = !validToDS || validToDS > formattedDate;
+
+              return isStarted && isNotEnded;
+            })
+            .map((slot) => ({
+              ...slot,
+              classId: timeTable.classId,
+              periodDetails: periods.find((p) => p.periodNumber === slot.periodNumber),
+            }));
         });
-
-        return activeSlotsForClass;
       }
-    );
+    }
 
-    // Also include any slots where attendance was marked by this teacher on this date
-    // (e.g. substitute periods or slots from modified/reset timetables)
+    // Include slots where attendance was marked by this teacher on this date
+    // (e.g. substitute periods or unexpected assignments)
     const attendedSlots = (attendanceQuery.data?.attendances || [])
       .filter((att) => {
-        const attClassId = String(att.classId?._id || att.classId || "");
-        return !teachersSlots.some(
+        const attClassId = getCleanId(att.classId);
+        return !scheduledSlots.some(
           (slot) =>
-            String(slot.classId?._id || slot.classId || "") === attClassId &&
+            getCleanId(slot.classId) === attClassId &&
             slot.periodNumber === att.periodNumber
         );
       })
@@ -511,11 +578,50 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         _fromAttendance: true,
       }));
 
-    // Deduplicate in case multiple historical slots exist for the same period
-    const combined = [...teachersSlots, ...attendedSlots];
+    // Include slots where a leave reason was recorded for this date
+    // if not already present in scheduledSlots or attendedSlots
+    const leaveSlots = (leaveRecords || [])
+      .filter((lr) => {
+        const lrClassId = getCleanId(lr.classId);
+        return (
+          !scheduledSlots.some(
+            (slot) =>
+              getCleanId(slot.classId) === lrClassId &&
+              slot.periodNumber === lr.periodNumber
+          ) &&
+          !attendedSlots.some(
+            (slot) =>
+              getCleanId(slot.classId) === lrClassId &&
+              slot.periodNumber === lr.periodNumber
+          )
+        );
+      })
+      .map((lr) => {
+        let classInfo = lr.classId;
+        if (!classInfo?.name) {
+          const foundTT = timeTablesQuery.data?.timeTables?.find(
+            (tt) => getCleanId(tt.classId) === getCleanId(lr.classId)
+          );
+          if (foundTT?.classId) classInfo = foundTT.classId;
+        }
+
+        return {
+          _id: lr._id,
+          periodNumber: lr.periodNumber,
+          day: today,
+          classId: classInfo,
+          subjectId: null,
+          teacherId: lr.teacherId,
+          periodDetails: periods.find((p) => p.periodNumber === lr.periodNumber),
+          _fromLeave: true,
+        };
+      });
+
+    // Deduplicate so no slot is repeated for the same class & periodNumber
+    const combined = [...scheduledSlots, ...attendedSlots, ...leaveSlots];
     const uniqueMap = new Map();
     combined.forEach((slot) => {
-      const key = `${slot.classId?._id || slot.classId}:${slot.periodNumber}`;
+      const key = `${getCleanId(slot.classId)}:${slot.periodNumber}`;
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, slot);
       }
@@ -527,6 +633,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   }, [
     timeTablesQuery.data?.timeTables,
     attendanceQuery.data?.attendances,
+    leaveRecords,
+    snapshotData,
     periods,
     teacherId,
     today,
@@ -534,6 +642,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     isViewingToday,
     isSelectedDateSeniorOn,
     isSelectedDateJuniorOn,
+    getCleanId,
   ]);
 
   // Precompute attendance status once
@@ -542,14 +651,14 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
 
     const statusMap = {};
     attendanceQuery.data.attendances.forEach((attendance) => {
-      const cId = String(attendance.classId?._id || attendance.classId || "");
-      const sId = String(attendance.subjectId?._id || attendance.subjectId || "");
+      const cId = getCleanId(attendance.classId);
+      const sId = getCleanId(attendance.subjectId);
       statusMap[`${cId}:${sId}:${attendance.periodNumber}`] = attendance;
       statusMap[`${cId}:${attendance.periodNumber}`] = attendance;
     });
 
     return statusMap;
-  }, [attendanceQuery.data?.attendances]);
+  }, [attendanceQuery.data?.attendances, getCleanId]);
 
   // Set loading state only when needed
   useEffect(() => {
@@ -558,7 +667,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
       timeTablesQuery.isLoading ||
       attendanceQuery.isLoading ||
       settingsQuery.isLoading ||
-      leaveRecordQuery.isLoading
+      leaveRecordQuery.isLoading ||
+      (!isViewingToday && snapshotLoading)
     ) {
       setLoading(true);
     } else {
@@ -570,20 +680,22 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     attendanceQuery.isLoading,
     settingsQuery.isLoading,
     leaveRecordQuery.isLoading,
+    isViewingToday,
+    snapshotLoading,
   ]);
 
   // Memoize attendance check function
   const isAttendanceMarked = useCallback(
     (slot) => {
       if (!slot) return false;
-      const cId = String(slot.classId?._id || slot.classId || "");
-      const sId = String(slot.subjectId?._id || slot.subjectId || "");
+      const cId = getCleanId(slot.classId);
+      const sId = getCleanId(slot.subjectId);
       return !!(
-        attendanceStatus[`${cId}:${sId}:${slot.periodNumber}`] ||
+        (sId && attendanceStatus[`${cId}:${sId}:${slot.periodNumber}`]) ||
         attendanceStatus[`${cId}:${slot.periodNumber}`]
       );
     },
-    [attendanceStatus]
+    [attendanceStatus, getCleanId]
   );
 
   const handleBulkLeave = async () => {
@@ -606,7 +718,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         slotsToUpdate.map((slot) =>
           addLeaveRecord.mutateAsync({
             teacherId,
-            classId: slot.classId?._id || slot.classId,
+            classId: getCleanId(slot.classId),
             periodNumber: slot.periodNumber,
             date: selectedDateState,
             leaveReason: bulkReason,
@@ -655,7 +767,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     try {
       await addLeaveRecord.mutateAsync({
         teacherId,
-        classId,
+        classId: getCleanId(classId),
         periodNumber,
         date: selectedDateState,
         leaveReason: reason,
@@ -692,8 +804,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const handleWhatsAppClick = async (e, slot) => {
     e.stopPropagation();
     
-    const cId = String(slot.classId?._id || slot.classId || "");
-    const sId = String(slot.subjectId?._id || slot.subjectId || "");
+    const cId = getCleanId(slot.classId);
+    const sId = getCleanId(slot.subjectId);
     const key = `${cId}:${sId}:${slot.periodNumber}`;
     const attendanceRecord = attendanceStatus[key] || attendanceStatus[`${cId}:${slot.periodNumber}`];
     
@@ -1112,9 +1224,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                             .map((slot) =>
                               leaveRecords.find(
                                 (record) =>
-                                  String(record.classId?._id || record.classId) === String(slot.classId?._id || slot.classId) &&
+                                  getCleanId(record.classId) === getCleanId(slot.classId) &&
                                   record.periodNumber === slot.periodNumber &&
-                                  (safeFormatDate(record.date) === formattedDate || !record.date)
+                                  formatDate(new Date(record.date)) === formattedDate
                               )
                             )
                             .filter(Boolean);
@@ -1139,13 +1251,13 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                   {filteredSlots.map((slot) => {
                     const leaveRecord = leaveRecords.find(
                       (record) =>
-                        String(record.classId?._id || record.classId) === String(slot.classId?._id || slot.classId) &&
+                        getCleanId(record.classId) === getCleanId(slot.classId) &&
                         record.periodNumber === slot.periodNumber &&
-                        (safeFormatDate(record.date) === formattedDate || !record.date)
+                        formatDate(new Date(record.date)) === formattedDate
                     );
                     return (
                       <TableRow
-                        key={slot._id || `${slot.classId?._id || slot.classId}-${slot.periodNumber}`}
+                        key={slot._id || `${getCleanId(slot.classId)}-${slot.periodNumber}`}
                         className="hover:bg-accent/50"
                         onClick={() => {
                           handleNavigation(slot);
@@ -1177,14 +1289,14 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           <div className="text-xs md:text-base">
-                            {slot.classId?.name}
+                            {slot.classId?.name || (typeof slot.classId === "string" ? slot.classId : "-")}
                           </div>
                           <div className="text-xs md:hidden mt-1 text-muted-foreground">
-                            {slot.subjectId?.name}
+                            {slot.subjectId?.name || (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {slot.subjectId?.name}
+                          {slot.subjectId?.name || (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
                         </TableCell>
                         <TableCell className="text-left md:text-center align-middle pl-0 md:pl-4">
                           {isAttendanceMarked(slot) ? (
@@ -1200,8 +1312,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const cId = String(slot.classId?._id || slot.classId || "");
-                                  const sId = String(slot.subjectId?._id || slot.subjectId || "");
+                                  const cId = getCleanId(slot.classId);
+                                  const sId = getCleanId(slot.subjectId);
                                   const key = `${cId}:${sId}:${slot.periodNumber}`;
                                   setPerformanceSlot(slot);
                                   setPerformanceAttendanceRecord(
@@ -1222,7 +1334,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpen(true);
-                                setClassId(slot.classId?._id || slot.classId);
+                                setClassId(getCleanId(slot.classId));
                                 setPeriodNumber(slot.periodNumber);
                                 setReason(leaveRecord?.leaveReason || "");
                                 setSelectedRecordId(leaveRecord?._id || "");
