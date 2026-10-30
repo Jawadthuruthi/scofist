@@ -28,6 +28,7 @@ const getApiEndpoints = (dateStr) => [
 
   {
     pathname: "periods",
+    searchParams: `date=${dateStr}`,
     revalidate: 0,
   },
   {

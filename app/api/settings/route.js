@@ -44,6 +44,19 @@ export async function GET(req, res) {
       }
     }
 
+    // Ensure default schedules in settings.general
+    if (settings?.general) {
+      if (!settings.general.schedules || settings.general.schedules.length === 0) {
+        settings.general.schedules = [
+          { id: "normal", name: "Normal Schedule", isDefault: true },
+          { id: "thursday", name: "Thursday Schedule", isDefault: true },
+        ];
+      }
+      if (!settings.general.activeSchedule) {
+        settings.general.activeSchedule = settings.general.isSpecialDay ? "thursday" : "normal";
+      }
+    }
+
     console.log("GET Settings - Spark Posters count:", settings.spark?.committeePosters?.length);
     console.log("GET Settings - Org Posters count:", settings.org?.committeePosters?.length);
 
@@ -145,6 +158,16 @@ export async function POST(req, res) {
         appIcon: data.appIcon ?? existingSettings?.general?.appIcon,
         allowPreviousDayAttendance: data.allowPreviousDayAttendance ?? existingSettings?.general?.allowPreviousDayAttendance ?? true,
         isSpecialDay: data.isSpecialDay ?? existingSettings?.general?.isSpecialDay ?? false,
+        activeSchedule:
+          data.activeSchedule ??
+          existingSettings?.general?.activeSchedule ??
+          (data.isSpecialDay || existingSettings?.general?.isSpecialDay ? "thursday" : "normal"),
+        schedules:
+          data.schedules ??
+          existingSettings?.general?.schedules ?? [
+            { id: "normal", name: "Normal Schedule", isDefault: true },
+            { id: "thursday", name: "Thursday Schedule", isDefault: true },
+          ],
       },
       festival: {
         festivalInfo: {
@@ -459,7 +482,16 @@ export async function PUT(req) {
     }
 
     // General
-    if (data.isWorkingDay !== undefined || data.occasion !== undefined || data.appIcon !== undefined || data.allowPreviousDayAttendance !== undefined || data.isSpecialDay !== undefined) {
+    if (
+      data.isWorkingDay !== undefined ||
+      data.occasion !== undefined ||
+      data.appIcon !== undefined ||
+      data.allowPreviousDayAttendance !== undefined ||
+      data.isSpecialDay !== undefined ||
+      data.activeSchedule !== undefined ||
+      data.schedules !== undefined ||
+      data.autoThursdaySchedule !== undefined
+    ) {
       // Use dot notation for all general fields to avoid MongoDB $set conflicts
       // with general.nonWorkingDays and general.nonWorkingDaysLog sub-paths
       if (data.isWorkingDay !== undefined) {
@@ -474,8 +506,19 @@ export async function PUT(req) {
       if (data.allowPreviousDayAttendance !== undefined) {
         updateData["general.allowPreviousDayAttendance"] = data.allowPreviousDayAttendance;
       }
-      if (data.isSpecialDay !== undefined) {
+      if (data.activeSchedule !== undefined) {
+        updateData["general.activeSchedule"] = data.activeSchedule;
+        updateData["general.isSpecialDay"] = data.activeSchedule !== "normal";
+      }
+      if (data.schedules !== undefined) {
+        updateData["general.schedules"] = data.schedules;
+      }
+      if (data.autoThursdaySchedule !== undefined) {
+        updateData["general.autoThursdaySchedule"] = Boolean(data.autoThursdaySchedule);
+      }
+      if (data.isSpecialDay !== undefined && data.activeSchedule === undefined) {
         updateData["general.isSpecialDay"] = Boolean(data.isSpecialDay);
+        updateData["general.activeSchedule"] = data.isSpecialDay ? "thursday" : "normal";
       }
 
       // Auto-track non-working days: record today's date in IST when admin marks it as non-working

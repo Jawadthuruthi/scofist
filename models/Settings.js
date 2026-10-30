@@ -385,6 +385,23 @@ const SettingsSchema = new Schema(
         type: Boolean,
         default: false,
       },
+      activeSchedule: {
+        type: String,
+        default: "normal",
+        trim: true,
+      },
+      schedules: [
+        {
+          id: { type: String, required: true },
+          name: { type: String, required: true, trim: true },
+          isDefault: { type: Boolean, default: false },
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      autoThursdaySchedule: {
+        type: Boolean,
+        default: false,
+      },
       // Persistent log of all dates marked as non-working by the college admin
       nonWorkingDays: {
         type: [Date],
@@ -674,7 +691,9 @@ if (
     !models.Settings.schema.path("general.attendanceCategories") ||
     !models.Settings.schema.path("teamPointsSnapshot") ||
     !models.Settings.schema.path("general.allowPreviousDayAttendance") ||
-    !models.Settings.schema.path("general.isSpecialDay"))
+    !models.Settings.schema.path("general.isSpecialDay") ||
+    !models.Settings.schema.path("general.activeSchedule") ||
+    !models.Settings.schema.path("general.schedules"))
 ) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;

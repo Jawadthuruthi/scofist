@@ -140,7 +140,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const periodQuery = useFetchPeriod(
     null,
     null,
-    { periodNumber },
+    { periodNumber, date: attendanceDate },
     {
       staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: true,

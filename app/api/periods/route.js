@@ -8,6 +8,16 @@ export async function GET(req) {
   try {
     await connectToDB();
 
+    // Auto-migrate legacy periods missing the schedule field
+    await Period.updateMany(
+      { isSpecialDay: true, $or: [{ schedule: { $exists: false } }, { schedule: null }] },
+      { $set: { schedule: "thursday" } }
+    );
+    await Period.updateMany(
+      { isSpecialDay: { $ne: true }, $or: [{ schedule: { $exists: false } }, { schedule: null }] },
+      { $set: { schedule: "normal" } }
+    );
+
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
     const limit = parseInt(url.searchParams.get("limit")) || Infinity;
@@ -25,33 +35,113 @@ export async function GET(req) {
       query.periodNumber = parseInt(filterParams.periodNumber);
     }
 
-    // Determine special day status
+    // Determine settings & active schedule
     const settings = await Settings.findOne().lean();
-    const isSpecialActive = Boolean(settings?.general?.isSpecialDay);
 
+    const savedSchedules = settings?.general?.schedules || [];
+    const defaultSchedules = [
+      { id: "normal", name: "Normal Schedule", isDefault: true },
+      { id: "thursday", name: "Thursday Schedule", isDefault: true },
+    ];
+    const schedulesMap = new Map();
+    defaultSchedules.forEach((s) => schedulesMap.set(s.id, s));
+    savedSchedules.forEach((s) => {
+      schedulesMap.set(s.id, {
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        isDefault: Boolean(s.isDefault),
+      });
+    });
+    const allSchedules = Array.from(schedulesMap.values());
+
+    let activeScheduleId = settings?.general?.activeSchedule;
+    if (!activeScheduleId) {
+      activeScheduleId = settings?.general?.isSpecialDay ? "thursday" : "normal";
+    }
+
+    // Auto-Thursday Schedule Check: if enabled, Thursday Schedule is active for all Thursdays
+    const autoThursday = Boolean(settings?.general?.autoThursdaySchedule);
+    let isTargetThursday = false;
+    if (filterParams.date) {
+      const parts = String(filterParams.date).split("-");
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        isTargetThursday = d.getDay() === 4;
+      }
+    } else {
+      const now = new Date();
+      const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+      isTargetThursday = istNow.getUTCDay() === 4;
+    }
+
+    if (autoThursday && isTargetThursday) {
+      activeScheduleId = "thursday";
+    }
+
+    const activeScheduleObj =
+      allSchedules.find((s) => s.id === activeScheduleId) || allSchedules[0];
+
+    const scheduleParam = filterParams.schedule;
     const isSpecialDayParam = filterParams.isSpecialDay;
 
-    if (isSpecialDayParam === "true" || isSpecialDayParam === true) {
-      query.isSpecialDay = true;
-    } else if (isSpecialDayParam === "false" || isSpecialDayParam === false) {
-      query.isSpecialDay = { $ne: true };
-    } else if (isSpecialDayParam === "all") {
-      // Query both without filter
-    } else {
-      // Default behavior (e.g., when called from dashboard or my-periods without explicit isSpecialDay param)
-      if (isSpecialActive) {
-        const specialCount = await Period.countDocuments({
-          isSpecialDay: true,
-          ...(query.periodNumber ? { periodNumber: query.periodNumber } : {}),
-        });
-        if (specialCount > 0) {
-          query.isSpecialDay = true;
-        } else {
-          // If no special day periods configured yet, fallback to normal periods
-          query.isSpecialDay = { $ne: true };
-        }
+    if (scheduleParam) {
+      if (scheduleParam === "all") {
+        // Query both without filter
+      } else if (scheduleParam === "normal") {
+        query.$or = [
+          { schedule: "normal" },
+          { schedule: { $exists: false }, isSpecialDay: { $ne: true } },
+        ];
+      } else if (scheduleParam === "thursday") {
+        query.$or = [
+          { schedule: "thursday" },
+          { schedule: { $exists: false }, isSpecialDay: true },
+        ];
       } else {
-        query.isSpecialDay = { $ne: true };
+        query.schedule = scheduleParam;
+      }
+    } else if (isSpecialDayParam !== undefined) {
+      if (isSpecialDayParam === "true" || isSpecialDayParam === true) {
+        query.$or = [
+          { isSpecialDay: true },
+          { schedule: { $ne: "normal" } },
+        ];
+      } else if (isSpecialDayParam === "false" || isSpecialDayParam === false) {
+        query.$or = [
+          { schedule: "normal" },
+          { schedule: { $exists: false }, isSpecialDay: { $ne: true } },
+        ];
+      } else if (isSpecialDayParam === "all") {
+        // Query all without filter
+      }
+    } else {
+      // Default behavior (e.g., when called from dashboard or my-periods without explicit param):
+      // Return periods for the currently active schedule
+      const activeFilter = {
+        $or: [
+          { schedule: activeScheduleId },
+          ...(activeScheduleId === "normal"
+            ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
+            : activeScheduleId === "thursday"
+            ? [{ schedule: { $exists: false }, isSpecialDay: true }]
+            : []),
+        ],
+      };
+
+      const activeCount = await Period.countDocuments({
+        ...activeFilter,
+        ...(query.periodNumber ? { periodNumber: query.periodNumber } : {}),
+      });
+
+      if (activeCount > 0) {
+        Object.assign(query, activeFilter);
+      } else {
+        // If no periods configured for this active schedule yet, fallback to normal periods
+        query.$or = [
+          { schedule: "normal" },
+          { schedule: { $exists: false }, isSpecialDay: { $ne: true } },
+        ];
       }
     }
 
@@ -65,7 +155,10 @@ export async function GET(req) {
     return NextResponse.json(
       {
         periods,
-        isSpecialDayActive: isSpecialActive,
+        schedules: allSchedules,
+        activeSchedule: activeScheduleId,
+        activeScheduleName: activeScheduleObj?.name || "Normal Schedule",
+        isSpecialDayActive: activeScheduleId !== "normal",
         pagination: {
           page,
           limit,
@@ -86,12 +179,15 @@ export async function POST(req) {
   try {
     await connectToDB();
 
-    const { periodNumber, startTime, endTime, isSpecialDay } = await req.json();
+    const { periodNumber, startTime, endTime, isSpecialDay, schedule } = await req.json();
+    const effectiveSchedule = schedule || (isSpecialDay ? "thursday" : "normal");
+
     const newPeriod = await Period.create({
       periodNumber: parseInt(periodNumber),
       startTime,
       endTime,
-      isSpecialDay: Boolean(isSpecialDay),
+      schedule: effectiveSchedule,
+      isSpecialDay: effectiveSchedule !== "normal",
     });
 
     return NextResponse.json(
@@ -108,7 +204,7 @@ export async function PUT(req) {
     await connectToDB();
 
     const body = await req.json();
-    const { ids, periodNumber, startTime, endTime, isSpecialDay } = body;
+    const { ids, periodNumber, startTime, endTime, isSpecialDay, schedule } = body;
 
     const _id = ids ? ids[0] : body._id;
 
@@ -116,7 +212,13 @@ export async function PUT(req) {
     if (periodNumber !== undefined) updateData.periodNumber = parseInt(periodNumber);
     if (startTime !== undefined) updateData.startTime = startTime;
     if (endTime !== undefined) updateData.endTime = endTime;
-    if (isSpecialDay !== undefined) updateData.isSpecialDay = Boolean(isSpecialDay);
+    if (schedule !== undefined) {
+      updateData.schedule = schedule;
+      updateData.isSpecialDay = schedule !== "normal";
+    } else if (isSpecialDay !== undefined) {
+      updateData.isSpecialDay = Boolean(isSpecialDay);
+      updateData.schedule = updateData.isSpecialDay ? "thursday" : "normal";
+    }
 
     if (ids && ids.length > 1) {
       const updatedPeriods = await Period.updateMany(
@@ -129,14 +231,16 @@ export async function PUT(req) {
       );
     }
 
-    const updatedPeriod = await Period.findOneAndUpdate(
-      { _id },
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
+    const existingDoc = await Period.findById(_id);
+    if (!existingDoc) {
+      return NextResponse.json({ message: "Period not found" }, { status: 404 });
+    }
+
+    Object.assign(existingDoc, updateData);
+    await existingDoc.save();
 
     return NextResponse.json(
-      { updatedPeriod, message: "Period Updated successfully!" },
+      { updatedPeriod: existingDoc, message: "Period Updated successfully!" },
       { status: 200 }
     );
   } catch (error) {

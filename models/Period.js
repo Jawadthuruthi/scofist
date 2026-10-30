@@ -22,6 +22,12 @@ const periodSchema = new Schema(
       default: false,
       index: true,
     },
+    schedule: {
+      type: String,
+      trim: true,
+      default: "normal",
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -30,8 +36,8 @@ const periodSchema = new Schema(
   }
 );
 
-// Compound unique index so periodNumber is unique per day type (Normal Day vs Special Day)
-periodSchema.index({ periodNumber: 1, isSpecialDay: 1 }, { unique: true });
+// Compound unique index so periodNumber is unique per schedule
+periodSchema.index({ periodNumber: 1, schedule: 1 }, { unique: true });
 
 // Validate times at the schema level instead of individual fields
 periodSchema.path("startTime").validate(function (value) {
@@ -110,22 +116,32 @@ periodSchema.pre("save", async function (next) {
         return next(new Error("Start time must be before end time"));
       }
 
-      const isSpecial = Boolean(this.isSpecialDay);
-      const dayFilter = isSpecial ? { isSpecialDay: true } : { isSpecialDay: { $ne: true } };
+      const sched = this.schedule || (this.isSpecialDay ? "thursday" : "normal");
+      this.schedule = sched;
+      this.isSpecialDay = sched !== "normal";
 
-      // First check for duplicate period number within the same day type
+      const scheduleFilter = {
+        $or: [
+          { schedule: sched },
+          ...(sched === "normal"
+            ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
+            : sched === "thursday"
+            ? [{ schedule: { $exists: false }, isSpecialDay: true }]
+            : []),
+        ],
+      };
+
+      // First check for duplicate period number within the same schedule
       const duplicatePeriod = await this.constructor.findOne({
         periodNumber: this.periodNumber,
-        ...dayFilter,
+        ...scheduleFilter,
         _id: { $ne: this?._id },
       });
 
       if (duplicatePeriod) {
         return next(
           new Error(
-            `Period number ${this.periodNumber} already exists for ${
-              isSpecial ? "Special Day" : "Normal Day"
-            }`
+            `Period number ${this.periodNumber} already exists for this schedule`
           )
         );
       }
@@ -134,7 +150,7 @@ periodSchema.pre("save", async function (next) {
       if (this.periodNumber > 1) {
         const earlierPeriods = await this.constructor.find({
           periodNumber: { $lt: this.periodNumber },
-          ...dayFilter,
+          ...scheduleFilter,
           _id: { $ne: this?._id },
         });
 
@@ -154,9 +170,9 @@ periodSchema.pre("save", async function (next) {
         }
       }
 
-      // Then check for time overlaps by fetching all periods within the same day type
+      // Then check for time overlaps by fetching all periods within the same schedule
       const allPeriods = await this.constructor.find({
-        ...dayFilter,
+        ...scheduleFilter,
         _id: { $ne: this?._id },
       });
 
@@ -183,15 +199,20 @@ periodSchema.pre("save", async function (next) {
 });
 
 // Refresh model if schema updated during hot-reload
-if (models.Period && !models.Period.schema.path("isSpecialDay")) {
+if (
+  models.Period &&
+  (!models.Period.schema.path("isSpecialDay") ||
+    !models.Period.schema.path("schedule"))
+) {
   delete models.Period;
 }
 
 const Period = models.Period || model("Period", periodSchema);
 
-// Safely drop legacy single-field unique index if it exists in the MongoDB collection
+// Safely drop legacy unique indexes if they exist in the MongoDB collection
 if (Period.collection) {
   Period.collection.dropIndex("periodNumber_1").catch(() => {});
+  Period.collection.dropIndex("periodNumber_1_isSpecialDay_1").catch(() => {});
 }
 
 export default Period;

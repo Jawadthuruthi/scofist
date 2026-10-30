@@ -3001,11 +3001,32 @@ export default function Dashboard({
                   <CardTitle className="flex items-center space-x-2">
                     <Calendar className="h-5 w-5" />
                     <span>Today's Schedule</span>
-                    {settings?.general?.isSpecialDay && (
-                      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-semibold ml-2">
-                        Special Day Timetable
-                      </Badge>
-                    )}
+                    {(() => {
+                      const activeSchedId = settings?.general?.activeSchedule;
+                      const autoThursday = Boolean(settings?.general?.autoThursdaySchedule);
+                      const isThursday = currentDateObj ? currentDateObj.getDay() === 4 : false;
+                      const isThursdayActive = autoThursday && isThursday;
+                      const isSpecialActive = Boolean(settings?.general?.isSpecialDay);
+
+                      if (!isSpecialActive && !isThursdayActive && (!activeSchedId || activeSchedId === "normal")) {
+                        return null;
+                      }
+
+                      let badgeText = "Special Day Timetable";
+                      if (isThursdayActive || activeSchedId === "thursday") {
+                        badgeText = "Thursday Schedule Timetable";
+                      } else {
+                        const scheds = settings?.general?.schedules || [];
+                        const found = scheds.find((s) => s.id === activeSchedId);
+                        if (found?.name) badgeText = `${found.name} Timetable`;
+                      }
+
+                      return (
+                        <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-semibold ml-2">
+                          {badgeText}
+                        </Badge>
+                      );
+                    })()}
                   </CardTitle>
                   <CardDescription>
                     View scheduled classes for Today
