@@ -261,16 +261,16 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
             }}
           >
             <Card className="border-none shadow-none">
-              <CardHeader className="flex flex-row items-center justify-center gap-3 pb-6 border-b bg-muted/30 space-y-0">
+              <CardHeader className="flex flex-row items-center justify-center gap-3 pb-6 border-b bg-muted/30 space-y-0 text-center">
                 {institution?.logo?.url && (
                   <img
                     src={institution.logo.url}
                     alt="Institution Logo"
-                    className="h-12 w-auto object-contain shrink-0"
+                    className="h-11 w-auto object-contain shrink-0"
                   />
                 )}
-                <div className="text-left">
-                  <p className="text-sm font-black tracking-tight leading-tight text-foreground">
+                <div className="text-center">
+                  <p className="text-sm font-black tracking-tight leading-tight text-foreground text-center">
                     {institution?.name === "Sa-adiya College of Integrated Studies" ? (
                       <>
                         Sa-adiya College of <br /> Integrated Studies
@@ -281,18 +281,18 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
                   </p>
                 </div>
               </CardHeader>
-              <CardHeader className="flex items-center space-x-4 pt-6">
-                <Avatar className="h-12 w-12 border-2 border-primary/10">
-                  <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} />
-                  <AvatarFallback className="bg-primary/5 text-primary font-bold">
+              <CardHeader className="flex flex-col items-center justify-center text-center pt-6 pb-2 space-y-2">
+                <Avatar className="h-16 w-16 border-2 border-primary/10">
+                  <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
+                  <AvatarFallback className="bg-primary/5 text-primary font-bold text-lg">
                     {user?.name?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col overflow-hidden">
-                  <CardTitle className="text-base truncate">
+                <div className="flex flex-col items-center justify-center text-center overflow-hidden w-full">
+                  <CardTitle className="text-base font-semibold truncate max-w-full text-center">
                     {user?.name || "User"}
                   </CardTitle>
-                  <CardDescription className="text-xs truncate">
+                  <CardDescription className="text-xs truncate max-w-full text-center text-muted-foreground mt-0.5">
                     {user?.email || ""}
                   </CardDescription>
                 </div>

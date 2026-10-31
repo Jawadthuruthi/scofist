@@ -92,11 +92,18 @@ export async function GET(req, res) {
     // Handle absentee tracking specific query parameter
     const trackAbsentees = url.searchParams.get("trackAbsentees") === "true";
 
+    if (trackAbsentees) {
+      delete query.periodNumber;
+      delete query.day;
+      delete query.date;
+      delete query.batchId;
+    }
+
     // Execute query with pagination
     let queryPromise = Attendance.find(query, projections)
       .skip(limit === Infinity ? 0 : (page * limit))
       .limit(limit === Infinity ? 0 : limit)
-      .sort({ date: -1 });
+      .sort(trackAbsentees ? { date: -1, periodNumber: -1, createdAt: -1 } : { date: -1 });
 
     // Only populate if the fields are in projections (or projections is empty)
     const shouldPopulate = (field) => Object.keys(projections).length === 0 || projections[field] === 1;
@@ -240,44 +247,92 @@ export async function GET(req, res) {
 
     // Enhanced processing for absentee tracking if requested
     if (trackAbsentees) {
+      // Helper to format date as YYYY-MM-DD in Asia/Kolkata
+      const getDS = (d) => {
+        if (!d) return "";
+        if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+        const dt = new Date(d);
+        if (isNaN(dt.getTime())) return "";
+        return new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(dt);
+      };
+
+      const currentISTDateStr = getDS(new Date());
+      const maxDateStr = filterParams.referenceDate
+        ? getDS(filterParams.referenceDate)
+        : filterParams.date
+        ? getDS(filterParams.date)
+        : currentISTDateStr;
+      const maxPeriod = filterParams.referencePeriod
+        ? Number(filterParams.referencePeriod)
+        : filterParams.periodNumber
+        ? Number(filterParams.periodNumber)
+        : Infinity;
+
       // Group attendance records by students and track continuous absences
       const studentAbsences = {};
 
-      // Process each attendance record
-      formattedAttendances.forEach((attendance) => {
-        attendance.attendanceData.forEach((student) => {
-          if (!studentAbsences[student.studentId]) {
-            studentAbsences[student.studentId] = {
-              studentId: student.studentId,
-              studentName: student.studentName,
+      // Filter and sort formatted attendances strictly descending by date & periodNumber
+      const sortedAttendances = [...formattedAttendances]
+        .filter((attendance) => {
+          const attDS = getDS(attendance.date);
+          if (!attDS) return false;
+          // Filter out future dates beyond reference date / today
+          if (attDS > maxDateStr) return false;
+          // If on the max date, filter out higher periods if referencePeriod is specified
+          if (attDS === maxDateStr && maxPeriod !== Infinity) {
+            const pNum = Number(attendance.periodNumber) || 0;
+            if (pNum > maxPeriod) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          const dsA = getDS(a.date);
+          const dsB = getDS(b.date);
+          if (dsA !== dsB) {
+            return dsB.localeCompare(dsA); // Newest date first
+          }
+          const pA = Number(a.periodNumber) || 0;
+          const pB = Number(b.periodNumber) || 0;
+          if (pA !== pB) {
+            return pB - pA; // Highest period number first
+          }
+          const tA = new Date(a.createdAt || a.date).getTime();
+          const tB = new Date(b.createdAt || b.date).getTime();
+          return tB - tA;
+        });
+
+      // Process each attendance record in descending chronological order
+      sortedAttendances.forEach((attendance) => {
+        (attendance.attendanceData || []).forEach((student) => {
+          const sId = (student.studentId?._id || student.studentId || "").toString();
+          if (!sId) return;
+
+          if (!studentAbsences[sId]) {
+            studentAbsences[sId] = {
+              studentId: sId,
+              studentName: student.studentName || student.studentId?.name || "Student",
               absences: [],
               continuousAbsences: 0,
               lastAbsenceDate: null,
             };
           }
 
-          // Add this absence record
-          studentAbsences[student.studentId].absences.push({
+          studentAbsences[sId].absences.push({
             date: attendance.date,
-            present: student.present,
+            periodNumber: attendance.periodNumber,
+            present: !!student.present,
           });
         });
       });
 
-      // Calculate continuous absences for each student
+      // Calculate continuous absences for each student starting from the latest period
       Object.values(studentAbsences).forEach((student) => {
-        const istNow = new Date().toLocaleString("en-US", {
-          timeZone: "Asia/Kolkata",
-        });
-        const todayIST = new Date(istNow);
-        todayIST.setUTCHours(0, 0, 0, 0);
-        // Sort absences by date (newest first)
-        const studentAbsencesArray = student.absences
-          .filter((item) => new Date(item.date) <= todayIST)
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        // Count continuous absences
-        for (const absence of studentAbsencesArray) {
+        for (const absence of student.absences) {
           if (!absence.present) {
             student.continuousAbsences++;
             if (!student.lastAbsenceDate) {
