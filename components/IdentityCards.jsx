@@ -151,7 +151,7 @@ const IdentityCards = ({
     <div>
       <Header
         title="IDENTITY CARDS"
-        subTitle="Identity cards for Students and Teachers"
+        subTitle={userRole === "Student" ? "Identity cards for Students" : "Identity cards for Students and Teachers"}
         rightAction={
           (userRole === "College Admin" || allRoles.includes("College Admin")) && (
             <Dialog>
