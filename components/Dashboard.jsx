@@ -3011,6 +3011,57 @@ export default function Dashboard({
     );
   }, [teachers]);
 
+  const activeScheduleName = useMemo(() => {
+    let activeScheduleId = settings?.general?.activeSchedule;
+    if (!activeScheduleId) {
+      activeScheduleId = settings?.general?.isSpecialDay ? "thursday" : "normal";
+    }
+
+    const autoThursday = Boolean(settings?.general?.autoThursdaySchedule);
+    let isThursdayActive = false;
+    if (autoThursday && dateYYYYMMDD) {
+      const [y, m, d] = dateYYYYMMDD.split("-").map(Number);
+      const dayOfWeek = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+      if (dayOfWeek === 4) {
+        isThursdayActive = true;
+      }
+    } else if (autoThursday && currentDateObj) {
+      if (currentDateObj.getDay() === 4) {
+        isThursdayActive = true;
+      }
+    }
+
+    if (isThursdayActive) {
+      activeScheduleId = "thursday";
+    }
+
+    if (activeScheduleId === "normal" && !isThursdayActive && periods?.length > 0) {
+      const periodSched = periods[0]?.schedule;
+      if (periodSched && periodSched !== "normal") {
+        activeScheduleId = periodSched;
+      }
+    }
+
+    // Only show if other than normal schedule
+    if (!activeScheduleId || activeScheduleId === "normal") {
+      return null;
+    }
+
+    if (activeScheduleId === "thursday") {
+      return "Thursday Schedule";
+    }
+
+    const scheds = settings?.general?.schedules || [];
+    const found = scheds.find((s) => s.id === activeScheduleId);
+    const name = found?.name || (settings?.general?.isSpecialDay ? "Special Day Schedule" : "");
+
+    if (!name || name === "Normal Schedule") {
+      return null;
+    }
+
+    return name;
+  }, [settings, dateYYYYMMDD, currentDateObj, periods]);
+
   return (
     <div className="flex flex-col">
       <Header
@@ -3041,37 +3092,18 @@ export default function Dashboard({
                   <CardTitle className="flex items-center space-x-2">
                     <Calendar className="h-5 w-5" />
                     <span>Today's Schedule</span>
-                    {(() => {
-                      const activeSchedId = settings?.general?.activeSchedule;
-                      const autoThursday = Boolean(settings?.general?.autoThursdaySchedule);
-                      const isThursday = currentDateObj ? currentDateObj.getDay() === 4 : false;
-                      const isThursdayActive = autoThursday && isThursday;
-                      const isSpecialActive = Boolean(settings?.general?.isSpecialDay);
-
-                      if (!isSpecialActive && !isThursdayActive && (!activeSchedId || activeSchedId === "normal")) {
-                        return null;
-                      }
-
-                      let badgeText = "Special Day Timetable";
-                      if (isThursdayActive || activeSchedId === "thursday") {
-                        badgeText = "Thursday Schedule Timetable";
-                      } else {
-                        const scheds = settings?.general?.schedules || [];
-                        const found = scheds.find((s) => s.id === activeSchedId);
-                        if (found?.name) badgeText = `${found.name} Timetable`;
-                      }
-
-                      return (
-                        <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-semibold ml-2">
-                          {badgeText}
-                        </Badge>
-                      );
-                    })()}
                   </CardTitle>
-                  <CardDescription>
-                    {dateYYYYMMDD === todayISTStr
-                      ? "View scheduled classes for Today"
-                      : `View scheduled classes for ${currentDateStr}`}
+                  <CardDescription className="flex items-center gap-2 flex-wrap">
+                    <span>
+                      {dateYYYYMMDD === todayISTStr
+                        ? "View scheduled classes for Today"
+                        : `View scheduled classes for ${currentDateStr}`}
+                    </span>
+                    {activeScheduleName && (
+                      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-semibold">
+                        {activeScheduleName}
+                      </Badge>
+                    )}
                   </CardDescription>
                 </div>
                 
