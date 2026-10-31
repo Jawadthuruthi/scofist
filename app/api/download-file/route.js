@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isR2Url } from "@/lib/r2";
 
 export async function GET(req) {
   try {
@@ -14,8 +15,13 @@ export async function GET(req) {
       );
     }
 
-    // SSRF protection: only allow trusted Cloudinary hosts
-    if (!fileUrl.startsWith("https://res.cloudinary.com/") && !fileUrl.startsWith("http://res.cloudinary.com/")) {
+    // SSRF protection: only allow trusted Cloudinary and Cloudflare R2 hosts
+    const isCloudinary =
+      fileUrl.startsWith("https://res.cloudinary.com/") ||
+      fileUrl.startsWith("http://res.cloudinary.com/");
+    const isR2 = isR2Url(fileUrl);
+
+    if (!isCloudinary && !isR2) {
       return NextResponse.json(
         { message: "Invalid file host" },
         { status: 400 }

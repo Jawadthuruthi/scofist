@@ -21,6 +21,7 @@ import {
   ZoomOut,
   RotateCcw,
 } from "lucide-react";
+import { isR2Url } from "@/lib/r2Client";
 
 // Dynamically load PDF.js from public folder (served locally with zero external dependencies)
 function loadPdfJs() {
@@ -161,12 +162,18 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
   const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(rawUrl) || /\.(jpe?g|png|webp|gif|svg)$/i.test(filename);
   const isOfficeDoc = /\.(docx?|pptx?|xlsx?)$/i.test(rawUrl) || /\.(docx?|pptx?|xlsx?)$/i.test(filename);
   const isPdf = !isImage && !isOfficeDoc;
+  const isDirectR2 = isR2Url(rawUrl);
 
   const previewProxyUrl = `/api/download-file?url=${encodeURIComponent(rawUrl)}&filename=${encodeURIComponent(filename)}&inline=true`;
   const officeViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true`;
-  const downloadUrl = `/api/download-file?url=${encodeURIComponent(rawUrl)}&filename=${encodeURIComponent(filename)}`;
+  const downloadProxyUrl = `/api/download-file?url=${encodeURIComponent(rawUrl)}&filename=${encodeURIComponent(filename)}`;
 
-  const directPreviewUrl = isOfficeDoc ? officeViewerUrl : previewProxyUrl;
+  // For R2 documents, direct CDN URL is 100x faster, supports byte ranges, and avoids Vercel 4.5MB payload limits
+  const directPreviewUrl = isOfficeDoc
+    ? officeViewerUrl
+    : (isDirectR2 ? rawUrl : previewProxyUrl);
+  const downloadUrl = isDirectR2 ? rawUrl : downloadProxyUrl;
+  const pdfSourceUrl = isDirectR2 ? rawUrl : previewProxyUrl;
 
   // Load PDF when dialog opens
   useEffect(() => {
@@ -200,9 +207,9 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
       .then((pdfjs) => {
         if (cancelled || !pdfjs) return;
 
-        // Fetch via proxy route or direct URL
+        // Fetch via direct R2 URL or proxy route
         const loadingTask = pdfjs.getDocument({
-          url: previewProxyUrl,
+          url: pdfSourceUrl,
           withCredentials: false,
         });
 
@@ -226,7 +233,7 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
     return () => {
       cancelled = true;
     };
-  }, [open, rawUrl, isImage, isOfficeDoc, previewProxyUrl, updateWidth]);
+  }, [open, rawUrl, isImage, isOfficeDoc, pdfSourceUrl, updateWidth]);
 
   const handlePrint = () => {
     setIsPrinting(true);
@@ -256,7 +263,7 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
       }
 
       // Load file into a hidden iframe and trigger system print dialog
-      const printUrl = previewProxyUrl;
+      const printUrl = isDirectR2 ? rawUrl : previewProxyUrl;
       const iframe = document.createElement("iframe");
       iframe.style.position = "fixed";
       iframe.style.right = "0";
@@ -294,7 +301,7 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
     } catch (err) {
       console.error("Print error:", err);
       setIsPrinting(false);
-      window.open(previewProxyUrl, "_blank");
+      window.open(isDirectR2 ? rawUrl : previewProxyUrl, "_blank");
     }
   };
 
