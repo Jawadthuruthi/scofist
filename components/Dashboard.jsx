@@ -1117,7 +1117,7 @@ const StatsOverview = memo(({
                 Faculty Profiles
               </DialogTitle>
               <DialogDescription className="m-0">
-              View active teaching staff profiles
+              View active teaching staff
             </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
