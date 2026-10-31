@@ -148,7 +148,29 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     );
   };
   // Use refs or state instead of deriving too many values
-  const [selectedDateState, setSelectedDateState] = useState(getISTDate());
+  const [selectedDateState, setSelectedDateState] = useState(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const urlDate = sp.get("date");
+      if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
+        const [y, m, d] = urlDate.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }
+      const raw = sessionStorage.getItem("autoWhatsAppSlot");
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
+            const [y, m, d] = parsed.date.split("-").map(Number);
+            return new Date(y, m - 1, d);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+    return getISTDate();
+  });
 
   const days = useMemo(
     () => [
@@ -228,6 +250,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     {
       staleTime: 1000 * 60 * 2,
       refetchOnWindowFocus: false,
+      refetchOnMount: "always",
     }
   );
 
@@ -877,8 +900,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     }
   };
 
-  const handleWhatsAppClick = async (e, slot) => {
-    e.stopPropagation();
+  const handleWhatsAppClick = useCallback(async (e, slot) => {
+    if (e && typeof e.stopPropagation === "function") {
+      e.stopPropagation();
+    }
     
     const cId = getCleanId(slot.classId);
     const sId = getCleanId(slot.subjectId);
@@ -893,6 +918,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     const subjectName =
       slot.subjectId?.name ||
       (slot.subjectId ? subjects.find((s) => s._id === getCleanId(slot.subjectId))?.name : null) ||
+      attendanceRecord.subjectId?.name ||
+      (attendanceRecord.subjectId ? subjects.find((s) => s._id === getCleanId(attendanceRecord.subjectId))?.name : null) ||
       "this subject";
     
     // Use pre-fetched attendanceData from attendanceQuery
@@ -950,7 +977,108 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
       loading: false,
       students: studentsToMessage
     });
-  };
+  }, [getCleanId, attendanceStatus, subjects, apiKey]);
+
+  const lastAutoWhatsAppKeyRef = useRef(null);
+
+  // Auto-open Absent Students WhatsApp popup if redirected from saving attendance
+  useEffect(() => {
+    if (attendanceQuery.isLoading) return;
+
+    let autoTarget = null;
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("autoWhatsApp") === "1" || sp.get("autoWhatsApp") === "true") {
+        autoTarget = {
+          classId: sp.get("classId"),
+          periodNumber: parseInt(sp.get("periodNumber"), 10),
+          subjectId: sp.get("subjectId") || null,
+          date: sp.get("date") || null,
+        };
+      } else {
+        const raw = sessionStorage.getItem("autoWhatsAppSlot");
+        if (raw) {
+          try {
+            autoTarget = JSON.parse(raw);
+          } catch (e) {
+            console.error("Failed to parse autoWhatsAppSlot:", e);
+          }
+        }
+      }
+    }
+
+    if (!autoTarget || !autoTarget.classId || !autoTarget.periodNumber) return;
+
+    const targetClassId = getCleanId(autoTarget.classId);
+    const targetPeriodNumber = parseInt(autoTarget.periodNumber, 10);
+    const targetSubjectId = autoTarget.subjectId ? getCleanId(autoTarget.subjectId) : null;
+    const triggerKey = `${targetClassId}:${targetPeriodNumber}:${autoTarget.date || ""}`;
+
+    if (lastAutoWhatsAppKeyRef.current === triggerKey) return;
+
+    // Check if attendance status has the record
+    const keyWithSubject = targetSubjectId ? `${targetClassId}:${targetSubjectId}:${targetPeriodNumber}` : null;
+    const keyWithoutSubject = `${targetClassId}:${targetPeriodNumber}`;
+    const attRecord = (keyWithSubject && attendanceStatus[keyWithSubject]) || attendanceStatus[keyWithoutSubject];
+
+    // If attendance record has not appeared in query yet, wait for next render
+    if (!attRecord) {
+      return;
+    }
+
+    lastAutoWhatsAppKeyRef.current = triggerKey;
+
+    // Clean up trigger signals
+    try {
+      sessionStorage.removeItem("autoWhatsAppSlot");
+      if (typeof window !== "undefined" && window.history?.replaceState) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("autoWhatsApp");
+        url.searchParams.delete("classId");
+        url.searchParams.delete("periodNumber");
+        url.searchParams.delete("subjectId");
+        const newRelativePathQuery =
+          url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "");
+        window.history.replaceState({}, document.title, newRelativePathQuery);
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Find slot in filteredSlots or build fallback
+    const matchingSlot =
+      filteredSlots.find((s) => {
+        const sCId = getCleanId(s.classId);
+        const sPNum = parseInt(s.periodNumber, 10);
+        if (sCId === targetClassId && sPNum === targetPeriodNumber) {
+          if (targetSubjectId) {
+            return getCleanId(s.subjectId) === targetSubjectId;
+          }
+          return true;
+        }
+        return false;
+      }) ||
+      filteredSlots.find((s) => {
+        return (
+          getCleanId(s.classId) === targetClassId &&
+          parseInt(s.periodNumber, 10) === targetPeriodNumber
+        );
+      });
+
+    const slotToUse = matchingSlot || {
+      classId: autoTarget.classId,
+      periodNumber: targetPeriodNumber,
+      subjectId: autoTarget.subjectId,
+    };
+
+    handleWhatsAppClick(null, slotToUse);
+  }, [
+    attendanceQuery.isLoading,
+    attendanceStatus,
+    filteredSlots,
+    handleWhatsAppClick,
+    getCleanId,
+  ]);
 
   // ── Hifz & Doura logic ───────────────────────────────────────────────
   const activeYear = Cookies.get("active-year") || "";

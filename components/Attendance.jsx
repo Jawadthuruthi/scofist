@@ -203,14 +203,16 @@ const Attendance = ({ apiKey, teacherId }) => {
     1000,
     {
       classId,
-      batchId,
       subjectId,
       teacherId,
       trackAbsentees: true,
+      referenceDate: attendanceDate,
+      referencePeriod: periodNumber ? parseInt(periodNumber, 10) : undefined,
     },
     {
-      staleTime: 1000 * 60 * 5, // 5 minutes - historical data is relatively stable
-      enabled: !!classId && !!batchId && !!subjectId && !!teacherId,
+      staleTime: 1000 * 10, // 10 seconds - keep fresh
+      refetchOnMount: "always",
+      enabled: !!classId && !!subjectId && !!teacherId,
     }
   );
 
@@ -389,16 +391,6 @@ const Attendance = ({ apiKey, teacherId }) => {
     attendanceQuery.isLoading,
     leaveRecordsQuery.isLoading,
   ]);
-  
-  // Auto-redirect after successful save
-  useEffect(() => {
-    if (showSuccessDialog) {
-      const timer = setTimeout(() => {
-        window.location.href = "/dashboard/my-periods";
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccessDialog]);
 
   // Memoize absentee data processing
   const absenteeData = useMemo(() => {
@@ -453,6 +445,65 @@ const Attendance = ({ apiKey, teacherId }) => {
     });
   }, [students, classDetails, subjectId, classId]);
 
+  // Get redirect URL and prepare auto-WhatsApp data if there are absent students
+  const getRedirectUrl = useCallback(() => {
+    const isReset = successMessage?.toLowerCase().includes("reset");
+    const hasAbsent = !isReset && filteredStudents.some((s) => !attendance[s._id]);
+
+    if (hasAbsent) {
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(
+            "autoWhatsAppSlot",
+            JSON.stringify({
+              classId,
+              periodNumber: parseInt(periodNumber, 10),
+              subjectId: subjectId || null,
+              date: attendanceDate,
+            })
+          );
+        } catch (e) {
+          console.error("Failed to set sessionStorage:", e);
+        }
+      }
+      return `/dashboard/my-periods?autoWhatsApp=1&classId=${encodeURIComponent(
+        classId
+      )}&periodNumber=${encodeURIComponent(periodNumber)}${
+        subjectId ? `&subjectId=${encodeURIComponent(subjectId)}` : ""
+      }${attendanceDate ? `&date=${encodeURIComponent(attendanceDate)}` : ""}`;
+    } else {
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("autoWhatsAppSlot");
+        } catch (e) {
+          // ignore
+        }
+      }
+      return `/dashboard/my-periods${
+        attendanceDate ? `?date=${encodeURIComponent(attendanceDate)}` : ""
+      }`;
+    }
+  }, [
+    successMessage,
+    filteredStudents,
+    attendance,
+    classId,
+    periodNumber,
+    subjectId,
+    attendanceDate,
+  ]);
+
+  // Auto-redirect after successful save (1 second popup duration)
+  useEffect(() => {
+    if (showSuccessDialog) {
+      const url = getRedirectUrl();
+      const timer = setTimeout(() => {
+        window.location.href = url;
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessDialog, getRedirectUrl]);
+
   // Toggle individual student attendance
   const toggleAttendance = useCallback((studentId) => {
     setPreviousAttendanceState(null);
@@ -488,7 +539,9 @@ const Attendance = ({ apiKey, teacherId }) => {
   // Memoize absentee info lookup
   const getStudentAbsenteeInfo = useCallback(
     (studentId) =>
-      absenteeData.find((student) => student.studentId === studentId),
+      absenteeData.find(
+        (student) => String(student.studentId) === String(studentId)
+      ),
     [absenteeData]
   );
 
@@ -551,12 +604,14 @@ const Attendance = ({ apiKey, teacherId }) => {
         setSuccessMessage("Attendance Updated Successfully!");
         setShowSuccessDialog(true);
         setPreviousAttendanceState(null);
+        historicalAttendanceQuery.refetch();
       } else {
         await createAttendance.mutateAsync(payload);
         setSuccessMessage("Attendance Saved Successfully!");
         setShowSuccessDialog(true);
         setAttendanceExists(true);
         setPreviousAttendanceState(null);
+        historicalAttendanceQuery.refetch();
       }
     } catch (error) {
       console.error("Error saving attendance:", error);
@@ -579,6 +634,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     existingAttendanceId,
     updateAttendance,
     createAttendance,
+    historicalAttendanceQuery,
   ]);
 
   // Handle delete attendance
@@ -1079,7 +1135,7 @@ const Attendance = ({ apiKey, teacherId }) => {
               data-html2canvas-ignore="true"
               onClick={() => {
                 setShowSuccessDialog(false);
-                window.location.href = "/dashboard/my-periods";
+                window.location.href = getRedirectUrl();
               }}
             >
               <X className="h-5 w-5" />
