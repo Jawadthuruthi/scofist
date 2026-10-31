@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import Syllabus from "@/models/Syllabus";
 import { apiResponse } from "@/lib/apiResponse";
 import cloudinary from "@/lib/cloudinary";
+import { isR2Url, deleteR2Object } from "@/lib/r2";
 
 export async function GET(req, res) {
   try {
@@ -102,7 +103,13 @@ export async function DELETE(req) {
     }
 
     const urlToDelete = fileUrl || syllabus.fileUrl;
-    if (urlToDelete && urlToDelete.includes("cloudinary.com")) {
+    if (urlToDelete && isR2Url(urlToDelete)) {
+      try {
+        await deleteR2Object(urlToDelete);
+      } catch (r2Error) {
+        console.error("Error deleting from Cloudflare R2:", r2Error);
+      }
+    } else if (urlToDelete && urlToDelete.includes("cloudinary.com")) {
       try {
         // Explicitly configure Cloudinary
         cloudinary.config({

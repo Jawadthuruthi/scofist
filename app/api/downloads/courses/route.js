@@ -5,11 +5,21 @@ import Download from "@/models/Download";
 import Syllabus from "@/models/Syllabus";
 import Book from "@/models/Book";
 import cloudinary from "@/lib/cloudinary";
+import { isR2Url, deleteR2Object } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
 
 async function deleteCloudinaryFile(fileUrl) {
-  if (!fileUrl || !fileUrl.includes("cloudinary.com")) return;
+  if (!fileUrl) return;
+  if (isR2Url(fileUrl)) {
+    try {
+      await deleteR2Object(fileUrl);
+    } catch (err) {
+      console.error("R2 deletion failed for item:", err);
+    }
+    return;
+  }
+  if (!fileUrl.includes("cloudinary.com")) return;
   try {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

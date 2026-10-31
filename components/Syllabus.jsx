@@ -53,6 +53,7 @@ import { useDropzone } from "react-dropzone";
 import { saveAs } from "file-saver";
 import { MultiSelect } from "@/components/ui/multi-select";
 import DocumentPreviewDialog from "./DocumentPreviewDialog";
+import { uploadFileToR2 } from "@/lib/r2Client";
 
 const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const [year, setYear] = useState(null);
@@ -280,28 +281,10 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
     }
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
 
     try {
-      // Upload via /api/upload
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          "api-key": apiKey,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || `Upload failed with status: ${response.status}`
-        );
-      }
-
-      const data = await response.json();
-      const fileUrl = data.secure_url;
+      // Direct client-side upload to Cloudflare R2 (bypasses Vercel 4.5MB payload limit)
+      const { fileUrl } = await uploadFileToR2(file, "syllabus");
 
       // Save syllabus metadata to database
       await addSyllabus.mutateAsync({
@@ -332,6 +315,18 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
     setDownloadingId(downloadId);
     try {
       let url = fileUrl;
+      const filename = `${course}_Year${year}_Syllabus.pdf`.replace(/\s+/g, "_");
+
+      // For R2 or direct CDN downloads, fetch directly (bypasses Vercel 4.5MB limit)
+      if (url.includes(".r2.cloudflarestorage.com") || url.includes(".r2.dev") || !url.includes("cloudinary.com")) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to download file from storage");
+        const blob = await response.blob();
+        saveAs(blob, filename);
+        toast.success("Download started!");
+        return;
+      }
+
       // Force PDF transformation only for Cloudinary images (avoiding raw files like .docx)
       if (url.includes("cloudinary.com") && url.includes("/image/upload/") && !url.toLowerCase().endsWith(".pdf")) {
         const parts = url.split("/upload/");
@@ -339,8 +334,6 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
           url = `${parts[0]}/upload/f_pdf/${parts[1].replace(/\.[^/.]+$/, ".pdf")}`;
         }
       }
-
-      const filename = `${course}_Year${year}_Syllabus.pdf`.replace(/\s+/g, "_");
 
       const proxyUrl = `/api/download-file?url=${encodeURIComponent(
         url

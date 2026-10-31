@@ -46,6 +46,7 @@ import { useDropzone } from "react-dropzone";
 import { saveAs } from "file-saver";
 import { MultiSelect } from "@/components/ui/multi-select";
 import DocumentPreviewDialog from "./DocumentPreviewDialog";
+import { uploadFileToR2 } from "@/lib/r2Client";
 
 const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   const [name, setName] = useState("");
@@ -270,27 +271,9 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
     }
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          "api-key": apiKey,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || `Upload failed with status: ${response.status}`
-        );
-      }
-
-      const data = await response.json();
-      const fileUrl = data.secure_url;
+      // Direct client-side upload to Cloudflare R2 (bypasses Vercel 4.5MB payload limit)
+      const { fileUrl } = await uploadFileToR2(file, "books");
 
       await addBook.mutateAsync({
         name,
@@ -318,6 +301,18 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
     setDownloadingId(downloadId);
     try {
       let url = book.fileUrl;
+      const filename = `${book.name}.pdf`.replace(/\s+/g, "_");
+
+      // For R2 or direct CDN downloads, fetch directly (bypasses Vercel 4.5MB limit)
+      if (url.includes(".r2.cloudflarestorage.com") || url.includes(".r2.dev") || !url.includes("cloudinary.com")) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to download file from storage");
+        const blob = await response.blob();
+        saveAs(blob, filename);
+        toast.success("Download started!");
+        return;
+      }
+
       // Force PDF transformation only for Cloudinary images (avoiding raw files like .docx)
       if (url.includes("cloudinary.com") && url.includes("/image/upload/") && !url.toLowerCase().endsWith(".pdf")) {
         const parts = url.split("/upload/");
@@ -326,7 +321,6 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
         }
       }
 
-      const filename = `${book.name}.pdf`.replace(/\s+/g, "_");
       const proxyUrl = `/api/download-file?url=${encodeURIComponent(
         url
       )}&filename=${encodeURIComponent(filename)}`;

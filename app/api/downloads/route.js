@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import Download from "@/models/Download";
 import { apiResponse } from "@/lib/apiResponse";
 import cloudinary from "@/lib/cloudinary";
+import { isR2Url, deleteR2Object } from "@/lib/r2";
 
 export async function GET(req, res) {
   try {
@@ -116,9 +117,15 @@ export async function DELETE(req) {
       );
     }
 
-    // Extract public_id from Cloudinary URL
+    // Extract public_id from Cloudinary URL or key from R2 URL
     const urlToDelete = fileUrl || download.fileUrl;
-    if (urlToDelete && urlToDelete.includes("cloudinary.com")) {
+    if (urlToDelete && isR2Url(urlToDelete)) {
+      try {
+        await deleteR2Object(urlToDelete);
+      } catch (r2Error) {
+        console.error("Error deleting from Cloudflare R2:", r2Error);
+      }
+    } else if (urlToDelete && urlToDelete.includes("cloudinary.com")) {
       try {
         // Explicitly configure Cloudinary
         cloudinary.config({
