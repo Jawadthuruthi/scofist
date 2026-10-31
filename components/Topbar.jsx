@@ -5,6 +5,13 @@ import { Menu, Moon, Sun, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "./ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import TeacherProfileEditModal from "./TeacherProfileEditModal";
 import ProfileEditModal from "./ProfileEditModal";
 import {
@@ -16,6 +23,7 @@ import {
 } from "./ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useTheme } from "next-themes";
+import PushNotificationToggle from "./PushNotificationToggle";
 import { usePathname } from "next/navigation";
 import Cookies from "js-cookie";
 
@@ -127,6 +135,36 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
   const isJudgePortal = pathname?.startsWith("/judge-portal");
   const effectiveRole =
     activeRole || (typeof window !== "undefined" ? Cookies.get("active-role") : null);
+
+  const rawRoles = user?.roles || [];
+  const baseRoles =
+    effectiveRole && !rawRoles.includes(effectiveRole)
+      ? [...rawRoles, effectiveRole]
+      : rawRoles;
+  const filteredRoles = baseRoles.filter(
+    (r) => r !== "Stationary" && r !== "IT Lab"
+  );
+
+  const handleRoleChange = (currentValue) => {
+    if (!currentValue || currentValue === effectiveRole) return;
+    try {
+      Cookies.set("active-role", currentValue, {
+        path: "/",
+      });
+      console.log("Cookie set successfully");
+    } catch (error) {
+      console.error("Error setting cookie:", error);
+    }
+    if (currentValue === "Librarian") {
+      window.location.href = "/library-dashboard";
+    } else if (currentValue === "Gate Keeper") {
+      window.location.href = "/dashboard/gate-pass";
+    } else if (currentValue === "Judge") {
+      window.location.href = "/judge-portal";
+    } else {
+      window.location.href = "/dashboard";
+    }
+  };
   const isStudent = effectiveRole === "Student" || (user?.roles?.includes("Student") && effectiveRole !== "Teacher");
   const isTeacher = !isStudent && (effectiveRole === "Teacher" || user?.roles?.includes("Teacher"));
   const canEditProfile = isTeacher || isStudent;
@@ -183,10 +221,13 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
       )}
 
       {/* User Profile / Actions */}
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
+        <PushNotificationToggle iconOnly={true} className="shrink-0" />
+
         <Button
           variant="ghost"
           size="icon"
+          className="shrink-0"
           onClick={() =>
             mounted && setTheme(theme === "dark" ? "light" : "dark")
           }
@@ -207,7 +248,18 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
               </Avatar>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-72 p-0 rounded-xl mr-4 mt-4 overflow-hidden">
+          <PopoverContent
+            className="w-72 p-0 rounded-xl mr-4 mt-4 overflow-hidden"
+            onPointerDownOutside={(e) => {
+              if (
+                e.target?.closest?.("[data-radix-select-viewport]") ||
+                e.target?.closest?.("[role='listbox']") ||
+                e.target?.closest?.("[data-radix-popper-content-wrapper]")
+              ) {
+                e.preventDefault();
+              }
+            }}
+          >
             <Card className="border-none shadow-none">
               <CardHeader className="flex flex-row items-center justify-center gap-3 pb-6 border-b bg-muted/30 space-y-0">
                 {institution?.logo?.url && (
@@ -246,6 +298,25 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
                 </div>
               </CardHeader>
               <CardFooter className="flex-col gap-2">
+                {filteredRoles.length > 0 && (
+                  <div className="w-full">
+                    <Select
+                      value={effectiveRole || filteredRoles[0]}
+                      onValueChange={handleRoleChange}
+                    >
+                      <SelectTrigger className="w-full pl-7 pr-3 [&>span]:flex-1 [&>span]:text-center">
+                        <SelectValue placeholder="Select role..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-[99999]">
+                        {filteredRoles.map((r) => (
+                          <SelectItem key={r} value={r} className="justify-center text-center">
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {canEditProfile && (
                   <Button
                     variant="outline"

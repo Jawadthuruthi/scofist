@@ -41,7 +41,7 @@ const columnsConfig = [
     maxWidth: 50,
     minWidth: 50,
   },
-  { accessorKey: "periodNumber", header: "Period No." },
+  { accessorKey: "periodNumber", header: "Period" },
   { accessorKey: "startTime", header: "Start Time", type: ["time"] },
   { accessorKey: "endTime", header: "End Time", type: ["time"] },
 ];
@@ -49,9 +49,9 @@ const columnsConfig = [
 const formFields = [
   {
     name: "periodNumber",
-    label: "Period No.",
+    label: "Period",
     type: "number",
-    placeholder: "Period No.",
+    placeholder: "Period",
     required: true,
   },
   {
@@ -91,7 +91,7 @@ const formFields = [
 ];
 
 const filterConfig = [
-  { id: "periodNumber", label: "Period No." },
+  { id: "periodNumber", label: "Period" },
   { id: "startTime", label: "Start Time" },
   { id: "endTime", label: "End Time" },
 ];

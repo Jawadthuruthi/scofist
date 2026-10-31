@@ -1,16 +1,11 @@
 import ErrorPage from "@/components/ErrorPage";
 import Dashboard from "@/components/Dashboard";
 import StudentDashboard from "@/components/StudentDashboard";
-import { fetchData, WEEKDAYS } from "@/lib/utils";
+import { fetchData, WEEKDAYS, getISTDateString } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 import FestDashboard from "@/components/FestDashboard";
 import SparkDashboardClient from "./spark/SparkDashboardClient";
 import { getSparkStats } from "@/libservices/spark-services";
-
-const today = new Date();
-const istTime = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
-
-const currentDay = WEEKDAYS[istTime.getDay()];
 
 const getApiEndpoints = (dateStr) => [
   {
@@ -60,7 +55,8 @@ export default async function DashboardPage({ searchParams }) {
   try {
     const query = await searchParams;
     const dateParam = query?.date;
-    const dateStr = dateParam || istTime.toISOString().split("T")[0];
+    const todayIST = getISTDateString();
+    const dateStr = dateParam || todayIST;
     
     const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value;

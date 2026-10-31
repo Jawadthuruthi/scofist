@@ -1321,6 +1321,10 @@ const DataTableComponent = ({
                   triggerClass="bg-red-600 hover:bg-red-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
                 />
               )}
+              {additionalProps?.customActions && (
+                <div className="shrink-0">{additionalProps.customActions}</div>
+              )}
+              
               {!readOnly && enableCreate && (
                 <PopupForm
                   formFields={formFields}
@@ -1333,10 +1337,6 @@ const DataTableComponent = ({
                   className={formClassName}
                   capitalizeInputs={capitalizeInputs}
                 />
-              )}
-              
-              {additionalProps?.customActions && (
-                <div className="shrink-0">{additionalProps.customActions}</div>
               )}
               
               {customTopRightButtons}

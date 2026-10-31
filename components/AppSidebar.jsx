@@ -80,7 +80,6 @@ import { cn } from "@/lib/utils";
 import Cookies from "js-cookie";
 import { usePathname } from "next/navigation";
 import YearSwitcher from "./YearSwitcher";
-import PushNotificationToggle from "./PushNotificationToggle";
 
 // Menu items.
 const items = [
@@ -154,7 +153,7 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
-    title: "Students Contacts",
+    title: "Contacts",
     url: "/dashboard/students-contacts",
     icon: BookUser,
     allowedRoles: ["College Admin"],
@@ -184,7 +183,7 @@ const items = [
     allowedRoles: ["Student"],
   },
   {
-    title: "Students Contacts",
+    title: "Contacts",
     url: "/dashboard/students-contacts",
     icon: BookUser,
     allowedRoles: ["Teacher"],
@@ -791,6 +790,15 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
   const { setOpen, setOpenMobile } = useSidebar();
   const [role, setRole] = useState(activeRole || filteredRoles[0] || "");
   const pathname = usePathname();
+  const appLogoUrl =
+    settingsData?.general?.appIcon?.url ||
+    settingsData?.institution?.logo?.url ||
+    "/favicon.svg";
+  const [logoSrc, setLogoSrc] = useState(appLogoUrl);
+
+  useEffect(() => {
+    if (appLogoUrl) setLogoSrc(appLogoUrl);
+  }, [appLogoUrl]);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [pendingTeacherRequestsCount, setPendingTeacherRequestsCount] = useState(0);
   const [pendingStudentRequestsCount, setPendingStudentRequestsCount] = useState(0);
@@ -943,7 +951,22 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
     <Sidebar ref={sidebarRef} className="no-print">
       <SidebarHeader className="p-0 gap-0 shrink-0">
         <div className="flex justify-between items-center h-14 min-h-14 px-4 sm:px-6 border-b shrink-0 bg-background">
-          <h2 className="text-lg font-semibold">SCOFIST</h2>
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2.5 min-w-0 hover:opacity-85 transition-opacity"
+          >
+            <img
+              src={logoSrc || "/favicon.svg"}
+              alt="SCOFIST Logo"
+              className="h-7 w-7 rounded-full object-contain shrink-0"
+              onError={() => {
+                if (logoSrc !== "/favicon.svg") {
+                  setLogoSrc("/favicon.svg");
+                }
+              }}
+            />
+            <h2 className="text-lg font-semibold tracking-wide">SCOFIST</h2>
+          </Link>
           <Button
             variant="ghost"
             size="icon"
@@ -956,10 +979,7 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
           </Button>
         </div>
       </SidebarHeader>
-      <SidebarContent>
-        <div className="mx-4 pt-2">
-          <ComboBox roles={filteredRoles} role={role} />
-        </div>
+      <SidebarContent className="pt-2">
         {(role === "Program Committee" || role === "Program Leader" || role === "Judge") && (
           <YearSwitcher initialData={settingsData} activeRole={role} initialActiveYear={initialActiveYear} />
         )}
@@ -1024,9 +1044,6 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <div className="p-4 mt-auto border-t">
-        <PushNotificationToggle />
-      </div>
     </Sidebar>
   );
 }

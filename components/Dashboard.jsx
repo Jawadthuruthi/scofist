@@ -26,6 +26,7 @@ import {
   GraduationCap,
   BarChart3,
   Calendar,
+  CalendarDays,
   AlertCircle,
   BarChart,
   Loader,
@@ -80,8 +81,14 @@ import CollegeAdminAISearch from "@/components/CollegeAdminAISearch";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";
-import { formatDateForDisplay, sortClasses, getISTDate, copyToClipboard } from "@/lib/utils";
+import { formatDateForDisplay, sortClasses, getISTDate, getISTDateString, copyToClipboard } from "@/lib/utils";
 import StudentProfileDialog from "@/components/StudentProfileDialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -2648,9 +2655,42 @@ export default function Dashboard({
 
 
   
-  const currentDateObj = useMemo(() => dateParam ? new Date(dateParam) : getISTDate(), [dateParam]);
-  const currentDateStr = useMemo(() => formatDateForDisplay(currentDateObj), [currentDateObj]);
-  const dateYYYYMMDD = useMemo(() => currentDateObj.toISOString().split("T")[0], [currentDateObj]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [todayISTStr, setTodayISTStr] = useState(() => getISTDateString());
+
+  // Periodically check if IST date rolled over (e.g. at 12:00 AM IST)
+  useEffect(() => {
+    const checkDateRoll = () => {
+      const nowISTStr = getISTDateString();
+      setTodayISTStr((prev) => {
+        if (prev !== nowISTStr) {
+          // If viewing today's schedule, refresh server data for the new day
+          if (!dateParam) {
+            router.refresh();
+          }
+          return nowISTStr;
+        }
+        return prev;
+      });
+    };
+
+    const interval = setInterval(checkDateRoll, 30000);
+    return () => clearInterval(interval);
+  }, [dateParam, router]);
+
+  const dateYYYYMMDD = useMemo(() => {
+    return dateParam || todayISTStr;
+  }, [dateParam, todayISTStr]);
+
+  const currentDateObj = useMemo(() => {
+    if (dateYYYYMMDD) {
+      const [y, m, d] = dateYYYYMMDD.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return getISTDate();
+  }, [dateYYYYMMDD]);
+
+  const currentDateStr = useMemo(() => formatDateForDisplay(dateYYYYMMDD), [dateYYYYMMDD]);
 
   const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
   const { useFetchItems: useFetchTeachersLeaveRecord } = useCrud("teachers-leave-record", apiKey);
@@ -3029,41 +3069,104 @@ export default function Dashboard({
                     })()}
                   </CardTitle>
                   <CardDescription>
-                    View scheduled classes for Today
+                    {dateYYYYMMDD === todayISTStr
+                      ? "View scheduled classes for Today"
+                      : `View scheduled classes for ${currentDateStr}`}
                   </CardDescription>
                 </div>
                 
                 {/* Navigation buttons for College Admin */}
                 {activeRole === "College Admin" && (
-                  <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0 self-start md:self-auto">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-none hover:bg-muted"
-                      onClick={() => {
-                        const prevDate = new Date(currentDateObj);
-                        prevDate.setDate(prevDate.getDate() - 1);
-                        router.push(`/dashboard?date=${prevDate.toISOString().split("T")[0]}`);
-                      }}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <div className="py-1.5 px-3 md:px-6 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
-                      {currentDateStr}
+                  <div className="flex items-center gap-1.5 shrink-0 self-start md:self-auto">
+                    <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-none hover:bg-muted h-9 w-9"
+                        title="Previous Day"
+                        onClick={() => {
+                          const [y, m, d] = dateYYYYMMDD.split("-").map(Number);
+                          const prevDate = new Date(y, m - 1, d);
+                          prevDate.setDate(prevDate.getDate() - 1);
+                          const prevStr = getISTDateString(prevDate);
+                          router.push(`/dashboard?date=${prevStr}`);
+                        }}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="py-1.5 px-3 md:px-5 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
+                        {currentDateStr}
+                      </div>
+                      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-none hover:bg-muted border-l border-border h-9 w-9 text-muted-foreground hover:text-foreground"
+                            title="Select date from calendar"
+                          >
+                            <CalendarDays className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="center">
+                          <CalendarPicker
+                            mode="single"
+                            selected={currentDateObj}
+                            onSelect={(newDate) => {
+                              if (newDate) {
+                                const selectedStr = getISTDateString(newDate);
+                                if (selectedStr <= todayISTStr) {
+                                  setCalendarOpen(false);
+                                  if (selectedStr === todayISTStr) {
+                                    router.push("/dashboard");
+                                  } else {
+                                    router.push(`/dashboard?date=${selectedStr}`);
+                                  }
+                                }
+                              }
+                            }}
+                            disabled={(d) => {
+                              const dStr = getISTDateString(d);
+                              return dStr > todayISTStr;
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-none hover:bg-muted border-l border-border h-9 w-9"
+                        disabled={dateYYYYMMDD >= todayISTStr}
+                        title={dateYYYYMMDD >= todayISTStr ? "Cannot navigate to future dates" : "Next Day"}
+                        onClick={() => {
+                          const [y, m, d] = dateYYYYMMDD.split("-").map(Number);
+                          const nextDate = new Date(y, m - 1, d);
+                          nextDate.setDate(nextDate.getDate() + 1);
+                          const nextStr = getISTDateString(nextDate);
+                          if (nextStr <= todayISTStr) {
+                            if (nextStr === todayISTStr) {
+                              router.push("/dashboard");
+                            } else {
+                              router.push(`/dashboard?date=${nextStr}`);
+                            }
+                          }
+                        }}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-none hover:bg-muted"
-                      disabled={dateYYYYMMDD === getISTDate().toISOString().split("T")[0]}
-                      onClick={() => {
-                        const nextDate = new Date(currentDateObj);
-                        nextDate.setDate(nextDate.getDate() + 1);
-                        router.push(`/dashboard?date=${nextDate.toISOString().split("T")[0]}`);
-                      }}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+
+                    {dateYYYYMMDD !== todayISTStr && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 text-xs font-medium"
+                        onClick={() => router.push("/dashboard")}
+                      >
+                        Today
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardHeader>

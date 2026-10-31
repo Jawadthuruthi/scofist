@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import useCrud from "@/hooks/use-crud";
 import { useReactToPrint } from "react-to-print";
-import { DAYS, formatDateForDisplay, getISTDate } from "@/lib/utils";
+import { DAYS, formatDateForDisplay, getISTDate, getISTDateString } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
@@ -145,8 +145,9 @@ const AbsenteesDialog = ({
     return null;
   };
 
-  const d = new Date(date || new Date());
-  const formattedDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}, ${day}`;
+  const dateStrForAbs = getISTDateString(date) || getISTDateString();
+  const [ay, am, ad] = dateStrForAbs.split('-').map(Number);
+  const formattedDateStr = `${String(ad).padStart(2, '0')}/${String(am).padStart(2, '0')}/${ay}, ${day}`;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -673,7 +674,14 @@ const TimeTableComponent = ({
   const timeTableRef = useRef(null);
   
   const isCollegeAdmin = role === "College Admin" && !teacherId;
-  const targetDateObj = useMemo(() => date ? new Date(date) : getISTDate(), [date]);
+  const todayDateStr = useMemo(() => getISTDateString(date) || getISTDateString(), [date]);
+  const targetDateObj = useMemo(() => {
+    if (todayDateStr) {
+      const [y, m, d] = todayDateStr.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return getISTDate();
+  }, [todayDateStr]);
   const currentDay = useMemo(() => daysOfWeek[targetDateObj.getDay()], [targetDateObj]);
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [currentDialogData, setCurrentDialogData] = useState({});
@@ -690,7 +698,6 @@ const TimeTableComponent = ({
   const [bulkLeaveSlots, setBulkLeaveSlots] = useState([]);
 
   const { useFetchItems: useFetchLeaveRecords } = useCrud("teachers-leave-record", apiKey);
-  const todayDateStr = useMemo(() => (date ? new Date(date) : getISTDate()).toISOString().split("T")[0], [date]);
   const liveLeaveQuery = useFetchLeaveRecords(
     0, 0,
     { date: todayDateStr },
@@ -920,9 +927,8 @@ const TimeTableComponent = ({
                     );
                     if (attended) return null;
                     const existingLeaveRecord = liveLeaveRecords.find(record => {
-                      const recordDate = new Date(record.date);
-                      const recordDay = recordDate.toLocaleDateString("en-US", { weekday: "long" });
-                      const recordDateStr = recordDate.toISOString().split('T')[0];
+                      const recordDay = record.day || (record.date ? new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", weekday: "long" }).format(new Date(record.date)) : "");
+                      const recordDateStr = getISTDateString(record.date);
                       return (
                         record.periodNumber === period.periodNumber &&
                         (record.teacherId?._id || record.teacherId) === (cellData?.teacherId?._id || cellData?.teacherId) &&
@@ -1088,9 +1094,8 @@ const TimeTableComponent = ({
                     );
                     if (attended) return null; // already marked — skip
                     const existingLeaveRecord = liveLeaveRecords.find(record => {
-                      const recordDate = new Date(record.date);
-                      const recordDay = recordDate.toLocaleDateString("en-US", { weekday: "long" });
-                      const recordDateStr = recordDate.toISOString().split('T')[0];
+                      const recordDay = record.day || (record.date ? new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", weekday: "long" }).format(new Date(record.date)) : "");
+                      const recordDateStr = getISTDateString(record.date);
                       return (
                         record.periodNumber === period.periodNumber &&
                         (record.teacherId?._id || record.teacherId) === (cellData?.teacherId?._id || cellData?.teacherId) &&
@@ -1153,12 +1158,8 @@ const TimeTableComponent = ({
                     const isAttendanceMarked = markedAttendance?.length > 0;
 
                     const leaveRecord = liveLeaveRecords.find((record) => {
-                      const recordDate = new Date(record.date);
-                      const recordDay = recordDate.toLocaleDateString(
-                        "en-US",
-                        { weekday: "long" }
-                      );
-                      const recordDateStr = recordDate.toISOString().split('T')[0];
+                      const recordDay = record.day || (record.date ? new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", weekday: "long" }).format(new Date(record.date)) : "");
+                      const recordDateStr = getISTDateString(record.date);
                       
                       return (
                         record.periodNumber === period.periodNumber &&
@@ -1195,7 +1196,7 @@ const TimeTableComponent = ({
                                 teacherId: cellData.teacherId?._id || cellData.teacherId,
                                 classId: classItem?._id,
                                 periodNumber: period.periodNumber,
-                                date: targetDateObj.toISOString(),
+                                date: todayDateStr,
                                 leaveReason: "",
                               });
                             }

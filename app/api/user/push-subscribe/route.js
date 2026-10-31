@@ -51,3 +51,41 @@ export async function POST(req) {
     );
   }
 }
+
+export async function DELETE(req) {
+  try {
+    await connectToDB();
+    const headerStore = await headers();
+    const user = parseUser(headerStore);
+
+    if (!user || !user._id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let endpoint = null;
+    try {
+      const body = await req.json();
+      endpoint = body?.endpoint;
+    } catch (e) {
+      // Body may be empty if deleting all subscriptions
+    }
+
+    if (endpoint) {
+      await User.findByIdAndUpdate(user._id, {
+        $pull: { pushSubscriptions: { endpoint } },
+      });
+    } else {
+      await User.findByIdAndUpdate(user._id, {
+        pushSubscriptions: [],
+      });
+    }
+
+    return NextResponse.json({ success: true, message: "Subscription removed" });
+  } catch (error) {
+    console.error("Error removing push subscription:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
