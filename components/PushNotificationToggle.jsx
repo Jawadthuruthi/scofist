@@ -38,7 +38,22 @@ export default function PushNotificationToggle({ iconOnly = false, className }) 
       }
     };
 
+    const handleError = (event) => {
+      if (
+        event &&
+        (event instanceof Event ||
+          event.error instanceof Event ||
+          (event.error && typeof event.error === "object" && (event.error.type || event.error.isTrusted)) ||
+          !event.message ||
+          event.message === "Script error." ||
+          !(event.error instanceof Error))
+      ) {
+        event.preventDefault?.();
+      }
+    };
+
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
+    window.addEventListener("error", handleError);
 
     // 1. Check saved preference from localStorage (default is enabled unless explicitly "false")
     try {
@@ -59,6 +74,7 @@ export default function PushNotificationToggle({ iconOnly = false, className }) 
 
     return () => {
       window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+      window.removeEventListener("error", handleError);
     };
   }, []);
 

@@ -3012,54 +3012,59 @@ export default function Dashboard({
   }, [teachers]);
 
   const activeScheduleName = useMemo(() => {
-    let activeScheduleId = settings?.general?.activeSchedule;
-    if (!activeScheduleId) {
-      activeScheduleId = settings?.general?.isSpecialDay ? "thursday" : "normal";
-    }
-
-    const autoThursday = Boolean(settings?.general?.autoThursdaySchedule);
-    let isThursdayActive = false;
-    if (autoThursday && dateYYYYMMDD) {
-      const [y, m, d] = dateYYYYMMDD.split("-").map(Number);
-      const dayOfWeek = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-      if (dayOfWeek === 4) {
-        isThursdayActive = true;
+    try {
+      let activeScheduleId = settings?.general?.activeSchedule;
+      if (!activeScheduleId) {
+        activeScheduleId = settings?.general?.isSpecialDay ? "thursday" : "normal";
       }
-    } else if (autoThursday && currentDateObj) {
-      if (currentDateObj.getDay() === 4) {
-        isThursdayActive = true;
+
+      const autoThursday = Boolean(settings?.general?.autoThursdaySchedule);
+      let isThursdayActive = false;
+      if (autoThursday && typeof dateYYYYMMDD === "string" && dateYYYYMMDD.includes("-")) {
+        const [y, m, d] = dateYYYYMMDD.split("-").map(Number);
+        const dayOfWeek = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+        if (dayOfWeek === 4) {
+          isThursdayActive = true;
+        }
+      } else if (autoThursday && currentDateObj instanceof Date && !isNaN(currentDateObj.getTime())) {
+        if (currentDateObj.getDay() === 4) {
+          isThursdayActive = true;
+        }
       }
-    }
 
-    if (isThursdayActive) {
-      activeScheduleId = "thursday";
-    }
-
-    if (activeScheduleId === "normal" && !isThursdayActive && periods?.length > 0) {
-      const periodSched = periods[0]?.schedule;
-      if (periodSched && periodSched !== "normal") {
-        activeScheduleId = periodSched;
+      if (isThursdayActive) {
+        activeScheduleId = "thursday";
       }
-    }
 
-    // Only show if other than normal schedule
-    if (!activeScheduleId || activeScheduleId === "normal") {
+      if (activeScheduleId === "normal" && !isThursdayActive && Array.isArray(periods) && periods.length > 0) {
+        const periodSched = periods[0]?.schedule;
+        if (periodSched && periodSched !== "normal") {
+          activeScheduleId = periodSched;
+        }
+      }
+
+      // Only show if other than normal schedule
+      if (!activeScheduleId || activeScheduleId === "normal") {
+        return null;
+      }
+
+      if (activeScheduleId === "thursday") {
+        return "Thursday Schedule";
+      }
+
+      const scheds = settings?.general?.schedules || [];
+      const found = scheds.find((s) => s.id === activeScheduleId);
+      const name = (typeof found?.name === "string" && found.name.trim()) || (settings?.general?.isSpecialDay ? "Special Day Schedule" : "");
+
+      if (!name || name === "Normal Schedule") {
+        return null;
+      }
+
+      return name;
+    } catch (e) {
+      console.warn("Error calculating activeScheduleName:", e);
       return null;
     }
-
-    if (activeScheduleId === "thursday") {
-      return "Thursday Schedule";
-    }
-
-    const scheds = settings?.general?.schedules || [];
-    const found = scheds.find((s) => s.id === activeScheduleId);
-    const name = found?.name || (settings?.general?.isSpecialDay ? "Special Day Schedule" : "");
-
-    if (!name || name === "Normal Schedule") {
-      return null;
-    }
-
-    return name;
   }, [settings, dateYYYYMMDD, currentDateObj, periods]);
 
   return (
