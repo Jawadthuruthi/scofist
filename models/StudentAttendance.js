@@ -5,6 +5,7 @@ import Class from "./Class";
 import Subject from "./Subject";
 import Batch from "./Batch";
 import { sortClasses } from "../lib/utils";
+import { isStudentActiveInPeriod } from "../lib/studentUtils";
 
 const studentAttendanceSchema = new Schema(
   {
@@ -206,11 +207,41 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     };
   }
 
+  // Filter students who were active during the selected period (not active currently)
+  const studentIdsForActiveCheck = allStudents.map((s) => s.studentId);
+  const userDocs = await User.find(
+    { _id: { $in: studentIdsForActiveCheck } },
+    { _id: 1, studentSpecificField: 1 }
+  ).lean();
+  const allBatches = await Batch.find({}, "_id startYear endYear status").lean();
+  const batchMap = {};
+  allBatches.forEach((b) => { batchMap[b._id.toString()] = b; });
+  const userMap = {};
+  userDocs.forEach((u) => { userMap[u._id.toString()] = u; });
+
+  const activeStudents = allStudents.filter((student) => {
+    const userDoc = userMap[student.studentId];
+    return isStudentActiveInPeriod(userDoc, startDate, endDate, batchMap);
+  });
+
+  if (activeStudents.length === 0) {
+    return {
+      toppers: [],
+      matchConditions,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: 0,
+        totalPages: 0,
+      },
+    };
+  }
+
   // Group results by classId
   const resultsByClass = {};
 
   // Group students by classId and filter to get only the top performers in each class
-  allStudents.forEach((student) => {
+  activeStudents.forEach((student) => {
     const classId = student.classId;
 
     if (!resultsByClass[classId]) {

@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import { cn, sortClasses } from "@/lib/utils";
 import {
     Table,
     TableBody,
@@ -72,7 +72,7 @@ export default function StudentAttendanceLookup({ students = [], type = "student
     const filteredStudents = students.filter((s) => {
         const q = query.trim().toLowerCase();
         if (!q) return false;
-        
+
         const basicMatch = (
             s.name?.toLowerCase().includes(q) ||
             String(s._id)?.toLowerCase().includes(q)
@@ -104,10 +104,10 @@ export default function StudentAttendanceLookup({ students = [], type = "student
     const fetchRecords = useCallback(async (studentId, m, y) => {
         setLoading(true);
         try {
-            const endpoint = type === "student" 
+            const endpoint = type === "student"
                 ? `/api/student-attendance-lookup?studentId=${studentId}&month=${m}&year=${y}`
                 : `/api/teacher-attendance-lookup?teacherId=${studentId}&month=${m}&year=${y}`;
-            
+
             const res = await fetch(endpoint);
             const data = await res.json();
             setRecords(data.records || []);
@@ -179,6 +179,9 @@ export default function StudentAttendanceLookup({ students = [], type = "student
 
         if (tableData && tableData.length > 0) {
             tableData.forEach(student => {
+                if (student.status === "Dropped Out" || student.studentSpecificField?.status === "Dropped Out") {
+                    return;
+                }
                 const records = student.attendanceRecords || [];
                 const className = student.className || (records.length > 0 ? records[0].className : null);
                 const classId = student.classId || (records.length > 0 ? records[0].classId : null);
@@ -227,7 +230,7 @@ export default function StudentAttendanceLookup({ students = [], type = "student
                 };
             });
         } else {
-            finalToppers = Object.values(classMap).sort((a, b) => a.className?.localeCompare(b.className));
+            finalToppers = Object.values(classMap).sort((a, b) => sortClasses(a, b, (x) => x.className));
         }
 
         setToppersData(finalToppers);
@@ -337,7 +340,7 @@ export default function StudentAttendanceLookup({ students = [], type = "student
                                         (typeof window !== 'undefined' ? window.__TOPPERS_ONLY__ : false));
 
                                     const nextValue = !currentToppersOnly;
-                                    
+
                                     if (typeof setToppersOnly === 'function') {
                                         setToppersOnly(nextValue);
                                     } else if (typeof window !== 'undefined' && window.__SET_TOPPERS__) {
@@ -346,11 +349,11 @@ export default function StudentAttendanceLookup({ students = [], type = "student
                                 }}
                                 title="Green Listed Students (Toppers)"
                             >
-                                <Trophy 
+                                <Trophy
                                     className={cn(
-                                        "h-4 w-4 transition-colors", 
+                                        "h-4 w-4 transition-colors",
                                         toppersOnly ? "text-green-500" : "text-black"
-                                    )} 
+                                    )}
                                     fill={toppersOnly ? "currentColor" : "none"}
                                     strokeWidth={2.5}
                                 />

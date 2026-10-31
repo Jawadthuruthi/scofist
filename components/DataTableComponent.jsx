@@ -157,6 +157,7 @@ const DataTableComponent = ({
   activeRole = "",
   inlineFiltersOnDesktop = false,
 }) => {
+  const isApiFiltering = filterType === "api";
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
   const [columnFilters, setColumnFilters] = useState([]);
@@ -190,19 +191,32 @@ const DataTableComponent = ({
     setSuccessConfig({ title, message });
     setShowSuccess(true);
   }, []);
-  
+
   // State for cell detail drill-down
   const [detailView, setDetailView] = useState(null); // { student, col, title }
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailedRecords, setDetailedRecords] = useState([]);
 
+  const handleToggleToppers = useCallback((targetVal) => {
+    setToppersOnly((prev) => {
+      const newVal = typeof targetVal === "boolean" ? targetVal : !prev;
+      if (isApiFiltering) {
+        setIsFilterChanged(true);
+        setPage(0);
+        setHasNextPage(true);
+        setData([]);
+      }
+      return newVal;
+    });
+  }, [isApiFiltering]);
+
   // Sync state to window as a fallback for dynamic toolbar components
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.__SET_TOPPERS__ = setToppersOnly;
+      window.__SET_TOPPERS__ = handleToggleToppers;
       window.__TOPPERS_ONLY__ = toppersOnly;
     }
-  }, [setToppersOnly, toppersOnly]);
+  }, [handleToggleToppers, toppersOnly]);
 
   const searchInputRef = useRef(null);
 
@@ -298,9 +312,7 @@ const DataTableComponent = ({
     apiKey
   );
 
-  // Determine if we should use API filtering
-  const isApiFiltering = filterType === "api";
-
+  // Determine if we should use API filtering (defined at component top level)
   // Create a memoized combined filters object for API calls
   const combinedApiFilters = useMemo(() => {
     if (!isApiFiltering) return activeApiFilters;
@@ -334,7 +346,7 @@ const DataTableComponent = ({
       ...(globalFilter ? (resource === "studentAttendances" ? { name: globalFilter } : { global: globalFilter }) : {}),
       ...(toppersOnly ? { toppersOnly: true } : {}),
     };
-  }, [isApiFiltering, activeApiFilters, filters, globalFilter, hasFilters, enableMonthYearFilter, filterMonth, filterYear]);
+  }, [isApiFiltering, activeApiFilters, filters, globalFilter, hasFilters, enableMonthYearFilter, filterMonth, filterYear, toppersOnly]);
 
   // Create a hash of current filters to detect changes
   const currentFilterHash = useMemo(() => {
@@ -383,7 +395,7 @@ const DataTableComponent = ({
       // FIXED: Better logic for when to reset vs append/update data
       const isRefetch = page === 0 && data.length > 0 && !isFilterChanged;
       const shouldResetData =
-        isFilterChanged || 
+        isFilterChanged ||
         (page === 0 && data.length === 0);
 
       if (shouldResetData) {
@@ -581,7 +593,7 @@ const DataTableComponent = ({
       filterConfig.forEach(config => {
         const filterState = filters[config.id];
         const filterVal = filterState?.value !== undefined ? filterState.value : filterState;
-        
+
         if (filterVal !== undefined && filterVal !== null && filterVal !== "") {
           if (config.inputType === "dateRange") return; // Date range is in subTitle
 
@@ -608,6 +620,7 @@ const DataTableComponent = ({
   const handlePrint = useReactToPrint({
     contentRef: tableRef,
     documentTitle: generatedPrintTitle,
+    suppressErrors: true,
   });
 
   const handleDownloadPDF = async () => {
@@ -745,8 +758,8 @@ const DataTableComponent = ({
     setDetailView({
       student: row,
       col: col,
-      title: col.header === "Absentees" 
-        ? `Absent Students for ${formatDateForDisplay(row.date)}` 
+      title: col.header === "Absentees"
+        ? `Absent Students for ${formatDateForDisplay(row.date)}`
         : `${headerText} for ${row.name || row.teamName || "Selected Item"}`,
       colHeader: headerText,
       viewType: col.viewType || (col.header === "Absentees" ? "studentList" : "recordList")
@@ -774,6 +787,7 @@ const DataTableComponent = ({
 
     // Helper to get group key
     const getGroupKey = (item) => {
+      if (item?.className) return item.className;
       if (!groupBy) return "single-group";
       if (typeof groupBy === "function") return groupBy(item);
 
@@ -784,15 +798,22 @@ const DataTableComponent = ({
         if (val === null || val === undefined) break;
         val = val[key];
       }
-      return val || "no-group";
+      return val || item?.className || "no-group";
     };
 
     // Calculate max value for each group
     const groupStats = {}; // { groupKey: { maxVal, ids } }
 
     tableData.forEach((item) => {
+      // Strictly exclude dropped out students from toppers
+      if (item.status === "Dropped Out" || item.studentSpecificField?.status === "Dropped Out") {
+        return;
+      }
+
       let val = -1;
-      if (type === "percentage") {
+      if (item.percentage !== undefined && item.percentage !== null) {
+        val = Number(item.percentage);
+      } else if (type === "percentage") {
         const records = item[totalKey] || [];
         const total = records.length;
         const present = records.filter(r => r[filterKey] === filterValue).length;
@@ -829,19 +850,24 @@ const DataTableComponent = ({
   const tableDataForTable = useMemo(() => {
     let baseData = isApiFiltering ? data : filteredData;
     if (toppersOnly && highlightedRowIds.size > 0) {
-      baseData = baseData.filter((item) => highlightedRowIds.has(item._id));
+      baseData = baseData.filter((item) =>
+        highlightedRowIds.has(item._id) &&
+        item.status !== "Dropped Out" &&
+        item.studentSpecificField?.status !== "Dropped Out"
+      );
 
       // Sort by class name if highlightHighest.groupBy is available
       if (highlightHighest?.groupBy) {
         baseData = [...baseData].sort((a, b) => {
           const getName = (item) => {
+            if (item?.className) return item.className;
             const keys = highlightHighest.groupBy.split(".");
             let val = item;
             for (const key of keys) {
               if (val === null || val === undefined) break;
               val = val[key];
             }
-            return val;
+            return val || item?.className || "";
           };
           const classCompare = sortClasses(a, b, getName);
           if (classCompare !== 0) return classCompare;
@@ -854,13 +880,14 @@ const DataTableComponent = ({
         // Sort by class then student ID ascending
         baseData = [...baseData].sort((a, b) => {
           const getName = (item) => {
+            if (item?.className) return item.className;
             const keys = highlightHighest.groupBy.split(".");
             let val = item;
             for (const key of keys) {
               if (val === null || val === undefined) break;
               val = val[key];
             }
-            return val;
+            return val || item?.className || "";
           };
           const classCompare = sortClasses(a, b, getName);
           if (classCompare !== 0) return classCompare;
@@ -901,11 +928,11 @@ const DataTableComponent = ({
           const dateA = a.date ? new Date(a.date).getTime() : 0;
           const dateB = b.date ? new Date(b.date).getTime() : 0;
           if (dateB !== dateA) return dateB - dateA;
-          
+
           const timeA = a.startTime || "";
           const timeB = b.startTime || "";
           if (timeB !== timeA) return timeB.localeCompare(timeA);
-          
+
           const stageA = a.stageNumber || 0;
           const stageB = b.stageNumber || 0;
           return stageA - stageB;
@@ -929,6 +956,7 @@ const DataTableComponent = ({
     const groups = {};
     tableDataForTable.forEach((row) => {
       const getName = (item) => {
+        if (item?.className) return item.className;
         if (!highlightHighest?.groupBy) return "Other";
         const keys = highlightHighest.groupBy.split(".");
         let val = item;
@@ -936,15 +964,21 @@ const DataTableComponent = ({
           if (val === null || val === undefined) break;
           val = val[key];
         }
-        return val || "Other";
+        return val || item?.className || "Other";
       };
 
       const className = getName(row);
+      // Strictly exclude dropped out students from toppers
+      if (row.status === "Dropped Out" || row.studentSpecificField?.status === "Dropped Out") {
+        return;
+      }
       if (!groups[className]) groups[className] = { students: [], percentage: 0 };
 
       // Calculate percentage the same way highlightHighest does
       let percentage = 0;
-      if (highlightHighest?.type === "percentage") {
+      if (row.percentage !== undefined && row.percentage !== null) {
+        percentage = Number(row.percentage);
+      } else if (highlightHighest?.type === "percentage") {
         const records = row[highlightHighest.totalKey] || [];
         const total = records.length;
         const present = records.filter(r => r[highlightHighest.filterKey] === highlightHighest.filterValue).length;
@@ -959,7 +993,7 @@ const DataTableComponent = ({
       .sort((a, b) => sortClasses(a[0], b[0], (x) => x))
       .map(([className, group]) => ({
         className,
-        students: group.students.sort((a, b) => 
+        students: group.students.sort((a, b) =>
           String(a.id).localeCompare(String(b.id), undefined, { numeric: true })
         ),
         percentage: group.percentage,
@@ -974,15 +1008,15 @@ const DataTableComponent = ({
       scheduleDate: (rowA, rowB) => {
         const a = rowA.original;
         const b = rowB.original;
-        
+
         const dateA = a.date ? new Date(a.date).getTime() : 0;
         const dateB = b.date ? new Date(b.date).getTime() : 0;
         if (dateA !== dateB) return dateA - dateB;
-        
+
         const timeA = a.startTime || "";
         const timeB = b.startTime || "";
         if (timeA !== timeB) return timeA.localeCompare(timeB);
-        
+
         const stageA = a.stageNumber || 0;
         const stageB = b.stageNumber || 0;
         return stageA - stageB;
@@ -1038,7 +1072,7 @@ const DataTableComponent = ({
       setData([]);
       await fetchItemsQuery.refetch();
       if (onSuccess) onSuccess();
-      
+
       // Close the create form immediately to prevent animation overlapping
       setIsCreateOpen(false);
       setTimeout(() => {
@@ -1068,19 +1102,19 @@ const DataTableComponent = ({
           ...getApiProps(additionalProps),
         },
       };
-      
+
       await updateData.mutateAsync(payload);
-      
+
       table.resetRowSelection();
 
       // FIXED: Force a deep refresh by clearing local state and refetching
       setIsFilterChanged(true);
       setPage(0);
       setData([]);
-      
+
       await fetchItemsQuery.refetch();
       if (onSuccess) onSuccess();
-      
+
       // Close the edit form immediately to prevent animation overlapping
       setIsEditOpen(false);
       setTimeout(() => {
@@ -1116,7 +1150,7 @@ const DataTableComponent = ({
       setData([]);
       await fetchItemsQuery.refetch();
       if (onSuccess) onSuccess();
-      
+
       // Delay success popup slightly so the delete confirmation dialog closes completely first
       setTimeout(() => {
         triggerSuccessPopup("Deleted!", deleteSuccessMessage);
@@ -1236,7 +1270,7 @@ const DataTableComponent = ({
           {/* Row 2: Icons (Columns, Filter, Trophy, Excel, Print) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar bg-card/50 p-1.5 rounded-lg">
             <ColumnCustomization table={table} columnsConfig={columnsConfig} />
-            
+
             <PopupFilter
               filterConfig={isDateRangeInPopupMobile ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
               filters={filters}
@@ -1263,28 +1297,21 @@ const DataTableComponent = ({
                 variant="outline"
                 size="icon"
                 className={cn(
-                  "h-9 w-9 shrink-0 transition-all duration-200", 
-                  toppersOnly 
-                    ? "bg-green-50 border-green-300 shadow-sm" 
+                  "h-9 w-9 shrink-0 transition-all duration-200",
+                  toppersOnly
+                    ? "bg-green-50 border-green-300 shadow-sm"
                     : "hover:bg-neutral-100"
                 )}
                 onClick={() => {
-                  const newVal = !toppersOnly;
-                  setToppersOnly(newVal);
-                  if (isApiFiltering) {
-                    setIsFilterChanged(true);
-                    setPage(0);
-                    setData([]);
-                    debouncedApiFilterUpdate();
-                  }
+                  handleToggleToppers();
                 }}
                 title="Green Listed Students (Toppers)"
               >
-                <Trophy 
+                <Trophy
                   className={cn(
-                    "h-4 w-4 transition-colors", 
+                    "h-4 w-4 transition-colors",
                     toppersOnly ? "text-green-500" : "text-black"
-                  )} 
+                  )}
                   fill={toppersOnly ? "currentColor" : "none"}
                   strokeWidth={2.5}
                 />
@@ -1324,7 +1351,7 @@ const DataTableComponent = ({
               {additionalProps?.customActions && (
                 <div className="shrink-0">{additionalProps.customActions}</div>
               )}
-              
+
               {!readOnly && enableCreate && (
                 <PopupForm
                   formFields={formFields}
@@ -1338,13 +1365,13 @@ const DataTableComponent = ({
                   capitalizeInputs={capitalizeInputs}
                 />
               )}
-              
+
               {customTopRightButtons}
-              
+
               <Button onClick={handleExportExcel} className="h-9 w-9 p-0 flex items-center justify-center bg-green-600 text-white hover:bg-green-700 border-0 shrink-0">
                 <FileSpreadsheet className="h-4 w-4" />
               </Button>
-              
+
               <Button onClick={handleDownloadPDF} className="h-9 w-9 p-0 flex items-center justify-center btn-print border-0 shrink-0">
                 <Printer className="h-4 w-4" />
               </Button>
@@ -1505,7 +1532,7 @@ const DataTableComponent = ({
                       filterYear,
                       apiKey,
                       toppersOnly,
-                      setToppersOnly,
+                      setToppersOnly: handleToggleToppers,
                       tableData: isApiFiltering ? data : filteredData,
                     })
                     : trailingToolbar}
@@ -1634,7 +1661,7 @@ const DataTableComponent = ({
                         ) {
                           // Don't trigger if clicking an interactive element
                           if (e.target.closest('input, button, a, [role="checkbox"]')) return;
-                          
+
                           // Select only this row and open edit form
                           table.setRowSelection({ [row.id]: true });
                           setIsEditOpen(true);
@@ -1759,7 +1786,7 @@ const DataTableComponent = ({
           <DialogHeader className={`flex flex-col gap-0 mx-0 px-4 sm:px-5 pt-4 pb-3 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${detailView?.colHeader === "Present" ? "bg-green-50 dark:bg-green-950/20" : detailView?.colHeader === "Absent" ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
             {/* Top row: icon + title/meta + print + close */}
             <div className="flex items-start gap-3">
-              <button 
+              <button
                 type="button"
                 className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer shrink-0 mt-0.5 ${detailView?.colHeader === "Present" ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : detailView?.colHeader === "Absent" ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
                 onClick={handleDownload}
@@ -2098,8 +2125,8 @@ const DataTableComponent = ({
                     {detailedRecords.map((rec, i) => {
                       const isAbsent = rec.present === false;
                       return (
-                        <TableRow 
-                          key={i} 
+                        <TableRow
+                          key={i}
                           className={cn(
                             "transition-colors",
                             isAbsent ? "bg-red-50/40 hover:bg-red-50/60 dark:bg-red-950/10 dark:hover:bg-red-950/20" : "hover:bg-muted/30"
@@ -2261,32 +2288,29 @@ const DataTableComponent = ({
         >
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
             <div
-              className={`p-2 rounded-lg ${
-                successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
+              className={`p-2 rounded-lg ${successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
                   ? "bg-amber-100 dark:bg-amber-900/30"
                   : "bg-emerald-100 dark:bg-emerald-900/30"
-              }`}
+                }`}
             >
-              <CheckCircle2 className={`h-5 w-5 ${
-                successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
+              <CheckCircle2 className={`h-5 w-5 ${successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
                   ? "text-amber-600 dark:text-amber-400"
                   : "text-emerald-600 dark:text-emerald-400"
-              }`} />
+                }`} />
             </div>
             <div className="flex-1 text-left space-y-0.5">
-              <DialogTitle className={`text-xl font-bold m-0 ${
-                successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
+              <DialogTitle className={`text-xl font-bold m-0 ${successConfig.message?.toLowerCase().includes("delet") || successConfig.message?.toLowerCase().includes("remov") || successConfig.message?.toLowerCase().includes("reset")
                   ? "text-amber-600 dark:text-amber-400"
                   : "text-emerald-600 dark:text-emerald-400"
-              }`}>
+                }`}>
                 {successConfig.title || "Success"}
               </DialogTitle>
               <DialogDescription className="m-0 text-xs text-muted-foreground whitespace-pre-wrap">
                 {successConfig.message}
               </DialogDescription>
             </div>
-            <DialogClose 
-              className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" 
+            <DialogClose
+              className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
             >
               <X className="h-5 w-5" />
             </DialogClose>

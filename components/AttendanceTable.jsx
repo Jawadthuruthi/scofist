@@ -63,7 +63,13 @@ export default function AttendanceTable({ classes }) {
         throw new Error("Failed to fetch data");
       }
       const data = await response.json();
-      setAttendanceData(data);
+      const rawTableData = data.tableData || [];
+      const rawColumns = data.columns || [];
+      const filteredColumns = rawColumns.filter((col, idx) => {
+        if (idx === 0) return true;
+        return rawTableData.some(row => row[col.accessor]?.status && row[col.accessor]?.status !== 'NO_PERIOD');
+      });
+      setAttendanceData({ tableData: rawTableData, columns: filteredColumns });
     } catch (error) {
       setError(error.message);
     } finally {

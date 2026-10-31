@@ -5,8 +5,10 @@ import User from "@/models/User";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import LeaveRecord from "@/models/LeaveRecord";
+import Batch from "@/models/Batch";
 import { NextResponse } from "next/server";
 import { sortClasses } from "@/lib/utils";
+import { isStudentActiveInPeriod } from "@/lib/studentUtils";
 
 export async function GET(req, res) {
   try {
@@ -41,81 +43,7 @@ export async function GET(req, res) {
       });
     }
 
-    // Build MongoDB query for the student document level
-    const documentQuery = {};
-    if (filterParams.studentId) {
-      documentQuery.studentId = filterParams.studentId;
-    } else if (nameFilter) {
-      // Search for students by name
-      const matchingStudents = await User.find({
-        name: { $regex: nameFilter, $options: "i" },
-        roles: "Student"
-      }, { _id: 1 }).lean();
-
-      if (matchingStudents.length > 0) {
-        documentQuery.studentId = { $in: matchingStudents.map(m => m._id.toString()) };
-      } else {
-        // If name search is active but no students found, force empty result
-        documentQuery.studentId = "NULL_USER_ID";
-      }
-    }
-
-    // Handle batch and class filters at the student document level
-    if (filterParams.classId || filterParams.batchId) {
-      const userQuery = { roles: "Student" };
-      
-      if (filterParams.classId) {
-        const classIds = filterParams.classId.split(',').map(s => s.trim());
-        userQuery.$or = [
-          { "studentSpecificField.classId": { $in: classIds } },
-          { "studentSpecificField.subjectTypeAssignments": { 
-              $in: classIds.flatMap(id => [`${id}:CORE`, `${id}:MAJOR`]) 
-            } 
-          }
-        ];
-        userQuery["studentSpecificField.status"] = "Active"; // filter by class only for active students
-      }
-      
-      if (filterParams.batchId) {
-        const batchIds = filterParams.batchId.split(',').map(s => s.trim());
-        userQuery["studentSpecificField.batchId"] = { $in: batchIds };
-        // No status filter here, so it includes all students of the batch
-      }
-      
-      const matchingUsers = await User.find(userQuery, { _id: 1 }).lean();
-      const matchedIds = matchingUsers.map(m => m._id.toString());
-      
-      if (matchedIds.length > 0) {
-        if (documentQuery.studentId) {
-          if (documentQuery.studentId.$in) {
-            documentQuery.studentId.$in = documentQuery.studentId.$in.filter(id => matchedIds.includes(id));
-            if (documentQuery.studentId.$in.length === 0) documentQuery.studentId = "NULL_USER_ID";
-          } else {
-             if (!matchedIds.includes(documentQuery.studentId)) {
-                documentQuery.studentId = "NULL_USER_ID";
-             }
-          }
-        } else {
-          documentQuery.studentId = { $in: matchedIds };
-        }
-      } else {
-        documentQuery.studentId = "NULL_USER_ID";
-      }
-    }
-
-    // Store record-level filters separately - these will be used later for filtering the records array
-    const recordFilters = {};
-    if (filterParams.classId) {
-      recordFilters.classId = filterParams.classId;
-    }
-    if (filterParams.batchId) {
-      recordFilters.batchId = filterParams.batchId;
-    }
-    if (filterParams.subjectId) {
-      recordFilters.subjectId = filterParams.subjectId;
-    }
-
-    // Handle date filtering
+    // Handle date filtering first to provide period context for student activity evaluation
     let dateFilter = null;
     if (filterParams.date) {
       // Convert string date to Date object for exact date match
@@ -145,6 +73,117 @@ export async function GET(req, res) {
       }
     }
 
+    const periodStart = dateFilter?.start || null;
+    const periodEnd = dateFilter?.end || null;
+
+    // Load batch map for verifying batch start/end timeline
+    const allBatches = await Batch.find({}, "_id startYear endYear status").lean();
+    const batchMap = {};
+    allBatches.forEach(b => {
+      batchMap[b._id.toString()] = b;
+    });
+
+    // Build MongoDB query for the student document level
+    const documentQuery = {};
+    if (filterParams.studentId) {
+      documentQuery.studentId = filterParams.studentId;
+    } else if (nameFilter) {
+      // Search for students by name
+      const matchingStudents = await User.find({
+        name: { $regex: nameFilter, $options: "i" },
+        roles: "Student"
+      }, { _id: 1 }).lean();
+
+      if (matchingStudents.length > 0) {
+        documentQuery.studentId = { $in: matchingStudents.map(m => m._id.toString()) };
+      } else {
+        // If name search is active but no students found, force empty result
+        documentQuery.studentId = "NULL_USER_ID";
+      }
+    }
+
+    // Handle batch and class filters at the student document level
+    if (filterParams.classId || filterParams.batchId) {
+      const userQuery = { roles: "Student" };
+
+      if (filterParams.classId) {
+        const classIds = filterParams.classId.split(',').map(s => s.trim());
+        userQuery.$or = [
+          { "studentSpecificField.classId": { $in: classIds } },
+          {
+            "studentSpecificField.subjectTypeAssignments": {
+              $in: classIds.flatMap(id => [`${id}:CORE`, `${id}:MAJOR`])
+            }
+          }
+        ];
+      }
+
+      if (filterParams.batchId) {
+        const batchIds = filterParams.batchId.split(',').map(s => s.trim());
+        userQuery["studentSpecificField.batchId"] = { $in: batchIds };
+      }
+
+      const matchingUsers = await User.find(userQuery, { _id: 1, studentSpecificField: 1 }).lean();
+      // Filter students who were active during the selected period (not just current status)
+      const activeMatchingUsers = matchingUsers.filter(u =>
+        isStudentActiveInPeriod(u, periodStart, periodEnd, batchMap)
+      );
+      const matchedIds = activeMatchingUsers.map(m => m._id.toString());
+
+      if (matchedIds.length > 0) {
+        if (documentQuery.studentId) {
+          if (documentQuery.studentId.$in) {
+            documentQuery.studentId.$in = documentQuery.studentId.$in.filter(id => matchedIds.includes(id));
+            if (documentQuery.studentId.$in.length === 0) documentQuery.studentId = "NULL_USER_ID";
+          } else {
+            if (!matchedIds.includes(documentQuery.studentId)) {
+              documentQuery.studentId = "NULL_USER_ID";
+            }
+          }
+        } else {
+          documentQuery.studentId = { $in: matchedIds };
+        }
+      } else {
+        documentQuery.studentId = "NULL_USER_ID";
+      }
+    } else if (dateFilter || isToppersOnly) {
+      // When dateFilter is present or toppersOnly is requested, filter by active students of the selected period (excluding dropped out students)
+      const allStudents = await User.find({ roles: "Student" }, { _id: 1, studentSpecificField: 1 }).lean();
+      const activeMatchingUsers = allStudents.filter(u =>
+        isStudentActiveInPeriod(u, periodStart, periodEnd, batchMap)
+      );
+      const matchedIds = activeMatchingUsers.map(m => m._id.toString());
+
+      if (matchedIds.length > 0) {
+        if (documentQuery.studentId) {
+          if (documentQuery.studentId.$in) {
+            documentQuery.studentId.$in = documentQuery.studentId.$in.filter(id => matchedIds.includes(id));
+            if (documentQuery.studentId.$in.length === 0) documentQuery.studentId = "NULL_USER_ID";
+          } else {
+            if (!matchedIds.includes(documentQuery.studentId)) {
+              documentQuery.studentId = "NULL_USER_ID";
+            }
+          }
+        } else {
+          documentQuery.studentId = { $in: matchedIds };
+        }
+      } else {
+        documentQuery.studentId = "NULL_USER_ID";
+      }
+    }
+
+    // Store record-level filters separately - these will be used later for filtering the records array
+    const recordFilters = {};
+    if (filterParams.classId) {
+      recordFilters.classId = filterParams.classId;
+    }
+    if (filterParams.batchId) {
+      recordFilters.batchId = filterParams.batchId;
+    }
+    if (filterParams.subjectId) {
+      recordFilters.subjectId = filterParams.subjectId;
+    }
+
     console.log("Filters:", { documentQuery, recordFilters, dateFilter });
 
     // Fetch all classes to determine core/major subjects for filtering
@@ -164,7 +203,7 @@ export async function GET(req, res) {
     if (dateFilter?.start || dateFilter?.end) {
       datePreMatch["attendanceRecords.date"] = {
         ...(dateFilter.start ? { $gte: dateFilter.start } : {}),
-        ...(dateFilter.end  ? { $lte: dateFilter.end  } : {}),
+        ...(dateFilter.end ? { $lte: dateFilter.end } : {}),
       };
     }
 
@@ -192,11 +231,11 @@ export async function GET(req, res) {
                   // Filter by batch if specified
                   ...(recordFilters.batchId
                     ? [{
-                        $or: [
-                          { $in: [{ $toString: "$$record.batchId" }, recordFilters.batchId.split(',').map(s => s.trim())] },
-                          { $eq: [{ $toString: "$$record.batchId" }, "[object Object]"] }
-                        ]
-                      }]
+                      $or: [
+                        { $in: [{ $toString: "$$record.batchId" }, recordFilters.batchId.split(',').map(s => s.trim())] },
+                        { $eq: [{ $toString: "$$record.batchId" }, "[object Object]"] }
+                      ]
+                    }]
                     : []),
 
                   // Filter by subject if specified
@@ -206,7 +245,7 @@ export async function GET(req, res) {
 
                   // Date filtering
                   ...(dateFilter?.start ? [{ $gte: ["$$record.date", dateFilter.start] }] : []),
-                  ...(dateFilter?.end   ? [{ $lte: ["$$record.date", dateFilter.end]   }] : []),
+                  ...(dateFilter?.end ? [{ $lte: ["$$record.date", dateFilter.end] }] : []),
                 ],
               },
             },
@@ -233,16 +272,16 @@ export async function GET(req, res) {
 
       const userIds = attendances.map(a => a.studentId);
 
-      // Fetch users with classId and admissionNumber for sorting
+      // Fetch users with classId, admissionNumber and status for sorting & status awareness
       const [users, allSubjectsList, allTeachersList] = await Promise.all([
-        User.find({ _id: { $in: userIds } }, "_id name studentSpecificField.classId studentSpecificField.admissionNumber").lean(),
+        User.find({ _id: { $in: userIds } }, "_id name studentSpecificField.classId studentSpecificField.admissionNumber studentSpecificField.status").lean(),
         Subject.find({}, "_id name").lean(),
         User.find({ roles: "Teacher" }, "_id name").lean(),
       ]);
 
-      const userMap        = new Map(users.map(u => [u._id.toString(), u]));
+      const userMap = new Map(users.map(u => [u._id.toString(), u]));
       // Build class name map from the allClasses already fetched at the top of this handler
-      const allClassesMap  = new Map(allClasses.map(c => [c._id.toString(), c.name]));
+      const allClassesMap = new Map(allClasses.map(c => [c._id.toString(), c.name]));
       const allSubjectsMap = new Map(allSubjectsList.map(s => [s._id.toString(), s.name]));
       const allTeachersMap = new Map(allTeachersList.map(t => [t._id.toString(), t.name]));
 
@@ -266,29 +305,34 @@ export async function GET(req, res) {
 
         const studentLeaves = leaveRecordsList.filter(lr => lr.studentId?.toString() === doc.studentId.toString());
         const uInfo = userMap.get(doc.studentId.toString());
+        const studentClassId = uInfo?.studentSpecificField?.classId?.toString();
+        const studentClassName = allClassesMap.get(studentClassId) || "Unknown";
 
         return {
           _id: doc.studentId,
           name: uInfo?.name || "Unknown Student",
+          status: uInfo?.studentSpecificField?.status || "",
+          classId: studentClassId,
+          className: studentClassName,
           attendanceRecords: records.map(r => {
-            const classIdStr   = r.classId?.toString();
+            const classIdStr = r.classId?.toString();
             const subjectIdStr = r.subjectId?.toString();
             const teacherIdStr = r.teacherId?.toString();
-            
+
             let finalLeaveReason = r.leaveReason;
             if (!finalLeaveReason && (r.present === false || r.present === null)) {
-               const rDate = new Date(r.date);
-               rDate.setUTCHours(0,0,0,0);
-               const matchedLeave = studentLeaves.find(lr => {
-                  const start = new Date(lr.dateOfLeave);
-                  start.setUTCHours(0,0,0,0);
-                  const end = new Date(lr.arrivedDate || lr.dateOfArrival);
-                  end.setUTCHours(23,59,59,999);
-                  return rDate >= start && rDate <= end;
-               });
-               if (matchedLeave) {
-                  finalLeaveReason = matchedLeave.leaveReason;
-               }
+              const rDate = new Date(r.date);
+              rDate.setUTCHours(0, 0, 0, 0);
+              const matchedLeave = studentLeaves.find(lr => {
+                const start = new Date(lr.dateOfLeave);
+                start.setUTCHours(0, 0, 0, 0);
+                const end = new Date(lr.arrivedDate || lr.dateOfArrival);
+                end.setUTCHours(23, 59, 59, 999);
+                return rDate >= start && rDate <= end;
+              });
+              if (matchedLeave) {
+                finalLeaveReason = matchedLeave.leaveReason;
+              }
             }
 
             return {
@@ -296,7 +340,7 @@ export async function GET(req, res) {
               present: r.present ?? false,
               periodNumber: r.periodNumber,
               classId: classIdStr,
-              className: allClassesMap.get(classIdStr) || "Unknown",
+              className: allClassesMap.get(classIdStr) || studentClassName || "Unknown",
               subjectId: subjectIdStr,
               subjectName: allSubjectsMap.get(subjectIdStr) || "Unknown",
               teacherId: teacherIdStr,
@@ -330,8 +374,8 @@ export async function GET(req, res) {
         return admA - admB;
       });
 
-      const paginatedStudentAttendances = limit === Infinity 
-        ? formattedStudentAttendances 
+      const paginatedStudentAttendances = limit === Infinity
+        ? formattedStudentAttendances
         : formattedStudentAttendances.slice(page * limit, (page + 1) * limit);
 
       return NextResponse.json({
@@ -349,6 +393,24 @@ export async function GET(req, res) {
     // If toppersOnly is true, calculate percentage and get the top student per class
     pipeline.push(
       { $unwind: "$attendanceRecords" },
+      // Lookup student to match their enrolled class (ensures only enrolled students compete for that class's topper)
+      {
+        $lookup: {
+          from: "users",
+          localField: "studentId",
+          foreignField: "_id",
+          as: "studentDoc"
+        }
+      },
+      { $unwind: "$studentDoc" },
+      // Toppers of a class must be students whose primary enrolled class is that class
+      {
+        $match: {
+          $expr: {
+            $eq: ["$attendanceRecords.classId", "$studentDoc.studentSpecificField.classId"]
+          }
+        }
+      },
       // Filter for CORE and MAJOR subjects in aggregation
       {
         $lookup: {
@@ -392,25 +454,45 @@ export async function GET(req, res) {
       {
         $addFields: {
           percentage: {
-            $multiply: [{ $divide: ["$presentClasses", "$totalClasses"] }, 100]
+            $round: [
+              { $multiply: [{ $divide: ["$presentClasses", "$totalClasses"] }, 100] },
+              1
+            ]
           }
         }
       },
-      { $sort: { "_id.classId": 1, percentage: -1 } },
+      // Group by class to find the max percentage and collect students to preserve ties
       {
         $group: {
           _id: "$_id.classId",
-          topStudentId: { $first: "$_id.studentId" },
-          percentage: { $first: "$percentage" },
-          attendanceRecords: { $first: "$records" }
+          maxPercentage: { $max: "$percentage" },
+          allStudents: {
+            $push: {
+              studentId: "$_id.studentId",
+              percentage: "$percentage",
+              records: "$records"
+            }
+          }
+        }
+      },
+      { $unwind: "$allStudents" },
+      {
+        $match: {
+          $expr: {
+            $and: [
+              { $eq: ["$allStudents.percentage", "$maxPercentage"] },
+              { $gt: ["$maxPercentage", 0] }
+            ]
+          }
         }
       },
       {
         $project: {
           _id: 0,
-          studentId: "$topStudentId",
-          attendanceRecords: 1,
-          percentage: { $round: ["$percentage", 1] }
+          classId: "$_id",
+          studentId: "$allStudents.studentId",
+          attendanceRecords: "$allStudents.records",
+          percentage: "$allStudents.percentage"
         }
       }
     );
@@ -427,21 +509,21 @@ export async function GET(req, res) {
         }
       },
       { $unwind: { path: "$studentInfo", preserveNullAndEmptyArrays: true } },
-      
-      // Unwind attendanceRecords to populate each one
-      { $unwind: { path: "$attendanceRecords", preserveNullAndEmptyArrays: true } },
-      
-      // Class Name for records
+
+      // Topper Class Info
       {
         $lookup: {
           from: "classes",
-          localField: "attendanceRecords.classId",
+          localField: "classId",
           foreignField: "_id",
-          as: "classInfo"
+          as: "topperClassInfo"
         }
       },
-      { $unwind: { path: "$classInfo", preserveNullAndEmptyArrays: true } },
-      
+      { $unwind: { path: "$topperClassInfo", preserveNullAndEmptyArrays: true } },
+
+      // Unwind attendanceRecords to populate each one
+      { $unwind: { path: "$attendanceRecords", preserveNullAndEmptyArrays: true } },
+
       // Subject Name for records
       {
         $lookup: {
@@ -464,19 +546,24 @@ export async function GET(req, res) {
       },
       { $unwind: { path: "$teacherInfo", preserveNullAndEmptyArrays: true } },
 
-      // Group back by student
+      // Group back by student AND class
       {
         $group: {
-          _id: "$studentId",
+          _id: {
+            studentId: "$studentId",
+            classId: "$classId"
+          },
           studentName: { $first: "$studentInfo.name" },
+          className: { $first: "$topperClassInfo.name" },
           percentage: { $first: "$percentage" }, // For toppers flow
+          studentStatus: { $first: "$studentInfo.studentSpecificField.status" },
           attendanceRecords: {
             $push: {
               date: "$attendanceRecords.date",
               present: "$attendanceRecords.present",
               periodNumber: "$attendanceRecords.periodNumber",
-              classId: "$attendanceRecords.classId",
-              className: "$classInfo.name",
+              classId: "$topperClassInfo._id",
+              className: "$topperClassInfo.name",
               subjectId: "$attendanceRecords.subjectId",
               subjectName: "$subjectInfo.name",
               teacherId: "$attendanceRecords.teacherId",
@@ -492,7 +579,7 @@ export async function GET(req, res) {
     const results = await StudentAttendance.aggregate(pipeline).exec();
 
     // Fetch LeaveRecords for these students to attach leave reasons
-    const studentIdsToFetchLeaves = results.map(r => r._id.toString());
+    const studentIdsToFetchLeaves = results.map(r => (r._id?.studentId || r._id).toString());
     let leaveRecordsList = [];
     if (studentIdsToFetchLeaves.length > 0) {
       leaveRecordsList = await LeaveRecord.find({
@@ -502,27 +589,32 @@ export async function GET(req, res) {
 
     // Format final results
     const formattedStudentAttendances = results.map((record) => {
-      const studentLeaves = leaveRecordsList.filter(lr => lr.studentId?.toString() === record._id.toString());
-      
+      const studentId = record._id?.studentId || record._id;
+      const classId = record._id?.classId || record.classId;
+      const studentLeaves = leaveRecordsList.filter(lr => lr.studentId?.toString() === studentId.toString());
+
       return {
-        _id: record._id,
+        _id: studentId,
         name: record.studentName || "Unknown Student",
+        classId: classId,
+        className: record.className || "Unknown Class",
         percentage: record.percentage,
-        attendanceRecords: record.attendanceRecords.map(item => {
+        status: record.studentStatus || "",
+        attendanceRecords: (record.attendanceRecords || []).map(item => {
           let finalLeaveReason = item.leaveReason;
           if (!finalLeaveReason && (item.present === false || item.present === null)) {
-             const rDate = new Date(item.date);
-             rDate.setUTCHours(0,0,0,0);
-             const matchedLeave = studentLeaves.find(lr => {
-                const start = new Date(lr.dateOfLeave);
-                start.setUTCHours(0,0,0,0);
-                const end = new Date(lr.arrivedDate || lr.dateOfArrival);
-                end.setUTCHours(23,59,59,999);
-                return rDate >= start && rDate <= end;
-             });
-             if (matchedLeave) {
-                finalLeaveReason = matchedLeave.leaveReason;
-             }
+            const rDate = new Date(item.date);
+            rDate.setUTCHours(0, 0, 0, 0);
+            const matchedLeave = studentLeaves.find(lr => {
+              const start = new Date(lr.dateOfLeave);
+              start.setUTCHours(0, 0, 0, 0);
+              const end = new Date(lr.arrivedDate || lr.dateOfArrival);
+              end.setUTCHours(23, 59, 59, 999);
+              return rDate >= start && rDate <= end;
+            });
+            if (matchedLeave) {
+              finalLeaveReason = matchedLeave.leaveReason;
+            }
           }
 
           return {
@@ -532,6 +624,13 @@ export async function GET(req, res) {
           };
         })
       };
+    });
+
+    // Sort toppers by Class Order and Student ID
+    formattedStudentAttendances.sort((a, b) => {
+      const classCmp = sortClasses({ name: a.className }, { name: b.className });
+      if (classCmp !== 0) return classCmp;
+      return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
     });
 
     // Get total count more efficiently (same documentQuery logic)

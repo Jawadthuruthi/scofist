@@ -61,7 +61,7 @@ export default function AttendanceTableReport({ classes }) {
             // Filter out subject columns where ALL rows have NO_PERIOD (no periods in this month)
             const filteredColumns = rawColumns.filter((col, idx) => {
                 if (idx === 0) return true; // always keep the date column
-                return rawTableData.some(row => row[col.accessor]?.status !== 'NO_PERIOD');
+                return rawTableData.some(row => row[col.accessor]?.status && row[col.accessor]?.status !== 'NO_PERIOD');
             });
 
             setTableData(rawTableData);
@@ -361,8 +361,8 @@ export default function AttendanceTableReport({ classes }) {
                                             </div>
                                         </TableCell>
                                         {row.isNonWorkingDay ? (
-                                            <TableCell 
-                                                colSpan={columns.length - 1} 
+                                            <TableCell
+                                                colSpan={columns.length - 1}
                                                 className="p-0 border h-10 bg-orange-50/50 print:bg-orange-50"
                                             >
                                                 <div className="flex items-center justify-center h-full w-full">
