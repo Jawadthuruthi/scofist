@@ -12,6 +12,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
+      {
+        protocol: "https",
+        hostname: "**.r2.dev",
+      },
+      {
+        protocol: "https",
+        hostname: "**.r2.cloudflarestorage.com",
+      },
     ],
   },
   experimental: {
@@ -22,6 +30,15 @@ const nextConfig = {
   },
   async headers() {
     const isDev = process.env.NODE_ENV === "development";
+    const r2PublicDomain = (process.env.R2_PUBLIC_DOMAIN || "").trim().replace(/\/+$/, "");
+    const r2Sources = [
+      "https://*.r2.cloudflarestorage.com",
+      "https://*.r2.dev",
+      r2PublicDomain,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     const securityHeaders = [
       {
         // Stops browsers from "sniffing" the MIME type, preventing
@@ -44,11 +61,11 @@ const nextConfig = {
           "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' https://fonts.gstatic.com data:",
-          "img-src 'self' data: blob: https://res.cloudinary.com",
+          `img-src 'self' data: blob: https://res.cloudinary.com ${r2Sources}`,
           isDev
-            ? "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com ws: wss: http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*"
-            : "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com",
-          "frame-src 'self' https://docs.google.com https://drive.google.com https://www.youtube.com https://www.youtube-nocookie.com https://res.cloudinary.com blob: data:",
+            ? `connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com ${r2Sources} ws: wss: http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*`
+            : `connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com ${r2Sources}`,
+          `frame-src 'self' https://docs.google.com https://drive.google.com https://www.youtube.com https://www.youtube-nocookie.com https://res.cloudinary.com ${r2Sources} blob: data:`,
           "object-src 'self' blob: data:",
           "worker-src 'self' blob:",
           isDev

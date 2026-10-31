@@ -91,11 +91,17 @@ export async function POST(req) {
     }
 
     // 4. Sanitize file name and construct storage key
-    const baseName = fileName
-      .replace(/\.[^/.]+$/, "")
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+    let cleanBase = nameWithoutExt
       .replace(/[^a-zA-Z0-9_-]/g, "_")
-      .substring(0, 50);
-    const uniqueKey = `${targetFolder}/${Date.now()}-${baseName}.${extension}`;
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "")
+      .substring(0, 40);
+
+    if (!cleanBase) {
+      cleanBase = "document";
+    }
+    const uniqueKey = `${targetFolder}/${Date.now()}-${cleanBase}.${extension}`;
 
     // 5. Generate presigned URL
     const { presignedUrl, publicUrl, key } = await createPresignedUploadUrl(
