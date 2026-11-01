@@ -731,40 +731,96 @@ const TimeTableComponent = ({
     return () => clearInterval(interval);
   }, [router]);
 
-  const timeTableData = teacherId
-    ? timeTable.reduce(
-      (acc, timeTable) => {
-        const slots = timeTable.timeSlots.filter(
-          (slot) => slot.teacherId?._id === teacherId && !slot.validTo
-        );
-        const classId = timeTable.classId;
-        return {
-          timeSlots: [
-            ...(acc.timeSlots || []),
-            ...slots.map((slot) => ({ ...slot, classId })),
-          ],
-        };
-      },
-      { timeSlots: [] }
-    )
-    : timeTable.reduce(
-      (acc, timeTable) => {
-        // Only get slots for the current day
-        const slots = timeTable.timeSlots.filter(
-          (slot) => slot.day === currentDay && !slot.validTo
-        );
+  const currentTodayIST = useMemo(() => getISTDateString(), []);
+  const isPastDate = todayDateStr < currentTodayIST;
+  const [snapshotData, setSnapshotData] = useState(null);
 
-        // Make sure we're associating the correct classId with each slot
-        const classId = timeTable.classId;
+  useEffect(() => {
+    if (!isPastDate) {
+      setSnapshotData(null);
+      return;
+    }
+    let isMounted = true;
+    fetch(`/api/timetable-snapshot?date=${todayDateStr}&populate=true`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (isMounted) setSnapshotData(res?.snapshot || null);
+      })
+      .catch(() => {
+        if (isMounted) setSnapshotData(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [isPastDate, todayDateStr]);
+
+  const timeTableData = useMemo(() => {
+    if (isPastDate && snapshotData && Array.isArray(snapshotData.slots) && snapshotData.slots.length > 0) {
+      if (teacherId) {
+        const slots = snapshotData.slots.filter(
+          (s) => (s.teacherId?._id || s.teacherId)?.toString() === teacherId
+        );
         return {
-          timeSlots: [
-            ...(acc.timeSlots || []),
-            ...slots.map((slot) => ({ ...slot, classId })),
-          ],
+          timeSlots: slots.map((s) => ({
+            ...s,
+            classId: s.classId?._id || s.classId,
+          })),
         };
-      },
-      { timeSlots: [] }
-    );
+      } else {
+        return {
+          timeSlots: snapshotData.slots.map((s) => ({
+            ...s,
+            classId: s.classId?._id || s.classId,
+          })),
+        };
+      }
+    }
+
+    if (teacherId) {
+      return timeTable.reduce(
+        (acc, tt) => {
+          const slots = (tt.timeSlots || []).filter((slot) => {
+            const tid = (slot.teacherId?._id || slot.teacherId)?.toString();
+            if (tid !== teacherId) return false;
+            const validFromDS = slot.validFrom ? getISTDateString(slot.validFrom) : null;
+            const validToDS = slot.validTo ? getISTDateString(slot.validTo) : null;
+            const isStarted = !validFromDS || validFromDS <= todayDateStr;
+            const isNotEnded = !validToDS || validToDS > todayDateStr;
+            return isStarted && isNotEnded;
+          });
+          const classId = tt.classId;
+          return {
+            timeSlots: [
+              ...(acc.timeSlots || []),
+              ...slots.map((slot) => ({ ...slot, classId })),
+            ],
+          };
+        },
+        { timeSlots: [] }
+      );
+    } else {
+      return timeTable.reduce(
+        (acc, tt) => {
+          const slots = (tt.timeSlots || []).filter((slot) => {
+            if (slot.day !== currentDay) return false;
+            const validFromDS = slot.validFrom ? getISTDateString(slot.validFrom) : null;
+            const validToDS = slot.validTo ? getISTDateString(slot.validTo) : null;
+            const isStarted = !validFromDS || validFromDS <= todayDateStr;
+            const isNotEnded = !validToDS || validToDS > todayDateStr;
+            return isStarted && isNotEnded;
+          });
+          const classId = tt.classId;
+          return {
+            timeSlots: [
+              ...(acc.timeSlots || []),
+              ...slots.map((slot) => ({ ...slot, classId })),
+            ],
+          };
+        },
+        { timeSlots: [] }
+      );
+    }
+  }, [isPastDate, snapshotData, teacherId, timeTable, currentDay, todayDateStr]);
 
   const getCellData = useCallback(
     (periodNumber, day, classId = null) => {

@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import Attendance from "@/models/Attendance";
 import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 import TimeTable from "@/models/TimeTable";
+import DailyTimetableSnapshot from "@/models/DailyTimetableSnapshot";
 import Settings from "@/models/Settings";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
@@ -26,8 +27,8 @@ export async function GET(req) {
 
         const url = new URL(req.url);
         const teacherId = url.searchParams.get("teacherId");
-        const monthParam = parseInt(url.searchParams.get("month"));
-        const yearParam = parseInt(url.searchParams.get("year"));
+        const monthParam = parseInt(url.searchParams.get("month"), 10);
+        const yearParam = parseInt(url.searchParams.get("year"), 10);
         const specificDate = url.searchParams.get("date"); // YYYY-MM-DD
 
         if (!teacherId) {
@@ -57,8 +58,12 @@ export async function GET(req) {
             endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999));
         }
 
+        const startDS = getDS(startDate);
+        const endDS = getDS(endDate);
+        const todayDS = getDS(new Date());
+
         // 2. Fetch dependencies
-        const [timeTables, settings, holidays, markedAttendance] = await Promise.all([
+        const [timeTables, settings, holidays, markedAttendance, snapshots] = await Promise.all([
             TimeTable.find({ "timeSlots.teacherId": teacherId }).lean(),
             Settings.findOne({}).lean(),
             models.AcademicCalendar ? models.AcademicCalendar.find({
@@ -70,15 +75,23 @@ export async function GET(req) {
                 date: { $gte: startDate, $lte: endDate }
             }).populate({ path: "classId", select: "name" })
               .populate({ path: "subjectId", select: "name" })
-              .lean()
+              .lean(),
+            DailyTimetableSnapshot.find({
+                dateString: { $gte: startDS, $lte: endDS },
+                "slots.teacherId": teacherId
+            }).lean(),
         ]);
 
         // 3. Pre-process data for synthesis
         const holidayMap = new Map();
         holidays.forEach(h => holidayMap.set(getDS(h.date), true));
 
+        const snapshotByDate = {};
+        (snapshots || []).forEach(snap => {
+            snapshotByDate[snap.dateString] = snap;
+        });
+
         const isTodayGlobalWorking = settings?.general?.isWorkingDay !== false;
-        const todayDS = getDS(new Date());
 
         const scheduleSlots = [];
         timeTables.forEach(tt => {
@@ -114,64 +127,107 @@ export async function GET(req) {
             const dayName = WEEKDAYS[curr.getUTCDay()];
             
             const isHoliday = holidayMap.has(dateDS);
-            const isImplicitHoliday = (dateDS >= "2026-04-01" && dateDS <= "2026-04-10") || (dateDS >= "2026-05-25" && dateDS <= "2026-06-05") || (dateDS >= "2026-02-12" && dateDS <= "2026-02-28"); // Mirror main API logic
+            const isImplicitHoliday = (dateDS >= "2026-04-01" && dateDS <= "2026-04-10") || (dateDS >= "2026-05-25" && dateDS <= "2026-06-05") || (dateDS >= "2026-02-12" && dateDS <= "2026-02-28");
             const isWorkingDay = !isHoliday && !isImplicitHoliday && isTodayGlobalWorking;
 
-            scheduleSlots.forEach(slot => {
-                if (slot.day !== dayName) return;
-
-                const key = `${dateDS}_${String(slot.classId)}_${String(slot.subjectId)}_${slot.periodNumber}`;
-                if (processedKeys.has(key)) return;
-                processedKeys.add(key);
-
-                const actual = markedMap.get(key);
-                const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
-                const validToDS = slot.validTo ? getDS(slot.validTo) : null;
-
-                if (actual) {
-                    const isLeave = !!actual.leaveReason;
-                    records.push({
-                        date: actual.date,
-                        classId: String(actual.classId?._id || actual.classId || slot.classId),
-                        subjectId: String(actual.subjectId?._id || actual.subjectId || slot.subjectId),
-                        subjectName: actual.subjectId?.name || "Unknown",
-                        className: actual.classId?.name || "Unknown",
-                        periodNumber: actual.periodNumber,
-                        present: !isLeave,
-                        synthetic: false,
-                        leaveReason: actual.leaveReason || null
-                    });
-                } else if (isWorkingDay && dateDS <= todayDS && (!validFromDS || dateDS >= validFromDS) && (!validToDS || dateDS < validToDS)) {
-                    // This is an unmarked scheduled period
-                    records.push({
-                        date: new Date(curr),
-                        classId: slot.classId,
-                        subjectId: slot.subjectId,
-                        periodNumber: slot.periodNumber,
-                        present: dateDS === todayDS ? null : false, // Blank if today, absent if in the past
-                        synthetic: true
-                    });
+            if (dayName !== "Friday") {
+                // Determine day slots: for historical dates with snapshots, prefer snapshot slots
+                let daySlots = [];
+                const snap = snapshotByDate[dateDS];
+                if (snap && snap.isWorkingDay && dateDS < todayDS) {
+                    const snapTeacherSlots = (snap.slots || []).filter(s => String(s.teacherId) === teacherId);
+                    if (snapTeacherSlots.length > 0) {
+                        daySlots = snapTeacherSlots.map(s => ({
+                            classId: String(s.classId?._id || s.classId),
+                            subjectId: String(s.subjectId?._id || s.subjectId),
+                            periodNumber: s.periodNumber,
+                            day: dayName,
+                            validFrom: null,
+                            validTo: null
+                        }));
+                    }
                 }
-            });
+
+                if (daySlots.length === 0) {
+                    daySlots = scheduleSlots.filter(s => s.day === dayName);
+                }
+
+                daySlots.forEach(slot => {
+                    const key = `${dateDS}_${String(slot.classId)}_${String(slot.subjectId)}_${slot.periodNumber}`;
+                    if (processedKeys.has(key)) return;
+                    processedKeys.add(key);
+
+                    const actual = markedMap.get(key);
+                    const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
+                    const validToDS = slot.validTo ? getDS(slot.validTo) : null;
+
+                    if (actual) {
+                        const isLeave = !!actual.leaveReason;
+                        records.push({
+                            date: actual.date,
+                            classId: String(actual.classId?._id || actual.classId || slot.classId),
+                            subjectId: String(actual.subjectId?._id || actual.subjectId || slot.subjectId),
+                            subjectName: actual.subjectId?.name || "Unknown",
+                            className: actual.classId?.name || "Unknown",
+                            periodNumber: actual.periodNumber,
+                            present: !isLeave,
+                            synthetic: false,
+                            leaveReason: actual.leaveReason || null
+                        });
+                    } else if (isWorkingDay && dateDS <= todayDS && (!validFromDS || dateDS >= validFromDS) && (!validToDS || dateDS < validToDS)) {
+                        records.push({
+                            date: new Date(curr),
+                            classId: slot.classId,
+                            subjectId: slot.subjectId,
+                            periodNumber: slot.periodNumber,
+                            present: dateDS === todayDS ? null : false,
+                            synthetic: true
+                        });
+                    }
+                });
+            }
 
             curr.setUTCDate(curr.getUTCDate() + 1);
         }
 
-        // 5. Populate names for synthetic records
-        const missingClassIds = [...new Set(records.filter(r => r.synthetic).map(r => String(r.classId)))];
-        const missingSubIds = [...new Set(records.filter(r => r.synthetic).map(r => String(r.subjectId)))];
+        // 4b. Include any actual marked attendances that were not matched to current timetable slots
+        markedAttendance.forEach((att) => {
+            const dateKey = getDS(att.date);
+            const key = `${dateKey}_${String(att.classId?._id || att.classId)}_${String(att.subjectId?._id || att.subjectId)}_${att.periodNumber}`;
+            if (!processedKeys.has(key)) {
+                processedKeys.add(key);
+                const isLeave = !!att.leaveReason;
+                records.push({
+                    date: att.date,
+                    classId: String(att.classId?._id || att.classId),
+                    subjectId: String(att.subjectId?._id || att.subjectId),
+                    subjectName: att.subjectId?.name || "Unknown",
+                    className: att.classId?.name || "Unknown",
+                    periodNumber: att.periodNumber,
+                    present: !isLeave,
+                    synthetic: false,
+                    leaveReason: att.leaveReason || null
+                });
+            }
+        });
+
+        // 5. Populate names for synthetic records or missing populated names
+        const missingClassIds = [...new Set(records.filter(r => r.synthetic || !r.className || r.className === "Unknown").map(r => String(r.classId)))];
+        const missingSubIds = [...new Set(records.filter(r => r.synthetic || !r.subjectName || r.subjectName === "Unknown").map(r => String(r.subjectId)))];
 
         const [classes, subjects] = await Promise.all([
-            Class.find({ _id: { $in: missingClassIds } }, "name").lean(),
-            Subject.find({ _id: { $in: missingSubIds } }, "name").lean()
+            missingClassIds.length > 0 ? Class.find({ _id: { $in: missingClassIds } }, "name").lean() : [],
+            missingSubIds.length > 0 ? Subject.find({ _id: { $in: missingSubIds } }, "name").lean() : []
         ]);
 
         const classMap = Object.fromEntries(classes.map(c => [String(c._id), c.name]));
         const subjectMap = Object.fromEntries(subjects.map(s => [String(s._id), s.name]));
 
         records.forEach(r => {
-            if (r.synthetic) {
+            if (!r.className || r.className === "Unknown") {
                 r.className = classMap[String(r.classId)] || "Unknown";
+            }
+            if (!r.subjectName || r.subjectName === "Unknown") {
                 r.subjectName = subjectMap[String(r.subjectId)] || "Unknown";
             }
         });
@@ -193,7 +249,7 @@ export async function GET(req) {
 
         // Fetch Periods for timing information
         const Period = (await import("@/models/Period")).default;
-        const periods = await Period.find({});
+        const periods = await Period.find({}).lean();
         const periodTimeMap = {};
         periods.forEach(p => {
             periodTimeMap[p.periodNumber] = p.formattedTime;
@@ -202,7 +258,6 @@ export async function GET(req) {
         records.forEach(r => {
             const dateKey = getDS(r.date);
             const key = `${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;
-            // Only apply leave reason if the teacher was absent
             if (!r.leaveReason && r.present === false && leaveMap[key]) {
                 r.leaveReason = leaveMap[key];
             } else if (!r.leaveReason && r.present !== true && leaveMap[key]) {
@@ -212,7 +267,7 @@ export async function GET(req) {
             r.periodTime = periodTimeMap[r.periodNumber] || null;
         });
 
-        // Final sort
+        // Final sort: latest date first
         records.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         return NextResponse.json({ records }, { status: 200 });
