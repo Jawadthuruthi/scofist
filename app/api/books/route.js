@@ -17,14 +17,15 @@ export async function GET(req, res) {
     const query = {};
     if (searchParams.name) {
       // Use a case-insensitive regex for searching by book name
-      query.name = { $regex: new RegExp(searchParams.name, "i") };
+      const escaped = searchParams.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.name = { $regex: new RegExp(escaped, "i") };
     }
 
     if (searchParams.course) {
       query.course = searchParams.course;
     }
 
-    const books = await Book.find(query).sort({ createdAt: -1 });
+    const books = await Book.find(query).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ books }, { status: 200 });
   } catch (error) {
     return apiResponse.error(error);

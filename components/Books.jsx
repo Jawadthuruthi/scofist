@@ -203,10 +203,7 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   const fetchBooksQuery = useFetchItems(
     null,
     null,
-    { 
-      name: filterName, 
-      course: filterCourse === "all" ? "" : filterCourse 
-    },
+    {},
     { initialData: { books: initialBooks } }
   );
   const addBook = useAddItem();
@@ -366,17 +363,46 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
     }
   };
 
+  const allBooks = useMemo(() => {
+    return fetchBooksQuery.data?.books || initialBooks || [];
+  }, [fetchBooksQuery.data?.books, initialBooks]);
+
   const filteredBooks = useMemo(() => {
-    return fetchBooksQuery.data?.books || [];
-  }, [fetchBooksQuery.data]);
+    return allBooks.filter((book) => {
+      // Course matching
+      const matchesCourse =
+        !filterCourse ||
+        filterCourse === "all" ||
+        (book.course &&
+          book.course.trim().toLowerCase() === filterCourse.trim().toLowerCase());
+
+      // Name matching (case-insensitive substring match)
+      const matchesName =
+        !filterName ||
+        !filterName.trim() ||
+        (book.name &&
+          book.name.toLowerCase().includes(filterName.trim().toLowerCase()));
+
+      return Boolean(matchesCourse && matchesName);
+    });
+  }, [allBooks, filterCourse, filterName]);
+
+  const courseOptions = useMemo(() => {
+    const list = [...courses];
+    allBooks.forEach((b) => {
+      if (b.course && b.course.trim() && !list.includes(b.course.trim())) {
+        list.push(b.course.trim());
+      }
+    });
+    return list.map((c) => ({ value: c, label: c }));
+  }, [courses, allBooks]);
 
   const booksCountForDeletingCourse = useMemo(() => {
     if (!deletingCourseName) return 0;
-    const all = fetchBooksQuery.data?.books || initialBooks || [];
-    return all.filter(
+    return allBooks.filter(
       (b) => b.course?.trim().toLowerCase() === deletingCourseName?.trim().toLowerCase()
     ).length;
-  }, [deletingCourseName, fetchBooksQuery.data, initialBooks]);
+  }, [deletingCourseName, allBooks]);
 
   return (
     <>
@@ -472,11 +498,25 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
-                <Label>Filter by Course</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Filter by Course</Label>
+                  {filterCourse !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterCourse("all")}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Reset course
+                    </button>
+                  )}
+                </div>
                 <MultiSelect
                   value={filterCourse === "all" ? "" : filterCourse}
-                  onValueChange={(v) => setFilterCourse(v || "all")}
-                  options={courses.map((c) => ({ value: c, label: c }))}
+                  onValueChange={(v) => {
+                    const selected = Array.isArray(v) ? (v[0] || "all") : (v || "all");
+                    setFilterCourse(selected);
+                  }}
+                  options={courseOptions}
                   placeholder="All Courses"
                   noBadge={true}
                   multiSelect={false}
@@ -485,38 +525,70 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Filter by Book Name</Label>
-                <Input
-                  value={filterName}
-                  onChange={(e) => setFilterName(e.target.value)}
-                  placeholder="Search by book name..."
-                />
+                <div className="flex items-center justify-between">
+                  <Label>Filter by Book Name</Label>
+                  {filterName && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterName("")}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Input
+                    value={filterName}
+                    onChange={(e) => setFilterName(e.target.value)}
+                    placeholder="Search by book name..."
+                    className={filterName ? "pr-8" : ""}
+                  />
+                  {filterName && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterName("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-sm"
+                      title="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="overflow-x-auto border-x">
-              <Table>
+            <div className="overflow-x-auto border-x rounded-md">
+              <Table className="min-w-[560px] sm:min-w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Course</TableHead>
-                    <TableHead>Book Name</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-[120px] sm:w-[150px] whitespace-nowrap">Course</TableHead>
+                    <TableHead className="min-w-[260px] sm:min-w-[320px]">Book Name</TableHead>
+                    <TableHead className="text-right whitespace-nowrap w-[160px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredBooks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8">
-                        No books available
+                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                        {allBooks.length === 0
+                          ? "No books available"
+                          : "No books match your filter criteria"}
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredBooks.map((book) => (
                       <TableRow key={book._id}>
-                        <TableCell>{book.course}</TableCell>
-                        <TableCell>{book.name}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                        <TableCell className="font-medium whitespace-nowrap text-xs sm:text-sm">
+                          {book.course}
+                        </TableCell>
+                        <TableCell className="min-w-[260px] sm:min-w-[320px] font-medium text-sm">
+                          <span className="line-clamp-2 sm:line-clamp-none break-words" title={book.name}>
+                            {book.name}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          <div className="flex justify-end gap-1.5 sm:gap-2">
                             <Button
                               size="sm"
                               variant="outline"
@@ -537,17 +609,19 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                             <Button
                               size="sm"
                               variant="outline"
+                              className="h-8 px-2 sm:px-3 text-xs"
+                              title="Download"
                               onClick={() => handleDownload(book, book._id)}
                               disabled={downloadingId === book._id}
                             >
                               {downloadingId === book._id ? (
                                 <>
-                                  <Loader className="h-4 w-4 sm:mr-2 animate-spin" />
+                                  <Loader className="h-4 w-4 sm:mr-1.5 animate-spin" />
                                   <span className="hidden sm:inline">Downloading...</span>
                                 </>
                               ) : (
                                 <>
-                                  <DownloadIcon className="h-4 w-4 sm:mr-2" />
+                                  <DownloadIcon className="h-4 w-4 sm:mr-1.5" />
                                   <span className="hidden sm:inline">Download</span>
                                 </>
                               )}
@@ -557,6 +631,8 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  className="h-8 w-8 p-0"
+                                  title="Edit"
                                   onClick={() => handleEditClick(book)}
                                 >
                                   <Pencil className="h-4 w-4" />
@@ -566,6 +642,8 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                                     <Button
                                       size="sm"
                                       variant="destructive"
+                                      className="h-8 w-8 p-0"
+                                      title="Delete"
                                       disabled={deletingId === book._id}
                                     >
                                       {deletingId === book._id ? (

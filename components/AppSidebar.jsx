@@ -18,6 +18,7 @@ import {
   FileSearch,
   Calendar,
   ChevronsUpDown,
+  ChevronDown,
   X,
   CreditCard,
   BookOpen,
@@ -47,6 +48,11 @@ import {
   Layers2,
 } from "lucide-react";
 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -988,39 +994,54 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
             <SidebarMenu>
               {menuItems.map((item, index) =>
                 item.subItems ? (
-                  <SidebarMenuItem key={item.url + item.title + index}>
-                    <SidebarMenuButton asChild>
-                      <div className="flex items-center gap-2">
-                        <item.icon className="w-5 h-5" />
-                        <span>{item.title}</span>
-                      </div>
-                    </SidebarMenuButton>
-                    <SidebarMenuSub className="mr-0 pt-2">
-                      {item.subItems.map((subItem, subIndex) => (
-                        <SidebarMenuSubItem key={subItem.url + subItem.title + subIndex}>
-                          <SidebarMenuSubButton
-                            data-active={pathname === subItem.url}
-                            asChild
-                          >
-                            <Link href={subItem.url} className="flex items-center gap-2">
-                              <subItem.icon className="w-5 h-5" />
-                              <span className="flex-1">{subItem.title}</span>
-                              {subItem.title === "Teachers" && pendingTeacherRequestsCount > 0 && (
-                                <span className="ml-auto text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
-                                  {pendingTeacherRequestsCount}
-                                </span>
-                              )}
-                              {subItem.title === "Students" && pendingStudentRequestsCount > 0 && (
-                                <span className="ml-auto text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
-                                  {pendingStudentRequestsCount}
-                                </span>
-                              )}
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </SidebarMenuItem>
+                  <Collapsible
+                    key={(item.url || "") + item.title + index}
+                    asChild
+                    defaultOpen={false}
+                    className="group/collapsible"
+                  >
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          data-active={item.subItems.some((subItem) => pathname === subItem.url)}
+                          className="flex items-center justify-between w-full cursor-pointer hover:bg-accent/80 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <item.icon className="w-5 h-5 shrink-0" />
+                            <span className="truncate">{item.title}</span>
+                          </div>
+                          <ChevronDown className="w-4 h-4 shrink-0 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90 text-muted-foreground" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub className="mr-0 pt-2">
+                          {item.subItems.map((subItem, subIndex) => (
+                            <SidebarMenuSubItem key={subItem.url + subItem.title + subIndex}>
+                              <SidebarMenuSubButton
+                                data-active={pathname === subItem.url}
+                                asChild
+                              >
+                                <Link href={subItem.url} className="flex items-center gap-2">
+                                  <subItem.icon className="w-5 h-5" />
+                                  <span className="flex-1">{subItem.title}</span>
+                                  {subItem.title === "Teachers" && pendingTeacherRequestsCount > 0 && (
+                                    <span className="ml-auto text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
+                                      {pendingTeacherRequestsCount}
+                                    </span>
+                                  )}
+                                  {subItem.title === "Students" && pendingStudentRequestsCount > 0 && (
+                                    <span className="ml-auto text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
+                                      {pendingStudentRequestsCount}
+                                    </span>
+                                  )}
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
                 ) : (
                   <SidebarMenuItem className="pt-1" key={item.url + item.title + index}>
                     <SidebarMenuButton
