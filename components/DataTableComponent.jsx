@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
-import { Loader, Search, X, Trophy, FileSpreadsheet, Printer, CheckCircle2, Star, UserCheck, UserX } from "lucide-react";
+import { Loader, Search, X, Trophy, FileSpreadsheet, Printer, CheckCircle2, Star, UserCheck, UserX, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
@@ -196,6 +196,7 @@ const DataTableComponent = ({
   const [detailView, setDetailView] = useState(null); // { student, col, title }
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailedRecords, setDetailedRecords] = useState([]);
+  const [subjectDrilldown, setSubjectDrilldown] = useState(null); // { subjectName, filterType, records, className }
 
   const handleToggleToppers = useCallback((targetVal) => {
     setToppersOnly((prev) => {
@@ -735,10 +736,22 @@ const DataTableComponent = ({
     let records;
     if (col.viewType === "allRecords") {
       records = row[arrayKey] || [];
+    } else if (col.viewType === "subjectSummary") {
+      records = row[arrayKey] || row.subjectStats || [];
     } else {
       records = row[arrayKey]?.filter(
         (item) => !col.filterKey || item?.[col.filterKey || col.accessorKey] === col.filterValue
       ) || [];
+    }
+
+    // Sort detail records by Date and Period Number ascending order
+    if (Array.isArray(records) && col.viewType !== "subjectSummary" && col.header !== "Absentees") {
+      records = records.slice().sort((a, b) => {
+        const timeA = a.date ? new Date(a.date).getTime() : 0;
+        const timeB = b.date ? new Date(b.date).getTime() : 0;
+        if (timeA !== timeB) return timeA - timeB;
+        return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
+      });
     }
 
     const extractHeaderText = (hdr) => {
@@ -760,8 +773,10 @@ const DataTableComponent = ({
       col: col,
       title: col.header === "Absentees"
         ? `Absent Students for ${formatDateForDisplay(row.date)}`
+        : col.viewType === "subjectSummary"
+        ? `Subject-wise Attendance for ${row.name || "Class"}`
         : `${headerText} for ${row.name || row.teamName || "Selected Item"}`,
-      colHeader: headerText,
+      colHeader: col.viewType === "subjectSummary" ? "Subject-wise Attendance" : headerText,
       viewType: col.viewType || (col.header === "Absentees" ? "studentList" : "recordList")
     });
     setDetailedRecords(records);
@@ -892,6 +907,12 @@ const DataTableComponent = ({
           const classCompare = sortClasses(a, b, getName);
           if (classCompare !== 0) return classCompare;
           return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
+        });
+      } else if (resource === "classAttendances") {
+        baseData = [...baseData].sort((a, b) => {
+          const classCompare = sortClasses(a, b, (item) => item?.originalName || item?.name || "");
+          if (classCompare !== 0) return classCompare;
+          return String(a?.name || "").localeCompare(String(b?.name || ""));
         });
       } else if (resource === "users") {
         // Default sort by ID descending so newest/highest IDs appear first
@@ -1781,38 +1802,71 @@ const DataTableComponent = ({
         </div>
       </div>
       {/* Detail View Modal for drill-down */}
-      <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
-        <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className={`flex flex-col gap-0 mx-0 px-4 sm:px-5 pt-4 pb-3 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${detailView?.colHeader === "Present" ? "bg-green-50 dark:bg-green-950/20" : detailView?.colHeader === "Absent" ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
+      <Dialog open={!!detailView} onOpenChange={(open) => { if (!open) { setDetailView(null); setSubjectDrilldown(null); } }}>
+        <DialogContent
+          ref={popupRef}
+          data-html2canvas-popup="true"
+          className={cn(
+            "rounded-2xl sm:rounded-2xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0",
+            (detailView?.colHeader === "Present" || detailView?.colHeader === "Absent" || (subjectDrilldown && subjectDrilldown.filterType !== "total"))
+              ? "max-w-md sm:max-w-lg"
+              : "max-w-3xl"
+          )}
+        >
+          <DialogHeader className={`flex flex-col gap-0 mx-0 px-4 sm:px-5 pt-4 pb-3 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-50 dark:bg-green-950/20" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent") ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
             {/* Top row: icon + title/meta + print + close */}
             <div className="flex items-start gap-3">
               <button
                 type="button"
-                className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer shrink-0 mt-0.5 ${detailView?.colHeader === "Present" ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : detailView?.colHeader === "Absent" ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
+                className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer shrink-0 mt-0.5 ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent") ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
                 onClick={handleDownload}
                 title="Download Image"
                 data-html2canvas-ignore="true"
               >
-                {detailView?.colHeader === "Present" ? (
+                {(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? (
                   <UserCheck className="h-5 w-5 text-green-600 dark:text-green-500" />
-                ) : detailView?.colHeader === "Absent" ? (
+                ) : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent") ? (
                   <UserX className="h-5 w-5 text-red-500" />
                 ) : (
                   <FileSpreadsheet className="h-5 w-5 text-primary" />
                 )}
               </button>
               <div className="flex-1 text-left min-w-0">
-                <DialogTitle className={`text-xl font-bold m-0 leading-tight whitespace-nowrap ${detailView?.colHeader === "Present" ? "text-green-600 dark:text-green-400" : detailView?.colHeader === "Absent" ? "text-red-600 dark:text-red-400" : ""}`}>
-                  {detailView?.colHeader} Records
-                  <span className="ml-1.5 text-base font-semibold text-muted-foreground">
-                    ({detailedRecords.length})
-                  </span>
+                <DialogTitle className={`text-xl font-bold m-0 leading-tight whitespace-nowrap ${subjectDrilldown ? (subjectDrilldown.filterType === "present" ? "text-green-600 dark:text-green-400" : subjectDrilldown.filterType === "absent" ? "text-red-600 dark:text-red-400" : "") : (detailView?.colHeader === "Present" ? "text-green-600 dark:text-green-400" : detailView?.colHeader === "Absent" ? "text-red-600 dark:text-red-400" : "")}`}>
+                  {subjectDrilldown ? (
+                    <span className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSubjectDrilldown(null)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors inline-flex items-center"
+                        title="Back to Subjects"
+                      >
+                        <ArrowLeft className="h-5 w-5" />
+                      </button>
+                      <span>
+                        {subjectDrilldown.subjectName} – {capitalize(subjectDrilldown.filterType)} ({subjectDrilldown.records.length})
+                      </span>
+                    </span>
+                  ) : (
+                    <>
+                      {detailView?.viewType === "subjectSummary" ? "Subject-wise Attendance" : `${detailView?.colHeader} Records`}
+                      <span className="ml-1.5 text-base font-semibold text-muted-foreground">
+                        ({detailedRecords.length} {detailView?.viewType === "subjectSummary" ? "Subjects" : ""})
+                      </span>
+                    </>
+                  )}
                 </DialogTitle>
                 <div className="m-0 flex flex-col mt-0.5">
                   <DialogDescription className="font-medium text-foreground m-0 text-sm leading-tight">
-                    {detailView?.student?.name} {detailView?.viewType !== "allRecords" && detailView?.student?._id && `(${String(detailView.student._id).split('-')[0]})`}
+                    {detailView?.student?.name}
+                    {resource === "studentAttendances" &&
+                      detailView?.viewType !== "allRecords" &&
+                      detailView?.viewType !== "subjectSummary" &&
+                      detailView?.student?._id &&
+                      !['cls', 'tch'].includes(String(detailView.student._id).split('-')[0].toLowerCase()) &&
+                      ` (${detailView.student._id})`}
                   </DialogDescription>
-                  {detailView?.viewType === "allRecords" && filterMonth && filterYear && (
+                  {(detailView?.viewType === "allRecords" || detailView?.viewType === "subjectSummary") && filterMonth && filterYear && (
                     <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
                       {new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} {filterYear}
                     </span>
@@ -1820,12 +1874,157 @@ const DataTableComponent = ({
                 </div>
               </div>
               {/* Print button — desktop inline, mobile below close */}
-              {detailView?.viewType === "allRecords" && (
+              {(detailView?.viewType === "allRecords" || detailView?.viewType === "subjectSummary") && (
                 <button
                   type="button"
                   className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80 transition-colors focus:outline-none cursor-pointer shrink-0"
                   onClick={() => {
                     const name = detailView?.student?.name || '';
+                    if (subjectDrilldown) {
+                      const name = detailView?.student?.name || '';
+                      const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
+                      const yearLabel = filterYear || '';
+                      const filterLabel = capitalize(subjectDrilldown.filterType);
+                      const showStatus = subjectDrilldown.filterType === "total";
+
+                      const tableRows = subjectDrilldown.records.map((rec, idx) => {
+                        const isPresent = rec.present === true;
+                        const isAbsent = rec.present === false;
+                        const rowBg = isPresent ? 'background:#f0fdf4;' : isAbsent ? 'background:#fef2f2;' : '';
+                        const dateStr = rec.date ? new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                        const dayStr = rec.date ? new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' }) : '';
+                        const period = rec.periodNumber ? `Period #${rec.periodNumber}` : '—';
+                        const teacher = rec.teacherName || '—';
+                        const reasonHtml = (isAbsent && rec.leaveReason) ? `<div style="font-size:11px;color:#dc2626;margin-top:2px;font-weight:500;">${rec.leaveReason}</div>` : '';
+                        const statusBg = isPresent ? 'background:#dcfce7;color:#15803d;' : isAbsent ? 'background:#fee2e2;color:#b91c1c;' : '';
+                        const statusText = isPresent ? 'Present' : isAbsent ? 'Absent' : '—';
+                        const statusTd = showStatus ? `<td style="text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;${statusBg}">${statusText}</span></td>` : '';
+
+                        return `<tr style="${rowBg}">
+                          <td style="text-align:center;">${idx + 1}</td>
+                          <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
+                          <td><div style="font-weight:600;font-size:13px;">${period}</div>${reasonHtml}</td>
+                          ${statusTd}
+                        </tr>`;
+                      }).join('');
+
+                      const html = `<!DOCTYPE html><html><head><title>${subjectDrilldown.subjectName} – ${filterLabel} Records</title>
+                      <link rel="preconnect" href="https://fonts.googleapis.com" />
+                      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+                      <style>
+                        *{box-sizing:border-box;margin:0;padding:0;}
+                        body{font-family:'Montserrat',sans-serif;font-size:13px;color:#111;padding:24px 32px;}
+                        .header{margin-bottom:20px;border-bottom:2px solid #e5e7eb;padding-bottom:14px;text-align:center;}
+                        .title{font-size:20px;font-weight:800;color:#111;letter-spacing:-0.5px;text-transform:uppercase;}
+                        .subtitle{font-size:14px;font-weight:700;color:#4f46e5;margin-top:4px;}
+                        .date-badge{font-size:12px;font-weight:600;color:#6b7280;margin-top:2px;}
+                        table{width:100%;border-collapse:collapse;margin-top:14px;}
+                        th{background:#f9fafb;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#374151;padding:9px 12px;border:1px solid #d1d5db;}
+                        td{padding:8px 12px;border:1px solid #e5e7eb;}
+                        @media print{body{padding:10px;}}
+                      </style></head><body>
+                      <div class="header">
+                        <div class="title">${subjectDrilldown.subjectName} – ${filterLabel} Records (${subjectDrilldown.records.length})</div>
+                        <div class="subtitle">${name}</div>
+                        ${monthLabel && yearLabel ? `<div class="date-badge">📅 ${monthLabel} ${yearLabel}</div>` : ''}
+                      </div>
+                      <table>
+                        <thead><tr>
+                          <th style="width:50px;text-align:center;">Sl.No.</th>
+                          <th style="width:130px;text-align:left;">Date &amp; Day</th>
+                          <th style="text-align:left;">Period</th>
+                          ${showStatus ? '<th style="width:100px;text-align:center;">Status</th>' : ''}
+                        </tr></thead>
+                        <tbody>${tableRows}</tbody>
+                      </table></body></html>`;
+
+                      const iframe = document.createElement('iframe');
+                      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;visibility:hidden;';
+                      document.body.appendChild(iframe);
+                      iframe.contentDocument.open();
+                      iframe.contentDocument.write(html);
+                      iframe.contentDocument.close();
+                      setTimeout(() => {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                        setTimeout(() => document.body.removeChild(iframe), 500);
+                      }, 400);
+                      return;
+                    }
+                    if (detailView?.viewType === "subjectSummary") {
+                      const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
+                      const yearLabel = filterYear || '';
+                      const totalClassSum = detailedRecords.reduce((sum, s) => sum + (s.totalClass ?? s.total ?? 0), 0);
+                      const presentSum = detailedRecords.reduce((sum, s) => sum + (s.present ?? 0), 0);
+                      const absentSum = detailedRecords.reduce((sum, s) => sum + (s.absent ?? 0), 0);
+                      const totalPerc = totalClassSum > 0 ? ((presentSum / totalClassSum) * 100).toFixed(2) + '%' : '0.00%';
+
+                      const tableRows = detailedRecords.map((sub, idx) => {
+                        return `<tr>
+                          <td style="text-align:center;">${idx + 1}</td>
+                          <td style="font-weight:600;"><div>${sub.subjectName || '—'}</div>${sub.teacherName ? `<div style="font-size:11px;color:#6b7280;font-weight:400;margin-top:2px;">${sub.teacherName}</div>` : ''}</td>
+                          <td style="text-align:center;">${sub.totalClass ?? sub.total ?? 0}</td>
+                          <td style="text-align:center;color:#15803d;font-weight:600;">${sub.present ?? 0}</td>
+                          <td style="text-align:center;color:#b91c1c;font-weight:600;">${sub.absent ?? 0}</td>
+                          <td style="text-align:center;font-weight:700;color:#4f46e5;">${sub.percentage || (sub.totalClass ? `${((sub.present / sub.totalClass) * 100).toFixed(2)}%` : '0.00%')}</td>
+                        </tr>`;
+                      }).join('');
+
+                      const footerRow = `<tr style="font-weight:bold;background:#f3f4f6;">
+                        <td colspan="2" style="text-align:center;">TOTAL</td>
+                        <td style="text-align:center;">${totalClassSum}</td>
+                        <td style="text-align:center;color:#15803d;">${presentSum}</td>
+                        <td style="text-align:center;color:#b91c1c;">${absentSum}</td>
+                        <td style="text-align:center;color:#4f46e5;">${totalPerc}</td>
+                      </tr>`;
+
+                      const html = `<!DOCTYPE html><html><head><title>Subject-wise Attendance – ${name}</title>
+                      <link rel="preconnect" href="https://fonts.googleapis.com" />
+                      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+                      <style>
+                        *{box-sizing:border-box;margin:0;padding:0;}
+                        body{font-family:'Montserrat',sans-serif;font-size:13px;color:#111;padding:24px 32px;}
+                        .header{margin-bottom:20px;border-bottom:2px solid #e5e7eb;padding-bottom:14px;text-align:center;}
+                        .title{font-size:20px;font-weight:800;color:#111;letter-spacing:-0.5px;}
+                        .subtitle{font-size:14px;font-weight:700;color:#4f46e5;margin-top:4px;text-transform:uppercase;}
+                        .date-badge{font-size:12px;font-weight:600;color:#6b7280;margin-top:2px;}
+                        table{width:100%;border-collapse:collapse;margin-top:14px;}
+                        th{background:#f9fafb;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#374151;padding:9px 12px;border:1px solid #d1d5db;}
+                        td{padding:8px 12px;border:1px solid #e5e7eb;}
+                        @media print{body{padding:10px;}}
+                      </style></head><body>
+                      <div class="header">
+                        <div class="title">SUBJECT-WISE ATTENDANCE REPORT</div>
+                        <div class="subtitle">${name}</div>
+                        ${monthLabel && yearLabel ? `<div class="date-badge">📅 ${monthLabel} ${yearLabel}</div>` : ''}
+                      </div>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th style="width:50px;text-align:center;">Sl.No.</th>
+                            <th style="text-align:left;">Subject</th>
+                            <th style="text-align:center;">Total Class</th>
+                            <th style="text-align:center;">Present</th>
+                            <th style="text-align:center;">Absent</th>
+                            <th style="text-align:center;">Percentage</th>
+                          </tr>
+                        </thead>
+                        <tbody>${tableRows}${footerRow}</tbody>
+                      </table></body></html>`;
+
+                      const iframe = document.createElement('iframe');
+                      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;visibility:hidden;';
+                      document.body.appendChild(iframe);
+                      iframe.contentDocument.open();
+                      iframe.contentDocument.write(html);
+                      iframe.contentDocument.close();
+                      setTimeout(() => {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                        setTimeout(() => document.body.removeChild(iframe), 500);
+                      }, 400);
+                      return;
+                    }
                     const id = detailView?.student?._id || '';
                     const totalCount = detailedRecords.length;
                     const className = detailedRecords?.[0]?.className || '';
@@ -1925,16 +2124,161 @@ const DataTableComponent = ({
                 </button>
               )}
               <div className="flex flex-col gap-2 shrink-0">
-                <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => setDetailView(null)} data-html2canvas-ignore="true">
+                <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => { setDetailView(null); setSubjectDrilldown(null); }} data-html2canvas-ignore="true">
                   <X className="h-5 w-5" />
                 </DialogClose>
                 {/* Mobile-only: print button row below close */}
-                {detailView?.viewType === "allRecords" && (
+                {(detailView?.viewType === "allRecords" || detailView?.viewType === "subjectSummary") && (
                   <button
                     type="button"
                     className="sm:hidden flex items-center justify-center p-1.5 rounded-lg bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80 transition-colors focus:outline-none cursor-pointer"
                     onClick={() => {
                       const name = detailView?.student?.name || '';
+                    if (subjectDrilldown) {
+                      const name = detailView?.student?.name || '';
+                      const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
+                      const yearLabel = filterYear || '';
+                      const filterLabel = capitalize(subjectDrilldown.filterType);
+                      const showStatus = subjectDrilldown.filterType === "total";
+
+                      const tableRows = subjectDrilldown.records.map((rec, idx) => {
+                        const isPresent = rec.present === true;
+                        const isAbsent = rec.present === false;
+                        const rowBg = isPresent ? 'background:#f0fdf4;' : isAbsent ? 'background:#fef2f2;' : '';
+                        const dateStr = rec.date ? new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                        const dayStr = rec.date ? new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' }) : '';
+                        const period = rec.periodNumber ? `Period #${rec.periodNumber}` : '—';
+                        const teacher = rec.teacherName || '—';
+                        const reasonHtml = (isAbsent && rec.leaveReason) ? `<div style="font-size:11px;color:#dc2626;margin-top:2px;font-weight:500;">${rec.leaveReason}</div>` : '';
+                        const statusBg = isPresent ? 'background:#dcfce7;color:#15803d;' : isAbsent ? 'background:#fee2e2;color:#b91c1c;' : '';
+                        const statusText = isPresent ? 'Present' : isAbsent ? 'Absent' : '—';
+                        const statusTd = showStatus ? `<td style="text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;${statusBg}">${statusText}</span></td>` : '';
+
+                        return `<tr style="${rowBg}">
+                          <td style="text-align:center;">${idx + 1}</td>
+                          <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
+                          <td><div style="font-weight:600;font-size:13px;">${period}</div>${reasonHtml}</td>
+                          ${statusTd}
+                        </tr>`;
+                      }).join('');
+
+                      const html = `<!DOCTYPE html><html><head><title>${subjectDrilldown.subjectName} – ${filterLabel} Records</title>
+                      <link rel="preconnect" href="https://fonts.googleapis.com" />
+                      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+                      <style>
+                        *{box-sizing:border-box;margin:0;padding:0;}
+                        body{font-family:'Montserrat',sans-serif;font-size:13px;color:#111;padding:24px 32px;}
+                        .header{margin-bottom:20px;border-bottom:2px solid #e5e7eb;padding-bottom:14px;text-align:center;}
+                        .title{font-size:20px;font-weight:800;color:#111;letter-spacing:-0.5px;text-transform:uppercase;}
+                        .subtitle{font-size:14px;font-weight:700;color:#4f46e5;margin-top:4px;}
+                        .date-badge{font-size:12px;font-weight:600;color:#6b7280;margin-top:2px;}
+                        table{width:100%;border-collapse:collapse;margin-top:14px;}
+                        th{background:#f9fafb;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#374151;padding:9px 12px;border:1px solid #d1d5db;}
+                        td{padding:8px 12px;border:1px solid #e5e7eb;}
+                        @media print{body{padding:10px;}}
+                      </style></head><body>
+                      <div class="header">
+                        <div class="title">${subjectDrilldown.subjectName} – ${filterLabel} Records (${subjectDrilldown.records.length})</div>
+                        <div class="subtitle">${name}</div>
+                        ${monthLabel && yearLabel ? `<div class="date-badge">📅 ${monthLabel} ${yearLabel}</div>` : ''}
+                      </div>
+                      <table>
+                        <thead><tr>
+                          <th style="width:50px;text-align:center;">Sl.No.</th>
+                          <th style="width:130px;text-align:left;">Date &amp; Day</th>
+                          <th style="text-align:left;">Period</th>
+                          ${showStatus ? '<th style="width:100px;text-align:center;">Status</th>' : ''}
+                        </tr></thead>
+                        <tbody>${tableRows}</tbody>
+                      </table></body></html>`;
+
+                      const iframe = document.createElement('iframe');
+                      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;visibility:hidden;';
+                      document.body.appendChild(iframe);
+                      iframe.contentDocument.open();
+                      iframe.contentDocument.write(html);
+                      iframe.contentDocument.close();
+                      setTimeout(() => {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                        setTimeout(() => document.body.removeChild(iframe), 500);
+                      }, 400);
+                      return;
+                    }
+                      if (detailView?.viewType === "subjectSummary") {
+                        const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
+                        const yearLabel = filterYear || '';
+                        const totalClassSum = detailedRecords.reduce((sum, s) => sum + (s.totalClass ?? s.total ?? 0), 0);
+                        const presentSum = detailedRecords.reduce((sum, s) => sum + (s.present ?? 0), 0);
+                        const absentSum = detailedRecords.reduce((sum, s) => sum + (s.absent ?? 0), 0);
+                        const totalPerc = totalClassSum > 0 ? ((presentSum / totalClassSum) * 100).toFixed(2) + '%' : '0.00%';
+
+                        const tableRows = detailedRecords.map((sub, idx) => {
+                          return `<tr>
+                            <td style="text-align:center;">${idx + 1}</td>
+                            <td style="font-weight:600;"><div>${sub.subjectName || '—'}</div>${sub.teacherName ? `<div style="font-size:11px;color:#6b7280;font-weight:400;margin-top:2px;">${sub.teacherName}</div>` : ''}</td>
+                            <td style="text-align:center;">${sub.totalClass ?? sub.total ?? 0}</td>
+                            <td style="text-align:center;color:#15803d;font-weight:600;">${sub.present ?? 0}</td>
+                            <td style="text-align:center;color:#b91c1c;font-weight:600;">${sub.absent ?? 0}</td>
+                            <td style="text-align:center;font-weight:700;color:#4f46e5;">${sub.percentage || (sub.totalClass ? `${((sub.present / sub.totalClass) * 100).toFixed(2)}%` : '0.00%')}</td>
+                          </tr>`;
+                        }).join('');
+
+                        const footerRow = `<tr style="font-weight:bold;background:#f3f4f6;">
+                          <td colspan="2" style="text-align:center;">TOTAL</td>
+                          <td style="text-align:center;">${totalClassSum}</td>
+                          <td style="text-align:center;color:#15803d;">${presentSum}</td>
+                          <td style="text-align:center;color:#b91c1c;">${absentSum}</td>
+                          <td style="text-align:center;color:#4f46e5;">${totalPerc}</td>
+                        </tr>`;
+
+                        const html = `<!DOCTYPE html><html><head><title>Subject-wise Attendance – ${name}</title>
+                        <link rel="preconnect" href="https://fonts.googleapis.com" />
+                        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+                        <style>
+                          *{box-sizing:border-box;margin:0;padding:0;}
+                          body{font-family:'Montserrat',sans-serif;font-size:13px;color:#111;padding:24px 32px;}
+                          .header{margin-bottom:20px;border-bottom:2px solid #e5e7eb;padding-bottom:14px;text-align:center;}
+                          .title{font-size:20px;font-weight:800;color:#111;letter-spacing:-0.5px;}
+                          .subtitle{font-size:14px;font-weight:700;color:#4f46e5;margin-top:4px;text-transform:uppercase;}
+                          .date-badge{font-size:12px;font-weight:600;color:#6b7280;margin-top:2px;}
+                          table{width:100%;border-collapse:collapse;margin-top:14px;}
+                          th{background:#f9fafb;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#374151;padding:9px 12px;border:1px solid #d1d5db;}
+                          td{padding:8px 12px;border:1px solid #e5e7eb;}
+                          @media print{body{padding:10px;}}
+                        </style></head><body>
+                        <div class="header">
+                          <div class="title">SUBJECT-WISE ATTENDANCE REPORT</div>
+                          <div class="subtitle">${name}</div>
+                          ${monthLabel && yearLabel ? `<div class="date-badge">📅 ${monthLabel} ${yearLabel}</div>` : ''}
+                        </div>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th style="width:50px;text-align:center;">Sl.No.</th>
+                              <th style="text-align:left;">Subject</th>
+                              <th style="text-align:center;">Total Class</th>
+                              <th style="text-align:center;">Present</th>
+                              <th style="text-align:center;">Absent</th>
+                              <th style="text-align:center;">Percentage</th>
+                            </tr>
+                          </thead>
+                          <tbody>${tableRows}${footerRow}</tbody>
+                        </table></body></html>`;
+
+                        const iframe = document.createElement('iframe');
+                        iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;visibility:hidden;';
+                        document.body.appendChild(iframe);
+                        iframe.contentDocument.open();
+                        iframe.contentDocument.write(html);
+                        iframe.contentDocument.close();
+                        setTimeout(() => {
+                          iframe.contentWindow.focus();
+                          iframe.contentWindow.print();
+                          setTimeout(() => document.body.removeChild(iframe), 500);
+                        }, 400);
+                        return;
+                      }
                       const id = detailView?.student?._id || '';
                       const totalCount = detailedRecords.length;
                       const className = detailedRecords?.[0]?.className || '';
@@ -2081,6 +2425,89 @@ const DataTableComponent = ({
                 <p className="text-lg font-medium">No records found</p>
                 <p className="text-sm">There are no matching entries for the selected filter.</p>
               </div>
+            ) : subjectDrilldown ? (
+              <div>
+                {subjectDrilldown.records.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-background">
+                    <p className="text-sm font-medium">No records found</p>
+                  </div>
+                ) : (
+                  <div className="border rounded-md sm:rounded-lg shadow-sm bg-background overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                          <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
+                          <TableHead className="w-[110px] sm:w-[130px] px-2 sm:px-4 font-bold whitespace-nowrap">Date &amp; Day</TableHead>
+                          <TableHead className="min-w-[100px] sm:min-w-[140px] px-2 sm:px-4 font-bold whitespace-nowrap">Period</TableHead>
+                          {subjectDrilldown.filterType === "total" && (
+                            <TableHead className="min-w-[110px] sm:min-w-[140px] px-2 sm:px-4 font-bold text-center">Status</TableHead>
+                          )}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {subjectDrilldown.records.map((rec, idx) => {
+                          const isAbsent = rec.present === false;
+                          return (
+                            <TableRow
+                              key={idx}
+                              className={cn(
+                                "transition-colors",
+                                isAbsent ? "bg-red-50/40 hover:bg-red-50/60 dark:bg-red-950/10 dark:hover:bg-red-950/20" : "hover:bg-muted/30"
+                              )}
+                            >
+                              <TableCell className="text-center font-medium text-muted-foreground py-3">
+                                {idx + 1}
+                              </TableCell>
+                              <TableCell className="font-medium whitespace-nowrap py-3 px-2 sm:px-4">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">
+                                    {new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground font-medium">
+                                    {new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' })}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-3 px-2 sm:px-4">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-sm whitespace-nowrap">
+                                    {rec.periodNumber ? `Period #${rec.periodNumber}` : "Scheduled Period"}
+                                  </span>
+                                  {subjectDrilldown.filterType === "absent" && isAbsent && rec.leaveReason && (
+                                    <span className="text-xs text-red-500 dark:text-red-400 font-medium mt-1 leading-tight">
+                                      {rec.leaveReason}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              {subjectDrilldown.filterType === "total" && (
+                                <TableCell className="text-center py-3 px-2 sm:px-4">
+                                  {rec.present === true ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                      <UserCheck className="h-3 w-3" /> Present
+                                    </span>
+                                  ) : (
+                                    <div className="flex flex-col gap-1 items-center">
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                        <UserX className="h-3 w-3" /> Absent
+                                      </span>
+                                      {rec.leaveReason && (
+                                        <span className="text-xs text-red-500 dark:text-red-400 font-medium leading-tight">
+                                          {rec.leaveReason}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="border rounded-md sm:rounded-lg shadow-sm bg-background overflow-x-auto">
                 <Table>
@@ -2089,7 +2516,16 @@ const DataTableComponent = ({
                       {detailView?.viewType === "studentList" && (
                         <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
                       )}
-                      {detailView?.viewType === "studentList" ? (
+                      {detailView?.viewType === "subjectSummary" ? (
+                        <>
+                          <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
+                          <TableHead className="font-bold">Subject Name</TableHead>
+                          <TableHead className="text-center font-bold">Total Class</TableHead>
+                          <TableHead className="text-center font-bold">Present</TableHead>
+                          <TableHead className="text-center font-bold">Absent</TableHead>
+                          <TableHead className="text-center font-bold">Percentage</TableHead>
+                        </>
+                      ) : detailView?.viewType === "studentList" ? (
                         <>
                           <TableHead className="w-[120px] font-bold">Student ID</TableHead>
                           <TableHead className="font-bold">Name</TableHead>
@@ -2109,7 +2545,9 @@ const DataTableComponent = ({
                           <TableHead className="min-w-[130px] sm:min-w-[220px] px-2 sm:px-4 font-bold whitespace-nowrap">
                             {resource === "studentMasjidAttendances" ? "Prayer / Session" : "Subject"}
                           </TableHead>
-                          {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                          {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances") &&
+                           detailView?.colHeader !== "Present" &&
+                           detailView?.colHeader !== "Absent" && (
                             <TableHead className="min-w-[110px] sm:min-w-[140px] px-2 sm:px-4 font-bold">
                               Status
                             </TableHead>
@@ -2137,7 +2575,95 @@ const DataTableComponent = ({
                               {i + 1}
                             </TableCell>
                           )}
-                          {detailView?.viewType === "studentList" ? (
+                          {detailView?.viewType === "subjectSummary" ? (
+                            <>
+                              <TableCell className="text-center font-medium text-muted-foreground py-3">
+                                {i + 1}
+                              </TableCell>
+                              <TableCell className="font-bold text-sm py-3">
+                                <div className="flex flex-col">
+                                  <span>{rec.subjectName || "—"}</span>
+                                  {rec.teacherName && (
+                                    <span className="text-xs text-muted-foreground font-normal mt-0.5">
+                                      {rec.teacherName}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center font-medium text-sm py-3">
+                                <button
+                                  type="button"
+                                  className="px-2.5 py-1 rounded-md hover:bg-muted font-bold text-foreground cursor-pointer transition-colors"
+                                  onClick={() => {
+                                    const subRecs = (rec.records || []).slice().sort((a, b) => {
+                                      const timeA = a.date ? new Date(a.date).getTime() : 0;
+                                      const timeB = b.date ? new Date(b.date).getTime() : 0;
+                                      if (timeA !== timeB) return timeA - timeB;
+                                      return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
+                                    });
+                                    setSubjectDrilldown({
+                                      subjectName: rec.subjectName,
+                                      filterType: "total",
+                                      records: subRecs,
+                                      className: detailView?.student?.name || "",
+                                    });
+                                  }}
+                                  title="View all dates"
+                                >
+                                  {rec.totalClass ?? rec.total ?? 0}
+                                </button>
+                              </TableCell>
+                              <TableCell className="text-center font-semibold text-sm py-3 text-green-600 dark:text-green-400">
+                                <button
+                                  type="button"
+                                  className="px-2.5 py-1 rounded-md hover:bg-green-100 dark:hover:bg-green-900/40 font-bold text-green-600 dark:text-green-400 cursor-pointer transition-colors"
+                                  onClick={() => {
+                                    const subRecs = (rec.records || []).filter((r) => r.present === true).slice().sort((a, b) => {
+                                      const timeA = a.date ? new Date(a.date).getTime() : 0;
+                                      const timeB = b.date ? new Date(b.date).getTime() : 0;
+                                      if (timeA !== timeB) return timeA - timeB;
+                                      return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
+                                    });
+                                    setSubjectDrilldown({
+                                      subjectName: rec.subjectName,
+                                      filterType: "present",
+                                      records: subRecs,
+                                      className: detailView?.student?.name || "",
+                                    });
+                                  }}
+                                  title="View present dates"
+                                >
+                                  {rec.present ?? 0}
+                                </button>
+                              </TableCell>
+                              <TableCell className="text-center font-semibold text-sm py-3 text-red-600 dark:text-red-400">
+                                <button
+                                  type="button"
+                                  className="px-2.5 py-1 rounded-md hover:bg-red-100 dark:hover:bg-red-900/40 font-bold text-red-600 dark:text-red-400 cursor-pointer transition-colors"
+                                  onClick={() => {
+                                    const subRecs = (rec.records || []).filter((r) => r.present === false).slice().sort((a, b) => {
+                                      const timeA = a.date ? new Date(a.date).getTime() : 0;
+                                      const timeB = b.date ? new Date(b.date).getTime() : 0;
+                                      if (timeA !== timeB) return timeA - timeB;
+                                      return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
+                                    });
+                                    setSubjectDrilldown({
+                                      subjectName: rec.subjectName,
+                                      filterType: "absent",
+                                      records: subRecs,
+                                      className: detailView?.student?.name || "",
+                                    });
+                                  }}
+                                  title="View absent dates"
+                                >
+                                  {rec.absent ?? 0}
+                                </button>
+                              </TableCell>
+                              <TableCell className="text-center font-bold text-sm py-3 text-indigo-600 dark:text-indigo-400">
+                                {rec.percentage || (rec.totalClass ? `${((rec.present / rec.totalClass) * 100).toFixed(2)}%` : "0.00%")}
+                              </TableCell>
+                            </>
+                          ) : detailView?.viewType === "studentList" ? (
                             <>
                               <TableCell className="font-mono text-xs py-3">{rec.studentId || "—"}</TableCell>
                               <TableCell className="font-bold text-sm py-3 uppercase">{rec.studentName || rec.name || "—"}</TableCell>
@@ -2184,7 +2710,7 @@ const DataTableComponent = ({
                                     {rec.periodNumber ? `#${rec.periodNumber} - ` : ""}
                                     {rec.prayer || rec.subjectName || "—"}
                                   </span>
-                                  {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                                  {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances") && (
                                     <span className="text-xs text-muted-foreground mt-0.5 whitespace-normal md:whitespace-nowrap">
                                       {resource === "teacherAttendances" ? (rec.className || "—") : (rec.teacherName || "—")}
                                     </span>
@@ -2194,9 +2720,16 @@ const DataTableComponent = ({
                                       On Leave
                                     </span>
                                   )}
+                                  {detailView?.colHeader === "Absent" && isAbsent && rec.leaveReason && (
+                                    <span className="text-xs text-red-500 dark:text-red-400 font-medium mt-0.5 leading-tight">
+                                      {rec.leaveReason}
+                                    </span>
+                                  )}
                                 </div>
                               </TableCell>
-                              {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                              {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances") &&
+                               detailView?.colHeader !== "Present" &&
+                               detailView?.colHeader !== "Absent" && (
                                 <TableCell className="text-muted-foreground text-sm py-3 px-2 sm:px-4">
                                   {resource === "teacherAttendances" ? (
                                     <div className="flex flex-col items-start gap-1.5">
@@ -2211,7 +2744,7 @@ const DataTableComponent = ({
                                               <UserX className="h-3 w-3" /> Absent
                                             </span>
                                             {rec.leaveReason && (
-                                              <span className="text-[10px] text-orange-500 font-semibold leading-tight bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-100 dark:border-orange-900/50">
+                                              <span className="text-xs text-red-500 dark:text-red-400 font-medium leading-tight">
                                                 {rec.leaveReason}
                                               </span>
                                             )}
@@ -2234,7 +2767,7 @@ const DataTableComponent = ({
                                               <UserX className="h-3 w-3" /> Absent
                                             </span>
                                             {rec.leaveReason && (
-                                              <span className="text-[10px] text-orange-500 font-semibold leading-tight bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-100 dark:border-orange-900/50">
+                                              <span className="text-xs text-red-500 dark:text-red-400 font-medium leading-tight">
                                                 {rec.leaveReason}
                                               </span>
                                             )}

@@ -311,6 +311,25 @@ const useTableColumns = (columnConfig, onCellClick) => {
       };
     }
 
+    // Apply clickable name formatting if type includes "clickableName"
+    if (col.type?.includes("clickableName")) {
+      columnDefinition.cell = ({ row }) => {
+        const name = row.original[col.accessorKey] || row.original.name;
+        return (
+          <button
+            type="button"
+            className="font-bold text-left cursor-pointer text-indigo-900 dark:text-indigo-300 hover:text-blue-600 hover:underline transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCellClick?.(row.original, col);
+            }}
+          >
+            {name}
+          </button>
+        );
+      };
+    }
+
     // Apply avatar formatting if type includes "avatar"
     if (col.type?.includes("avatar")) {
       columnDefinition.cell = ({ row }) => {

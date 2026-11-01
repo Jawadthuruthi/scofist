@@ -347,6 +347,11 @@ export async function GET(req, res) {
               teacherName: allTeachersMap.get(teacherIdStr) || "N/A",
               leaveReason: finalLeaveReason || null
             };
+          }).sort((a, b) => {
+            const timeA = a.date ? new Date(a.date).getTime() : 0;
+            const timeB = b.date ? new Date(b.date).getTime() : 0;
+            if (timeA !== timeB) return timeA - timeB;
+            return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
           })
         };
       });
@@ -622,6 +627,11 @@ export async function GET(req, res) {
             teacherName: item.teacherName || "N/A",
             leaveReason: finalLeaveReason || null
           };
+        }).sort((a, b) => {
+          const timeA = a.date ? new Date(a.date).getTime() : 0;
+          const timeB = b.date ? new Date(b.date).getTime() : 0;
+          if (timeA !== timeB) return timeA - timeB;
+          return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
         })
       };
     });

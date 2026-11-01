@@ -45,6 +45,7 @@ const useCrud = (apiEndpoint, apiKey) => {
           queryClient.invalidateQueries({ queryKey: ["teacherAttendances"] });
           queryClient.invalidateQueries({ queryKey: ["timeTables"] });
           queryClient.invalidateQueries({ queryKey: ["leave-records"] });
+          queryClient.invalidateQueries({ queryKey: ["classAttendances"] });
         }
         
         // Refresh server components
@@ -69,6 +70,7 @@ const useCrud = (apiEndpoint, apiKey) => {
           queryClient.invalidateQueries({ queryKey: ["teacherAttendances"] });
           queryClient.invalidateQueries({ queryKey: ["timeTables"] });
           queryClient.invalidateQueries({ queryKey: ["leave-records"] });
+          queryClient.invalidateQueries({ queryKey: ["classAttendances"] });
         }
         
         // Refresh server components
@@ -91,6 +93,7 @@ const useCrud = (apiEndpoint, apiKey) => {
           queryClient.invalidateQueries({ queryKey: ["teacherAttendances"] });
           queryClient.invalidateQueries({ queryKey: ["timeTables"] });
           queryClient.invalidateQueries({ queryKey: ["leave-records"] });
+          queryClient.invalidateQueries({ queryKey: ["classAttendances"] });
         }
         
         // Refresh server components

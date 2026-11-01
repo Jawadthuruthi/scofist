@@ -513,6 +513,14 @@ export async function GET(req, res) {
           r.present = false;
         }
       });
+
+      // Sort attendanceRecords in ascending order of date and periodNumber
+      (teacher.attendanceRecords || []).sort((a, b) => {
+        const timeA = a.date ? new Date(a.date).getTime() : 0;
+        const timeB = b.date ? new Date(b.date).getTime() : 0;
+        if (timeA !== timeB) return timeA - timeB;
+        return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
+      });
     });
 
     const paginatedData = limit === Infinity 

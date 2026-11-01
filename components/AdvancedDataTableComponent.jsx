@@ -11,7 +11,8 @@ const AdvancedDataTableComponent = ({
 }) => {
   const [activeTab, setActiveTab] = useState(tabsConfig[0]?.value || "");
 
-  const isTwoTabs = tabsConfig.length === 2;
+  const tabsCount = tabsConfig.length;
+  const gridClass = tabsCount === 2 ? "grid grid-cols-2 w-full" : tabsCount === 3 ? "grid grid-cols-3 w-full" : "flex space-x-2";
 
   return (
     <div className="space-y-6">
@@ -23,7 +24,7 @@ const AdvancedDataTableComponent = ({
           className="w-full"
         >
           <TabsList
-            className={isTwoTabs ? "grid grid-cols-2 w-full" : "flex space-x-2"}
+            className={gridClass}
           >
             {tabsConfig.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} className="w-full">
