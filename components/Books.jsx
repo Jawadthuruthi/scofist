@@ -578,7 +578,18 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                     </TableRow>
                   ) : (
                     filteredBooks.map((book) => (
-                      <TableRow key={book._id}>
+                      <TableRow
+                        key={book._id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => {
+                          const filename = `${book.name}_${book.course}`.replace(/[/\\?%*:|"<>]/g, "_").replace(/\s+/g, "_") + ".pdf";
+                          setPreviewItem({
+                            url: book.fileUrl,
+                            title: `${book.name} — ${book.course}`,
+                            filename,
+                          });
+                        }}
+                      >
                         <TableCell className="font-medium whitespace-nowrap text-xs sm:text-sm">
                           {book.course}
                         </TableCell>
@@ -587,14 +598,15 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                             {book.name}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
+                        <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1.5 sm:gap-2">
                             <Button
                               size="sm"
                               variant="outline"
                               className="h-8 px-2 sm:px-3 text-xs"
                               title="Preview"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const filename = `${book.name}_${book.course}`.replace(/[/\\?%*:|"<>]/g, "_").replace(/\s+/g, "_") + ".pdf";
                                 setPreviewItem({
                                   url: book.fileUrl,

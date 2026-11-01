@@ -306,7 +306,7 @@ const items = [
         title: "Books",
         url: "/dashboard/downloads/books",
         icon: BookOpen,
-        allowedRoles: ["College Admin", "Teacher"],
+        allowedRoles: ["College Admin", "Teacher", "Student"],
       },
       {
         title: "Identity Cards",

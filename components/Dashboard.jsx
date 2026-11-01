@@ -81,7 +81,7 @@ import CollegeAdminAISearch from "@/components/CollegeAdminAISearch";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";
-import { formatDateForDisplay, sortClasses, getISTDate, getISTDateString, copyToClipboard } from "@/lib/utils";
+import { formatDateForDisplay, formatDateShort, sortClasses, getISTDate, getISTDateString, copyToClipboard } from "@/lib/utils";
 import StudentProfileDialog from "@/components/StudentProfileDialog";
 import {
   Popover,
@@ -3102,7 +3102,7 @@ export default function Dashboard({
                     <span>
                       {dateYYYYMMDD === todayISTStr
                         ? "View scheduled classes for Today"
-                        : `View scheduled classes for ${currentDateStr}`}
+                        : `View scheduled classes for ${formatDateShort(dateYYYYMMDD)}`}
                     </span>
                     {activeScheduleName && (
                       <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-semibold">
@@ -3198,7 +3198,7 @@ export default function Dashboard({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 text-xs font-medium"
+                        className="hidden sm:inline-flex h-9 text-xs font-medium"
                         onClick={() => router.push("/dashboard")}
                       >
                         Today

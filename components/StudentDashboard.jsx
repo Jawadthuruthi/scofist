@@ -264,10 +264,10 @@ function DownloadsTabContent({ apiKey }) {
   };
 
   const previewBook = (b) => {
-    const filename = `${b.name}.pdf`.replace(/[/\\?%*:|"<>]/g, "_").replace(/\s+/g, "_");
+    const filename = `${b.name}${b.course ? `_${b.course}` : ""}`.replace(/[/\\?%*:|"<>]/g, "_").replace(/\s+/g, "_") + ".pdf";
     setPreviewItem({
       url: b.fileUrl,
-      title: b.name,
+      title: b.course ? `${b.name} — ${b.course}` : b.name,
       filename,
     });
   };
@@ -407,14 +407,14 @@ function DownloadsTabContent({ apiKey }) {
                 <TableRow
                   key={d._id}
                   onClick={() => previewPaper(d)}
-                  className="hover:bg-muted/30 transition-colors cursor-pointer"
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
                   <TableCell className="py-2.5 text-sm pl-1 sm:pl-2">{d.course}</TableCell>
                   <TableCell className="py-2.5 text-sm">{d.year}</TableCell>
                   <TableCell className="py-2.5 text-sm">{d.semester}</TableCell>
                   <TableCell className="py-2.5 text-sm font-semibold text-teal-700 dark:text-teal-300">{d.subject}</TableCell>
-                  <TableCell className="py-2.5 text-right">
+                  <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
                       <Button
                         size="sm"
@@ -480,12 +480,12 @@ function DownloadsTabContent({ apiKey }) {
                 <TableRow
                   key={s._id}
                   onClick={() => previewSyllabus(s)}
-                  className="hover:bg-muted/30 transition-colors cursor-pointer"
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
                   <TableCell className="py-2.5 text-sm pl-1 sm:pl-2">{s.course}</TableCell>
                   <TableCell className="py-2.5 text-sm">{s.year}</TableCell>
-                  <TableCell className="py-2.5 text-right">
+                  <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
                       <Button
                         size="sm"
@@ -549,12 +549,12 @@ function DownloadsTabContent({ apiKey }) {
                 <TableRow
                   key={b._id}
                   onClick={() => previewBook(b)}
-                  className="hover:bg-muted/30 transition-colors cursor-pointer"
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
                   <TableCell className="py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-300 pl-1 sm:pl-2">{b.name}</TableCell>
                   <TableCell className="py-2.5 text-sm">{b.course || "—"}</TableCell>
-                  <TableCell className="py-2.5 text-right">
+                  <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
                       <Button
                         size="sm"

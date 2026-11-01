@@ -559,17 +559,29 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                     </TableRow>
                   ) : (
                     filteredSyllabus.map((syllabus) => (
-                      <TableRow key={syllabus._id}>
+                      <TableRow
+                        key={syllabus._id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => {
+                          const filename = `${syllabus.course}_Year${syllabus.year}_Syllabus.pdf`.replace(/\s+/g, "_");
+                          setPreviewItem({
+                            url: syllabus.fileUrl,
+                            title: `${syllabus.course} Year ${syllabus.year} Syllabus`,
+                            filename,
+                          });
+                        }}
+                      >
                         <TableCell>{syllabus.course}</TableCell>
                         <TableCell>{syllabus.year}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
                               variant="outline"
                               className="h-8 px-2 sm:px-3 text-xs"
                               title="Preview"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const filename = `${syllabus.course}_Year${syllabus.year}_Syllabus.pdf`.replace(/\s+/g, "_");
                                 setPreviewItem({
                                   url: syllabus.fileUrl,

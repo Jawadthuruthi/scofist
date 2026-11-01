@@ -45,7 +45,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil, Eye, X, AlertTriangle } from "lucide-react";
+import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil, Eye, X, AlertTriangle, Search } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -65,6 +65,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [previewItem, setPreviewItem] = useState(null); // { url, title }
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterYear, setFilterYear] = useState(null);
   const [filterSemester, setFilterSemester] = useState(null);
   const [filterCourse, setFilterCourse] = useState(null);
@@ -395,13 +396,20 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
 
   const filteredDownloads = useMemo(() => {
     const all = fetchDownloadsQuery.data?.downloads || initialDownloads;
+    const query = searchQuery.trim().toLowerCase();
     return all.filter((d) => {
       if (filterCourse && d.course !== filterCourse) return false;
       if (filterYear && String(d.year) !== String(filterYear)) return false;
       if (filterSemester && String(d.semester) !== String(filterSemester)) return false;
+      if (query) {
+        const matchSubject = d.subject && d.subject.toLowerCase().includes(query);
+        const matchFileName = d.fileName && d.fileName.toLowerCase().includes(query);
+        const matchCourse = d.course && d.course.toLowerCase().includes(query);
+        if (!matchSubject && !matchFileName && !matchCourse) return false;
+      }
       return true;
     });
-  }, [fetchDownloadsQuery.data, initialDownloads, filterCourse, filterYear, filterSemester]);
+  }, [fetchDownloadsQuery.data, initialDownloads, filterCourse, filterYear, filterSemester, searchQuery]);
 
   const years = [1, 2, 3, 4, 5];
   const semesters = [1, 2];
@@ -569,9 +577,54 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div className="space-y-2 col-span-2 md:col-span-2">
-                <Label>Filter by Course</Label>
+            <div className="grid grid-cols-2 md:grid-cols-12 gap-4 mb-4 items-end">
+              <div className="space-y-2 col-span-2 md:col-span-4">
+                <div className="flex items-center justify-between h-5">
+                  <Label htmlFor="search-question-papers">Search</Label>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="search-question-papers"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by subject..."
+                    className="h-10 pl-9 pr-8 w-full"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-sm"
+                      title="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2 col-span-2 md:col-span-4">
+                <div className="flex items-center justify-between h-5">
+                  <Label>Filter by Course</Label>
+                  {filterCourse && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterCourse(null)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
                 <MultiSelect
                   value={filterCourse || ""}
                   onValueChange={(v) => setFilterCourse(v || null)}
@@ -579,17 +632,29 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                   placeholder="All Courses"
                   noBadge={true}
                   multiSelect={false}
+                  className="h-10 min-h-10"
                   onOptionEdit={activeRole === "College Admin" ? handleOptionEdit : undefined}
                   onOptionDelete={activeRole === "College Admin" ? handleOptionDelete : undefined}
                 />
               </div>
-              <div className="space-y-2 col-span-1">
-                <Label>Filter by Year</Label>
+              <div className="space-y-2 col-span-1 md:col-span-2">
+                <div className="flex items-center justify-between h-5">
+                  <Label>Filter by Year</Label>
+                  {filterYear && filterYear !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterYear(null)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
                 <Select
                   value={filterYear ?? "all"}
                   onValueChange={(v) => setFilterYear(v === "all" ? null : v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10 w-full">
                     <SelectValue placeholder="All Years" />
                   </SelectTrigger>
                   <SelectContent>
@@ -602,13 +667,24 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 col-span-1">
-                <Label>Filter by Sem</Label>
+              <div className="space-y-2 col-span-1 md:col-span-2">
+                <div className="flex items-center justify-between h-5">
+                  <Label>Filter by Sem</Label>
+                  {filterSemester && filterSemester !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterSemester(null)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
                 <Select
                   value={filterSemester ?? "all"}
                   onValueChange={(v) => setFilterSemester(v === "all" ? null : v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10 w-full">
                     <SelectValue placeholder="All Sems" />
                   </SelectTrigger>
                   <SelectContent>
@@ -637,8 +713,10 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                 <TableBody>
                   {filteredDownloads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        No downloads available
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        {(fetchDownloadsQuery.data?.downloads || initialDownloads).length === 0
+                          ? "No downloads available"
+                          : "No question papers match your search or filter criteria"}
                       </TableCell>
                     </TableRow>
                   ) : (
