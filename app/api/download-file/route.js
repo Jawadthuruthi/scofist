@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
 import { isR2Url } from "@/lib/r2";
 
+const MIME_MAP = {
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ppt: "application/vnd.ms-powerpoint",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+};
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -28,71 +42,64 @@ export async function GET(req) {
       );
     }
 
-    console.log("Fetching file from:", fileUrl);
-    console.log("Requested filename:", filename);
+    // Forward range header if present (allows PDF.js and media players to stream chunks)
+    const clientRange = req.headers.get("range");
+    const fetchHeaders = {
+      "User-Agent": "Mozilla/5.0",
+    };
+    if (clientRange) {
+      fetchHeaders["Range"] = clientRange;
+    }
 
-    // Fetch the file from Cloudinary with proper headers
-    const response = await fetch(fileUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-      },
+    // Fetch upstream stream directly
+    const upstreamResponse = await fetch(fileUrl, {
+      headers: fetchHeaders,
     });
 
-    console.log("Cloudinary response status:", response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Cloudinary error:", errorText);
+    if (!upstreamResponse.ok && upstreamResponse.status !== 206) {
+      const errorText = await upstreamResponse.text().catch(() => "");
+      console.error("Upstream file fetch error:", upstreamResponse.status, errorText);
       throw new Error(
-        `Failed to fetch file from Cloudinary. Status: ${response.status}`
+        `Failed to fetch file from storage host. Status: ${upstreamResponse.status}`
       );
     }
 
-    // Get the buffer
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
     // Determine content type
-    let contentType = response.headers.get("content-type");
-
-    // Check magic bytes for PDF
-    if (buffer.length >= 4 && buffer.slice(0, 4).toString() === "%PDF") {
-      contentType = "application/pdf";
-    } else if (!contentType || contentType === "application/octet-stream") {
+    let contentType = upstreamResponse.headers.get("content-type");
+    if (!contentType || contentType === "application/octet-stream") {
       const ext = filename.toLowerCase().split(".").pop();
-      const mimeTypes = {
-        pdf: "application/pdf",
-        doc: "application/msword",
-        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ppt: "application/vnd.ms-powerpoint",
-        pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        xls: "application/vnd.ms-excel",
-        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        png: "image/png",
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        webp: "image/webp",
-      };
-      contentType = mimeTypes[ext] || "application/octet-stream";
+      contentType = MIME_MAP[ext] || "application/octet-stream";
     }
-
-    console.log("Final Content-Type:", contentType, "isInline:", isInline);
 
     // Format filename for headers (support UTF-8/Arabic)
     const encodedFilename = encodeURIComponent(filename).replace(/'/g, "%27");
     const asciiFilename = filename.replace(/[^\x00-\x7F]/g, "_");
-
     const dispositionType = isInline ? "inline" : "attachment";
 
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `${dispositionType}; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`,
-        "Content-Length": buffer.byteLength.toString(),
-        "Cache-Control": "public, max-age=3600, must-revalidate",
-        "X-Content-Type-Options": "nosniff",
-      },
+    const responseHeaders = new Headers();
+    responseHeaders.set("Content-Type", contentType);
+    responseHeaders.set(
+      "Content-Disposition",
+      `${dispositionType}; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`
+    );
+    responseHeaders.set("Cache-Control", "public, max-age=86400, must-revalidate");
+    responseHeaders.set("X-Content-Type-Options", "nosniff");
+    responseHeaders.set("Accept-Ranges", "bytes");
+
+    const contentLength = upstreamResponse.headers.get("content-length");
+    if (contentLength) {
+      responseHeaders.set("Content-Length", contentLength);
+    }
+
+    const contentRange = upstreamResponse.headers.get("content-range");
+    if (contentRange) {
+      responseHeaders.set("Content-Range", contentRange);
+    }
+
+    // Stream upstream body directly without buffering into server RAM
+    return new NextResponse(upstreamResponse.body, {
+      status: upstreamResponse.status,
+      headers: responseHeaders,
     });
 
   } catch (error) {

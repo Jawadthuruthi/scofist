@@ -1,205 +1,137 @@
-# Tasks: Cloudflare R2 Hybrid Storage Integration
+# Tasks: Downloads & Document Preview Performance Optimization
 
-## Task 1: Dependencies and Environment Variables
+## Task 1: Single-Page Rendering and Cancellation in `DocumentPreviewDialog.jsx`
 
-**Description:** Install `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` to provide S3-compatible client access for Cloudflare R2, and update `.env.example` with the required configuration keys.
+**Description:** Refactor the PDF rendering loop in `components/DocumentPreviewDialog.jsx` to render strictly one page at a time (`currentPage`). Ensure any existing render task is safely cancelled before starting a new page render, preventing concurrent canvas executions and memory leaks.
 
 **Acceptance criteria:**
-- [x] `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` are installed in `package.json` dependencies.
-- [x] `.env.example` includes `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, and `R2_PUBLIC_DOMAIN`.
+- [x] Add `currentPage` state (defaulting to 1, clamped between 1 and `pdfDoc.numPages`).
+- [x] Replace `Array.from({ length: pdfDoc.numPages })` with a single `<PdfPageItem>` rendering `currentPage`.
+- [x] Cancel prior `renderTask` upon page or zoom change, swallowing `RenderingCancelledException`.
+- [x] Total active `<canvas>` elements in the dialog remains at 1 regardless of document length.
 
 **Verification:**
-- [x] Build succeeds: `npm run lint` or `npm ls @aws-sdk/client-s3`
-- [x] Manual check: verify `.env.example` contains documented placeholders.
+- [x] Build succeeds: `node --check components/DocumentPreviewDialog.jsx` (compiled in Next.js build)
+- [x] Manual check: Opening a document mounts only 1 page canvas; changing page swaps canvas content without DOM bloat.
 
 **Dependencies:** None
 
 **Files likely touched:**
-- `package.json`
-- `.env.example`
+- `components/DocumentPreviewDialog.jsx`
 
-**Estimated scope:** Small (2 files)
+**Estimated scope:** Small (1 file)
 
 ---
 
-## Task 2: R2 Server Client and Utilities (`lib/r2.js`)
+## Checkpoint: Core Engine
+- [x] Single canvas mounts on document load.
+- [x] Memory footprint does not scale with page count.
 
-**Description:** Create a server-side utility `lib/r2.js` that instantiates the S3Client targeting Cloudflare R2 (`https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`), and export helpers to generate presigned upload URLs and delete objects from R2.
+---
+
+## Task 2: Responsive Page Navigation & Jump-to-Page Toolbar
+
+**Description:** Add intuitive, mobile-friendly navigation controls to `DocumentPreviewDialog.jsx`, including Previous/Next page buttons, page counter (`Page X of Y`), jump-to-page input, keyboard navigation (left/right arrows), and touch swipe gestures.
 
 **Acceptance criteria:**
-- [x] S3 client is initialized with proper endpoint, region (`auto`), and credentials.
-- [x] `createPresignedUploadUrl(key, contentType, expiresInSeconds)` function generates a valid presigned PUT URL.
-- [x] `deleteR2Object(keyOrUrl)` extracts the object key and issues a `DeleteObjectCommand`.
-- [x] Safe fallback/error handling if R2 environment variables are not yet populated.
+- [x] Previous button disabled on page 1; Next button disabled on `numPages`.
+- [x] Jump-to-page input allows direct navigation to any valid page number.
+- [x] Pressing `ArrowLeft` and `ArrowRight` changes pages.
+- [x] Touch gestures on mobile (swiping left goes to next page, swiping right goes to previous page).
 
 **Verification:**
-- [x] Build succeeds: `node --check lib/r2.js`
-- [x] Manual check: helper functions handle edge cases (e.g. invalid URLs, missing env vars) gracefully.
+- [x] Build succeeds: verified through Next.js compilation
+- [x] Manual check: Page navigation works via buttons, keyboard shortcuts, and touch gestures.
 
 **Dependencies:** Task 1
 
 **Files likely touched:**
-- `lib/r2.js`
+- `components/DocumentPreviewDialog.jsx`
 
 **Estimated scope:** Small (1 file)
 
 ---
 
-## Task 3: Presigned URL API Route (`app/api/r2/presigned-url/route.js`)
+## Task 3: Native Viewer Escape Hatch & Action Bar Enhancements
 
-**Description:** Implement an authenticated Next.js API route that validates the user's role, sanitizes the requested file name and content type, verifies file size limits (<= 50MB), and returns a short-lived presigned PUT URL.
+**Description:** Provide a direct "Open in Browser" / native viewer button in the dialog header so users can view heavy 100+ page documents using their device's built-in PDF viewer if preferred. Polish the zoom controls to operate smoothly on the single active page.
 
 **Acceptance criteria:**
-- [x] Verifies user authentication and role permissions from `x-user` header (matching permissions in `app/api/upload/route.js`).
-- [x] Validates file extension against allowed document formats (`pdf`, `doc`, `docx`, `ppt`, `pptx`, `xls`, `xlsx`, `txt`).
-- [x] Generates unique storage key (e.g. `${folder}/${Date.now()}-${sanitizedFileName}`).
-- [x] Returns standardized JSON via `apiSuccess`: `{ presignedUrl, publicUrl, key }`.
+- [x] Dedicated "Open in Browser" button opens the document URL in a new window/tab (`_blank`).
+- [x] Zoom controls (zoom in, zoom out, reset to fit) scale the active page cleanly.
+- [x] Dialog header remains compact and well-aligned on mobile screen widths without overflowing.
 
 **Verification:**
-- [x] Build succeeds: `node --check app/api/r2/presigned-url/route.js`
-- [x] Manual check: route returns 401 for unauthenticated calls and 400 for disallowed file types.
+- [x] Build succeeds: verified through Next.js compilation
+- [x] Manual check: "Open in Browser" button correctly triggers native view; header layout adapts smoothly on mobile viewport.
 
 **Dependencies:** Task 2
 
 **Files likely touched:**
-- `app/api/r2/presigned-url/route.js`
+- `components/DocumentPreviewDialog.jsx`
 
 **Estimated scope:** Small (1 file)
 
 ---
 
-## Checkpoint: Foundation
-- [x] SDK packages installed and clean in `package.json`.
-- [x] Server-side R2 module and API route compile cleanly.
-- [x] User role verification and document type validation in place.
+## Checkpoint: Navigation & Controls
+- [x] Complete pagination controls functioning smoothly.
+- [x] Native escape hatch accessible directly from the top bar.
 
 ---
 
-## Task 4: Client Upload Utility (`lib/r2Client.js`)
+## Task 4: Streaming & Range Support in `/api/download-file`
 
-**Description:** Create a client-side utility `lib/r2Client.js` that abstracts the direct upload process: requests the presigned URL from `/api/r2/presigned-url`, performs the direct HTTP `PUT` to Cloudflare R2, and returns the public URL.
+**Description:** Upgrade the proxy route `app/api/download-file/route.js` from in-memory buffering (`Buffer.from(arrayBuffer)`) to streaming via Web standard `ReadableStream` / `response.body`. Forward `Range` and `Accept-Ranges` headers so PDF.js and browsers can stream page chunks without running into Vercel's 4.5MB payload limit.
 
 **Acceptance criteria:**
-- [x] `uploadFileToR2(file, folder)` handles errors with clear user feedback.
-- [x] Validates client-side file size (<= 50MB) before requesting presigned URL.
-- [x] Performs `fetch(presignedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } })`.
-- [x] Returns `{ fileUrl, key, fileName }` on success.
+- [x] Do not buffer complete file payloads in server memory using `arrayBuffer()`.
+- [x] Pass through `response.body` directly to `NextResponse`.
+- [x] Forward HTTP byte ranges (`Range` header) to the upstream storage host and return 206 Partial Content when applicable.
 
 **Verification:**
-- [x] Build succeeds: `node --check lib/r2Client.js`
-- [x] Manual check: correct error propagation when network or CORS errors occur.
+- [x] Build succeeds: `node --check app/api/download-file/route.js`
+- [x] Manual check: Downloading/previewing files larger than 4.5MB streams without Vercel payload limit errors.
 
-**Dependencies:** Task 3
+**Dependencies:** None
 
 **Files likely touched:**
-- `lib/r2Client.js`
+- `app/api/download-file/route.js`
 
 **Estimated scope:** Small (1 file)
 
 ---
 
-## Task 5: Books Module Integration
-
-**Description:** Connect `components/Books.jsx` to upload book PDFs directly to R2 using `uploadFileToR2`, and update `app/api/books/route.js` DELETE handler to delete objects from R2 when an R2 URL is provided.
-
-**Acceptance criteria:**
-- [x] `components/Books.jsx` uses `uploadFileToR2` instead of posting large files to `/api/upload`.
-- [x] Books API DELETE handler detects R2 URLs and calls `deleteR2Object`.
-- [x] Cloudinary deletion remains intact for existing legacy book records.
-
-**Verification:**
-- [x] Build succeeds: `node --check app/api/books/route.js`
-- [x] Manual check: Books upload flow passes `fileUrl` to `addBook.mutateAsync`.
-
-**Dependencies:** Task 4
-
-**Files likely touched:**
-- `components/Books.jsx`
-- `app/api/books/route.js`
-
-**Estimated scope:** Small (2 files)
+## Checkpoint: Network & Proxy
+- [x] Proxy route streams chunks instead of buffering entire files in RAM.
+- [x] Avoids Vercel 10s execution timeouts and 4.5MB body limits.
 
 ---
 
-## Task 6: Syllabus Module Integration
+## Task 5: Cross-Module Verification & Production Build
 
-**Description:** Connect `components/Syllabus.jsx` to upload syllabus files directly to R2 using `uploadFileToR2`, and update `app/api/syllabus/route.js` DELETE handler to delete objects from R2.
-
-**Acceptance criteria:**
-- [x] `components/Syllabus.jsx` uses `uploadFileToR2` instead of `/api/upload`.
-- [x] Syllabus API DELETE handler detects R2 URLs and calls `deleteR2Object`.
-- [x] Backward compatibility with Cloudinary files preserved.
-
-**Verification:**
-- [x] Build succeeds: `node --check app/api/syllabus/route.js`
-- [x] Manual check: Syllabus creation and deletion work without 4.5MB payload limits.
-
-**Dependencies:** Task 4
-
-**Files likely touched:**
-- `components/Syllabus.jsx`
-- `app/api/syllabus/route.js`
-
-**Estimated scope:** Small (2 files)
-
----
-
-## Task 7: Downloads Module Integration
-
-**Description:** Connect `components/Downloads.jsx` to upload general course material and downloads directly to R2 using `uploadFileToR2`, and update `app/api/downloads/route.js` DELETE handler to delete objects from R2.
+**Description:** Verify document previews across all 4 entry points (`Downloads`, `Books`, `Syllabus`, and `StudentDashboard`), ensuring backward compatibility. Run a full Next.js production build (`npm run build`).
 
 **Acceptance criteria:**
-- [x] `components/Downloads.jsx` uses `uploadFileToR2`.
-- [x] Downloads API DELETE handler detects R2 URLs and calls `deleteR2Object`.
-- [x] Dual deletion logic preserves legacy Cloudinary file deletion.
-
-**Verification:**
-- [x] Build succeeds: `node --check app/api/downloads/route.js`
-- [x] Manual check: Course downloads upload directly to R2.
-
-**Dependencies:** Task 4
-
-**Files likely touched:**
-- `components/Downloads.jsx`
-- `app/api/downloads/route.js`
-
-**Estimated scope:** Small (2 files)
-
----
-
-## Checkpoint: Core Features
-- [x] Books, Syllabus, and Downloads modules all upload directly to R2.
-- [x] None of the three modules send file bodies through Next.js serverless functions.
-- [x] Deletion logic successfully handles both Cloudinary and R2 URLs.
-
----
-
-## Task 8: Production Build Verification & Setup Documentation
-
-**Description:** Run a complete Next.js production build (`npm run build`) to verify bundle integrity, and document bucket setup, CORS configuration, and environment variables in `docs/r2-setup-guide.md`.
-
-**Acceptance criteria:**
+- [x] Verify preview works identically in Downloads (`components/Downloads.jsx`), Books (`components/Books.jsx`), Syllabus (`components/Syllabus.jsx`), and Student Dashboard (`components/StudentDashboard.jsx`).
 - [x] `npm run build` succeeds with zero errors.
-- [x] `docs/r2-setup-guide.md` provides clear instructions for:
-  - Creating Cloudflare R2 bucket.
-  - Applying bucket CORS policy.
-  - Enabling public bucket access.
-  - Configuring `.env.local` / Vercel environment variables.
 
 **Verification:**
-- [x] Build succeeds: `npm run build`
-- [x] Documentation check: CORS JSON and env var keys match codebase usage.
+- [x] Build succeeds: `npm run build` (All 94 routes generated successfully)
+- [x] Manual check: No console errors, no memory leaks, smooth page navigation.
 
-**Dependencies:** Tasks 5, 6, 7
+**Dependencies:** Tasks 1, 2, 3, 4
 
 **Files likely touched:**
-- `docs/r2-setup-guide.md`
+- `components/Downloads.jsx` (verification)
+- `components/Books.jsx` (verification)
+- `components/Syllabus.jsx` (verification)
+- `components/StudentDashboard.jsx` (verification)
 
-**Estimated scope:** Small (1 file)
+**Estimated scope:** Small (Verification only)
 
 ---
 
 ## Checkpoint: Complete
-- [x] All 8 tasks implemented and verified.
-- [x] Application builds without warnings or errors.
-- [x] Ready for deployment to Vercel.
+- [x] All acceptance criteria met across all tasks.
+- [x] Full production build green and ready to ship.

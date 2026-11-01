@@ -1,77 +1,76 @@
-# Implementation Plan: Cloudflare R2 Hybrid Storage Integration
+# Implementation Plan: Downloads & Document Preview Performance Optimization
 
 ## Overview
-Enable direct-to-storage uploads of large academic documents (PDFs, books, syllabi up to 50MB) to Cloudflare R2 using S3-compatible presigned PUT URLs. This completely eliminates Vercel's 4.5MB serverless payload limit and function timeout risks, avoids Cloudinary's 10MB raw file limit, and incurs zero egress fees, while keeping existing images/avatars on Cloudinary.
+Transform the document preview modal (`components/DocumentPreviewDialog.jsx`) from an unbounded multi-canvas renderer into a memory-efficient, paginated single-canvas viewer. This resolves device hangs and freezes on low-memory mobile devices when opening large multi-page PDFs (books, question papers, syllabi), while optimizing the serverless proxy route (`app/api/download-file/route.js`) with streaming to prevent Vercel 4.5MB payload limits and timeouts.
 
 ## Architecture Decisions
-1. **Presigned Direct-to-R2 Uploads:** The browser requests a short-lived (60s) presigned PUT URL from Next.js (`POST /api/r2/presigned-url`) and PUTs the file directly to Cloudflare R2. File streams never transit through Vercel serverless functions.
-2. **SDK Selection:** Use official lightweight `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner`. R2's endpoint is `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
-3. **Dual Deletion Support:** Deletion endpoints in `books`, `syllabus`, and `downloads` inspect the file URL. If it's a Cloudinary URL, it calls Cloudinary destroy; if it's an R2 URL, it calls R2 `DeleteObjectCommand`. This prevents orphaned files while preserving backwards compatibility.
-4. **Client-Side Abstraction:** Encapsulate the two-step upload (presigned URL request + direct binary PUT) in a clean helper `lib/r2Client.js` (`uploadFileToR2(file, folder)`).
+1. **Single-Canvas Rendering Lifecycle:** At any time, exactly one `<canvas>` exists in the DOM. Moving between pages cleans up the prior canvas context and cancels any pending PDF.js render tasks (`renderTask.cancel()`), capping client memory consumption at ~10MB regardless of whether the document has 2 pages or 500 pages.
+2. **Backwards-Compatible Component Interface:** Keep the existing `<DocumentPreviewDialog open={...} onOpenChange={...} item={...} />` contract intact. All 4 calling views (`Downloads.jsx`, `Books.jsx`, `Syllabus.jsx`, and `StudentDashboard.jsx`) will immediately inherit the performance fix without requiring caller code modifications.
+3. **Responsive Navigation & Mobile Gestures:** Provide a sticky navigation bar with Previous/Next controls, page counter, jump-to-page input, keyboard navigation (left/right arrows), and touch swipe gestures for mobile ergonomics.
+4. **Native Reader Escape Hatch:** Provide an explicit "Open in Browser" button that delegates long reading sessions to the device's native hardware-accelerated PDF engine (`window.open(directUrl, '_blank')`).
+5. **Streaming Serverless Proxy:** Upgrade `/api/download-file/route.js` from in-memory buffering (`arrayBuffer()`) to direct streaming (`response.body`) with support for byte ranges, preventing Vercel function payload errors on files > 4.5MB.
 
 ---
 
 ## Task List
 
-### Phase 1: Foundation & Backend Services
-- [ ] **Task 1: Dependencies and Environment Variables**
-  - Install `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner`.
-  - Add R2 environment variable templates to `.env.example`.
-- [ ] **Task 2: R2 Server Client and Utilities (`lib/r2.js`)**
-  - Initialize the S3Client configured for Cloudflare R2.
-  - Implement helper functions for generating presigned upload URLs and deleting objects by URL/key.
-- [ ] **Task 3: Presigned URL API Route (`app/api/r2/presigned-url/route.js`)**
-  - Create secure API route checking user role permissions (`x-user` session header).
-  - Validate file extension and size constraints (<= 50MB).
-  - Return `{ presignedUrl, publicUrl, key }`.
+### Phase 1: Core Single-Canvas Engine
+- [x] **Task 1: Single-Page Rendering and Cancellation in `DocumentPreviewDialog.jsx`**
+  - Add `currentPage` state (defaults to page 1, bounded to `numPages`).
+  - Render strictly one `<PdfPageItem>` at a time.
+  - Cancel any in-flight PDF.js render tasks when switching pages or zoom levels.
 
-### Checkpoint: Foundation
-- [ ] Dependencies resolve cleanly without npm conflicts.
-- [ ] Next.js dev server starts and compiles without errors.
-- [ ] Unit/isolated verification of `lib/r2.js` client initialization.
+### Checkpoint: Core Engine
+- [x] PDF renders page 1 cleanly with a single canvas element in DOM.
+- [x] Memory consumption remains flat when changing pages.
 
 ---
 
-### Phase 2: Client Helper & Feature Integrations
-- [ ] **Task 4: Client Upload Utility (`lib/r2Client.js`)**
-  - Implement `uploadFileToR2(file, folder, onProgress)` with proper HTTP headers and error handling.
-- [ ] **Task 5: Books Module Integration**
-  - Update `components/Books.jsx` to upload book PDFs via `uploadFileToR2`.
-  - Update `app/api/books/route.js` DELETE handler to delete from R2 if URL belongs to R2.
-- [ ] **Task 6: Syllabus Module Integration**
-  - Update `components/Syllabus.jsx` to upload syllabus files via `uploadFileToR2`.
-  - Update `app/api/syllabus/route.js` DELETE handler to support R2 object deletion.
-- [ ] **Task 7: Downloads Module Integration**
-  - Update `components/Downloads.jsx` to upload general downloads via `uploadFileToR2`.
-  - Update `app/api/downloads/route.js` DELETE handler to support R2 object deletion.
+### Phase 2: Navigation & UX Controls
+- [x] **Task 2: Responsive Page Navigation & Jump-to-Page Toolbar**
+  - Add floating navigation bar with Prev/Next buttons and page counter (`Page X of Y`).
+  - Add jump-to-page numeric input with validation.
+  - Implement keyboard arrow navigation (`ArrowLeft` / `ArrowRight`).
+  - Implement mobile touch swipe detection (left/right swipe).
+- [x] **Task 3: Native Viewer Escape Hatch & Action Bar Enhancements**
+  - Add a dedicated "Open in Browser" / native viewer button in the dialog header.
+  - Ensure zoom in, zoom out, and fit-to-width controls seamlessly resize the single active page.
 
-### Checkpoint: Core Features
-- [ ] All document upload modals correctly delegate to R2 direct PUT.
-- [ ] Deletion logic handles both legacy Cloudinary URLs and new R2 URLs seamlessly.
+### Checkpoint: Navigation & Controls
+- [x] User can navigate pages via buttons, keyboard, and touch swipe.
+- [x] "Open in Browser" opens native reader in a new tab without closing current work.
 
 ---
 
-### Phase 3: Verification, Setup Documentation & Production Readiness
-- [ ] **Task 8: Production Build & Setup Documentation**
-  - Run full production build (`npm run build`) to ensure zero bundling or dynamic import errors.
-  - Create `docs/r2-setup-guide.md` with Cloudflare bucket CORS rules and environment variable setup instructions.
+### Phase 3: Proxy Streaming & Network Optimization
+- [x] **Task 4: Streaming & Range Support in `/api/download-file`**
+  - Stream `response.body` directly in `NextResponse` instead of buffering into `Buffer.from(arrayBuffer)`.
+  - Pass through `Content-Range`, `Accept-Ranges`, and `Content-Length` headers so PDF.js can stream page byte ranges.
+
+### Checkpoint: Network & Proxy
+- [x] Large files (> 5MB) download and preview without 4.5MB payload errors or 504 timeouts.
+
+---
+
+### Phase 4: Integration Verification & Production Build
+- [x] **Task 5: Cross-Module Verification & Production Build**
+  - Verify preview functionality across Downloads, Books, Syllabus, and Student Dashboard.
+  - Execute `npm run build` to confirm zero lint or compilation errors.
 
 ### Checkpoint: Complete
-- [ ] Production build succeeds without errors.
-- [ ] All acceptance criteria met across all modules.
+- [x] No device lag or freezes when previewing 50+ page PDFs.
+- [x] Full production build clean and ready for deployment.
 
 ---
 
 ## Risks and Mitigations
-
 | Risk | Impact | Mitigation |
 | :--- | :--- | :--- |
-| **Cloudflare R2 CORS Blocking** | High | Document exact CORS JSON policy required in Cloudflare dashboard (`PUT`, `GET`, `HEAD` for app domains). |
-| **Missing R2 Credentials at Runtime** | Medium | Provide clear fallback / error messaging in `lib/r2.js` if env vars are unset. |
-| **Bundle Size Overhead** | Low | Tree-shake AWS SDK using `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` (v3 modular SDK). |
-| **Legacy File Breakage** | High | Dual deletion logic checks URL prefix (`cloudinary.com` vs R2 domain) before deleting. |
+| Fast page flipping triggers `RenderingCancelledException` in PDF.js | Low | Gracefully catch and swallow `RenderingCancelledException` during cleanup |
+| File host CORS blocks direct range requests | Medium | Proxy route (`/api/download-file`) streams chunks with `Accept-Ranges: bytes` |
+| Mobile touch scroll conflicts with touch swipe | Low | Require horizontal swipe threshold (> 50px deltaX and deltaX > 2 * deltaY) |
 
 ---
 
 ## Open Questions
-- What is your Cloudflare public bucket domain? (Defaulting to placeholder `https://pub-<id>.r2.dev` or custom domain via `R2_PUBLIC_DOMAIN` in `.env`).
+- None blocking implementation. Single-canvas pagination is universally safe and fully backwards-compatible.

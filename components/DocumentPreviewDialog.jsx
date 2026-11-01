@@ -20,6 +20,9 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import { isR2Url } from "@/lib/r2Client";
 
@@ -135,12 +138,82 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [pdfDoc, setPdfDoc] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
   const [zoom, setZoom] = useState(1);
   const [containerWidth, setContainerWidth] = useState(600);
   const [fallbackToIframe, setFallbackToIframe] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
   const containerRef = useRef(null);
+  const touchStartRef = useRef(null);
+
+  // Sync page input display with currentPage
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
+  const handlePrevPage = useCallback(() => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  }, []);
+
+  const handleNextPage = useCallback(() => {
+    if (!pdfDoc) return;
+    setCurrentPage((prev) => Math.min(pdfDoc.numPages, prev + 1));
+  }, [pdfDoc]);
+
+  const handlePageInputCommit = () => {
+    if (!pdfDoc) return;
+    const parsed = parseInt(pageInput, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= pdfDoc.numPages) {
+      setCurrentPage(parsed);
+    } else {
+      setPageInput(String(currentPage));
+    }
+  };
+
+  // Keyboard navigation (ArrowLeft = prev, ArrowRight = next)
+  useEffect(() => {
+    if (!open || !pdfDoc) return;
+    const handleKeyDown = (e) => {
+      if (e.target?.tagName === "INPUT" || e.target?.tagName === "TEXTAREA") return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handlePrevPage();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleNextPage();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, pdfDoc, handlePrevPage, handleNextPage]);
+
+  // Touch swipe gestures for mobile reading
+  const handleTouchStart = (e) => {
+    if (e.touches && e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStartRef.current || !e.changedTouches || e.changedTouches.length === 0) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+
+    // Must be a distinct horizontal swipe (>45px) and largely horizontal
+    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+      if (deltaX < 0) {
+        handleNextPage();
+      } else {
+        handlePrevPage();
+      }
+    }
+  };
 
   // Measure container width for responsive fit
   const updateWidth = useCallback(() => {
@@ -179,6 +252,7 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
   useEffect(() => {
     if (!open || !rawUrl) {
       setPdfDoc(null);
+      setCurrentPage(1);
       setLoading(true);
       setHasError(false);
       setFallbackToIframe(false);
@@ -218,6 +292,7 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
       .then((loadedDoc) => {
         if (cancelled || !loadedDoc) return;
         setPdfDoc(loadedDoc);
+        setCurrentPage(1);
         setLoading(false);
         updateWidth();
       })
@@ -327,6 +402,24 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
 
           {/* Action Buttons Row */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Open in Native Viewer Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs px-2 sm:px-2.5"
+              asChild
+              title="Open document in new browser tab / native viewer"
+            >
+              <a
+                href={isDirectR2 ? rawUrl : previewProxyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Open in Tab</span>
+              </a>
+            </Button>
+
             {/* Print Button */}
             <Button
               size="sm"
@@ -375,6 +468,8 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
         {/* Preview Content Area */}
         <div
           ref={containerRef}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           className="relative flex-1 w-full min-h-0 bg-muted/10 overflow-y-auto overflow-x-hidden flex flex-col items-center"
         >
           {loading && (
@@ -418,59 +513,129 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
             </div>
           ) : pdfDoc ? (
             /* Direct Native PDF Preview (Mobile & Desktop) */
-            <div className="w-full flex flex-col items-center py-4 px-2 sm:px-4 space-y-4">
-              {/* Zoom Toolbar */}
-              <div className="sticky top-2 z-20 flex items-center gap-1 bg-background/90 backdrop-blur border shadow-md rounded-full px-2.5 py-1 text-xs select-none">
+            <div className="w-full flex flex-col items-center py-3 px-2 sm:px-4 space-y-3">
+              {/* Floating Navigation & Zoom Toolbar */}
+              <div className="sticky top-2 z-20 flex flex-wrap items-center justify-center gap-1 bg-background/95 backdrop-blur border shadow-md rounded-full px-2 py-1 text-xs select-none max-w-full">
+                {/* Page Switcher */}
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 rounded-full"
-                  onClick={() => setZoom((z) => Math.max(0.6, Number((z - 0.2).toFixed(1))))}
-                  disabled={zoom <= 0.6}
-                  title="Zoom Out"
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                  title="Previous Page (Left Arrow or Swipe Right)"
                 >
-                  <ZoomOut className="h-3.5 w-3.5" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-[11px] font-semibold px-1 min-w-[2.8rem] text-center">
-                  {Math.round(zoom * 100)}%
-                </span>
+                <div className="flex items-center gap-1 text-[11px] font-medium px-1">
+                  <span>Page</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onBlur={handlePageInputCommit}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handlePageInputCommit();
+                        e.target.blur();
+                      }
+                    }}
+                    className="w-9 h-6 text-center text-xs border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary font-semibold"
+                    title="Type page number and press Enter"
+                  />
+                  <span className="text-muted-foreground">of {pdfDoc.numPages}</span>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 rounded-full"
-                  onClick={() => setZoom((z) => Math.min(2.2, Number((z + 0.2).toFixed(1))))}
-                  disabled={zoom >= 2.2}
-                  title="Zoom In"
+                  onClick={handleNextPage}
+                  disabled={currentPage >= pdfDoc.numPages}
+                  title="Next Page (Right Arrow or Swipe Left)"
                 >
-                  <ZoomIn className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
+
                 <div className="h-3.5 w-[1px] bg-border mx-0.5" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-[11px] rounded-full gap-1"
-                  onClick={() => setZoom(1)}
-                  title="Reset Zoom"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  <span>Fit</span>
-                </Button>
-                <div className="h-3.5 w-[1px] bg-border mx-0.5" />
-                <span className="text-[11px] text-muted-foreground px-1">
-                  {pdfDoc.numPages} {pdfDoc.numPages === 1 ? "page" : "pages"}
-                </span>
+
+                {/* Zoom Controls */}
+                <div className="flex items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => setZoom((z) => Math.max(0.6, Number((z - 0.2).toFixed(1))))}
+                    disabled={zoom <= 0.6}
+                    title="Zoom Out"
+                  >
+                    <ZoomOut className="h-3.5 w-3.5" />
+                  </Button>
+                  <span className="text-[11px] font-semibold px-0.5 min-w-[2.4rem] text-center">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => setZoom((z) => Math.min(2.2, Number((z + 0.2).toFixed(1))))}
+                    disabled={zoom >= 2.2}
+                    title="Zoom In"
+                  >
+                    <ZoomIn className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-1.5 text-[11px] rounded-full gap-1"
+                    onClick={() => setZoom(1)}
+                    title="Fit to Width"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span className="hidden sm:inline">Fit</span>
+                  </Button>
+                </div>
               </div>
 
-              {/* Render All Pages */}
-              {Array.from({ length: pdfDoc.numPages }, (_, idx) => (
-                <PdfPageItem
-                  key={idx + 1}
-                  doc={pdfDoc}
-                  pageNum={idx + 1}
-                  zoom={zoom}
-                  containerWidth={containerWidth}
-                />
-              ))}
+              {/* Render Single Active Page (Caps memory to exactly 1 canvas) */}
+              <PdfPageItem
+                key={`page-${currentPage}`}
+                doc={pdfDoc}
+                pageNum={currentPage}
+                zoom={zoom}
+                containerWidth={containerWidth}
+              />
+
+              {/* Bottom Navigation Helper for Mobile */}
+              {pdfDoc.numPages > 1 && (
+                <div className="flex items-center justify-between w-full max-w-sm px-2 pt-1 pb-4 select-none">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage <= 1}
+                    className="h-8 gap-1 text-xs"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Page {currentPage} of {pdfDoc.numPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage >= pdfDoc.numPages}
+                    className="h-8 gap-1 text-xs"
+                  >
+                    Next
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
             </div>
           ) : fallbackToIframe || isOfficeDoc ? (
             /* Fallback or Office Docs Iframe Preview */
