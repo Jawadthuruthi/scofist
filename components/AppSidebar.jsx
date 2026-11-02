@@ -10,7 +10,7 @@ import {
   FileText,
   UserCheck,
   UserX,
-  Home,
+  LayoutDashboard,
   Settings,
   MessageSquare,
   FileSpreadsheet,
@@ -92,7 +92,7 @@ const items = [
   {
     title: "Dashboard",
     url: "/dashboard",
-    icon: Home,
+    icon: LayoutDashboard,
     allowedRoles: [
       "College Admin",
       "Teacher",
@@ -374,7 +374,7 @@ const items = [
   {
     title: "Dashboard",
     url: "/dashboard",
-    icon: Home,
+    icon: LayoutDashboard,
     allowedRoles: ["Spark Admin"],
   },
   {
@@ -411,7 +411,7 @@ const items = [
   {
     title: "Dashboard",
     url: "/library-dashboard",
-    icon: LayoutGrid,
+    icon: LayoutDashboard,
     allowedRoles: ["Librarian"],
   },
   {
