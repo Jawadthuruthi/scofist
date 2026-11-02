@@ -1256,10 +1256,10 @@ return (
             </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0 text-emerald-600 dark:text-emerald-400">
-                Absent Students
+                Absent Students ({whatsappModalData?.students?.length || 0})
               </DialogTitle>
               <DialogDescription className="m-0 text-xs text-muted-foreground">
-                {whatsappModalData?.subjectName ? `Absent for ${whatsappModalData.subjectName} (${whatsappModalData?.students?.length || 0} students)` : "Message parents of absent students"}
+                {whatsappModalData?.subjectName ? `Absent for ${whatsappModalData.subjectName}` : "Message parents of absent students"}
               </DialogDescription>
             </div>
             <DialogClose
