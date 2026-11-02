@@ -92,6 +92,8 @@ const GeneralAttendanceHistoryPage = async ({ searchParams }) => {
                         accessorKey: "totalClass",
                         valueKey: "attendanceRecords",
                         type: ["length"],
+                        clickable: true,
+                        viewType: "allRecords",
                     },
                     {
                         header: "Present",

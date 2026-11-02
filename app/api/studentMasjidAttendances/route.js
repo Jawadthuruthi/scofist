@@ -105,6 +105,8 @@ export async function GET(req, res) {
                                 date: 1,
                                 prayer: 1,
                                 status: "$attendanceData.status",
+                                leaveReason: "$attendanceData.remarks",
+                                remarks: "$attendanceData.remarks",
                                 present: { $eq: ["$attendanceData.status", "PRESENT"] }
                             }
                         }

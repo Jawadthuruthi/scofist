@@ -948,14 +948,18 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     absentStudents.forEach(student => {
       const number = student.guardianContactNumber || student.contactNumber;
       if (number) {
-        const formattedNumber = number.replace(/\D/g, '');
+        let formattedNumber = number.replace(/\D/g, '');
+        if (formattedNumber.length === 10) {
+          formattedNumber = `91${formattedNumber}`;
+        }
         if (!studentsToMessage.some(s => s.contactNumber === formattedNumber)) {
           const studentLeave = leaveRecordsData.find(record => {
             const rId = typeof record.studentId === 'object' ? record.studentId?._id : record.studentId;
             const sId = typeof student.studentId === 'object' ? student.studentId?._id : student.studentId;
             return String(rId) === String(sId);
           });
-          const leaveReason = studentLeave?.leaveReason || student?.leaveReason || "No Reason";
+          const rawLeaveReason = studentLeave?.leaveReason || student?.leaveReason || "";
+          const leaveReason = rawLeaveReason && rawLeaveReason !== "No Reason" ? rawLeaveReason.trim() : "";
 
           studentsToMessage.push({
             name: student.studentName || "Student",
@@ -2410,7 +2414,10 @@ Teacher: ${teacherName || "Teacher"}`;
                 </div>
               ) : whatsappModalData?.students?.length > 0 ? (
                 whatsappModalData.students.map((student, idx) => {
-                  const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${student.leaveReason}`;
+                  const reasonText = student.leaveReason && student.leaveReason !== "No Reason"
+                    ? `${student.leaveReason.trim()} `
+                    : "";
+                  const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText}`;
                   const url = `https://wa.me/${student.contactNumber}?text=${encodeURIComponent(msg)}`;
 
                   return (
@@ -2445,6 +2452,7 @@ Teacher: ${teacherName || "Teacher"}`;
                             const a = document.createElement('a');
                             a.href = url;
                             a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
                             document.body.appendChild(a);
                             a.click();
                             document.body.removeChild(a);

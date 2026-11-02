@@ -421,36 +421,67 @@ export async function GET(req) {
       const distinctSubjectIds = Array.from(new Set(records.map((r) => String(r.subjectId))));
 
       const subjectStats = distinctSubjectIds
-        .map((subId) => {
+        .flatMap((subId) => {
           const subRecords = records.filter((r) => String(r.subjectId) === subId);
+          if (subRecords.length === 0) return [];
+
+          const teacherGroups = Array.from(
+            new Set(
+              subRecords.map((r) => {
+                const t = r.teacherName?.trim();
+                return (t && t !== "—" && t !== "Unknown Teacher") ? t : "—";
+              })
+            )
+          );
+
+          if (teacherGroups.length > 1) {
+            return teacherGroups.map((tName) => {
+              const teacherRecords = subRecords.filter((r) => {
+                const t = r.teacherName?.trim();
+                const normalized = (t && t !== "—" && t !== "Unknown Teacher") ? t : "—";
+                return normalized === tName;
+              });
+              const totalClass = teacherRecords.length;
+              const present = teacherRecords.filter((r) => r.present).length;
+              const absent = teacherRecords.filter((r) => !r.present).length;
+              const percentage =
+                totalClass > 0 ? `${((present / totalClass) * 100).toFixed(2)}%` : "0.00%";
+
+              return {
+                subjectId: subId,
+                subjectName: subjectMap[subId] || "Subject",
+                teacherName: tName !== "—" ? tName : "",
+                teacherNames: tName !== "—" ? [tName] : [],
+                totalClass,
+                present,
+                absent,
+                percentage,
+                records: teacherRecords,
+              };
+            });
+          }
+
           const totalClass = subRecords.length;
           const present = subRecords.filter((r) => r.present).length;
           const absent = subRecords.filter((r) => !r.present).length;
           const percentage =
             totalClass > 0 ? `${((present / totalClass) * 100).toFixed(2)}%` : "0.00%";
+          const tName = teacherGroups[0] || "";
 
-          const teacherNames = Array.from(
-            new Set(
-              subRecords
-                .map((r) => r.teacherName)
-                .filter((t) => t && t !== "—" && t !== "Unknown Teacher")
-            )
-          );
-          const teacherName = teacherNames.join(", ") || "";
-
-          return {
+          return [{
             subjectId: subId,
             subjectName: subjectMap[subId] || "Subject",
-            teacherName,
+            teacherName: tName !== "—" ? tName : "",
+            teacherNames: tName !== "—" ? [tName] : [],
             totalClass,
             present,
             absent,
             percentage,
             records: subRecords, // Records for drilldown
-          };
+          }];
         })
         .filter((sub) => sub.totalClass > 0)
-        .sort((a, b) => a.subjectName.localeCompare(b.subjectName));
+        .sort((a, b) => a.subjectName.localeCompare(b.subjectName) || (a.teacherName || "").localeCompare(b.teacherName || ""));
 
       const totalClassCount = records.length;
       const presentCount = records.filter((r) => r.present).length;

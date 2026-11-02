@@ -737,7 +737,34 @@ const DataTableComponent = ({
     if (col.viewType === "allRecords") {
       records = row[arrayKey] || [];
     } else if (col.viewType === "subjectSummary") {
-      records = row[arrayKey] || row.subjectStats || [];
+      const rawStats = row[arrayKey] || row.subjectStats || [];
+      records = Array.isArray(rawStats)
+        ? rawStats.flatMap((sub) => {
+            const teachers = (Array.isArray(sub.teacherNames) && sub.teacherNames.length > 1)
+              ? sub.teacherNames
+              : (sub.teacherName && sub.teacherName.includes(",") ? sub.teacherName.split(",").map((t) => t.trim()).filter(Boolean) : null);
+            if (teachers && teachers.length > 1 && Array.isArray(sub.records) && sub.records.length > 0) {
+              return teachers.map((t) => {
+                const tRecs = sub.records.filter((r) => r.teacherName?.trim() === t);
+                const tTotal = tRecs.length;
+                const tPresent = tRecs.filter((r) => r.present).length;
+                const tAbsent = tRecs.filter((r) => !r.present).length;
+                const tPerc = tTotal > 0 ? `${((tPresent / tTotal) * 100).toFixed(2)}%` : "0.00%";
+                return {
+                  ...sub,
+                  teacherName: t,
+                  teacherNames: [t],
+                  totalClass: tTotal,
+                  present: tPresent,
+                  absent: tAbsent,
+                  percentage: tPerc,
+                  records: tRecs,
+                };
+              });
+            }
+            return [sub];
+          })
+        : [];
     } else {
       records = row[arrayKey]?.filter(
         (item) => !col.filterKey || item?.[col.filterKey || col.accessorKey] === col.filterValue
@@ -1808,17 +1835,21 @@ const DataTableComponent = ({
           data-html2canvas-popup="true"
           className={cn(
             "rounded-2xl sm:rounded-2xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0",
-            (detailView?.colHeader === "Present" || detailView?.colHeader === "Absent" || (subjectDrilldown && subjectDrilldown.filterType !== "total"))
-              ? "max-w-md sm:max-w-lg"
-              : "max-w-3xl"
+            resource === "studentMasjidAttendances"
+              ? "max-w-md sm:max-w-md"
+              : detailView?.viewType === "subjectSummary"
+                ? "max-w-3xl"
+                : (detailView?.colHeader === "Present" || detailView?.colHeader === "Absent" || detailView?.colHeader === "Percentage" || (subjectDrilldown && subjectDrilldown.filterType !== "total"))
+                  ? "max-w-md sm:max-w-md"
+                  : "max-w-lg sm:max-w-lg"
           )}
         >
           <DialogHeader className={`flex flex-col gap-0 mx-0 px-4 sm:px-5 pt-4 pb-3 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-50 dark:bg-green-950/20" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent") ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
             {/* Top row: icon + title/meta + print + close */}
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer shrink-0 mt-0.5 ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent") ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
+                className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer shrink-0 self-center ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent") ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
                 onClick={handleDownload}
                 title="Download Image"
                 data-html2canvas-ignore="true"
@@ -1847,17 +1878,19 @@ const DataTableComponent = ({
                         {subjectDrilldown.subjectName} – {capitalize(subjectDrilldown.filterType)} ({subjectDrilldown.records.length})
                       </span>
                     </span>
+                  ) : detailView?.viewType === "subjectSummary" ? (
+                    "Subject-wise Attendance"
                   ) : (
                     <>
-                      {detailView?.viewType === "subjectSummary" ? "Subject-wise Attendance" : `${detailView?.colHeader} Records`}
+                      {`${detailView?.colHeader} Records`}
                       <span className="ml-1.5 text-base font-semibold text-muted-foreground">
-                        ({detailedRecords.length} {detailView?.viewType === "subjectSummary" ? "Subjects" : ""})
+                        ({detailedRecords.length})
                       </span>
                     </>
                   )}
                 </DialogTitle>
-                <div className="m-0 flex flex-col mt-0.5">
-                  <DialogDescription className="font-medium text-foreground m-0 text-sm leading-tight">
+                <div className="m-0 flex flex-col mt-0.5 min-w-0">
+                  <DialogDescription className="font-medium text-foreground m-0 text-sm leading-tight truncate">
                     {detailView?.student?.name}
                     {resource === "studentAttendances" &&
                       detailView?.viewType !== "allRecords" &&
@@ -1960,9 +1993,16 @@ const DataTableComponent = ({
                       const totalPerc = totalClassSum > 0 ? ((presentSum / totalClassSum) * 100).toFixed(2) + '%' : '0.00%';
 
                       const tableRows = detailedRecords.map((sub, idx) => {
+                        const teachers = Array.isArray(sub.teacherNames) && sub.teacherNames.length > 0
+                          ? sub.teacherNames
+                          : (sub.teacherName ? sub.teacherName.split(',').map(t => t.trim()).filter(Boolean) : []);
+                        const teachersHtml = teachers.length > 1
+                          ? `<div style="margin-top:2px;display:flex;flex-direction:column;gap:1px;">${teachers.map(t => `<div style="font-size:11px;color:#6b7280;font-weight:400;">• ${t}</div>`).join('')}</div>`
+                          : (teachers[0] ? `<div style="font-size:11px;color:#6b7280;font-weight:400;margin-top:2px;">${teachers[0]}</div>` : '');
+
                         return `<tr>
                           <td style="text-align:center;">${idx + 1}</td>
-                          <td style="font-weight:600;"><div>${sub.subjectName || '—'}</div>${sub.teacherName ? `<div style="font-size:11px;color:#6b7280;font-weight:400;margin-top:2px;">${sub.teacherName}</div>` : ''}</td>
+                          <td style="font-weight:600;"><div>${sub.subjectName || '—'}</div>${teachersHtml}</td>
                           <td style="text-align:center;">${sub.totalClass ?? sub.total ?? 0}</td>
                           <td style="text-align:center;color:#15803d;font-weight:600;">${sub.present ?? 0}</td>
                           <td style="text-align:center;color:#b91c1c;font-weight:600;">${sub.absent ?? 0}</td>
@@ -2033,6 +2073,7 @@ const DataTableComponent = ({
                     const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
                     const yearLabel = filterYear || '';
                     const isTeacher = resource === 'teacherAttendances';
+                    const isMasjid = resource === 'studentMasjidAttendances';
                     const percentage = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) : 0;
                     const tableRows = detailedRecords.map(rec => {
                       const isPresent = rec.present === true;
@@ -2049,7 +2090,7 @@ const DataTableComponent = ({
                       return `<tr style="${rowBg}">
                         <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
                         <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${period}${subject}</div></td>
-                        <td style="font-size:13px;color:#374151;">${classTeacher}</td>
+                        ${!isMasjid ? `<td style="font-size:13px;color:#374151;">${classTeacher}</td>` : ''}
                         <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span>${leaveReasonHtml}</td>
                       </tr>`;
                     }).join('');
@@ -2080,7 +2121,7 @@ const DataTableComponent = ({
                     </style></head>
                     <body>
                       <div class="header">
-                        <h1 style="color:#111;font-size:18px;letter-spacing:0.05em;margin-bottom:8px;">TOTAL CLASS RECORDS</h1>
+                        <h1 style="color:#111;font-size:18px;letter-spacing:0.05em;margin-bottom:8px;">${isMasjid ? 'GENERAL ATTENDANCE RECORDS' : 'TOTAL CLASS RECORDS'}</h1>
                         <div class="meta" style="margin-bottom:12px;">
                           <span style="font-size:14px;color:#111;">📅 ${monthLabel} ${yearLabel}</span>
                         </div>
@@ -2098,8 +2139,8 @@ const DataTableComponent = ({
                       <table>
                         <thead><tr>
                           <th style="width:110px;">Date &amp; Day</th>
-                          <th style="min-width:180px;">Subject</th>
-                          <th style="min-width:140px;">${isTeacher ? 'Class' : 'Teacher'}</th>
+                          <th style="min-width:180px;">${isMasjid ? 'Prayer / Session' : 'Subject'}</th>
+                          ${!isMasjid ? `<th style="min-width:140px;">${isTeacher ? 'Class' : 'Teacher'}</th>` : ''}
                           <th style="width:90px;text-align:center;">Status</th>
                         </tr></thead>
                         <tbody>${tableRows}</tbody>
@@ -2214,9 +2255,16 @@ const DataTableComponent = ({
                         const totalPerc = totalClassSum > 0 ? ((presentSum / totalClassSum) * 100).toFixed(2) + '%' : '0.00%';
 
                         const tableRows = detailedRecords.map((sub, idx) => {
+                          const teachers = Array.isArray(sub.teacherNames) && sub.teacherNames.length > 0
+                            ? sub.teacherNames
+                            : (sub.teacherName ? sub.teacherName.split(',').map(t => t.trim()).filter(Boolean) : []);
+                          const teachersHtml = teachers.length > 1
+                            ? `<div style="margin-top:2px;display:flex;flex-direction:column;gap:1px;">${teachers.map(t => `<div style="font-size:11px;color:#6b7280;font-weight:400;">• ${t}</div>`).join('')}</div>`
+                            : (teachers[0] ? `<div style="font-size:11px;color:#6b7280;font-weight:400;margin-top:2px;">${teachers[0]}</div>` : '');
+
                           return `<tr>
                             <td style="text-align:center;">${idx + 1}</td>
-                            <td style="font-weight:600;"><div>${sub.subjectName || '—'}</div>${sub.teacherName ? `<div style="font-size:11px;color:#6b7280;font-weight:400;margin-top:2px;">${sub.teacherName}</div>` : ''}</td>
+                            <td style="font-weight:600;"><div>${sub.subjectName || '—'}</div>${teachersHtml}</td>
                             <td style="text-align:center;">${sub.totalClass ?? sub.total ?? 0}</td>
                             <td style="text-align:center;color:#15803d;font-weight:600;">${sub.present ?? 0}</td>
                             <td style="text-align:center;color:#b91c1c;font-weight:600;">${sub.absent ?? 0}</td>
@@ -2287,6 +2335,7 @@ const DataTableComponent = ({
                       const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
                       const yearLabel = filterYear || '';
                       const isTeacher = resource === 'teacherAttendances';
+                      const isMasjid = resource === 'studentMasjidAttendances';
                       const percentage = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) : 0;
                       const tableRows = detailedRecords.map(rec => {
                         const isPresent = rec.present === true;
@@ -2303,7 +2352,7 @@ const DataTableComponent = ({
                         return `<tr style="${rowBg}">
                           <td><div style="font-weight:600;font-size:13px;">${dateStr}</div><div style="font-size:11px;color:#6b7280;">${dayStr}</div></td>
                           <td><div style="font-weight:600;font-size:13px;white-space:nowrap;">${period}${subject}</div></td>
-                          <td style="font-size:13px;color:#374151;">${classTeacher}</td>
+                          ${!isMasjid ? `<td style="font-size:13px;color:#374151;">${classTeacher}</td>` : ''}
                           <td style="text-align:center;"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;${statusBg}">${statusText}</span>${leaveReasonHtml}</td>
                         </tr>`;
                       }).join('');
@@ -2334,7 +2383,7 @@ const DataTableComponent = ({
                       </style></head>
                       <body>
                         <div class="header">
-                          <h1 style="color:#111;font-size:18px;letter-spacing:0.05em;margin-bottom:8px;">TOTAL CLASS RECORDS</h1>
+                          <h1 style="color:#111;font-size:18px;letter-spacing:0.05em;margin-bottom:8px;">${isMasjid ? 'GENERAL ATTENDANCE RECORDS' : 'TOTAL CLASS RECORDS'}</h1>
                           <div class="meta" style="margin-bottom:12px;">
                             <span style="font-size:14px;color:#111;">📅 ${monthLabel} ${yearLabel}</span>
                           </div>
@@ -2352,8 +2401,8 @@ const DataTableComponent = ({
                         <table>
                           <thead><tr>
                             <th style="width:110px;">Date &amp; Day</th>
-                            <th style="min-width:180px;">Subject</th>
-                            <th style="min-width:140px;">${isTeacher ? 'Class' : 'Teacher'}</th>
+                            <th style="min-width:180px;">${isMasjid ? 'Prayer / Session' : 'Subject'}</th>
+                            ${!isMasjid ? `<th style="min-width:140px;">${isTeacher ? 'Class' : 'Teacher'}</th>` : ''}
                             <th style="width:90px;text-align:center;">Status</th>
                           </tr></thead>
                           <tbody>${tableRows}</tbody>
@@ -2380,7 +2429,13 @@ const DataTableComponent = ({
             </div>
           </DialogHeader>
 
-          <div className="py-5 px-2 sm:p-5" ref={detailView?.viewType === "allRecords" ? detailPrintRef : null}>
+          <div
+            className={cn(
+              "px-2",
+              resource === "studentMasjidAttendances" ? "py-4 sm:p-4" : "py-5 sm:p-5"
+            )}
+            ref={detailView?.viewType === "allRecords" ? detailPrintRef : null}
+          >
             {/* Summary stats for Total Class popup */}
             {detailView?.viewType === "allRecords" && detailedRecords.length > 0 && (() => {
               const totalCount = detailedRecords.length;
@@ -2542,13 +2597,17 @@ const DataTableComponent = ({
                       ) : (
                         <>
                           <TableHead className="w-[85px] sm:w-[100px] px-2 sm:px-4 font-bold whitespace-nowrap">Date & Day</TableHead>
-                          <TableHead className="min-w-[130px] sm:min-w-[220px] px-2 sm:px-4 font-bold whitespace-nowrap">
+                          <TableHead className={cn(
+                            "px-2 sm:px-4 font-bold whitespace-nowrap",
+                            resource === "studentMasjidAttendances" ? "min-w-[100px] sm:min-w-[130px]" : "min-w-[130px] sm:min-w-[180px]"
+                          )}>
                             {resource === "studentMasjidAttendances" ? "Prayer / Session" : "Subject"}
                           </TableHead>
                           {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances") &&
                            detailView?.colHeader !== "Present" &&
-                           detailView?.colHeader !== "Absent" && (
-                            <TableHead className="min-w-[110px] sm:min-w-[140px] px-2 sm:px-4 font-bold">
+                           detailView?.colHeader !== "Absent" &&
+                           detailView?.colHeader !== "Percentage" && (
+                            <TableHead className="min-w-[100px] sm:min-w-[120px] px-2 sm:px-4 font-bold">
                               Status
                             </TableHead>
                           )}
@@ -2583,11 +2642,29 @@ const DataTableComponent = ({
                               <TableCell className="font-bold text-sm py-3">
                                 <div className="flex flex-col">
                                   <span>{rec.subjectName || "—"}</span>
-                                  {rec.teacherName && (
-                                    <span className="text-xs text-muted-foreground font-normal mt-0.5">
-                                      {rec.teacherName}
-                                    </span>
-                                  )}
+                                  {(() => {
+                                    const teachers = Array.isArray(rec.teacherNames) && rec.teacherNames.length > 0
+                                      ? rec.teacherNames
+                                      : (rec.teacherName ? rec.teacherName.split(",").map((t) => t.trim()).filter(Boolean) : []);
+                                    if (teachers.length === 0) return null;
+                                    if (teachers.length === 1) {
+                                      return (
+                                        <span className="text-xs text-muted-foreground font-normal mt-0.5">
+                                          {teachers[0]}
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <div className="flex flex-col gap-0.5 mt-1">
+                                        {teachers.map((teacher, idx) => (
+                                          <span key={idx} className="text-xs text-muted-foreground font-normal flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+                                            <span>{teacher}</span>
+                                          </span>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </TableCell>
                               <TableCell className="text-center font-medium text-sm py-3">
@@ -2602,7 +2679,7 @@ const DataTableComponent = ({
                                       return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
                                     });
                                     setSubjectDrilldown({
-                                      subjectName: rec.subjectName,
+                                      subjectName: rec.teacherName ? `${rec.subjectName} (${rec.teacherName})` : rec.subjectName,
                                       filterType: "total",
                                       records: subRecs,
                                       className: detailView?.student?.name || "",
@@ -2625,7 +2702,7 @@ const DataTableComponent = ({
                                       return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
                                     });
                                     setSubjectDrilldown({
-                                      subjectName: rec.subjectName,
+                                      subjectName: rec.teacherName ? `${rec.subjectName} (${rec.teacherName})` : rec.subjectName,
                                       filterType: "present",
                                       records: subRecs,
                                       className: detailView?.student?.name || "",
@@ -2648,7 +2725,7 @@ const DataTableComponent = ({
                                       return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
                                     });
                                     setSubjectDrilldown({
-                                      subjectName: rec.subjectName,
+                                      subjectName: rec.teacherName ? `${rec.subjectName} (${rec.teacherName})` : rec.subjectName,
                                       filterType: "absent",
                                       records: subRecs,
                                       className: detailView?.student?.name || "",
@@ -2704,7 +2781,10 @@ const DataTableComponent = ({
                                   </span>
                                 </div>
                               </TableCell>
-                              <TableCell className="py-3 px-2 sm:px-4 min-w-[130px] sm:min-w-[220px]">
+                              <TableCell className={cn(
+                                "py-3 px-2 sm:px-4",
+                                resource === "studentMasjidAttendances" ? "min-w-[100px] sm:min-w-[130px]" : "min-w-[130px] sm:min-w-[180px]"
+                              )}>
                                 <div className="flex flex-col">
                                   <span className="font-semibold text-sm whitespace-nowrap">
                                     {rec.periodNumber ? `#${rec.periodNumber} - ` : ""}
@@ -2729,7 +2809,8 @@ const DataTableComponent = ({
                               </TableCell>
                               {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances") &&
                                detailView?.colHeader !== "Present" &&
-                               detailView?.colHeader !== "Absent" && (
+                               detailView?.colHeader !== "Absent" &&
+                               detailView?.colHeader !== "Percentage" && (
                                 <TableCell className="text-muted-foreground text-sm py-3 px-2 sm:px-4">
                                   {resource === "teacherAttendances" ? (
                                     <div className="flex flex-col items-start gap-1.5">
