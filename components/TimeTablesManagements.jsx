@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Calendar,
 } from "lucide-react";
 
 // UI Components
@@ -51,9 +52,10 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { Progress } from "./ui/progress"; // Import Progress component
+import { Label } from "./ui/label";
 
 // Hooks and Utils
-import { DAYS, parseDate } from "@/lib/utils";
+import { DAYS, parseDate, cn } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import { useReactToPrint } from "react-to-print";
 import { Input } from "./ui/input";
@@ -167,7 +169,7 @@ const AbsenteesDialog = ({
             </DialogDescription>
           </div>
           <div className="flex items-center self-stretch" data-html2canvas-ignore="true">
-            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
               <X className="h-5 w-5" />
             </DialogClose>
           </div>
@@ -314,30 +316,89 @@ const TimetableSlot = ({
 };
 
 // Save Progress Dialog Component
-const SaveProgressDialog = ({ open, progress, total, completed }) => {
-  const percentage = Math.round((progress / total) * 100);
+const SaveProgressDialog = ({ open, onOpenChange, progress, total, completed }) => {
+  const percentage = total > 0 ? Math.round((progress / total) * 100) : 0;
 
   return (
-    <Dialog open={open}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Saving Timetable Changes</DialogTitle>
-          <DialogDescription>
-            Please wait while your changes are being saved...
-          </DialogDescription>
-        </DialogHeader>
-        <div className="my-6 space-y-4">
-          <Progress value={percentage} className="h-2 w-full" />
-          <p className="text-center">
-            {completed ? (
-              <span className="text-green-600 flex items-center justify-center">
-                <CheckCircle2 className="mr-2 h-5 w-5" />
-                All changes saved successfully!
-              </span>
-            ) : (
-              `Saving changes: ${progress} of ${total} (${percentage}%)`
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
+        <DialogHeader
+          className={cn(
+            "flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 transition-colors",
+            completed
+              ? "bg-emerald-500/10 dark:bg-emerald-500/20"
+              : "bg-muted/50 dark:bg-muted/20"
+          )}
+        >
+          <div
+            className={cn(
+              "p-2 rounded-lg shrink-0 transition-colors",
+              completed
+                ? "bg-emerald-500/20 dark:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                : "bg-primary/10 dark:bg-primary/20 text-primary"
             )}
-          </p>
+          >
+            {completed ? (
+              <CheckCircle2 className="h-5 w-5" />
+            ) : (
+              <Loader className="h-5 w-5 animate-spin" />
+            )}
+          </div>
+          <div className="flex-1 text-left space-y-0.5 min-w-0">
+            <DialogTitle
+              className={cn(
+                "text-lg font-bold m-0 transition-colors",
+                completed
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-foreground"
+              )}
+            >
+              {completed ? "Timetable Saved" : "Saving Timetable Changes"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground m-0">
+              {completed
+                ? "All changes have been applied successfully"
+                : "Please wait while we update the timetable records..."}
+            </DialogDescription>
+          </div>
+          {completed && (
+            <DialogClose
+              onClick={() => onOpenChange?.(false)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
+          )}
+        </DialogHeader>
+
+        <div className="p-5 space-y-4 flex-1">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span>{completed ? "Completed" : "Saving Progress"}</span>
+              <span className="font-semibold text-foreground">{percentage}%</span>
+            </div>
+            <Progress value={percentage} className="h-2 w-full" />
+          </div>
+
+          <div
+            className={cn(
+              "rounded-lg border p-3 text-xs flex items-center justify-between transition-colors",
+              completed
+                ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300"
+                : "bg-muted/40 border-border text-muted-foreground"
+            )}
+          >
+            <span className="font-medium">
+              {completed
+                ? "All changes saved successfully!"
+                : `Saving changes: ${progress} of ${total}`}
+            </span>
+            {completed ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            ) : (
+              <Loader className="h-4 w-4 text-muted-foreground animate-spin shrink-0" />
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -522,13 +583,17 @@ const TimeTablesManagements = ({
     return () => clearInterval(interval);
   }, [router]);
 
+  const currentClass = useMemo(
+    () => classes.find((cls) => cls?._id === selectedClass),
+    [classes, selectedClass]
+  );
+
   // Filter subjects based on selected class
   const filteredSubjects = useMemo(() => {
-    const selectedClassData = classes.find((cls) => cls?._id === selectedClass);
     return subjects.filter((subject) =>
-      selectedClassData?.subjectIds?.includes(subject?._id)
+      currentClass?.subjectIds?.includes(subject?._id)
     );
-  }, [classes, selectedClass, subjects]);
+  }, [currentClass, subjects]);
 
   // Check for teacher scheduling conflicts
   const checkTeacherConflicts = useCallback(
@@ -1604,6 +1669,7 @@ const TimeTablesManagements = ({
       {/* Save Progress Dialog */}
       <SaveProgressDialog
         open={saveProgressOpen}
+        onOpenChange={setSaveProgressOpen}
         progress={saveProgress}
         total={saveTotal}
         completed={saveCompleted}
@@ -1611,78 +1677,126 @@ const TimeTablesManagements = ({
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-center text-center gap-2">
-              <div>
-                {existingTimeSlotId ? "Edit" : "Add"} Time Table Entry
-                {selectedPeriod && selectedDay && (
-                  <p className="text-sm">
-                    {selectedDay} - Period {selectedPeriod} (
-                    {getPeriodTime(parseInt(selectedPeriod))})
-                  </p>
+        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 shrink-0">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <DialogTitle className="text-lg font-bold m-0 text-foreground">
+                {existingTimeSlotId ? "Edit" : "Add"} Timetable Entry
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground m-0 flex flex-wrap items-center gap-x-1.5">
+                {currentClass?.name && (
+                  <>
+                    <span className="font-semibold text-foreground">{currentClass.name}</span>
+                    <span className="text-muted-foreground/40">•</span>
+                  </>
                 )}
-              </div>
-            </DialogTitle>
+                {selectedDay && (
+                  <span className="font-medium text-foreground">{selectedDay}</span>
+                )}
+                {selectedPeriod && (
+                  <>
+                    <span className="text-muted-foreground/40">•</span>
+                    <span>
+                      Period <span className="font-medium text-foreground">{selectedPeriod}</span>
+                    </span>
+                    {getPeriodTime(parseInt(selectedPeriod)) && (
+                      <span className="text-muted-foreground">
+                        ({getPeriodTime(parseInt(selectedPeriod))})
+                      </span>
+                    )}
+                  </>
+                )}
+              </DialogDescription>
+            </div>
+            <DialogClose
+              onClick={() => setEditDialogOpen(false)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
 
-          <DialogDescription className="grid md:grid-cols-2 gap-4 text-foreground pt-4">
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a Subject" />
-              </SelectTrigger>
-              <SelectContent position="popper" sideOffset={5}>
-                <SelectGroup>
-                  <SelectItem value={null}>None</SelectItem>
-                  {filteredSubjects.map((subject) => (
-                    <SelectItem key={subject?._id} value={subject?._id}>
-                      {subject.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+          <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Subject</Label>
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a Subject" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={5}>
+                    <SelectGroup>
+                      <SelectItem value={null}>None</SelectItem>
+                      {filteredSubjects.map((subject) => (
+                        <SelectItem key={subject?._id} value={subject?._id}>
+                          {subject.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a Teacher" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value={null}>None</SelectItem>
-                  {teachers.map((teacher) => (
-                    <SelectItem key={teacher?._id} value={teacher?._id}>
-                      {teacher.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </DialogDescription>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Teacher</Label>
+                <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a Teacher" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={5}>
+                    <SelectGroup>
+                      <SelectItem value={null}>None</SelectItem>
+                      {teachers.map((teacher) => (
+                        <SelectItem key={teacher?._id} value={teacher?._id}>
+                          {teacher.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-          {teacherScheduleConflicts.length > 0 && (
-            <Alert variant="destructive" className="mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <p className="font-medium">Teacher scheduling conflicts:</p>
-                {teacherScheduleConflicts.map((conflict, idx) => (
-                  <p key={idx} className="text-sm mt-1">
-                    {conflict.teacherName} is already teaching{" "}
-                    {conflict.subject} for {conflict.class} on {conflict.day}{" "}
-                    during period {conflict.period}
-                  </p>
-                ))}
-              </AlertDescription>
-            </Alert>
-          )}
+            {teacherScheduleConflicts.length > 0 && (
+              <Alert variant="destructive" className="mt-2 text-xs">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <AlertDescription>
+                  <p className="font-semibold text-xs mb-1">Teacher scheduling conflicts:</p>
+                  <div className="space-y-1">
+                    {teacherScheduleConflicts.map((conflict, idx) => (
+                      <p key={idx} className="text-xs">
+                        <span className="font-medium">{conflict.teacherName}</span> is already teaching{" "}
+                        <span className="font-medium">{conflict.subject}</span> for{" "}
+                        <span className="font-medium">{conflict.class}</span> on {conflict.day}{" "}
+                        during period {conflict.period}
+                      </p>
+                    ))}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
 
-          <DialogFooter className="mt-4 gap-2">
+          <DialogFooter className="px-5 py-3.5 border-t bg-muted/30 dark:bg-muted/10 flex flex-row items-center justify-end gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+              disabled={isSubmitting}
+              className="h-9 px-4 text-xs"
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handleAddToPendingChanges}
               type="submit"
               disabled={isSubmitting || teacherScheduleConflicts.length > 0}
+              className="h-9 px-4 text-xs font-medium"
             >
-              Add to Changes
+              {existingTimeSlotId ? "Update Entry" : "Add to Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

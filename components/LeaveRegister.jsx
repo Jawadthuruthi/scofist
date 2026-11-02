@@ -20,9 +20,10 @@ import {
 } from "./ui/table";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Clock, User, Loader } from "lucide-react";
+import { Clock, User, Loader, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
@@ -31,6 +32,7 @@ const STORAGE_KEY = "leaveRegister_selectedClass";
 const LeaveRegister = ({ apiKey, role, teacherId }) => {
   const [selectedClass, setSelectedClass] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const router = useRouter();
 
@@ -58,7 +60,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     0,
     {
       classId: selectedClass,
-      projection: "_id,name,email,profilePic",
+      projection: "_id,name,email,profilePic,studentSpecificField.admissionNumber",
       roles: "Student",
       status: "Active",
     },
@@ -149,6 +151,47 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     return stats;
   }, [students, leaveRecords]);
 
+  // Filter students displayed in the table based on search query in the heading column
+  const displayedStudents = useMemo(() => {
+    const sorted = [...students].sort((a, b) => {
+      const idA = a.studentSpecificField?.admissionNumber || a.admissionNumber || a._id;
+      const idB = b.studentSpecificField?.admissionNumber || b.admissionNumber || b._id;
+      return String(idA).localeCompare(String(idB), undefined, { numeric: true, sensitivity: "base" });
+    });
+
+    if (!searchQuery.trim()) {
+      return sorted.map((student, index) => ({
+        student,
+        originalIndex: index + 1,
+      }));
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+
+    return sorted
+      .map((student, index) => ({
+        student,
+        originalIndex: index + 1,
+      }))
+      .filter(({ student, originalIndex }) => {
+        const name = (student.name || "").toLowerCase();
+        const admNo = String(
+          student.studentSpecificField?.admissionNumber ||
+            student.admissionNumber ||
+            ""
+        ).toLowerCase();
+        const id = String(student._id || "").toLowerCase();
+        const rollStr = String(originalIndex);
+
+        return (
+          name.includes(query) ||
+          admNo.includes(query) ||
+          id.includes(query) ||
+          rollStr === query
+        );
+      });
+  }, [students, searchQuery]);
+
   // Restore persisted class selection on mount
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -163,6 +206,11 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     if (selectedClass) {
       localStorage.setItem(STORAGE_KEY, selectedClass);
     }
+  }, [selectedClass]);
+
+  // Reset search query when class changes
+  useEffect(() => {
+    setSearchQuery("");
   }, [selectedClass]);
 
   useEffect(() => {
@@ -274,145 +322,176 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
           <TableHeader>
             <TableRow>
               <TableHead className="w-12 text-center">No.</TableHead>
-              <TableHead>Student</TableHead>
+              <TableHead className="px-2 py-1.5 min-w-[150px]">
+                <div className="relative flex items-center w-full max-w-xs">
+                  <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder="Search students..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setSearchQuery("");
+                    }}
+                    className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSearchQuery("");
+                      }}
+                      className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
+                      title="Clear search"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </TableHead>
               <TableHead className="text-right pr-4">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {students?.length > 0 ? (
-              [...students]
-                .sort((a, b) =>
-                  String(a._id).localeCompare(String(b._id), undefined, { numeric: true })
-                )
-                .map((student, index) => {
-                  const stats = studentLeaveStats[student._id] || {};
-                  const latestRecord = stats.latestRecord;
+            {displayedStudents.length > 0 ? (
+              displayedStudents.map(({ student, originalIndex }) => {
+                const stats = studentLeaveStats[student._id] || {};
+                const latestRecord = stats.latestRecord;
 
-                  return (
-                    <TableRow
-                      key={student._id}
-                      className={
+                return (
+                  <TableRow
+                    key={student._id}
+                    className={`cursor-pointer ${
+                      stats.pendingLeaves > 0 || stats.overdueLeaves > 0
+                        ? "bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 border-l-4 border-red-500"
+                        : "hover:bg-muted/50"
+                    }`}
+                    onClick={() => {
+                      router.push(`/dashboard/leave-register/${student._id}`);
+                    }}
+                  >
+                    <TableCell
+                      className={`text-center align-middle font-medium text-sm ${
                         stats.pendingLeaves > 0 || stats.overdueLeaves > 0
-                          ? "bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 border-l-4 border-red-500"
-                          : "hover:bg-muted/50"
-                      }
-                      onClick={() => {
-                        router.push(`/dashboard/leave-register/${student._id}`);
-                      }}
-                    >
-                      <TableCell
-                        className={`text-center align-middle font-medium text-sm ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
                           ? "text-red-900 dark:text-red-100"
                           : ""
-                          }`}
-                      >
-                        {index + 1}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center sm:items-start gap-3">
-                          <div className="flex flex-col items-center gap-1 shrink-0">
-                            <Avatar className="h-8 w-8 border border-muted">
-                              <AvatarImage src={student.profilePic?.url} alt={student.name} />
-                              <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
-                                {student.name?.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-[9px] text-muted-foreground whitespace-nowrap">
-                              {student._id}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-
-                              <span
-                                className={`font-semibold text-xs whitespace-normal break-words max-w-[150px] sm:max-w-none ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
+                      }`}
+                    >
+                      {originalIndex}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center sm:items-start gap-3">
+                        <div className="flex flex-col items-center gap-1 shrink-0">
+                          <Avatar className="h-8 w-8 border border-muted">
+                            <AvatarImage src={student.profilePic?.url} alt={student.name} />
+                            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+                              {student.name?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-[9px] text-muted-foreground whitespace-nowrap">
+                            {student.studentSpecificField?.admissionNumber || student.admissionNumber || student._id}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`font-semibold text-xs whitespace-normal break-words max-w-[150px] sm:max-w-none ${
+                                stats.pendingLeaves > 0 || stats.overdueLeaves > 0
                                   ? "text-red-900 dark:text-red-100"
                                   : ""
-                                  }`}
-                              >
-                                {student.name}
-                              </span>
-                            </div>
+                              }`}
+                            >
+                              {student.name}
+                            </span>
+                          </div>
 
-                            <div className="flex flex-col gap-0.5">
-                              <div className="flex items-center gap-2 text-xs">
-                                <span
-                                  className={`${stats.pendingLeaves > 0 ||
-                                    stats.overdueLeaves > 0
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2 text-xs">
+                              <span
+                                className={`${
+                                  stats.pendingLeaves > 0 ||
+                                  stats.overdueLeaves > 0
                                     ? "text-red-700 dark:text-red-300"
                                     : "text-muted-foreground"
-                                    }`}
-                                >
-                                  {stats.totalLeaves || 0}{" "}
-                                  {stats.totalLeaves <= 1 ? "leave" : "leaves"}
-                                </span>
-                              </div>
-                              {(stats.pendingLeaves > 0 || stats.overdueLeaves > 0) && latestRecord?.leaveReason && (
-                                <span 
-                                  className="text-[11px] text-red-600/90 dark:text-red-400/90 italic truncate max-w-[150px] sm:max-w-[250px]" 
-                                  title={latestRecord.leaveReason}
-                                >
-                                  {latestRecord.leaveReason}
-                                </span>
-                              )}
+                                }`}
+                              >
+                                {stats.totalLeaves || 0}{" "}
+                                {stats.totalLeaves <= 1 ? "leave" : "leaves"}
+                              </span>
                             </div>
+                            {(stats.pendingLeaves > 0 || stats.overdueLeaves > 0) && latestRecord?.leaveReason && (
+                              <span 
+                                className="text-[11px] text-red-600/90 dark:text-red-400/90 italic truncate max-w-[150px] sm:max-w-[250px]" 
+                                title={latestRecord.leaveReason}
+                              >
+                                {latestRecord.leaveReason}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="p-0 py-2 align-top text-right pr-4">
-                        {latestRecord ? (
-                          <div className="space-y-1 flex flex-col items-end">
-                            <div className="flex flex-wrap justify-end gap-1">
-                              {stats.overdueLeaves > 0 && (
-                                <Badge variant="destructive" className="text-xs px-1 py-0">
-                                  Overdue
-                                </Badge>
-                              )}
-                              {stats.pendingLeaves > 0 && (
-                                <Badge variant="destructive" className="text-xs px-1 py-0 bg-orange-500 hover:bg-orange-600">
-                                  Pending
-                                </Badge>
-                              )}
-                              {(!latestRecord.remark && (stats.pendingLeaves > 0 || stats.overdueLeaves > 0)) 
-                                ? null 
-                                : getStatusBadge(latestRecord.remark)}
-                            </div>
-                            <div
-                              className={`text-xs px-2 ${stats.pendingLeaves > 0
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-0 py-2 align-top text-right pr-4">
+                      {latestRecord ? (
+                        <div className="space-y-1 flex flex-col items-end">
+                          <div className="flex flex-wrap justify-end gap-1">
+                            {stats.overdueLeaves > 0 && (
+                              <Badge variant="destructive" className="text-xs px-1 py-0">
+                                Overdue
+                              </Badge>
+                            )}
+                            {stats.pendingLeaves > 0 && (
+                              <Badge variant="destructive" className="text-xs px-1 py-0 bg-orange-500 hover:bg-orange-600">
+                                Pending
+                              </Badge>
+                            )}
+                            {(!latestRecord.remark && (stats.pendingLeaves > 0 || stats.overdueLeaves > 0)) 
+                              ? null 
+                              : getStatusBadge(latestRecord.remark)}
+                          </div>
+                          <div
+                            className={`text-xs px-2 ${
+                              stats.pendingLeaves > 0
                                 ? "text-red-700 dark:text-red-300"
                                 : "text-muted-foreground"
-                                }`}
-                            >
-                              Days:{" "}
-                              {calculateDaysOnLeave(
-                                latestRecord.dateOfLeave,
-                                latestRecord.arrivedDate,
-                                latestRecord.dateOfArrival
-                              )}
-                            </div>
+                            }`}
+                          >
+                            Days:{" "}
+                            {calculateDaysOnLeave(
+                              latestRecord.dateOfLeave,
+                              latestRecord.arrivedDate,
+                              latestRecord.dateOfArrival
+                            )}
                           </div>
-                        ) : (
-                          <div
-                            className={`text-sm pr-2 ${stats.pendingLeaves > 0
+                        </div>
+                      ) : (
+                        <div
+                          className={`text-sm pr-2 ${
+                            stats.pendingLeaves > 0
                               ? "text-red-700 dark:text-red-300"
                               : "text-muted-foreground"
-                              }`}
-                          >
-                            -
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                          }`}
+                        >
+                          -
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">
+                <TableCell colSpan={3} className="text-center py-8">
                   <div className="space-y-2">
                     <div className="text-muted-foreground">
-                      {!!selectedClass
-                        ? "No students found for this class."
-                        : "Please select a class to view students."}
+                      {!selectedClass
+                        ? "Please select a class to view students."
+                        : searchQuery
+                        ? `No students found matching "${searchQuery}"`
+                        : "No students found for this class."}
                     </div>
                     {!!selectedClass && fetchStudentsQuery.isLoading && (
                       <Loader className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />

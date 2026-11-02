@@ -14,6 +14,8 @@ import {
   Loader,
   Save,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   GraduationCap,
   UserCheck,
   X,
@@ -72,7 +74,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn, formatDate, formatDateForDisplay } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { cn, formatDate, formatDateForDisplay, getISTDate } from "@/lib/utils";
 import Header from "./Header";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -391,6 +394,51 @@ const HifzDoura = ({ apiKey, classes, teachers, currentUser }) => {
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
   const [removingIds, setRemovingIds] = useState([]);
   const [filterDate, setFilterDate] = useState(formatDate(new Date()));
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  const selectedDate = useMemo(() => {
+    if (!filterDate) return getISTDate();
+    const [y, m, d] = filterDate.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }, [filterDate]);
+
+  const dayName = useMemo(() => {
+    if (!filterDate) return "";
+    const [y, m, d] = filterDate.split("-").map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    if (isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", weekday: "long" }).format(date);
+  }, [filterDate]);
+
+  const isToday = useMemo(() => {
+    return filterDate >= formatDate(getISTDate());
+  }, [filterDate]);
+
+  const handlePrevDay = () => {
+    if (!filterDate) return;
+    const [y, m, d] = filterDate.split("-").map(Number);
+    const prev = new Date(y, m - 1, d);
+    prev.setDate(prev.getDate() - 1);
+    const py = prev.getFullYear();
+    const pm = String(prev.getMonth() + 1).padStart(2, "0");
+    const pd = String(prev.getDate()).padStart(2, "0");
+    setFilterDate(`${py}-${pm}-${pd}`);
+  };
+
+  const handleNextDay = () => {
+    if (!filterDate) return;
+    const [y, m, d] = filterDate.split("-").map(Number);
+    const next = new Date(y, m - 1, d);
+    next.setDate(next.getDate() + 1);
+    const ny = next.getFullYear();
+    const nm = String(next.getMonth() + 1).padStart(2, "0");
+    const nd = String(next.getDate()).padStart(2, "0");
+    const nextStr = `${ny}-${nm}-${nd}`;
+    const todayStr = formatDate(getISTDate());
+    if (nextStr <= todayStr) {
+      setFilterDate(nextStr);
+    }
+  };
   const [searchEnroll, setSearchEnroll] = useState("");
   const [activeTab, setActiveTab] = useState("records");
   const [activeYear, setActiveYear] = useState(Cookies.get("active-year") || "");
@@ -762,19 +810,84 @@ const HifzDoura = ({ apiKey, classes, teachers, currentUser }) => {
 
         {/* ── Records Tab ──────────────────────────────────────── */}
         <TabsContent value="records" className="mt-4 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="w-auto"
-              />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0 bg-background">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r hover:bg-accent shrink-0"
+                onClick={handlePrevDay}
+                title="Previous Day"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <label className="flex items-center px-2 py-1 cursor-pointer">
+                <input
+                  type="date"
+                  value={filterDate}
+                  max={formatDate(getISTDate())}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setFilterDate(e.target.value);
+                    }
+                  }}
+                  className="w-[115px] sm:w-[130px] bg-transparent border-none text-xs sm:text-sm font-medium focus:outline-none focus:ring-0 px-1 h-7 sm:h-8 cursor-pointer text-foreground [&::-webkit-calendar-picker-indicator]:hidden"
+                />
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap pl-0.5 sm:pl-1">
+                  , {dayName}
+                </span>
+              </label>
+
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent text-muted-foreground hover:text-foreground shrink-0"
+                    title="Select date from calendar"
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        const y = newDate.getFullYear();
+                        const m = String(newDate.getMonth() + 1).padStart(2, "0");
+                        const d = String(newDate.getDate()).padStart(2, "0");
+                        const dateStr = `${y}-${m}-${d}`;
+                        const todayStr = formatDate(getISTDate());
+                        if (dateStr <= todayStr) {
+                          setFilterDate(dateStr);
+                          setDatePickerOpen(false);
+                        }
+                      }
+                    }}
+                    disabled={(d) => {
+                      const todayIST = getISTDate();
+                      todayIST.setHours(23, 59, 59, 999);
+                      return d > todayIST;
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent shrink-0"
+                onClick={handleNextDay}
+                disabled={isToday}
+                title={isToday ? "Cannot navigate to future dates" : "Next Day"}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {records.length} record(s) found
-            </span>
           </div>
 
           {loadingRecords ? (
