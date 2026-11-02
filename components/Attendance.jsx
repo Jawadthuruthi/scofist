@@ -1029,7 +1029,7 @@ return (
             <TableHead className="w-10 text-center px-2">R.no</TableHead>
             <TableHead className="px-2 py-1.5 min-w-[150px]">
               <div className="relative flex items-center w-full max-w-xs">
-                <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                 <Input
                   type="text"
                   placeholder="Search students..."
@@ -1038,7 +1038,7 @@ return (
                   onKeyDown={(e) => {
                     if (e.key === "Escape") setSearchQuery("");
                   }}
-                  className="h-8 pl-8 pr-7 text-xs bg-background/50 hover:bg-background focus:bg-background border-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary w-full"
+                  className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
                   onClick={(e) => e.stopPropagation()}
                 />
                 {searchQuery && (
@@ -1048,7 +1048,7 @@ return (
                       e.stopPropagation();
                       setSearchQuery("");
                     }}
-                    className="absolute right-2 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
+                    className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
                     title="Clear search"
                     aria-label="Clear search"
                   >

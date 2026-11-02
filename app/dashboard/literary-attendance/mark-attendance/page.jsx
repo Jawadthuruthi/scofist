@@ -14,7 +14,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useCrud from "@/hooks/use-crud";
 import { useSearchParams } from "next/navigation";
-import { Calendar, Clock, Loader, User, UserCheck, CheckCircle2, X, Check, Save } from "lucide-react";
+import { Calendar, Clock, Loader, User, UserCheck, CheckCircle2, X, Check, Save, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ const LiteraryAttendance = () => {
   const [saving, setSaving] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const router = useRouter();
 
@@ -279,6 +281,40 @@ const LiteraryAttendance = () => {
     return studentsQuery.data?.users || [];
   }, [studentsQuery.data, participantsQuery.data, groupLeaderId, groupAssistantLeaderId]);
 
+  const displayedStudents = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return students.map((student, index) => ({
+        student,
+        originalIndex: index + 1,
+      }));
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+
+    return students
+      .map((student, index) => ({
+        student,
+        originalIndex: index + 1,
+      }))
+      .filter(({ student, originalIndex }) => {
+        const name = (student.name || "").toLowerCase();
+        const admNo = String(
+          student.studentSpecificField?.admissionNumber ||
+            student.admissionNumber ||
+            ""
+        ).toLowerCase();
+        const id = String(student._id || "").toLowerCase();
+        const rollStr = String(originalIndex);
+
+        return (
+          name.includes(query) ||
+          admNo.includes(query) ||
+          id.includes(query) ||
+          rollStr === query
+        );
+      });
+  }, [students, searchQuery]);
+
   useEffect(() => {
     if (studentsQuery.isLoading || attendanceQuery.isLoading) {
       setLoading(true);
@@ -518,13 +554,42 @@ const LiteraryAttendance = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">Sl.no</TableHead>
-                  <TableHead>Students</TableHead>
+                  <TableHead className="px-2 py-1.5 min-w-[150px]">
+                    <div className="relative flex items-center w-full max-w-xs">
+                      <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      <Input
+                        type="text"
+                        placeholder="Search students..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setSearchQuery("");
+                        }}
+                        className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSearchQuery("");
+                          }}
+                          className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
+                          title="Clear search"
+                          aria-label="Clear search"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-right">History</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.length > 0 ? (
-                  students.map((student, index) => {
+                {displayedStudents.length > 0 ? (
+                  displayedStudents.map(({ student, originalIndex }) => {
                     const absenteeInfo = getStudentAbsenteeInfo(student._id);
                     const hasAbsenceHistory = absenteeInfo && absenteeInfo.continuousAbsences > 0;
                     const isOnLeave = studentsOnLeave[student._id];
@@ -544,7 +609,7 @@ const LiteraryAttendance = () => {
                         className={rowClass}
                         onClick={() => toggleAttendance(student._id)}
                       >
-                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{originalIndex}</TableCell>
                         <TableCell>
                           <div className="flex flex-col justify-center">
                             <div>
@@ -586,7 +651,7 @@ const LiteraryAttendance = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-8">
-                      No students found in this class
+                      {searchQuery ? `No students found matching "${searchQuery}"` : "No students found in this class"}
                     </TableCell>
                   </TableRow>
                 )}

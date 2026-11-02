@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import axios from "axios";
-import { Loader, Check, X, Calendar as CalendarIcon } from "lucide-react";
+import { Loader, Check, X, Calendar as CalendarIcon, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -46,6 +47,27 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState({ students: [], attendanceMap: {}, leavesMap: {} });
     const [daysInMonth, setDaysInMonth] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const displayedStudents = useMemo(() => {
+        const studentsList = data?.students || [];
+        if (!searchQuery.trim()) {
+            return studentsList.map((student, index) => ({ student, originalIndex: index + 1 }));
+        }
+        const q = searchQuery.trim().toLowerCase();
+        return studentsList
+            .map((student, index) => ({ student, originalIndex: index + 1 }))
+            .filter(({ student, originalIndex }) => {
+                const name = (student.name || "").toLowerCase();
+                const admNo = String(
+                    student.studentSpecificField?.admissionNumber ||
+                    student.admissionNumber ||
+                    ""
+                ).toLowerCase();
+                const id = String(student._id || "").toLowerCase();
+                return name.includes(q) || admNo.includes(q) || id.includes(q) || String(originalIndex) === q;
+            });
+    }, [data?.students, searchQuery]);
 
 
     // helper for headers
@@ -278,7 +300,37 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
                     <TableHeader className="sticky top-0 bg-secondary z-20 print:static">
                         <TableRow>
                             <TableHead className="w-[50px] sticky left-0 bg-secondary z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
-                            <TableHead className="w-auto whitespace-nowrap sticky left-[50px] px-4 bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Student Name</TableHead>
+                            <TableHead className="w-auto whitespace-nowrap sticky left-[50px] px-2 py-1.5 bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none min-w-[150px]">
+                                <span className="hidden print:inline px-2">Student Name</span>
+                                <div className="relative flex items-center w-full max-w-xs print:hidden">
+                                    <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Search students..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Escape") setSearchQuery("");
+                                        }}
+                                        className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSearchQuery("");
+                                            }}
+                                            className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
+                                            title="Clear search"
+                                            aria-label="Clear search"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+                            </TableHead>
                             {daysInMonth.filter(d => activeDates.has(format(d, "yyyy-MM-dd"))).map(day => (
                                 <TableHead key={day} className={`text-center min-w-[30px] px-1 ${day.getDay() === 5 ? 'bg-red-50 text-red-600 print:bg-red-100' : ''}`}>
                                     <div className="flex flex-col items-center">
@@ -292,10 +344,10 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {data.students.length === 0 ? (
+                        {displayedStudents.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={daysInMonth.length + 2} className="text-center h-24">
-                                    {loading ? "Loading..." : "No data to display. Please select specific filters to load."}
+                                    {searchQuery ? `No students found matching "${searchQuery}"` : (loading ? "Loading..." : "No data to display. Please select specific filters to load.")}
                                 </TableCell>
                             </TableRow>
                         ) : activeDates.size === 0 ? (
@@ -305,10 +357,10 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            data.students.map((student, index) => (
+                            displayedStudents.map(({ student, originalIndex }) => (
                                 <TableRow key={student._id} className="group print:break-inside-avoid">
                                     <TableCell className="sticky left-0 bg-background group-hover:bg-muted/50 z-30 font-medium text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
-                                        {index + 1}
+                                        {originalIndex}
                                     </TableCell>
                                     <TableCell className="sticky left-[50px] px-4 whitespace-nowrap bg-background group-hover:bg-muted/50 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
                                         {student.name}

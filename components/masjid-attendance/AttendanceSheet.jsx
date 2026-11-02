@@ -13,7 +13,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Loader, Save, ArrowLeft, Clock, X, Calendar, History, CheckCircle2, RotateCcw } from "lucide-react";
+import { Loader, Save, ArrowLeft, Clock, X, Calendar, History, CheckCircle2, RotateCcw, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import useCrud from "@/hooks/use-crud";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ const AttendanceSheet = ({
     const [currentStudentName, setCurrentStudentName] = useState("");
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
 
     const displaySessionPrayer = useMemo(() => {
         if (!sessionLabel || sessionLabel === "General") {
@@ -139,6 +141,40 @@ const AttendanceSheet = ({
             return String(idA).localeCompare(String(idB), undefined, { numeric: true });
         });
     }, [studentsQuery.data]);
+
+    const displayedStudents = useMemo(() => {
+        if (!searchQuery.trim()) {
+            return students.map((student, index) => ({
+                student,
+                originalIndex: index + 1,
+            }));
+        }
+
+        const query = searchQuery.trim().toLowerCase();
+
+        return students
+            .map((student, index) => ({
+                student,
+                originalIndex: index + 1,
+            }))
+            .filter(({ student, originalIndex }) => {
+                const name = (student.name || "").toLowerCase();
+                const admNo = String(
+                    student.studentSpecificField?.admissionNumber ||
+                    student.admissionNumber ||
+                    ""
+                ).toLowerCase();
+                const id = String(student._id || "").toLowerCase();
+                const rollStr = String(originalIndex);
+
+                return (
+                    name.includes(query) ||
+                    admNo.includes(query) ||
+                    id.includes(query) ||
+                    rollStr === query
+                );
+            });
+    }, [students, searchQuery]);
 
     // Fetch existing attendance for current day/prayer
     const {
@@ -679,7 +715,36 @@ const AttendanceSheet = ({
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-10 text-center px-2">R.no</TableHead>
-                            <TableHead className="px-2">Students</TableHead>
+                            <TableHead className="px-2 py-1.5 min-w-[150px]">
+                                <div className="relative flex items-center w-full max-w-xs">
+                                    <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Search students..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Escape") setSearchQuery("");
+                                        }}
+                                        className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSearchQuery("");
+                                            }}
+                                            className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
+                                            title="Clear search"
+                                            aria-label="Clear search"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+                            </TableHead>
                             <TableHead className="w-[50px] md:w-[70px] text-center px-1">
                                 <span className="hidden md:inline">History</span>
                                 <History className="h-5 w-5 md:hidden mx-auto" />
@@ -687,8 +752,8 @@ const AttendanceSheet = ({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {students.length > 0 ? (
-                            students.map((student, index) => {
+                        {displayedStudents.length > 0 ? (
+                            displayedStudents.map(({ student, originalIndex }) => {
                                 const isOnLeave = studentsOnLeave[student._id];
                                 const isPresent = attendance[student._id];
                                 const studentHistoryList = studentHistory[student._id] || [];
@@ -718,7 +783,7 @@ const AttendanceSheet = ({
                                         onClick={!isPastDate ? () => toggleAttendance(student._id) : undefined}
                                     >
                                         <TableCell className={`text-center align-middle px-2 ${textColor}`}>
-                                            {index + 1}
+                                            {originalIndex}
                                         </TableCell>
                                         <TableCell className="px-2">
                                             <div className="flex items-center gap-3">
@@ -775,7 +840,7 @@ const AttendanceSheet = ({
                                     colSpan={3}
                                     className="text-center py-8 text-muted-foreground"
                                 >
-                                    No students found in this class.
+                                    {searchQuery ? `No students found matching "${searchQuery}"` : "No students found in this class."}
                                 </TableCell>
                             </TableRow>
                         )}
