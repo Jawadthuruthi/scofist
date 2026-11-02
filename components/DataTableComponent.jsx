@@ -1871,11 +1871,19 @@ const DataTableComponent = ({
                         onClick={() => setSubjectDrilldown(null)}
                         className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors inline-flex items-center"
                         title="Back to Subjects"
+                        data-html2canvas-ignore="true"
                       >
                         <ArrowLeft className="h-5 w-5" />
                       </button>
                       <span>
-                        {subjectDrilldown.subjectName} – {capitalize(subjectDrilldown.filterType)} ({subjectDrilldown.records.length})
+                        {subjectDrilldown.filterType === "total"
+                          ? "Total Records"
+                          : subjectDrilldown.filterType === "present"
+                          ? "Present Records"
+                          : "Absent Records"}
+                      </span>
+                      <span className="ml-1 text-base font-semibold text-muted-foreground">
+                        ({subjectDrilldown.records.length})
                       </span>
                     </span>
                   ) : detailView?.viewType === "subjectSummary" ? (
@@ -1890,19 +1898,44 @@ const DataTableComponent = ({
                   )}
                 </DialogTitle>
                 <div className="m-0 flex flex-col mt-0.5 min-w-0">
-                  <DialogDescription className="font-medium text-foreground m-0 text-sm leading-tight truncate">
-                    {detailView?.student?.name}
-                    {resource === "studentAttendances" &&
-                      detailView?.viewType !== "allRecords" &&
-                      detailView?.viewType !== "subjectSummary" &&
-                      detailView?.student?._id &&
-                      !['cls', 'tch'].includes(String(detailView.student._id).split('-')[0].toLowerCase()) &&
-                      ` (${detailView.student._id})`}
-                  </DialogDescription>
-                  {(detailView?.viewType === "allRecords" || detailView?.viewType === "subjectSummary") && filterMonth && filterYear && (
-                    <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                      {new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} {filterYear}
-                    </span>
+                  {subjectDrilldown ? (
+                    <>
+                      <DialogDescription className="font-semibold text-foreground m-0 text-sm leading-tight truncate">
+                        {subjectDrilldown.subjectName}
+                        {subjectDrilldown.className && (
+                          <span className="text-muted-foreground font-normal text-xs ml-1.5">
+                            ({subjectDrilldown.className})
+                          </span>
+                        )}
+                      </DialogDescription>
+                      {subjectDrilldown.teacherName && (
+                        <span className="text-xs text-muted-foreground font-normal leading-tight mt-0.5">
+                          {subjectDrilldown.teacherName}
+                        </span>
+                      )}
+                      {filterMonth && filterYear && (
+                        <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                          {new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} {filterYear}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <DialogDescription className="font-medium text-foreground m-0 text-sm leading-tight truncate">
+                        {detailView?.student?.name}
+                        {resource === "studentAttendances" &&
+                          detailView?.viewType !== "allRecords" &&
+                          detailView?.viewType !== "subjectSummary" &&
+                          detailView?.student?._id &&
+                          !['cls', 'tch'].includes(String(detailView.student._id).split('-')[0].toLowerCase()) &&
+                          ` (${detailView.student._id})`}
+                      </DialogDescription>
+                      {(detailView?.viewType === "allRecords" || detailView?.viewType === "subjectSummary") && filterMonth && filterYear && (
+                        <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                          {new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} {filterYear}
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -1910,6 +1943,7 @@ const DataTableComponent = ({
               {(detailView?.viewType === "allRecords" || detailView?.viewType === "subjectSummary") && (
                 <button
                   type="button"
+                  data-html2canvas-ignore="true"
                   className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80 transition-colors focus:outline-none cursor-pointer shrink-0"
                   onClick={() => {
                     const name = detailView?.student?.name || '';
@@ -1917,7 +1951,11 @@ const DataTableComponent = ({
                       const name = detailView?.student?.name || '';
                       const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
                       const yearLabel = filterYear || '';
-                      const filterLabel = capitalize(subjectDrilldown.filterType);
+                      const filterHeading = subjectDrilldown.filterType === "total"
+                        ? "Total Records"
+                        : subjectDrilldown.filterType === "present"
+                        ? "Present Records"
+                        : "Absent Records";
                       const showStatus = subjectDrilldown.filterType === "total";
 
                       const tableRows = subjectDrilldown.records.map((rec, idx) => {
@@ -1941,7 +1979,11 @@ const DataTableComponent = ({
                         </tr>`;
                       }).join('');
 
-                      const html = `<!DOCTYPE html><html><head><title>${subjectDrilldown.subjectName} – ${filterLabel} Records</title>
+                      const teacherHtml = subjectDrilldown.teacherName
+                        ? `<div style="font-size:12px;font-weight:400;color:#6b7280;margin-top:2px;">${subjectDrilldown.teacherName}</div>`
+                        : '';
+
+                      const html = `<!DOCTYPE html><html><head><title>${subjectDrilldown.subjectName} – ${filterHeading}</title>
                       <link rel="preconnect" href="https://fonts.googleapis.com" />
                       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
                       <style>
@@ -1957,8 +1999,9 @@ const DataTableComponent = ({
                         @media print{body{padding:10px;}}
                       </style></head><body>
                       <div class="header">
-                        <div class="title">${subjectDrilldown.subjectName} – ${filterLabel} Records (${subjectDrilldown.records.length})</div>
-                        <div class="subtitle">${name}</div>
+                        <div class="title">${filterHeading} (${subjectDrilldown.records.length})</div>
+                        <div class="subtitle">${subjectDrilldown.subjectName}${name ? ` (${name})` : ''}</div>
+                        ${teacherHtml}
                         ${monthLabel && yearLabel ? `<div class="date-badge">📅 ${monthLabel} ${yearLabel}</div>` : ''}
                       </div>
                       <table>
@@ -2172,6 +2215,7 @@ const DataTableComponent = ({
                 {(detailView?.viewType === "allRecords" || detailView?.viewType === "subjectSummary") && (
                   <button
                     type="button"
+                    data-html2canvas-ignore="true"
                     className="sm:hidden flex items-center justify-center p-1.5 rounded-lg bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80 transition-colors focus:outline-none cursor-pointer"
                     onClick={() => {
                       const name = detailView?.student?.name || '';
@@ -2179,7 +2223,11 @@ const DataTableComponent = ({
                       const name = detailView?.student?.name || '';
                       const monthLabel = filterMonth ? new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' }) : '';
                       const yearLabel = filterYear || '';
-                      const filterLabel = capitalize(subjectDrilldown.filterType);
+                      const filterHeading = subjectDrilldown.filterType === "total"
+                        ? "Total Records"
+                        : subjectDrilldown.filterType === "present"
+                        ? "Present Records"
+                        : "Absent Records";
                       const showStatus = subjectDrilldown.filterType === "total";
 
                       const tableRows = subjectDrilldown.records.map((rec, idx) => {
@@ -2203,7 +2251,11 @@ const DataTableComponent = ({
                         </tr>`;
                       }).join('');
 
-                      const html = `<!DOCTYPE html><html><head><title>${subjectDrilldown.subjectName} – ${filterLabel} Records</title>
+                      const teacherHtml = subjectDrilldown.teacherName
+                        ? `<div style="font-size:12px;font-weight:400;color:#6b7280;margin-top:2px;">${subjectDrilldown.teacherName}</div>`
+                        : '';
+
+                      const html = `<!DOCTYPE html><html><head><title>${subjectDrilldown.subjectName} – ${filterHeading}</title>
                       <link rel="preconnect" href="https://fonts.googleapis.com" />
                       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
                       <style>
@@ -2219,8 +2271,9 @@ const DataTableComponent = ({
                         @media print{body{padding:10px;}}
                       </style></head><body>
                       <div class="header">
-                        <div class="title">${subjectDrilldown.subjectName} – ${filterLabel} Records (${subjectDrilldown.records.length})</div>
-                        <div class="subtitle">${name}</div>
+                        <div class="title">${filterHeading} (${subjectDrilldown.records.length})</div>
+                        <div class="subtitle">${subjectDrilldown.subjectName}${name ? ` (${name})` : ''}</div>
+                        ${teacherHtml}
                         ${monthLabel && yearLabel ? `<div class="date-badge">📅 ${monthLabel} ${yearLabel}</div>` : ''}
                       </div>
                       <table>
@@ -2575,10 +2628,10 @@ const DataTableComponent = ({
                         <>
                           <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
                           <TableHead className="font-bold">Subject Name</TableHead>
-                          <TableHead className="text-center font-bold">Total Class</TableHead>
-                          <TableHead className="text-center font-bold">Present</TableHead>
-                          <TableHead className="text-center font-bold">Absent</TableHead>
-                          <TableHead className="text-center font-bold">Percentage</TableHead>
+                          <TableHead className="text-center font-normal">Total Class</TableHead>
+                          <TableHead className="text-center font-normal">Present</TableHead>
+                          <TableHead className="text-center font-normal">Absent</TableHead>
+                          <TableHead className="text-center font-normal">Percentage</TableHead>
                         </>
                       ) : detailView?.viewType === "studentList" ? (
                         <>
@@ -2667,10 +2720,10 @@ const DataTableComponent = ({
                                   })()}
                                 </div>
                               </TableCell>
-                              <TableCell className="text-center font-medium text-sm py-3">
+                              <TableCell className="text-center font-normal text-sm py-3">
                                 <button
                                   type="button"
-                                  className="px-2.5 py-1 rounded-md hover:bg-muted font-bold text-foreground cursor-pointer transition-colors"
+                                  className="px-2.5 py-1 rounded-md hover:bg-muted font-normal text-foreground cursor-pointer transition-colors"
                                   onClick={() => {
                                     const subRecs = (rec.records || []).slice().sort((a, b) => {
                                       const timeA = a.date ? new Date(a.date).getTime() : 0;
@@ -2679,7 +2732,10 @@ const DataTableComponent = ({
                                       return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
                                     });
                                     setSubjectDrilldown({
-                                      subjectName: rec.teacherName ? `${rec.subjectName} (${rec.teacherName})` : rec.subjectName,
+                                      subjectName: rec.subjectName || "—",
+                                      teacherName: (Array.isArray(rec.teacherNames) && rec.teacherNames.length > 0)
+                                        ? rec.teacherNames.join(", ")
+                                        : (rec.teacherName || ""),
                                       filterType: "total",
                                       records: subRecs,
                                       className: detailView?.student?.name || "",
@@ -2690,10 +2746,10 @@ const DataTableComponent = ({
                                   {rec.totalClass ?? rec.total ?? 0}
                                 </button>
                               </TableCell>
-                              <TableCell className="text-center font-semibold text-sm py-3 text-green-600 dark:text-green-400">
+                              <TableCell className="text-center font-normal text-sm py-3 text-green-600 dark:text-green-400">
                                 <button
                                   type="button"
-                                  className="px-2.5 py-1 rounded-md hover:bg-green-100 dark:hover:bg-green-900/40 font-bold text-green-600 dark:text-green-400 cursor-pointer transition-colors"
+                                  className="px-2.5 py-1 rounded-md hover:bg-green-100 dark:hover:bg-green-900/40 font-normal text-green-600 dark:text-green-400 cursor-pointer transition-colors"
                                   onClick={() => {
                                     const subRecs = (rec.records || []).filter((r) => r.present === true).slice().sort((a, b) => {
                                       const timeA = a.date ? new Date(a.date).getTime() : 0;
@@ -2702,7 +2758,10 @@ const DataTableComponent = ({
                                       return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
                                     });
                                     setSubjectDrilldown({
-                                      subjectName: rec.teacherName ? `${rec.subjectName} (${rec.teacherName})` : rec.subjectName,
+                                      subjectName: rec.subjectName || "—",
+                                      teacherName: (Array.isArray(rec.teacherNames) && rec.teacherNames.length > 0)
+                                        ? rec.teacherNames.join(", ")
+                                        : (rec.teacherName || ""),
                                       filterType: "present",
                                       records: subRecs,
                                       className: detailView?.student?.name || "",
@@ -2713,10 +2772,10 @@ const DataTableComponent = ({
                                   {rec.present ?? 0}
                                 </button>
                               </TableCell>
-                              <TableCell className="text-center font-semibold text-sm py-3 text-red-600 dark:text-red-400">
+                              <TableCell className="text-center font-normal text-sm py-3 text-red-600 dark:text-red-400">
                                 <button
                                   type="button"
-                                  className="px-2.5 py-1 rounded-md hover:bg-red-100 dark:hover:bg-red-900/40 font-bold text-red-600 dark:text-red-400 cursor-pointer transition-colors"
+                                  className="px-2.5 py-1 rounded-md hover:bg-red-100 dark:hover:bg-red-900/40 font-normal text-red-600 dark:text-red-400 cursor-pointer transition-colors"
                                   onClick={() => {
                                     const subRecs = (rec.records || []).filter((r) => r.present === false).slice().sort((a, b) => {
                                       const timeA = a.date ? new Date(a.date).getTime() : 0;
@@ -2725,7 +2784,10 @@ const DataTableComponent = ({
                                       return (Number(a.periodNumber) || 0) - (Number(b.periodNumber) || 0);
                                     });
                                     setSubjectDrilldown({
-                                      subjectName: rec.teacherName ? `${rec.subjectName} (${rec.teacherName})` : rec.subjectName,
+                                      subjectName: rec.subjectName || "—",
+                                      teacherName: (Array.isArray(rec.teacherNames) && rec.teacherNames.length > 0)
+                                        ? rec.teacherNames.join(", ")
+                                        : (rec.teacherName || ""),
                                       filterType: "absent",
                                       records: subRecs,
                                       className: detailView?.student?.name || "",
@@ -2736,7 +2798,7 @@ const DataTableComponent = ({
                                   {rec.absent ?? 0}
                                 </button>
                               </TableCell>
-                              <TableCell className="text-center font-bold text-sm py-3 text-indigo-600 dark:text-indigo-400">
+                              <TableCell className="text-center font-normal text-sm py-3 text-indigo-600 dark:text-indigo-400">
                                 {rec.percentage || (rec.totalClass ? `${((rec.present / rec.totalClass) * 100).toFixed(2)}%` : "0.00%")}
                               </TableCell>
                             </>

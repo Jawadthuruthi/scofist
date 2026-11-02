@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader, Save, Calendar, Clock, CheckCircle2, FilePlus, X, History, Check, ChevronsUpDown, FileText } from "lucide-react";
+import { Loader, Save, Calendar, Clock, CheckCircle2, FilePlus, X, History, Check, ChevronsUpDown, FileText, Search } from "lucide-react";
 
 // UI Components
 import {
@@ -80,6 +80,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [successMessage, setSuccessMessage] = useState("");
   const [whatsappModalData, setWhatsappModalData] = useState(null);
   const whatsappPopupRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Quick Leave states
   const [quickLeaveOpen, setQuickLeaveOpen] = useState(false);
@@ -451,6 +452,41 @@ const Attendance = ({ apiKey, teacherId }) => {
       return String(idA).localeCompare(String(idB), undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [students, classDetails, subjectId, classId]);
+
+  // Filter students displayed in the table based on search query in the heading column
+  const displayedStudents = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return filteredStudents.map((student, index) => ({
+        student,
+        originalIndex: index + 1,
+      }));
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+
+    return filteredStudents
+      .map((student, index) => ({
+        student,
+        originalIndex: index + 1,
+      }))
+      .filter(({ student, originalIndex }) => {
+        const name = (student.name || "").toLowerCase();
+        const admNo = String(
+          student.studentSpecificField?.admissionNumber ||
+            student.admissionNumber ||
+            ""
+        ).toLowerCase();
+        const id = String(student._id || "").toLowerCase();
+        const rollStr = String(originalIndex);
+
+        return (
+          name.includes(query) ||
+          admNo.includes(query) ||
+          id.includes(query) ||
+          rollStr === query
+        );
+      });
+  }, [filteredStudents, searchQuery]);
 
     // Navigate to my-periods
     const navigateToMyPeriods = useCallback(() => {
@@ -991,7 +1027,36 @@ return (
         <TableHeader>
           <TableRow>
             <TableHead className="w-10 text-center px-2">R.no</TableHead>
-            <TableHead className="px-2">Students</TableHead>
+            <TableHead className="px-2 py-1.5 min-w-[150px]">
+              <div className="relative flex items-center w-full max-w-xs">
+                <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setSearchQuery("");
+                  }}
+                  className="h-8 pl-8 pr-7 text-xs bg-background/50 hover:bg-background focus:bg-background border-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary w-full"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSearchQuery("");
+                    }}
+                    className="absolute right-2 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </TableHead>
             <TableHead className="w-[50px] md:w-[70px] text-center px-1">
               <span className="hidden md:inline">History</span>
               <History className="h-5 w-5 md:hidden mx-auto" />
@@ -1016,8 +1081,8 @@ return (
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredStudents.length > 0 ? (
-            filteredStudents.map((student, index) => {
+          {displayedStudents.length > 0 ? (
+            displayedStudents.map(({ student, originalIndex }) => {
               const absenteeInfo = getStudentAbsenteeInfo(student._id);
               const hasAbsenceHistory = absenteeInfo?.continuousAbsences > 0;
               const isPresent = attendance[student._id];
@@ -1031,7 +1096,7 @@ return (
                   onClick={() => toggleAttendance(student._id)}
                 >
                   <TableCell className={`text-center align-middle px-2 ${rowStyling.textColor}`}>
-                    {index + 1}
+                    {originalIndex}
                   </TableCell>
                   <TableCell className="px-2">
                     <div className="flex items-center gap-3">
@@ -1088,8 +1153,8 @@ return (
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8">
-                No students found in this class
+              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                {searchQuery ? `No students found matching "${searchQuery}"` : "No students found in this class"}
               </TableCell>
             </TableRow>
           )}

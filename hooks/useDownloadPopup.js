@@ -253,6 +253,11 @@ export const useDownloadPopup = (popupRef, filename = "Popup_Image.jpeg") => {
             clonedDoc.documentElement.classList.remove("dark");
           }
 
+          // Explicitly remove ignored elements (like print and close buttons) in cloned document
+          clonedDoc.querySelectorAll('[data-html2canvas-ignore="true"]').forEach((node) => {
+            node.remove();
+          });
+
           // Disable all CSS animations and transitions in the cloned document
           const style = clonedDoc.createElement("style");
           style.innerHTML = `
@@ -264,11 +269,68 @@ export const useDownloadPopup = (popupRef, filename = "Popup_Image.jpeg") => {
               backdrop-filter: none !important;
               -webkit-backdrop-filter: none !important;
             }
+            [data-html2canvas-popup="true"] .dialog-header,
+            [data-html2canvas-popup="true"] header,
+            [data-html2canvas-popup="true"] [class*="dialog-header"],
+            [data-html2canvas-popup="true"] [data-slot="dialog-header"],
+            [data-html2canvas-popup="true"] [data-slot="dialog-title"],
+            [data-html2canvas-popup="true"] [data-slot="dialog-description"] {
+              text-align: center !important;
+              justify-content: center !important;
+              align-items: center !important;
+            }
+            [data-html2canvas-popup="true"] .dialog-header *,
+            [data-html2canvas-popup="true"] header *,
+            [data-html2canvas-popup="true"] [class*="dialog-header"] *,
+            [data-html2canvas-popup="true"] [data-slot="dialog-header"] * {
+              text-align: center !important;
+            }
+            [data-html2canvas-popup="true"] .dialog-header .flex,
+            [data-html2canvas-popup="true"] header .flex,
+            [data-html2canvas-popup="true"] [class*="dialog-header"] .flex {
+              justify-content: center !important;
+              align-items: center !important;
+            }
           `;
           clonedDoc.head.appendChild(style);
 
           const clonedPopup = clonedDoc.querySelector('[data-html2canvas-popup="true"]');
           if (clonedPopup) {
+            // Center all text and flex layouts in popup headers for clean downloaded capture
+            const headerCandidates = new Set();
+            clonedPopup
+              .querySelectorAll('.dialog-header, header, [class*="dialog-header"], [data-slot="dialog-header"]')
+              .forEach((h) => headerCandidates.add(h));
+
+            const titleEl = clonedPopup.querySelector('[data-slot="dialog-title"], h2, [class*="DialogTitle"]');
+            if (titleEl) {
+              const container = titleEl.closest('.dialog-header, header, [class*="dialog-header"], .border-b') || titleEl.parentElement;
+              if (container) headerCandidates.add(container);
+            }
+
+            headerCandidates.forEach((hdr) => {
+              hdr.style.textAlign = "center";
+              hdr.style.justifyContent = "center";
+              hdr.style.alignItems = "center";
+              hdr.classList.remove("text-left", "items-start");
+              hdr.classList.add("text-center", "items-center", "justify-center");
+
+              hdr.querySelectorAll("*").forEach((child) => {
+                child.style.textAlign = "center";
+                child.classList.remove("text-left", "items-start");
+                child.classList.add("text-center");
+
+                const computed = window.getComputedStyle ? window.getComputedStyle(child) : null;
+                const isFlex = (computed && computed.display.includes("flex")) || child.className?.includes?.("flex");
+                if (isFlex) {
+                  child.style.justifyContent = "center";
+                  child.style.alignItems = "center";
+                  child.classList.remove("items-start", "justify-start");
+                  child.classList.add("items-center", "justify-center");
+                }
+              });
+            });
+
             // Remove height constraints so all rows and sections are captured cleanly
             clonedPopup.style.maxHeight = "none";
             clonedPopup.style.height = "auto";
