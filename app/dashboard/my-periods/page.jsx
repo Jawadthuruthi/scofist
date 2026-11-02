@@ -14,7 +14,7 @@ const MyPeriodsPage = async () => {
     const userPayload = parseUser(headerStore);
 
     await connectToDB();
-    const user = await User.findById(userPayload?._id).lean();
+    const user = await User.findById(userPayload?._id).select("teacherSpecificField.status").lean();
     const isPrincipal = user?.teacherSpecificField?.status === "Principal";
 
     return <MyPeriods apiKey={apiKey} teacherId={userPayload?._id} isPrincipal={isPrincipal} />;
