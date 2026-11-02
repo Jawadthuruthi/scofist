@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import Cookies from "js-cookie";
-import { LayoutDashboard, BookOpen, CalendarX, CreditCard, Loader2 } from "lucide-react";
+import { LayoutDashboard, BookOpen, CalendarX, CreditCard, ClipboardList, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function TeacherBottomBar({ user, activeRole: activeRoleProp }) {
@@ -74,6 +74,13 @@ export default function TeacherBottomBar({ user, activeRole: activeRoleProp }) {
       icon: CreditCard,
       active: pathname?.startsWith("/dashboard/students-fund"),
     },
+    {
+      title: "General Attendance",
+      label: "General",
+      href: "/dashboard/general-attendance",
+      icon: ClipboardList,
+      active: pathname?.startsWith("/dashboard/general-attendance"),
+    },
   ];
 
   // Eagerly prefetch all teacher navigation targets as soon as mounted
@@ -109,8 +116,8 @@ export default function TeacherBottomBar({ user, activeRole: activeRoleProp }) {
 
   return (
     <nav
-      aria-label="Teacher mobile navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.06)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.3)] md:hidden print:hidden"
+      aria-label="Teacher mobile and tablet navigation"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.06)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.3)] lg:hidden print:hidden"
     >
       {/* Subtle animated loading progress bar across top edge when navigation is in flight */}
       {isNavigating && (
@@ -119,7 +126,7 @@ export default function TeacherBottomBar({ user, activeRole: activeRoleProp }) {
         </div>
       )}
 
-      <div className="flex items-center justify-around h-16 max-w-md mx-auto px-2 pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="flex items-center justify-around h-16 max-w-lg md:max-w-2xl mx-auto px-1 sm:px-4 md:px-6 pb-[env(safe-area-inset-bottom,0px)]">
         {navItems.map((item) => {
           const Icon = item.icon;
           // Optimistically show as selected if this item was just tapped
@@ -174,7 +181,7 @@ export default function TeacherBottomBar({ user, activeRole: activeRoleProp }) {
               </div>
               <span
                 className={cn(
-                  "text-[11px] leading-tight tracking-tight mt-0.5 transition-all duration-200 text-center truncate max-w-[80px]",
+                  "text-[10px] sm:text-[11px] leading-tight tracking-tight mt-0.5 transition-all duration-200 text-center truncate max-w-[64px] sm:max-w-[80px]",
                   isSelected ? "font-semibold text-primary" : "font-normal"
                 )}
               >

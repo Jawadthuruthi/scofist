@@ -54,8 +54,8 @@ export default async function Layout({ children }) {
 
   const activeFestival = isFestivalRole
     ? (initialActiveYear && settingsData?.festivals?.find((f) => f.year === initialActiveYear)) ||
-      (settingsData?.festival?.year === initialActiveYear ? settingsData?.festival : null) ||
-      (initialActiveYear ? { year: initialActiveYear } : settingsData?.festival)
+    (settingsData?.festival?.year === initialActiveYear ? settingsData?.festival : null) ||
+    (initialActiveYear ? { year: initialActiveYear } : settingsData?.festival)
     : null;
 
   return (
@@ -72,7 +72,7 @@ export default async function Layout({ children }) {
             <Topbar user={user} festival={activeFestival} activeRole={activeRole} />
             <main className="flex-1 px-4 lg:p-6 mt-14 print:mt-0 overflow-auto print:overflow-visible container print:block print:p-0">
               {children}
-              <div className="h-20 md:h-16 no-print"></div>
+              <div className="h-20 lg:h-16 no-print"></div>
             </main>
             <TeacherBottomBar user={user} activeRole={activeRole} />
           </div>
