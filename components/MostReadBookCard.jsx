@@ -9,13 +9,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Book, Star, Loader2, Users } from "lucide-react";
+import { Book, Star, Loader2, Users, X } from "lucide-react";
 import { format } from "date-fns";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
+    DialogClose,
 } from "@/components/ui/dialog";
 import {
     Table,
@@ -66,7 +68,6 @@ export default function MostReadBookCard() {
     }, [year, month]);
 
     const handleCardClick = () => {
-        if (!data) return;
         setPopupOpen(true);
     };
 
@@ -77,35 +78,45 @@ export default function MostReadBookCard() {
     return (
         <>
             <Card
-                className={`h-full ${data ? "cursor-pointer hover:border-primary transition-all active:scale-[0.98]" : ""}`}
+                role="button"
+                tabIndex={0}
+                className="h-full cursor-pointer hover:border-primary/60 hover:shadow-md transition-all active:scale-[0.98] select-none"
                 onClick={handleCardClick}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleCardClick();
+                    }
+                }}
             >
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                     <CardTitle className="text-sm font-medium">Most Read Book</CardTitle>
                     <Star className="w-4 h-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="flex gap-2 mb-4" onClick={e => e.stopPropagation()}>
-                        <Select value={year} onValueChange={setYear}>
-                            <SelectTrigger className="w-[80px]">
-                                <SelectValue placeholder="Year" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {years.map((y) => (
-                                    <SelectItem key={y} value={y}>{y}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Select value={month} onValueChange={setMonth}>
-                            <SelectTrigger className="w-[110px]">
-                                <SelectValue placeholder="Month" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {MONTHS.map((m, i) => (
-                                    <SelectItem key={i} value={i.toString()}>{m}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="mb-4">
+                        <div className="w-fit flex gap-2" onClick={e => e.stopPropagation()}>
+                            <Select value={year} onValueChange={setYear}>
+                                <SelectTrigger className="w-[80px]">
+                                    <SelectValue placeholder="Year" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {years.map((y) => (
+                                        <SelectItem key={y} value={y}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={month} onValueChange={setMonth}>
+                                <SelectTrigger className="w-[135px] sm:w-[140px]">
+                                    <SelectValue placeholder="Month" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {MONTHS.map((m, i) => (
+                                        <SelectItem key={i} value={i.toString()}>{m}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     {loading ? (
@@ -113,17 +124,17 @@ export default function MostReadBookCard() {
                             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                         </div>
                     ) : data ? (
-                        <div className="flex items-center space-x-4">
-                            <div className="h-12 w-12 flex items-center justify-center bg-secondary rounded-md border text-purple-600">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="h-12 w-12 flex items-center justify-center bg-secondary rounded-md border text-purple-600 shrink-0">
                                 <Book className="w-6 h-6" />
                             </div>
-                            <div className="space-y-1">
-                                <p className="text-sm font-medium leading-none line-clamp-1" title={data.book?.name}>{data.book?.name}</p>
-                                <p className="text-xs text-muted-foreground line-clamp-1">
+                            <div className="space-y-1 flex-1 min-w-0">
+                                <p className="text-sm font-medium leading-snug book-text-font break-words" title={data.book?.name}>{data.book?.name}</p>
+                                <p className="text-xs text-muted-foreground leading-snug break-words">
                                     {data.book?.author || "Unknown Author"}
                                 </p>
-                                <div className="flex items-center pt-1 text-xs text-muted-foreground">
-                                    <Star className="mr-1 h-3 w-3 text-yellow-500 fill-yellow-500" />
+                                <div className="flex items-center pt-0.5 text-xs text-muted-foreground">
+                                    <Star className="mr-1 h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />
                                     {data.count} Rentals
                                 </div>
                             </div>
@@ -138,39 +149,58 @@ export default function MostReadBookCard() {
 
             {/* Students Popup */}
             <Dialog open={popupOpen} onOpenChange={setPopupOpen}>
-                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 uppercase text-lg">
-                            <Star className="w-5 h-5 text-purple-500" />
-                            STUDENTS LIST - {MONTHS[parseInt(month)]} - {year}
-                        </DialogTitle>
+                <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                        <div className="p-2 rounded-lg bg-purple-500/20 dark:bg-purple-500/30 text-purple-600 dark:text-purple-400 shrink-0">
+                            <Star className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 text-left space-y-0.5 min-w-0">
+                            <DialogTitle className="text-xl font-bold m-0 text-foreground">Most Read Book</DialogTitle>
+                            <DialogDescription asChild>
+                                <div className="text-sm text-muted-foreground m-0">
+                                    {MONTHS[parseInt(month)]} {year}
+                                </div>
+                            </DialogDescription>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                            <DialogClose asChild>
+                                <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </DialogClose>
+                        </div>
                     </DialogHeader>
 
-                    {/* Book Info */}
-                    {data?.book && (
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-3">
-                            <div className="h-10 w-10 flex items-center justify-center bg-secondary rounded-md border text-purple-600 shrink-0">
-                                <Book className="w-5 h-5" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold book-text-font">{data.book.name}</p>
-                                <div className="text-xs text-muted-foreground uppercase flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
-                                    <span>{data.book.author || "Unknown Author"}</span>
-                                    {data.book.id && (
-                                        <span className="text-[10px] sm:text-xs">
-                                            <span className="hidden sm:inline">&bull; </span>ID: {data.book.id}
-                                        </span>
-                                    )}
+                    <div className="p-5 space-y-4">
+                        {/* Book Info */}
+                        {data?.book ? (
+                            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                                <div className="h-10 w-10 flex items-center justify-center bg-secondary rounded-md border text-purple-600 shrink-0">
+                                    <Book className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold book-text-font truncate">{data.book.name}</p>
+                                    <div className="text-xs text-muted-foreground uppercase flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 truncate">
+                                        <span>{data.book.author || "Unknown Author"}</span>
+                                        {data.book.id && (
+                                            <span className="text-[10px] sm:text-xs">
+                                                <span className="hidden sm:inline">&bull; </span>ID: {data.book.id}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-sm font-bold text-purple-600 shrink-0">
+                                    <Users className="h-4 w-4" />
+                                    <span>{data.count} <span className="hidden sm:inline">Rentals</span></span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1 text-sm font-bold text-purple-600">
-                                <Users className="h-4 w-4" />
-                                <span>{data.count} <span className="hidden sm:inline">Rentals</span></span>
+                        ) : !loading && (
+                            <div className="text-center py-6 text-sm text-muted-foreground">
+                                No most read book data found for {MONTHS[parseInt(month)]} {year}.
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    <div className="rounded-md border overflow-auto max-h-[300px]">
+                        <div className="rounded-md border overflow-x-auto">
                         <Table className="whitespace-nowrap">
                             <TableHeader className="bg-muted/50">
                                 <TableRow>
@@ -212,12 +242,12 @@ export default function MostReadBookCard() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs">
-                                                {student.rentedDate ? format(new Date(student.rentedDate), "PP") : "–"}
+                                                {student.rentedDate ? format(new Date(student.rentedDate), "dd/MM/yyyy") : "–"}
                                             </TableCell>
                                             <TableCell className="text-xs">
                                                 {student.receivedDate ? (
                                                     <span className="text-green-600 font-medium">
-                                                        {format(new Date(student.receivedDate), "PP")}
+                                                        {format(new Date(student.receivedDate), "dd/MM/yyyy")}
                                                     </span>
                                                 ) : (
                                                     <span className="text-red-500 font-semibold">Pending</span>
@@ -235,8 +265,9 @@ export default function MostReadBookCard() {
                             </TableBody>
                         </Table>
                     </div>
-                </DialogContent>
-            </Dialog>
+                </div>
+            </DialogContent>
+        </Dialog>
         </>
     );
 }

@@ -207,7 +207,7 @@ export default function LibraryRequests() {
         },
         {
             accessorKey: "bookId.name",
-            header: "Book Details",
+            header: "Books",
             meta: { padding: "0px 4px", className: "pl-1" },
             cell: ({ row }) => (
                 <div className="flex flex-col">
@@ -218,7 +218,7 @@ export default function LibraryRequests() {
         },
         {
             accessorKey: "studentId.name",
-            header: "Student Details",
+            header: "Students",
             cell: ({ row }) => (
                 <div className="flex flex-col">
                     <span className="font-bold">{row.original.studentId?.name || "N/A"}</span>
@@ -228,11 +228,11 @@ export default function LibraryRequests() {
         },
         {
             accessorKey: "createdAt",
-            header: "Requested On",
+            header: "Request On",
             cell: ({ row }) => (
                 <div className="flex items-center gap-1 text-muted-foreground whitespace-nowrap">
                     <Clock className="h-3 w-3" />
-                    {format(new Date(row.original.createdAt), "PPP")}
+                    {row.original.createdAt ? format(new Date(row.original.createdAt), "dd/MM/yyyy") : "-"}
                 </div>
             )
         },
@@ -258,21 +258,25 @@ export default function LibraryRequests() {
                         <Button 
                             size="sm" 
                             variant="success" 
-                            className="h-8"
+                            className="h-8 px-2 sm:px-3"
                             onClick={() => {
                                 setSelectedRequest(row.original);
                                 setRentalPopupOpen(true);
                             }}
+                            title="Approve"
                         >
-                            <Check className="h-4 w-4 mr-1" /> Allow
+                            <Check className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Allow</span>
                         </Button>
                         <Button 
                             size="sm" 
                             variant="destructive" 
-                            className="h-8"
+                            className="h-8 px-2 sm:px-3"
                             onClick={() => handleReject(row.original._id)}
+                            title="Reject"
                         >
-                            <X className="h-4 w-4 mr-1" /> Reject
+                            <X className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Reject</span>
                         </Button>
                     </div>
                 );

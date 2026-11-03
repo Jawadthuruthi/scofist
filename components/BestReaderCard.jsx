@@ -10,12 +10,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, BookOpen, Loader2 } from "lucide-react";
+import { Trophy, BookOpen, Loader2, X } from "lucide-react";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
+    DialogClose,
 } from "@/components/ui/dialog";
 import {
     Table,
@@ -77,7 +79,6 @@ export default function BestReaderCard() {
     }, [year, month]);
 
     const handleCardClick = () => {
-        if (!data?.student?._id) return;
         setPopupOpen(true);
     };
 
@@ -88,35 +89,45 @@ export default function BestReaderCard() {
     return (
         <>
             <Card
-                className={`h-full ${data ? "cursor-pointer hover:border-primary transition-all active:scale-[0.98]" : ""}`}
+                role="button"
+                tabIndex={0}
+                className="h-full cursor-pointer hover:border-primary/60 hover:shadow-md transition-all active:scale-[0.98] select-none"
                 onClick={handleCardClick}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleCardClick();
+                    }
+                }}
             >
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                     <CardTitle className="text-sm font-medium">Best Reader</CardTitle>
                     <Trophy className="w-4 h-4 text-yellow-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="flex gap-2 mb-4" onClick={e => e.stopPropagation()}>
-                        <Select value={year} onValueChange={setYear}>
-                            <SelectTrigger className="w-[80px]">
-                                <SelectValue placeholder="Year" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {years.map((y) => (
-                                    <SelectItem key={y} value={y}>{y}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Select value={month} onValueChange={setMonth}>
-                            <SelectTrigger className="w-[110px]">
-                                <SelectValue placeholder="Month" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {MONTHS.map((m, i) => (
-                                    <SelectItem key={i} value={i.toString()}>{m}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="mb-4">
+                        <div className="w-fit flex gap-2" onClick={e => e.stopPropagation()}>
+                            <Select value={year} onValueChange={setYear}>
+                                <SelectTrigger className="w-[80px]">
+                                    <SelectValue placeholder="Year" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {years.map((y) => (
+                                        <SelectItem key={y} value={y}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={month} onValueChange={setMonth}>
+                                <SelectTrigger className="w-[135px] sm:w-[140px]">
+                                    <SelectValue placeholder="Month" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {MONTHS.map((m, i) => (
+                                        <SelectItem key={i} value={i.toString()}>{m}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     {loading ? (
@@ -124,21 +135,21 @@ export default function BestReaderCard() {
                             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                         </div>
                     ) : data ? (
-                        <div className="flex items-center space-x-4">
-                            <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="flex flex-col items-center shrink-0">
                                 <Avatar className="h-12 w-12 border-2 border-yellow-500">
                                     <AvatarImage src={data.student?.profilePic?.url} />
                                     <AvatarFallback>{data.student?.name?.substring(0, 2) || "BR"}</AvatarFallback>
                                 </Avatar>
                                 <p className="text-[10px] text-muted-foreground mt-1">{data.student?._id}</p>
                             </div>
-                            <div className="space-y-1">
-                                <p className="text-sm font-medium leading-none">{data.student?.name}</p>
-                                <p className="text-xs text-muted-foreground">
+                            <div className="space-y-1 flex-1 min-w-0">
+                                <p className="text-sm font-medium leading-snug break-words">{data.student?.name}</p>
+                                <p className="text-xs text-muted-foreground leading-snug break-words">
                                     {data.student?.studentSpecificField?.classId?.name || "Unknown Class"}
                                 </p>
-                                <div className="flex items-center pt-1 text-xs text-muted-foreground">
-                                    <BookOpen className="mr-1 h-3 w-3" />
+                                <div className="flex items-center pt-0.5 text-xs text-muted-foreground">
+                                    <BookOpen className="mr-1 h-3 w-3 shrink-0" />
                                     {data.count} Books
                                 </div>
                             </div>
@@ -154,38 +165,57 @@ export default function BestReaderCard() {
 
             {/* Books Read Popup */}
             <Dialog open={popupOpen} onOpenChange={setPopupOpen}>
-                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 uppercase text-lg">
-                            <Trophy className="w-5 h-5 text-yellow-500" />
-                            BOOKS READ - {MONTHS[parseInt(month)]} - {year}
-                        </DialogTitle>
+                <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                        <div className="p-2 rounded-lg bg-yellow-500/20 dark:bg-yellow-500/30 text-yellow-600 dark:text-yellow-500 shrink-0">
+                            <Trophy className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 text-left space-y-0.5 min-w-0">
+                            <DialogTitle className="text-xl font-bold m-0 text-foreground">Best Reader</DialogTitle>
+                            <DialogDescription asChild>
+                                <div className="text-sm text-muted-foreground m-0">
+                                    {MONTHS[parseInt(month)]} {year}
+                                </div>
+                            </DialogDescription>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                            <DialogClose asChild>
+                                <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </DialogClose>
+                        </div>
                     </DialogHeader>
 
-                    {/* Student Info */}
-                    {data?.student && (
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-3">
-                            <Avatar className="h-10 w-10 border-2 border-yellow-500">
-                                <AvatarImage src={data.student?.profilePic?.url} />
-                                <AvatarFallback>{data.student?.name?.substring(0, 2) || "BR"}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold">{data.student?.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                    ID: {data.student?._id}
-                                    {data.student?.studentSpecificField?.classId?.name && (
-                                        <> &bull; {data.student.studentSpecificField.classId.name}</>
-                                    )}
-                                </p>
+                    <div className="p-5 space-y-4">
+                        {/* Student Info */}
+                        {data?.student ? (
+                            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                                <Avatar className="h-10 w-10 border-2 border-yellow-500 shrink-0">
+                                    <AvatarImage src={data.student?.profilePic?.url} />
+                                    <AvatarFallback>{data.student?.name?.substring(0, 2) || "BR"}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold truncate">{data.student?.name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        ID: {data.student?._id}
+                                        {data.student?.studentSpecificField?.classId?.name && (
+                                            <> &bull; {data.student.studentSpecificField.classId.name}</>
+                                        )}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-1 text-sm font-bold text-yellow-600 shrink-0">
+                                    <BookOpen className="h-4 w-4" />
+                                    <span>{data.count} <span className="hidden sm:inline">Books</span></span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1 text-sm font-bold text-yellow-600">
-                                <BookOpen className="h-4 w-4" />
-                                <span>{data.count} <span className="hidden sm:inline">Books</span></span>
+                        ) : !loading && (
+                            <div className="text-center py-6 text-sm text-muted-foreground">
+                                No best reader data found for {MONTHS[parseInt(month)]} {year}.
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                        <div className="rounded-md border overflow-auto max-h-[300px]">
+                        <div className="rounded-md border overflow-x-auto">
                             <Table className="whitespace-nowrap">
                                 <TableHeader className="bg-muted/50">
                                     <TableRow>
@@ -220,12 +250,12 @@ export default function BestReaderCard() {
                                                     {rental.bookId?.language || "–"}
                                                 </TableCell>
                                                 <TableCell className="text-xs">
-                                                    {rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "–"}
+                                                    {rental.rentedDate ? format(new Date(rental.rentedDate), "dd/MM/yyyy") : "–"}
                                                 </TableCell>
                                                 <TableCell className="text-xs">
                                                     {rental.receivedDate ? (
                                                         <span className="text-green-600 font-medium">
-                                                            {format(new Date(rental.receivedDate), "PP")}
+                                                            {format(new Date(rental.receivedDate), "dd/MM/yyyy")}
                                                         </span>
                                                     ) : (
                                                         <span className="text-red-500 font-semibold">Pending</span>
@@ -243,6 +273,7 @@ export default function BestReaderCard() {
                                 </TableBody>
                             </Table>
                         </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </>

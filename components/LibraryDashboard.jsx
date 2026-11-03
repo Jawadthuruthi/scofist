@@ -62,6 +62,18 @@ const normalizeCategoryName = (name) => {
     return corrections[upper] ?? upper;
 };
 
+// Format date to DD/MM/YYYY
+const formatDate = (dateStr) => {
+    if (!dateStr) return "-";
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "-";
+        return format(d, "dd/MM/yyyy");
+    } catch {
+        return "-";
+    }
+};
+
 export default function LibraryDashboard({
     view,
     counts,
@@ -782,7 +794,7 @@ export default function LibraryDashboard({
         {
             accessorKey: "rentedDate",
             header: "Rented On",
-            cell: ({ row }) => row.original.rentedDate ? format(new Date(row.original.rentedDate), "PPP") : "-",
+            cell: ({ row }) => formatDate(row.original.rentedDate),
             meta: {
                 width: "1%",
                 whiteSpace: "nowrap"
@@ -794,7 +806,7 @@ export default function LibraryDashboard({
             cell: ({ row }) => {
                 const rental = row.original;
                 return rental.receivedDate ? (
-                    format(new Date(rental.receivedDate), "PPP")
+                    formatDate(rental.receivedDate)
                 ) : (
                     <span 
                         className="text-red-500 font-bold hover:underline cursor-pointer"
@@ -1340,10 +1352,10 @@ export default function LibraryDashboard({
     if (view === "dashboard") {
         return (
             <div className="space-y-6">
-                <Header title="LIBRARY DASHBOARD" subTitle="Overview of library stats" />
+                <Header title="LIBRARY DASHBOARD" subTitle="Overview of library stats" className="mb-0 pb-0" />
 
                 {/* Lookup Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 -mt-3">
                     <Card className="border-primary/20 shadow-sm hover:shadow-md transition-all">
                         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
                             <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -1583,13 +1595,9 @@ export default function LibraryDashboard({
                             <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
                                 <IdCard className="w-5 h-5" />
                             </div>
-                            <div className="flex-1 text-left space-y-0.5">
-                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Student Library Profile</DialogTitle>
-                                <DialogDescription asChild>
-                                    <div className="text-sm text-muted-foreground m-0">
-                                        {lookupStudent?.name ? `Rental history and profile for ${lookupStudent.name}` : "Student library records"}
-                                    </div>
-                                </DialogDescription>
+                            <div className="flex-1 text-left min-w-0">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Library Profile</DialogTitle>
+                                <DialogDescription className="sr-only">Library Profile</DialogDescription>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2">
                                 <DialogClose asChild>
@@ -1602,13 +1610,13 @@ export default function LibraryDashboard({
                         <div className="p-5">
                             {lookupStudent && (
                                 <div className="space-y-6">
-                                    <div className="flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
-                                        <Avatar className="h-32 w-32 border-4 border-primary/10">
+                                    <div className="flex flex-row gap-4 sm:gap-6 items-start text-left">
+                                        <Avatar className="h-24 w-24 sm:h-32 sm:w-32 shrink-0 border-2 sm:border-4 border-primary/10">
                                             <AvatarImage src={lookupStudent.profilePic?.url} />
-                                            <AvatarFallback className="text-2xl">{lookupStudent.name?.charAt(0)}</AvatarFallback>
+                                            <AvatarFallback className="text-xl sm:text-2xl">{lookupStudent.name?.charAt(0)}</AvatarFallback>
                                         </Avatar>
-                                        <div className="space-y-2 flex-1">
-                                            <h2 className="text-2xl font-bold text-primary">{lookupStudent.name}</h2>
+                                        <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0">
+                                            <h2 className="text-xl sm:text-2xl font-bold text-primary break-words leading-tight">{lookupStudent.name}</h2>
                                             <div className="flex flex-col gap-1">
                                                 <div className="text-sm font-medium">Student ID: <span className="text-muted-foreground">{lookupStudent._id}</span></div>
                                                 {lookupStudent.className && (
@@ -1641,11 +1649,11 @@ export default function LibraryDashboard({
                                                             <TableRow key={rental._id}>
                                                                 <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
                                                                 <TableCell className="book-text-font">{rental.bookId?.name}</TableCell>
-                                                                <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                                                <TableCell>{formatDate(rental.rentedDate)}</TableCell>
                                                                 <TableCell>
                                                                     {rental.receivedDate ? (
                                                                         <span className="text-green-600 font-medium">
-                                                                            {format(new Date(rental.receivedDate), "PP")}
+                                                                            {formatDate(rental.receivedDate)}
                                                                         </span>
                                                                     ) : (
                                                                         <span 
@@ -1685,13 +1693,9 @@ export default function LibraryDashboard({
                             <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
                                 <BookIcon className="w-5 h-5" />
                             </div>
-                            <div className="flex-1 text-left space-y-0.5">
-                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Book Details & History</DialogTitle>
-                                <DialogDescription asChild>
-                                    <div className="text-sm text-muted-foreground m-0">
-                                        {lookupBook?.name ? `Rental history and details for ${lookupBook.name}` : "Book information and history"}
-                                    </div>
-                                </DialogDescription>
+                            <div className="flex-1 text-left min-w-0">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Book Rental History</DialogTitle>
+                                <DialogDescription className="sr-only">Book Rental History</DialogDescription>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2">
                                 <DialogClose asChild>
@@ -1704,12 +1708,12 @@ export default function LibraryDashboard({
                         <div className="p-5">
                             {lookupBook && (
                                 <div className="space-y-6">
-                                    <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-                                        <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex items-center justify-center">
-                                            <BookIcon className="h-24 w-24 text-primary" />
+                                    <div className="flex flex-row gap-4 sm:gap-6 items-start text-left">
+                                        <div className="bg-primary/5 p-4 sm:p-6 rounded-xl border border-primary/10 flex items-center justify-center shrink-0">
+                                            <BookIcon className="h-16 w-16 sm:h-24 sm:w-24 text-primary" />
                                         </div>
-                                        <div className="space-y-1 flex-1 text-center md:text-left">
-                                            <h2 className="text-2xl font-bold text-primary book-text-font">{lookupBook.name}</h2>
+                                        <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0">
+                                            <h2 className="text-xl sm:text-2xl font-bold text-primary book-text-font break-words leading-tight">{lookupBook.name}</h2>
                                             <div className="flex flex-col gap-1">
                                                 <div className="text-sm font-medium">Book ID: <span className="text-muted-foreground font-bold">{lookupBook.id}</span></div>
                                                 <div className="text-sm font-medium">Author: <span className="text-muted-foreground uppercase book-text-font">{lookupBook.author}</span></div>
@@ -1727,7 +1731,7 @@ export default function LibraryDashboard({
                                     <div className="space-y-3">
                                         <h3 className="text-lg font-bold flex items-center gap-2">
                                             <Users className="h-5 w-5 text-primary" />
-                                            Rental History (Students)
+                                            Rental History
                                         </h3>
                                         <div className="rounded-md border overflow-hidden">
                                             <Table>
@@ -1745,11 +1749,11 @@ export default function LibraryDashboard({
                                                             <TableRow key={rental._id}>
                                                                 <TableCell className="font-medium">{rental.studentId?._id || rental.studentId}</TableCell>
                                                                 <TableCell>{rental.studentId?.name || rental.studentName || "Unknown"}</TableCell>
-                                                                <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                                                <TableCell>{formatDate(rental.rentedDate)}</TableCell>
                                                                 <TableCell>
                                                                     {rental.receivedDate ? (
                                                                         <span className="text-green-600 font-medium">
-                                                                            {format(new Date(rental.receivedDate), "PP")}
+                                                                            {formatDate(rental.receivedDate)}
                                                                         </span>
                                                                     ) : (
                                                                         <span 
@@ -1792,7 +1796,7 @@ export default function LibraryDashboard({
                             <div className="flex-1 text-left space-y-0.5">
                                 <DialogTitle className="text-xl font-bold m-0 text-foreground">Pending Books ({initialPendingRentals.length || 0})</DialogTitle>
                                 <DialogDescription asChild>
-                                    <div className="text-sm text-muted-foreground m-0">Currently rented books awaiting return</div>
+                                    <div className="text-sm text-muted-foreground m-0">Currently pending books</div>
                                 </DialogDescription>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2">
@@ -1823,7 +1827,7 @@ export default function LibraryDashboard({
                                                     <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
                                                     <TableCell className="book-text-font">{rental.bookId?.name}</TableCell>
                                                     <TableCell className="book-text-font">{rental.studentId?.name || rental.studentName}</TableCell>
-                                                    <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                                    <TableCell>{formatDate(rental.rentedDate)}</TableCell>
                                                 </TableRow>
                                             ))
                                         ) : (
@@ -1850,7 +1854,7 @@ export default function LibraryDashboard({
                             <div className="flex-1 text-left space-y-0.5">
                                 <DialogTitle className="text-xl font-bold m-0 text-foreground">Book Requests ({pendingRequestsCount || 0})</DialogTitle>
                                 <DialogDescription asChild>
-                                    <div className="text-sm text-muted-foreground m-0">Pending student book borrowing requests</div>
+                                    <div className="text-sm text-muted-foreground m-0">Pending student book requests</div>
                                 </DialogDescription>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2">
@@ -1874,9 +1878,9 @@ export default function LibraryDashboard({
                                         <TableHeader className="bg-muted/50">
                                             <TableRow>
                                                 <TableHead className="w-[30px] text-center">#</TableHead>
-                                                <TableHead>Book Details</TableHead>
-                                                <TableHead>Student Details</TableHead>
-                                                <TableHead>Requested On</TableHead>
+                                                <TableHead>Books</TableHead>
+                                                <TableHead>Students</TableHead>
+                                                <TableHead>Request On</TableHead>
                                                 <TableHead>Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -1897,7 +1901,7 @@ export default function LibraryDashboard({
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                                        {req.createdAt ? format(new Date(req.createdAt), "PPP") : "-"}
+                                                        {formatDate(req.createdAt)}
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="flex gap-1.5">
@@ -1908,16 +1912,20 @@ export default function LibraryDashboard({
                                                                     setSelectedRequest(req);
                                                                     setRentalFromRequestOpen(true);
                                                                 }}
+                                                                title="Approve"
                                                             >
-                                                                <Check className="h-3 w-3 mr-1" /> Approve
+                                                                <Check className="h-3.5 w-3.5 sm:mr-1" />
+                                                                <span className="hidden sm:inline">Approve</span>
                                                             </Button>
                                                             <Button
                                                                 size="sm"
                                                                 variant="destructive"
                                                                 className="h-7 px-2 text-xs"
                                                                 onClick={() => handleRejectRequest(req._id)}
+                                                                title="Reject"
                                                             >
-                                                                <X className="h-3 w-3 mr-1" /> Reject
+                                                                <X className="h-3.5 w-3.5 sm:mr-1" />
+                                                                <span className="hidden sm:inline">Reject</span>
                                                             </Button>
                                                         </div>
                                                     </TableCell>
@@ -1997,7 +2005,7 @@ export default function LibraryDashboard({
                             <div className="flex-1 text-left space-y-0.5">
                                 <DialogTitle className="text-xl font-bold m-0 text-foreground">Books by Category ({uniqueCategories.length || 0})</DialogTitle>
                                 <DialogDescription asChild>
-                                    <div className="text-sm text-muted-foreground m-0">Distribution of books across categories</div>
+                                    <div className="text-sm text-muted-foreground m-0">Books across categories</div>
                                 </DialogDescription>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2">
@@ -2016,7 +2024,7 @@ export default function LibraryDashboard({
                                             <TableHead className="w-[50px]">Sl No</TableHead>
                                             <TableHead>ID</TableHead>
                                             <TableHead>Category</TableHead>
-                                            <TableHead className="text-right">Books Count</TableHead>
+                                            <TableHead className="text-right">Books</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -2057,7 +2065,7 @@ export default function LibraryDashboard({
                             <div className="flex-1 text-left space-y-0.5">
                                 <DialogTitle className="text-xl font-bold m-0 text-foreground">Books by Language ({uniqueLanguages.length || 0})</DialogTitle>
                                 <DialogDescription asChild>
-                                    <div className="text-sm text-muted-foreground m-0">Distribution of books across languages</div>
+                                    <div className="text-sm text-muted-foreground m-0">Books across languages</div>
                                 </DialogDescription>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2">
@@ -2075,7 +2083,7 @@ export default function LibraryDashboard({
                                         <TableRow>
                                             <TableHead className="w-[50px]">Sl No</TableHead>
                                             <TableHead>Language</TableHead>
-                                            <TableHead className="text-right">Books Count</TableHead>
+                                            <TableHead className="text-right">Books</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -2113,9 +2121,9 @@ export default function LibraryDashboard({
                                 <BookIcon className="w-5 h-5" />
                             </div>
                             <div className="flex-1 text-left space-y-0.5">
-                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Total Books Inventory ({initialBooks.length || 0})</DialogTitle>
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Total Books ({initialBooks.length || 0})</DialogTitle>
                                 <DialogDescription asChild>
-                                    <div className="text-sm text-muted-foreground m-0">Complete catalogue of all books in library</div>
+                                    <div className="text-sm text-muted-foreground m-0">Complete catalogue of library</div>
                                 </DialogDescription>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2">
@@ -2177,7 +2185,7 @@ export default function LibraryDashboard({
                             <div className="flex-1 text-left space-y-0.5">
                                 <DialogTitle className="text-xl font-bold m-0 text-foreground">Available Books ({initialBooks.filter(b => b.status === "Available").length || 0})</DialogTitle>
                                 <DialogDescription asChild>
-                                    <div className="text-sm text-muted-foreground m-0">Books currently in stock and available for rental</div>
+                                    <div className="text-sm text-muted-foreground m-0">Books currently available</div>
                                 </DialogDescription>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2">
