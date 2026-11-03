@@ -183,22 +183,32 @@ export default function LibraryRequests() {
             enableSorting: false,
             enableHiding: false,
             meta: {
-                width: "1px",
+                width: "36px",
+                minWidth: "36px",
+                maxWidth: "36px",
                 padding: "0px 2px",
                 textAlign: "center",
-                className: "tight-column",
+                className: "tight-column px-1",
             },
         },
         {
             id: "serial",
             header: "Sl No",
             cell: ({ row }) => row.index + 1,
-            meta: { width: "1%", whiteSpace: "nowrap", textAlign: "center", padding: "0px 2px" }
+            meta: {
+                width: "44px",
+                minWidth: "44px",
+                maxWidth: "44px",
+                whiteSpace: "nowrap",
+                textAlign: "center",
+                padding: "0px 2px",
+                className: "tight-column px-1",
+            }
         },
         {
             accessorKey: "bookId.name",
             header: "Book Details",
-            meta: { padding: "0px 4px" },
+            meta: { padding: "0px 4px", className: "pl-1" },
             cell: ({ row }) => (
                 <div className="flex flex-col">
                     <span className="font-bold">{row.original.bookId?.name || "N/A"}</span>
@@ -285,16 +295,17 @@ export default function LibraryRequests() {
                 hideColumnManagement={true}
                 rowSelection={rowSelection}
                 onRowSelectionChange={setRowSelection}
+                tableHeight="auto"
+                searchInSameRowOnMobile={true}
                 actionButtons={
                     selectedIds.length > 0 && (
                         <Button 
                             variant="destructive" 
-                            size="sm" 
-                            className="h-8"
+                            className="h-10 px-2.5 sm:px-3 flex items-center justify-center shrink-0"
                             onClick={handleBulkDelete}
                         >
-                            <Trash2 className="h-4 w-4 lg:mr-2" />
-                            <span className="hidden lg:inline">Delete </span>
+                            <Trash2 className="h-4 w-4 sm:mr-1.5" />
+                            <span className="hidden sm:inline">Delete </span>
                             ({selectedIds.length})
                         </Button>
                     )

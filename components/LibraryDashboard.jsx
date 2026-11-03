@@ -8,7 +8,7 @@ import BestReaderCard from "./BestReaderCard";
 import MostReadBookCard from "./MostReadBookCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Book, Users, BookOpen, AlertCircle, Trash2, FileSpreadsheet, Check, X, Printer } from "lucide-react";
+import { Book, Users, BookOpen, AlertCircle, Trash2, FileSpreadsheet, Check, X, Printer, Plus, RotateCcw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -34,6 +34,8 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
+    DialogClose,
 } from "@/components/ui/dialog";
 import {
     Table,
@@ -97,8 +99,8 @@ export default function LibraryDashboard({
     const [localBooks, setLocalBooks] = useState(sortBooks(initialBooks));
     const [activeFilters, setActiveFilters] = useState([]);
 
-    useEffect(() => { 
-        setLocalBooks(sortBooks(initialBooks)); 
+    useEffect(() => {
+        setLocalBooks(sortBooks(initialBooks));
     }, [initialBooks]);
 
     // --- Popup State ---
@@ -123,14 +125,14 @@ export default function LibraryDashboard({
             const res = await fetch("/api/library/requests");
             const result = await res.json();
             if (result.success) setLocalRequests(result.data || []);
-        } catch {/* silent */} finally {
+        } catch {/* silent */ } finally {
             setRequestsLoading(false);
         }
     };
 
     useEffect(() => {
         fetchRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleRejectRequest = async (requestId) => {
@@ -283,7 +285,7 @@ export default function LibraryDashboard({
     const dynamicCategories = useMemo(() => {
         const selectedLanguage = activeFilters.find(f => f.id === 'language')?.value;
         let booksToExtract = localBooks;
-        
+
         // Handle case where selectedLanguage is an empty array
         const hasSelectedLanguage = selectedLanguage && (!Array.isArray(selectedLanguage) || selectedLanguage.length > 0);
 
@@ -295,7 +297,7 @@ export default function LibraryDashboard({
                 booksToExtract = localBooks.filter(b => b.language?.toUpperCase() === String(selectedLanguage).toUpperCase());
             }
         }
-        
+
         const fromBooks = booksToExtract.map(b => normalizeCategoryName(b.category)).filter(Boolean);
         const fromApi = hasSelectedLanguage ? [] : (Array.isArray(categories) ? categories.map(c => normalizeCategoryName(c.category)) : (categories || []).map(c => typeof c === 'string' ? normalizeCategoryName(c) : c));
         const all = new Set([...fromApi, ...fromBooks]);
@@ -470,7 +472,7 @@ export default function LibraryDashboard({
             inputType: "date",
             required: true,
             defaultValue: new Date().toISOString().split("T")[0],
-            className: "md:col-span-2",
+            className: "col-span-3 md:col-span-2 w-full",
         }
     ];
 
@@ -501,10 +503,12 @@ export default function LibraryDashboard({
             enableSorting: false,
             enableHiding: false,
             meta: {
-                width: "1px",
-                padding: "0px 4px",
+                width: "36px",
+                minWidth: "36px",
+                maxWidth: "36px",
+                padding: "0px 2px",
                 textAlign: "center",
-                className: "tight-column",
+                className: "tight-column px-1",
             },
         },
         {
@@ -512,11 +516,13 @@ export default function LibraryDashboard({
             header: "Sl No",
             cell: ({ row, table }) => table.getSortedRowModel().rows.indexOf(row) + 1,
             meta: {
-                width: "1px",
+                width: "44px",
+                minWidth: "44px",
+                maxWidth: "44px",
                 whiteSpace: "nowrap",
-                padding: "0px 8px",
+                padding: "0px 2px",
                 textAlign: "center",
-                className: "tight-column",
+                className: "tight-column px-1",
                 fontSize: "0.875rem",
             },
         },
@@ -540,10 +546,11 @@ export default function LibraryDashboard({
                 </button>
             ),
             meta: {
-                width: "100px",
+                width: "90px",
                 whiteSpace: "nowrap",
-                padding: "0px 8px",
+                padding: "0px 4px",
                 fontSize: "0.875rem",
+                className: "pl-1",
             }
         },
         {
@@ -646,11 +653,10 @@ export default function LibraryDashboard({
                     <Button
                         size="sm"
                         variant={isAvailable ? "default" : "outline"}
-                        className={`h-7 px-2 text-xs font-semibold ${
-                            isAvailable
+                        className={`h-7 px-2 text-xs font-semibold ${isAvailable
                                 ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                                 : "text-muted-foreground cursor-not-allowed opacity-60"
-                        }`}
+                            }`}
                         disabled={!isAvailable}
                         title={isAvailable ? `Register rental for ${book.name}` : "Book is not available"}
                         onClick={(e) => {
@@ -669,7 +675,7 @@ export default function LibraryDashboard({
                 className: "print:hidden",
             }
         }] : [])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     ], [selectedIds.length]);
 
     const rentalColumns = [
@@ -789,7 +795,7 @@ export default function LibraryDashboard({
                 return rental.receivedDate ? (
                     format(new Date(rental.receivedDate), "PPP")
                 ) : (
-                    <span 
+                    <span
                         className="text-red-500 font-bold hover:underline cursor-pointer"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -862,7 +868,7 @@ export default function LibraryDashboard({
                 }
             });
         }
-        
+
         let filename = "books.csv";
         if (filterLabels.length > 0) {
             filename = `books_${filterLabels.join('_')}.csv`;
@@ -957,7 +963,7 @@ export default function LibraryDashboard({
                 try {
                     const res = await fetch(`/api/library/books?id=${id}`, { method: "DELETE" });
                     if (res.ok) router.refresh();
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -976,7 +982,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1061,7 +1067,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1084,7 +1090,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1214,7 +1220,7 @@ export default function LibraryDashboard({
                 try {
                     const res = await fetch(`/api/rental?id=${id}`, { method: "DELETE" });
                     if (res.ok) router.refresh();
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1292,24 +1298,39 @@ export default function LibraryDashboard({
 
     const renderConfirmDialog = () => (
         <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
-            <DialogContent className="sm:max-w-md text-center">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold">
-                        {confirmDialog.title}
-                    </DialogTitle>
+            <DialogContent className="w-[95vw] sm:max-w-md p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                    <div className="p-2 rounded-lg bg-red-500/20 dark:bg-red-500/30 text-red-600 dark:text-red-400 shrink-0">
+                        <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 text-left space-y-0.5">
+                        <DialogTitle className="text-xl font-bold m-0 text-foreground">
+                            {confirmDialog.title}
+                        </DialogTitle>
+                        <DialogDescription asChild>
+                            <div className="text-sm text-muted-foreground m-0">Please confirm this action</div>
+                        </DialogDescription>
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        <DialogClose asChild>
+                            <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </DialogClose>
+                    </div>
                 </DialogHeader>
-                <div className="py-6 text-center">
-                    <p className="text-muted-foreground text-lg">{confirmDialog.message}</p>
-                </div>
-                <div className="flex justify-center gap-4 pb-2">
-                    <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))} disabled={loading} className="w-24">
-                        Cancel
-                    </Button>
-                    <Button variant="destructive" onClick={() => {
-                        if (confirmDialog.onConfirm) confirmDialog.onConfirm();
-                    }} disabled={loading} className="w-24">
-                        {loading ? "..." : "Confirm"}
-                    </Button>
+                <div className="p-6 space-y-6">
+                    <p className="text-muted-foreground text-sm">{confirmDialog.message}</p>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))} disabled={loading} className="px-4">
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={() => {
+                            if (confirmDialog.onConfirm) confirmDialog.onConfirm();
+                        }} disabled={loading} className="px-4">
+                            {loading ? "..." : "Confirm"}
+                        </Button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
@@ -1362,18 +1383,35 @@ export default function LibraryDashboard({
                             </div>
 
                             <Dialog open={showStudentScanner} onOpenChange={setShowStudentScanner}>
-                                <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Scan Student Card</DialogTitle>
+                                <DialogContent className="w-[95vw] sm:max-w-md p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                                        <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                            <ScanBarcode className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1 text-left space-y-0.5">
+                                            <DialogTitle className="text-xl font-bold m-0 text-foreground">Scan Student Card</DialogTitle>
+                                            <DialogDescription asChild>
+                                                <div className="text-sm text-muted-foreground m-0">Position card barcode in camera view</div>
+                                            </DialogDescription>
+                                        </div>
+                                        <div className="flex items-center gap-1 sm:gap-2">
+                                            <DialogClose asChild>
+                                                <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                                    <X className="h-5 w-5" />
+                                                </button>
+                                            </DialogClose>
+                                        </div>
                                     </DialogHeader>
-                                    <BarcodeScanner
-                                        onScan={(result) => {
-                                            setStudentSearchId(result);
-                                            setShowStudentScanner(false);
-                                            handleStudentLookup(null, result);
-                                        }}
-                                        onClose={() => setShowStudentScanner(false)}
-                                    />
+                                    <div className="p-5">
+                                        <BarcodeScanner
+                                            onScan={(result) => {
+                                                setStudentSearchId(result);
+                                                setShowStudentScanner(false);
+                                                handleStudentLookup(null, result);
+                                            }}
+                                            onClose={() => setShowStudentScanner(false)}
+                                        />
+                                    </div>
                                 </DialogContent>
                             </Dialog>
                         </CardContent>
@@ -1418,18 +1456,35 @@ export default function LibraryDashboard({
                             </div>
 
                             <Dialog open={showBookScanner} onOpenChange={setShowBookScanner}>
-                                <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Scan Book Barcode</DialogTitle>
+                                <DialogContent className="w-[95vw] sm:max-w-md p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                                        <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                            <ScanBarcode className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1 text-left space-y-0.5">
+                                            <DialogTitle className="text-xl font-bold m-0 text-foreground">Scan Book Barcode</DialogTitle>
+                                            <DialogDescription asChild>
+                                                <div className="text-sm text-muted-foreground m-0">Position book barcode in camera view</div>
+                                            </DialogDescription>
+                                        </div>
+                                        <div className="flex items-center gap-1 sm:gap-2">
+                                            <DialogClose asChild>
+                                                <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                                    <X className="h-5 w-5" />
+                                                </button>
+                                            </DialogClose>
+                                        </div>
                                     </DialogHeader>
-                                    <BarcodeScanner
-                                        onScan={(result) => {
-                                            setBookSearchId(result);
-                                            setShowBookScanner(false);
-                                            handleBookLookup(null, result);
-                                        }}
-                                        onClose={() => setShowBookScanner(false)}
-                                    />
+                                    <div className="p-5">
+                                        <BarcodeScanner
+                                            onScan={(result) => {
+                                                setBookSearchId(result);
+                                                setShowBookScanner(false);
+                                                handleBookLookup(null, result);
+                                            }}
+                                            onClose={() => setShowBookScanner(false)}
+                                        />
+                                    </div>
                                 </DialogContent>
                             </Dialog>
                         </CardContent>
@@ -1522,291 +1577,356 @@ export default function LibraryDashboard({
 
                 {/* Student Popup */}
                 <Dialog open={studentPopupOpen} onOpenChange={setStudentPopupOpen}>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Student Library Profile</DialogTitle>
+                    <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <IdCard className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Student Library Profile</DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">
+                                        {lookupStudent?.name ? `Rental history and profile for ${lookupStudent.name}` : "Student library records"}
+                                    </div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
                         </DialogHeader>
-                        {lookupStudent && (
-                            <div className="space-y-6 py-4">
-                                <div className="flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
-                                    <Avatar className="h-32 w-32 border-4 border-primary/10">
-                                        <AvatarImage src={lookupStudent.profilePic?.url} />
-                                        <AvatarFallback className="text-2xl">{lookupStudent.name?.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="space-y-2 flex-1">
-                                        <h2 className="text-2xl font-bold text-primary">{lookupStudent.name}</h2>
-                                        <div className="flex flex-col gap-1">
-                                            <div className="text-sm font-medium">Student ID: <span className="text-muted-foreground">{lookupStudent._id}</span></div>
-                                            {lookupStudent.className && (
-                                                <div className="text-sm font-medium">Class: <span className="text-muted-foreground">{lookupStudent.className}</span></div>
-                                            )}
-                                            <div className="text-sm font-medium">Batch: <span className="text-muted-foreground">{lookupStudent.batchName || "N/A"}</span></div>
-                                            <div className="text-sm font-medium">Status: <span className={`font-bold ${lookupStudent.studentStatus === 'Active' ? 'text-green-600' : 'text-red-600'}`}>{lookupStudent.studentStatus || "N/A"}</span></div>
+                        <div className="p-5">
+                            {lookupStudent && (
+                                <div className="space-y-6">
+                                    <div className="flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
+                                        <Avatar className="h-32 w-32 border-4 border-primary/10">
+                                            <AvatarImage src={lookupStudent.profilePic?.url} />
+                                            <AvatarFallback className="text-2xl">{lookupStudent.name?.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="space-y-2 flex-1">
+                                            <h2 className="text-2xl font-bold text-primary">{lookupStudent.name}</h2>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="text-sm font-medium">Student ID: <span className="text-muted-foreground">{lookupStudent._id}</span></div>
+                                                {lookupStudent.className && (
+                                                    <div className="text-sm font-medium">Class: <span className="text-muted-foreground">{lookupStudent.className}</span></div>
+                                                )}
+                                                <div className="text-sm font-medium">Batch: <span className="text-muted-foreground">{lookupStudent.batchName || "N/A"}</span></div>
+                                                <div className="text-sm font-medium">Status: <span className={`font-bold ${lookupStudent.studentStatus === 'Active' ? 'text-green-600' : 'text-red-600'}`}>{lookupStudent.studentStatus || "N/A"}</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-bold flex items-center gap-2">
+                                            <BookOpen className="h-5 w-5 text-primary" />
+                                            Rental History
+                                        </h3>
+                                        <div className="rounded-md border overflow-hidden">
+                                            <Table>
+                                                <TableHeader className="bg-muted/50">
+                                                    <TableRow>
+                                                        <TableHead>Book ID</TableHead>
+                                                        <TableHead>Book Name</TableHead>
+                                                        <TableHead>Rented Date</TableHead>
+                                                        <TableHead>Returned Date</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {studentHistory.length > 0 ? (
+                                                        studentHistory.map((rental) => (
+                                                            <TableRow key={rental._id}>
+                                                                <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
+                                                                <TableCell className="book-text-font">{rental.bookId?.name}</TableCell>
+                                                                <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                                                <TableCell>
+                                                                    {rental.receivedDate ? (
+                                                                        <span className="text-green-600 font-medium">
+                                                                            {format(new Date(rental.receivedDate), "PP")}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span
+                                                                            className="text-red-500 font-bold hover:underline cursor-pointer"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setReturnBookRental(rental);
+                                                                            }}
+                                                                        >
+                                                                            Pending
+                                                                        </span>
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    ) : (
+                                                        <TableRow>
+                                                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                                No rental history found
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="space-y-3">
-                                    <h3 className="text-lg font-bold flex items-center gap-2">
-                                        <BookOpen className="h-5 w-5 text-primary" />
-                                        Rental History
-                                    </h3>
-                                    <div className="rounded-md border overflow-hidden">
-                                        <Table>
-                                            <TableHeader className="bg-muted/50">
-                                                <TableRow>
-                                                    <TableHead>Book ID</TableHead>
-                                                    <TableHead>Book Name</TableHead>
-                                                    <TableHead>Rented Date</TableHead>
-                                                    <TableHead>Returned Date</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {studentHistory.length > 0 ? (
-                                                    studentHistory.map((rental) => (
-                                                        <TableRow key={rental._id}>
-                                                            <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
-                                                            <TableCell className="book-text-font">{rental.bookId?.name}</TableCell>
-                                                            <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
-                                                            <TableCell>
-                                                                {rental.receivedDate ? (
-                                                                    <span className="text-green-600 font-medium">
-                                                                        {format(new Date(rental.receivedDate), "PP")}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span 
-                                                                        className="text-red-500 font-bold hover:underline cursor-pointer"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setReturnBookRental(rental);
-                                                                        }}
-                                                                    >
-                                                                        Pending
-                                                                    </span>
-                                                                )}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))
-                                                ) : (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                                            No rental history found
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Book Popup */}
                 <Dialog open={bookPopupOpen} onOpenChange={setBookPopupOpen}>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Book Details & History</DialogTitle>
-                        </DialogHeader>
-                        {lookupBook && (
-                            <div className="space-y-6 py-4">
-                                <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-                                    <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex items-center justify-center">
-                                        <BookIcon className="h-24 w-24 text-primary" />
+                    <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <BookIcon className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Book Details & History</DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">
+                                        {lookupBook?.name ? `Rental history and details for ${lookupBook.name}` : "Book information and history"}
                                     </div>
-                                    <div className="space-y-1 flex-1 text-center md:text-left">
-                                        <h2 className="text-2xl font-bold text-primary book-text-font">{lookupBook.name}</h2>
-                                        <div className="flex flex-col gap-1">
-                                            <div className="text-sm font-medium">Book ID: <span className="text-muted-foreground font-bold">{lookupBook.id}</span></div>
-                                            <div className="text-sm font-medium">Author: <span className="text-muted-foreground uppercase book-text-font">{lookupBook.author}</span></div>
-                                            <div className="text-sm font-medium">Category: <span className="text-muted-foreground">{lookupBook.category}</span></div>
-                                            <div className="text-sm font-medium">Language: <span className="text-muted-foreground">{lookupBook.language}</span></div>
-                                            <div className="text-sm font-medium">Status:
-                                                <span className={`ml-1 font-bold ${lookupBook.status === 'Available' ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {lookupBook.status || 'Available'}
-                                                </span>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
+                        </DialogHeader>
+                        <div className="p-5">
+                            {lookupBook && (
+                                <div className="space-y-6">
+                                    <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
+                                        <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex items-center justify-center">
+                                            <BookIcon className="h-24 w-24 text-primary" />
+                                        </div>
+                                        <div className="space-y-1 flex-1 text-center md:text-left">
+                                            <h2 className="text-2xl font-bold text-primary book-text-font">{lookupBook.name}</h2>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="text-sm font-medium">Book ID: <span className="text-muted-foreground font-bold">{lookupBook.id}</span></div>
+                                                <div className="text-sm font-medium">Author: <span className="text-muted-foreground uppercase book-text-font">{lookupBook.author}</span></div>
+                                                <div className="text-sm font-medium">Category: <span className="text-muted-foreground">{lookupBook.category}</span></div>
+                                                <div className="text-sm font-medium">Language: <span className="text-muted-foreground">{lookupBook.language}</span></div>
+                                                <div className="text-sm font-medium">Status:
+                                                    <span className={`ml-1 font-bold ${lookupBook.status === 'Available' ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {lookupBook.status || 'Available'}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="space-y-3">
-                                    <h3 className="text-lg font-bold flex items-center gap-2">
-                                        <Users className="h-5 w-5 text-primary" />
-                                        Rental History (Students)
-                                    </h3>
-                                    <div className="rounded-md border overflow-hidden">
-                                        <Table>
-                                            <TableHeader className="bg-muted/50">
-                                                <TableRow>
-                                                    <TableHead>Student ID</TableHead>
-                                                    <TableHead>Student Name</TableHead>
-                                                    <TableHead>Rented Date</TableHead>
-                                                    <TableHead>Returned Date</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {bookHistory.length > 0 ? (
-                                                    bookHistory.map((rental) => (
-                                                        <TableRow key={rental._id}>
-                                                            <TableCell className="font-medium">{rental.studentId?._id || rental.studentId}</TableCell>
-                                                            <TableCell>{rental.studentId?.name || rental.studentName || "Unknown"}</TableCell>
-                                                            <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
-                                                            <TableCell>
-                                                                {rental.receivedDate ? (
-                                                                    <span className="text-green-600 font-medium">
-                                                                        {format(new Date(rental.receivedDate), "PP")}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span 
-                                                                        className="text-red-500 font-bold hover:underline cursor-pointer"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setReturnBookRental(rental);
-                                                                        }}
-                                                                    >
-                                                                        Pending
-                                                                    </span>
-                                                                )}
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-bold flex items-center gap-2">
+                                            <Users className="h-5 w-5 text-primary" />
+                                            Rental History (Students)
+                                        </h3>
+                                        <div className="rounded-md border overflow-hidden">
+                                            <Table>
+                                                <TableHeader className="bg-muted/50">
+                                                    <TableRow>
+                                                        <TableHead>Student ID</TableHead>
+                                                        <TableHead>Student Name</TableHead>
+                                                        <TableHead>Rented Date</TableHead>
+                                                        <TableHead>Returned Date</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {bookHistory.length > 0 ? (
+                                                        bookHistory.map((rental) => (
+                                                            <TableRow key={rental._id}>
+                                                                <TableCell className="font-medium">{rental.studentId?._id || rental.studentId}</TableCell>
+                                                                <TableCell>{rental.studentId?.name || rental.studentName || "Unknown"}</TableCell>
+                                                                <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                                                <TableCell>
+                                                                    {rental.receivedDate ? (
+                                                                        <span className="text-green-600 font-medium">
+                                                                            {format(new Date(rental.receivedDate), "PP")}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span
+                                                                            className="text-red-500 font-bold hover:underline cursor-pointer"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setReturnBookRental(rental);
+                                                                            }}
+                                                                        >
+                                                                            Pending
+                                                                        </span>
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    ) : (
+                                                        <TableRow>
+                                                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                                No rental history found for this book
                                                             </TableCell>
                                                         </TableRow>
-                                                    ))
-                                                ) : (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                                            No rental history found for this book
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Pending Rentals Popup */}
                 <Dialog open={pendingRentalsPopupOpen} onOpenChange={setPendingRentalsPopupOpen}>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Pending Books (Currently Rented)</DialogTitle>
+                    <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <Users className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Pending Books ({initialPendingRentals.length || 0})</DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">Currently rented books awaiting return</div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
                         </DialogHeader>
-                        <div className="rounded-md border mt-4">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="w-[50px]">Sl No</TableHead>
-                                        <TableHead>Book ID</TableHead>
-                                        <TableHead>Book Name</TableHead>
-                                        <TableHead>Student Name</TableHead>
-                                        <TableHead>Rented Date</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {initialPendingRentals.length > 0 ? (
-                                        initialPendingRentals.map((rental, index) => (
-                                            <TableRow key={rental._id}>
-                                                <TableCell className="font-medium">{index + 1}</TableCell>
-                                                <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
-                                                <TableCell className="book-text-font">{rental.bookId?.name}</TableCell>
-                                                <TableCell className="book-text-font">{rental.studentId?.name || rental.studentName}</TableCell>
-                                                <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
+                        <div className="p-5">
+                            <div className="rounded-md border overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                                No pending books
-                                            </TableCell>
+                                            <TableHead className="w-[50px]">Sl No</TableHead>
+                                            <TableHead>Book ID</TableHead>
+                                            <TableHead>Book Name</TableHead>
+                                            <TableHead>Student Name</TableHead>
+                                            <TableHead>Rented Date</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {initialPendingRentals.length > 0 ? (
+                                            initialPendingRentals.map((rental, index) => (
+                                                <TableRow key={rental._id}>
+                                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                                    <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
+                                                    <TableCell className="book-text-font">{rental.bookId?.name}</TableCell>
+                                                    <TableCell className="book-text-font">{rental.studentId?.name || rental.studentName}</TableCell>
+                                                    <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                                    No pending books
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Book Requests Popup */}
                 <Dialog open={requestsPopupOpen} onOpenChange={setRequestsPopupOpen}>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                Book Requests
-                                {pendingRequestsCount > 0 && (
-                                    <span className="text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-2 py-0.5">
-                                        {pendingRequestsCount} pending
-                                    </span>
-                                )}
-                            </DialogTitle>
+                    <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <BookOpen className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Book Requests ({pendingRequestsCount || 0})</DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">Pending student book borrowing requests</div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
                         </DialogHeader>
-                        {requestsLoading ? (
-                            <div className="flex items-center justify-center h-32">
-                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                            </div>
-                        ) : localRequests.filter(r => r.status === "Pending").length === 0 ? (
-                            <div className="text-center text-muted-foreground py-12">No pending book requests.</div>
-                        ) : (
-                            <div className="rounded-md border overflow-x-auto">
-                                <Table>
-                                    <TableHeader className="bg-muted/50">
-                                        <TableRow>
-                                            <TableHead className="w-[30px] text-center">#</TableHead>
-                                            <TableHead>Book Details</TableHead>
-                                            <TableHead>Student Details</TableHead>
-                                            <TableHead>Requested On</TableHead>
-                                            <TableHead>Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {localRequests.filter(r => r.status === "Pending").map((req, i) => (
-                                            <TableRow key={req._id}>
-                                                <TableCell className="text-center text-muted-foreground text-xs">{i + 1}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold text-sm book-text-font">{req.bookId?.name || "N/A"}</span>
-                                                        <span className="text-xs text-muted-foreground">ID: {req.bookId?.id || "N/A"}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold text-sm">{req.studentId?.name || "N/A"}</span>
-                                                        <span className="text-xs text-muted-foreground">ID: {req.studentId?._id || "N/A"}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                                    {req.createdAt ? format(new Date(req.createdAt), "PPP") : "-"}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex gap-1.5">
-                                                        <Button
-                                                            size="sm"
-                                                            className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none"
-                                                            onClick={() => {
-                                                                setSelectedRequest(req);
-                                                                setRentalFromRequestOpen(true);
-                                                            }}
-                                                        >
-                                                            <Check className="h-3 w-3 mr-1" /> Approve
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="destructive"
-                                                            className="h-7 px-2 text-xs"
-                                                            onClick={() => handleRejectRequest(req._id)}
-                                                        >
-                                                            <X className="h-3 w-3 mr-1" /> Reject
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
+                        <div className="p-5">
+                            {requestsLoading ? (
+                                <div className="flex items-center justify-center h-32">
+                                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                </div>
+                            ) : localRequests.filter(r => r.status === "Pending").length === 0 ? (
+                                <div className="text-center text-muted-foreground py-12">No pending book requests.</div>
+                            ) : (
+                                <div className="rounded-md border overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="bg-muted/50">
+                                            <TableRow>
+                                                <TableHead className="w-[30px] text-center">#</TableHead>
+                                                <TableHead>Book Details</TableHead>
+                                                <TableHead>Student Details</TableHead>
+                                                <TableHead>Requested On</TableHead>
+                                                <TableHead>Actions</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                                        </TableHeader>
+                                        <TableBody>
+                                            {localRequests.filter(r => r.status === "Pending").map((req, i) => (
+                                                <TableRow key={req._id}>
+                                                    <TableCell className="text-center text-muted-foreground text-xs">{i + 1}</TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-sm book-text-font">{req.bookId?.name || "N/A"}</span>
+                                                            <span className="text-xs text-muted-foreground">ID: {req.bookId?.id || "N/A"}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-sm">{req.studentId?.name || "N/A"}</span>
+                                                            <span className="text-xs text-muted-foreground">ID: {req.studentId?._id || "N/A"}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                                        {req.createdAt ? format(new Date(req.createdAt), "PPP") : "-"}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex gap-1.5">
+                                                            <Button
+                                                                size="sm"
+                                                                className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                                                onClick={() => {
+                                                                    setSelectedRequest(req);
+                                                                    setRentalFromRequestOpen(true);
+                                                                }}
+                                                            >
+                                                                <Check className="h-3 w-3 mr-1" /> Approve
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="destructive"
+                                                                className="h-7 px-2 text-xs"
+                                                                onClick={() => handleRejectRequest(req._id)}
+                                                            >
+                                                                <X className="h-3 w-3 mr-1" /> Reject
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
+                        </div>
                     </DialogContent>
                 </Dialog>
 
@@ -1868,170 +1988,238 @@ export default function LibraryDashboard({
 
                 {/* Categories Popup */}
                 <Dialog open={categoriesPopupOpen} onOpenChange={setCategoriesPopupOpen}>
-                    <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Books by Category</DialogTitle>
+                    <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <BookOpen className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Books by Category ({uniqueCategories.length || 0})</DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">Distribution of books across categories</div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
                         </DialogHeader>
-                        <div className="rounded-md border mt-4">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="w-[50px]">Sl No</TableHead>
-                                        <TableHead>ID</TableHead>
-                                        <TableHead>Category</TableHead>
-                                        <TableHead className="text-right">Books Count</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {uniqueCategories.length > 0 ? (
-                                        uniqueCategories.map((cat, index) => (
-                                            <TableRow key={cat.category}>
-                                                <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-                                                <TableCell className="font-bold text-primary">{cat.prefix}</TableCell>
-                                                <TableCell className="font-bold uppercase">{cat.category}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold">
-                                                        {cat.count}
-                                                    </span>
+                        <div className="p-5">
+                            <div className="rounded-md border overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">Sl No</TableHead>
+                                            <TableHead>ID</TableHead>
+                                            <TableHead>Category</TableHead>
+                                            <TableHead className="text-right">Books Count</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {uniqueCategories.length > 0 ? (
+                                            uniqueCategories.map((cat, index) => (
+                                                <TableRow key={cat.category}>
+                                                    <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                                                    <TableCell className="font-bold text-primary">{cat.prefix}</TableCell>
+                                                    <TableCell className="font-bold uppercase">{cat.category}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold">
+                                                            {cat.count}
+                                                        </span>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                    No categories found
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                                No categories found
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Languages Popup */}
                 <Dialog open={languagesPopupOpen} onOpenChange={setLanguagesPopupOpen}>
-                    <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Books by Language</DialogTitle>
+                    <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <BookOpen className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Books by Language ({uniqueLanguages.length || 0})</DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">Distribution of books across languages</div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
                         </DialogHeader>
-                        <div className="rounded-md border mt-4">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="w-[50px]">Sl No</TableHead>
-                                        <TableHead>Language</TableHead>
-                                        <TableHead className="text-right">Books Count</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {uniqueLanguages.length > 0 ? (
-                                        uniqueLanguages.map((lang, index) => (
-                                            <TableRow key={lang.language}>
-                                                <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-                                                <TableCell className="font-bold uppercase">{lang.language}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold">
-                                                        {lang.count}
-                                                    </span>
+                        <div className="p-5">
+                            <div className="rounded-md border overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">Sl No</TableHead>
+                                            <TableHead>Language</TableHead>
+                                            <TableHead className="text-right">Books Count</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {uniqueLanguages.length > 0 ? (
+                                            uniqueLanguages.map((lang, index) => (
+                                                <TableRow key={lang.language}>
+                                                    <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                                                    <TableCell className="font-bold uppercase">{lang.language}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold">
+                                                            {lang.count}
+                                                        </span>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                                    No languages found
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                                                No languages found
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Total Books Popup */}
                 <Dialog open={totalBooksPopupOpen} onOpenChange={setTotalBooksPopupOpen}>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Total Books Inventory</DialogTitle>
+                    <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <BookIcon className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Total Books Inventory ({initialBooks.length || 0})</DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">Complete catalogue of all books in library</div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
                         </DialogHeader>
-                        <div className="rounded-md border mt-4">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="w-[50px]">Sl No</TableHead>
-                                        <TableHead>Book ID</TableHead>
-                                        <TableHead>Book Name</TableHead>
-                                        <TableHead>Author</TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {initialBooks.length > 0 ? (
-                                        initialBooks.map((book, index) => (
-                                            <TableRow key={book._id}>
-                                                <TableCell className="font-medium">{index + 1}</TableCell>
-                                                <TableCell className="font-medium text-primary">{book.id}</TableCell>
-                                                <TableCell className="book-text-font">{book.name}</TableCell>
-                                                <TableCell className="uppercase book-text-font">{book.author}</TableCell>
-                                                <TableCell>
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${book.status === 'Available' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                                                        {book.status}
-                                                    </span>
+                        <div className="p-5">
+                            <div className="rounded-md border overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">Sl No</TableHead>
+                                            <TableHead>Book ID</TableHead>
+                                            <TableHead>Book Name</TableHead>
+                                            <TableHead>Author</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {initialBooks.length > 0 ? (
+                                            initialBooks.map((book, index) => (
+                                                <TableRow key={book._id}>
+                                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                                    <TableCell className="font-medium text-primary">{book.id}</TableCell>
+                                                    <TableCell className="book-text-font">{book.name}</TableCell>
+                                                    <TableCell className="uppercase book-text-font">{book.author}</TableCell>
+                                                    <TableCell>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${book.status === 'Available' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                                            {book.status}
+                                                        </span>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                                    No books available
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                                No books available
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Available Books Popup */}
                 <Dialog open={availableBooksPopupOpen} onOpenChange={setAvailableBooksPopupOpen}>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Available Books</DialogTitle>
+                    <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-emerald-500/20 dark:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                <Check className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">Available Books ({initialBooks.filter(b => b.status === "Available").length || 0})</DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">Books currently in stock and available for rental</div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
                         </DialogHeader>
-                        <div className="rounded-md border mt-4">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="w-[50px]">Sl No</TableHead>
-                                        <TableHead>Book ID</TableHead>
-                                        <TableHead>Book Name</TableHead>
-                                        <TableHead>Author</TableHead>
-                                        <TableHead>Category</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {initialBooks.filter(b => b.status === "Available").length > 0 ? (
-                                        initialBooks.filter(b => b.status === "Available").map((book, index) => (
-                                            <TableRow key={book._id}>
-                                                <TableCell className="font-medium">{index + 1}</TableCell>
-                                                <TableCell className="font-medium text-primary">{book.id}</TableCell>
-                                                <TableCell className="book-text-font">{book.name}</TableCell>
-                                                <TableCell className="uppercase book-text-font">{book.author}</TableCell>
-                                                <TableCell>{book.category}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
+                        <div className="p-5">
+                            <div className="rounded-md border overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                                No books available
-                                            </TableCell>
+                                            <TableHead className="w-[50px]">Sl No</TableHead>
+                                            <TableHead>Book ID</TableHead>
+                                            <TableHead>Book Name</TableHead>
+                                            <TableHead>Author</TableHead>
+                                            <TableHead>Category</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {initialBooks.filter(b => b.status === "Available").length > 0 ? (
+                                            initialBooks.filter(b => b.status === "Available").map((book, index) => (
+                                                <TableRow key={book._id}>
+                                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                                    <TableCell className="font-medium text-primary">{book.id}</TableCell>
+                                                    <TableCell className="book-text-font">{book.name}</TableCell>
+                                                    <TableCell className="uppercase book-text-font">{book.author}</TableCell>
+                                                    <TableCell>{book.category}</TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                                    No books available
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </DialogContent>
                 </Dialog>
@@ -2050,9 +2238,9 @@ export default function LibraryDashboard({
                             return success;
                         }}
                         hideButton={true}
-                        className="sm:max-w-[250px]"
+                        className="sm:max-w-md"
                         submitButtonClass="w-full"
-                        buttonContainerClass="md:col-span-2"
+                        buttonContainerClass="col-span-3 md:col-span-2"
                     />
                 )}
             </div>
@@ -2071,7 +2259,7 @@ export default function LibraryDashboard({
                         const selectedBooks = localBooks.filter(b => selectedIds.includes(b._id));
                         const allSelectedAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status === 'Available');
                         const allSelectedNotAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status !== 'Available');
-                        
+
                         const actionButtonsContent = (
                             <>
                                 {selectedIds.length > 0 && (
@@ -2125,7 +2313,7 @@ export default function LibraryDashboard({
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="h-8 w-8 p-0"
+                                                className="h-8 w-8 p-0 border-black dark:border-white text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10"
                                                 title="Edit Book"
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -2201,6 +2389,7 @@ export default function LibraryDashboard({
                     ref={tableRef}
                     data={localBooks}
                     columnsConfig={bookColumns}
+                    tableHeight="auto"
                     rowSelection={rowSelection}
                     onRowSelectionChange={setRowSelection}
                     getRowId={(originalRow) => originalRow._id}
@@ -2263,7 +2452,7 @@ export default function LibraryDashboard({
                                                     if (!open || selectedBook) setEditPopupOpen(open);
                                                 }}
                                                 trigger={
-                                                    <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit Book">
+                                                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-black dark:border-white text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10" title="Edit Book">
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
                                                 }
@@ -2371,11 +2560,10 @@ export default function LibraryDashboard({
                                                 <Button
                                                     size="sm"
                                                     variant={book.status === 'Available' ? "default" : "outline"}
-                                                    className={`w-full mt-1 h-7 text-xs font-semibold ${
-                                                        book.status === 'Available'
+                                                    className={`w-full mt-1 h-7 text-xs font-semibold ${book.status === 'Available'
                                                             ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                                                             : "text-muted-foreground cursor-not-allowed opacity-60"
-                                                    }`}
+                                                        }`}
                                                     disabled={book.status !== 'Available'}
                                                     title={book.status === 'Available' ? `Register rental for ${book.name}` : "Book is not available"}
                                                     onClick={(e) => {
@@ -2397,52 +2585,64 @@ export default function LibraryDashboard({
 
                 {/* Duplicate IDs Dialog */}
                 <Dialog open={duplicateIdsOpen} onOpenChange={setDuplicateIdsOpen}>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <div className="flex items-center justify-between gap-4 flex-wrap">
-                                <DialogTitle className="flex items-center gap-2 text-red-600">
-                                    <AlertCircle className="h-5 w-5" />
-                                    Duplicate Book IDs ({duplicateIdGroups.length} group{duplicateIdGroups.length !== 1 ? "s" : ""})
+                    <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-red-500/20 dark:bg-red-500/30 text-red-600 dark:text-red-400 shrink-0">
+                                <AlertCircle className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">
+                                    Duplicate Book IDs ({duplicateIdGroups.length || 0})
                                 </DialogTitle>
-                                <div className="flex items-center gap-2">
-                                    {selectedIds.length > 0 && (
-                                        <>
-                                            {selectedIds.length === 1 && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => setEditPopupOpen(true)}
-                                                    className="h-8 text-xs font-bold"
-                                                >
-                                                    <Edit className="h-4 w-4 mr-2" />
-                                                    Edit
-                                                </Button>
-                                            )}
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">
+                                        {duplicateIdGroups.length} group{duplicateIdGroups.length !== 1 ? "s" : ""} of conflicting IDs found
+                                    </div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {selectedIds.length > 0 && (
+                                    <>
+                                        {selectedIds.length === 1 && (
                                             <Button
                                                 size="sm"
-                                                variant="destructive"
-                                                onClick={handleBulkDelete}
+                                                variant="outline"
+                                                onClick={() => setEditPopupOpen(true)}
                                                 className="h-8 text-xs font-bold"
                                             >
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                Delete ({selectedIds.length})
+                                                <Edit className="h-4 w-4 mr-1.5" />
+                                                Edit
                                             </Button>
-                                        </>
-                                    )}
-                                    {duplicateIdGroups.some(g => g.isSafe) && (
+                                        )}
                                         <Button
                                             size="sm"
-                                            disabled={loading}
-                                            className="h-8 px-4 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold"
-                                            onClick={handleMergeAllSafe}
+                                            variant="destructive"
+                                            onClick={handleBulkDelete}
+                                            className="h-8 text-xs font-bold"
                                         >
-                                            {loading ? "Merging…" : `Merge All Safe (${duplicateIdGroups.filter(g => g.isSafe).length} group${duplicateIdGroups.filter(g => g.isSafe).length > 1 ? "s" : ""})`}
+                                            <Trash2 className="h-4 w-4 mr-1.5" />
+                                            Delete ({selectedIds.length})
                                         </Button>
-                                    )}
-                                </div>
+                                    </>
+                                )}
+                                {duplicateIdGroups.some(g => g.isSafe) && (
+                                    <Button
+                                        size="sm"
+                                        disabled={loading}
+                                        className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold"
+                                        onClick={handleMergeAllSafe}
+                                    >
+                                        {loading ? "Merging…" : `Merge All Safe (${duplicateIdGroups.filter(g => g.isSafe).length})`}
+                                    </Button>
+                                )}
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
                             </div>
                         </DialogHeader>
-                        <div className="space-y-4 mt-2">
+                        <div className="p-5 space-y-4">
                             {duplicateIdGroups.length === 0 ? (
                                 <p className="text-center text-muted-foreground py-8">No duplicate IDs found.</p>
                             ) : (
@@ -2611,13 +2811,15 @@ export default function LibraryDashboard({
                     ref={tableRef}
                     data={initialRentals}
                     columnsConfig={rentalColumns}
+                    tableHeight="auto"
+                    mobileIconSize="h-9 w-9"
                     rowSelection={rowSelection}
                     onRowSelectionChange={setRowSelection}
                     getRowId={(originalRow) => originalRow._id}
                     onFiltersChange={setActiveFilters}
                     showCsvBtn={true}
                     actionButtons={
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                             {selectedIds.length > 0 && (
                                 <>
                                     {selectedRental && (
@@ -2631,21 +2833,38 @@ export default function LibraryDashboard({
                                             }}
                                             onSubmit={handleUpdateRental}
                                             loading={loading}
+                                            className="sm:max-w-3xl"
+                                            trigger={
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-9 w-9 p-0 border-black dark:border-white text-black dark:text-white shrink-0"
+                                                    title="Edit Rental"
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                            }
                                         />
                                     )}
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={handleBulkReturn}
+                                        className="h-9 w-9 p-0 sm:w-auto sm:px-3 shrink-0"
+                                        title={`Return (${selectedIds.length})`}
                                     >
-                                        Return ({selectedIds.length})
+                                        <RotateCcw className="h-4 w-4" />
+                                        <span className="hidden sm:inline sm:ml-1.5">Return ({selectedIds.length})</span>
                                     </Button>
                                     <Button
                                         variant="destructive"
                                         size="sm"
                                         onClick={handleBulkDeleteRental}
+                                        className="h-9 w-9 p-0 sm:w-auto sm:px-3 shrink-0"
+                                        title={`Delete (${selectedIds.length})`}
                                     >
-                                        Delete ({selectedIds.length})
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="hidden sm:inline sm:ml-1.5">Delete ({selectedIds.length})</span>
                                     </Button>
                                 </>
                             )}
@@ -2654,31 +2873,55 @@ export default function LibraryDashboard({
                                 formFields={rentalFields}
                                 onSubmit={handleCreateRental}
                                 loading={loading}
-                                triggerText="New Rental"
-                                triggerClass="bg-primary hover:bg-primary/90 text-primary-foreground"
+                                trigger={
+                                    <Button
+                                        size="sm"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 h-9 w-9 p-0 sm:w-auto sm:px-3"
+                                        title="New Rental"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        <span className="hidden sm:inline sm:ml-1.5 font-medium">New Rental</span>
+                                    </Button>
+                                }
                                 className="sm:max-w-3xl"
                             />
                         </div>
                     }
                 />
-                
+
                 <Dialog open={deleteErrorPopupOpen} onOpenChange={setDeleteErrorPopupOpen}>
-                    <DialogContent className="sm:max-w-md text-center border-red-500/20">
-                        <DialogHeader>
-                            <DialogTitle className="text-red-500 flex items-center justify-center gap-2">
-                                <AlertCircle className="h-5 w-5" />
-                                Action Prevented
-                            </DialogTitle>
+                    <DialogContent className="w-[95vw] sm:max-w-md p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+                            <div className="p-2 rounded-lg bg-red-500/20 dark:bg-red-500/30 text-red-600 dark:text-red-400 shrink-0">
+                                <AlertCircle className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">
+                                    Action Prevented
+                                </DialogTitle>
+                                <DialogDescription asChild>
+                                    <div className="text-sm text-muted-foreground m-0">
+                                        Cannot perform deletion
+                                    </div>
+                                </DialogDescription>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <DialogClose asChild>
+                                    <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </DialogClose>
+                            </div>
                         </DialogHeader>
-                        <div className="py-6 text-center">
-                            <p className="text-muted-foreground text-lg">
+                        <div className="p-6 text-center space-y-6">
+                            <p className="text-muted-foreground text-base">
                                 Pending books can not be deleted.
                             </p>
-                        </div>
-                        <div className="flex justify-center pb-2">
-                            <Button variant="outline" onClick={() => setDeleteErrorPopupOpen(false)} className="w-24">
-                                Close
-                            </Button>
+                            <div className="flex justify-end pt-2">
+                                <Button variant="outline" onClick={() => setDeleteErrorPopupOpen(false)} className="px-5">
+                                    Close
+                                </Button>
+                            </div>
                         </div>
                     </DialogContent>
                 </Dialog>
@@ -2697,9 +2940,9 @@ export default function LibraryDashboard({
                             return success;
                         }}
                         hideButton={true}
-                        className="sm:max-w-[250px]"
+                        className="sm:max-w-md"
                         submitButtonClass="w-full"
-                        buttonContainerClass="md:col-span-2"
+                        buttonContainerClass="col-span-3 md:col-span-2"
                     />
                 )}
             </div>

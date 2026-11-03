@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
 import TeacherBottomBar from "@/components/TeacherBottomBar";
+import LibrarianBottomBar from "@/components/LibrarianBottomBar";
 import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseUser, fetchData } from "@/lib/utils";
@@ -75,6 +76,7 @@ export default async function Layout({ children }) {
               <div className="h-20 lg:h-16 no-print"></div>
             </main>
             <TeacherBottomBar user={user} activeRole={activeRole} />
+            <LibrarianBottomBar user={user} activeRole={activeRole} />
           </div>
         </div>
       </SidebarProvider>

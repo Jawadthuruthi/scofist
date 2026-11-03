@@ -81,6 +81,8 @@ const TableComponent = forwardRef(({
   requireFilterToRenderData = false,
   gridColsClass = "grid-cols-1 lg:grid-cols-2",
   onFilteredDataChange,
+  mobileIconSize = "h-8 w-8",
+  searchInSameRowOnMobile = false,
 }, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -88,6 +90,12 @@ const TableComponent = forwardRef(({
   const [columnFilters, setColumnFilters] = useState([]); // Advanced filters
   const [showFilterInput, setShowFilterInput] = useState(false);
   const [viewMode, setViewMode] = useState(defaultViewMode); // list or grid
+
+  const isTableHeightAuto = tableHeight === "auto" || tableHeight === "none";
+  const hasDesktopRightControls =
+    (actionButtons && !actionButtons?.props?.className?.includes("md:hidden")) ||
+    showCsvBtn ||
+    !hidePrintBtn;
 
   const tableRef = useRef(null);
   const tableContainerRef = useRef(null);
@@ -252,7 +260,7 @@ const TableComponent = forwardRef(({
   }, [rows, onFilteredDataChange]);
 
   const rowVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: isTableHeightAuto ? 0 : rows.length,
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 45, // default row height estimate
     overscan: 10,
@@ -270,12 +278,12 @@ const TableComponent = forwardRef(({
       {/* Unified Toolbar Container */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 w-full">
         {/* Primary Row: Col Mgmt, Search, CSV, Print on Mobile. On Desktop: Col Mgmt, Search */}
-        <div className="flex items-center gap-2 w-full md:flex-1 order-1">
+        <div className={cn("flex items-center gap-2 w-full order-1", hasDesktopRightControls ? "md:flex-1" : "md:w-full flex-1")}>
           {/* Column Management */}
           {!hideColumnManagement && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-10 w-10 p-0 flex items-center justify-center md:w-auto md:px-3 lg:flex shrink-0">
+                <Button variant="outline" size="sm" className={cn(mobileIconSize || "h-8 w-8", "p-0 flex items-center justify-center md:h-10 md:w-10 shrink-0")}>
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -326,11 +334,11 @@ const TableComponent = forwardRef(({
 
           {/* View Toggle */}
           {enableGrid && !hideViewToggle && (
-            <div className="flex items-center border rounded-md overflow-hidden shrink-0">
+            <div className="flex items-center border rounded-md overflow-hidden shrink-0 h-8 md:h-10">
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-8 w-8 px-0 rounded-none border-r flex items-center justify-center"
+                className="h-8 w-8 px-0 rounded-none border-r flex items-center justify-center md:h-10 md:w-10"
                 onClick={() => setViewMode("list")}
                 title="List View"
               >
@@ -339,7 +347,7 @@ const TableComponent = forwardRef(({
               <Button
                 variant={viewMode === "grid" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-8 w-8 px-0 rounded-none flex items-center justify-center"
+                className="h-8 w-8 px-0 rounded-none flex items-center justify-center md:h-10 md:w-10"
                 onClick={() => setViewMode("grid")}
                 title="Grid View"
               >
@@ -374,8 +382,8 @@ const TableComponent = forwardRef(({
 
           {/* Global Search Button/Input */}
           {!hideSearch && (
-            <div className={cn("relative items-center flex-1 min-w-0", inlineFilters ? "hidden md:flex" : "flex")}>
-              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10" />
+            <div className={cn("relative items-center flex-1 min-w-0 w-full", (inlineFilters || !searchInSameRowOnMobile) ? "hidden md:flex" : "flex")}>
+              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
               <Input
                 placeholder={searchPlaceholderMobile || searchPlaceholder || "Search..."}
                 value={globalFilter ?? ""}
@@ -385,69 +393,82 @@ const TableComponent = forwardRef(({
             </div>
           )}
 
+          {/* Mobile Right Controls: Actions, Filter, CSV, Print */}
+          <div className="flex md:hidden items-center gap-1.5 ml-auto shrink-0">
+            {actionButtons && (
+              <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar shrink-0">
+                {actionButtons}
+              </div>
+            )}
 
+            {!inlineFilters && filterConfig.length > 0 && (
+              <PopupFilter
+                filterConfig={filterConfig}
+                filters={columnFilters.reduce((acc, filter) => {
+                  acc[filter.id] = filter.value;
+                  return acc;
+                }, {})}
+                setFilter={(id, value) => {
+                  setColumnFilters((prev) => {
+                    const existing = prev.find((f) => f.id === id);
+                    if (existing) {
+                      return prev.map((f) => (f.id === id ? { ...f, value } : f));
+                    }
+                    return [...prev, { id, value }];
+                  });
+                }}
+                removeFilter={(id) => {
+                  setColumnFilters((prev) => prev.filter((f) => f.id !== id));
+                }}
+                clearFilters={() => setColumnFilters([])}
+                hasFilters={columnFilters.length > 0}
+                triggerClass={cn("flex p-0 shrink-0 justify-center items-center md:h-10 md:w-auto md:px-3", mobileIconSize || "h-8 w-8")}
+              />
+            )}
 
-          {/* Mobile Action Buttons */}
-          {actionButtons && (
-            <div className="flex md:hidden items-center gap-1 overflow-x-auto hide-scrollbar shrink-0">
-              {actionButtons}
-            </div>
-          )}
+            {showCsvBtn && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleExportCSV}
+                className={cn("flex p-0 shrink-0 items-center justify-center md:h-10 md:w-auto md:px-3", mobileIconSize || "h-8 w-8")}
+                title="Export CSV"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
 
-          {/* Filters (Mobile) */}
-          {!inlineFilters && filterConfig.length > 0 && (
-            <PopupFilter
-              filterConfig={filterConfig}
-              filters={columnFilters.reduce((acc, filter) => {
-                acc[filter.id] = filter.value;
-                return acc;
-              }, {})}
-              setFilter={(id, value) => {
-                setColumnFilters((prev) => {
-                  const existing = prev.find((f) => f.id === id);
-                  if (existing) {
-                    return prev.map((f) => (f.id === id ? { ...f, value } : f));
-                  }
-                  return [...prev, { id, value }];
-                });
-              }}
-              removeFilter={(id) => {
-                setColumnFilters((prev) => prev.filter((f) => f.id !== id));
-              }}
-              clearFilters={() => setColumnFilters([])}
-              hasFilters={columnFilters.length > 0}
-              triggerClass="flex h-10 w-10 md:h-8 md:w-auto md:px-3 p-0 shrink-0 justify-center items-center"
-            />
-          )}
-
-          {/* CSV (Mobile) */}
-          {showCsvBtn && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleExportCSV}
-              className="flex md:hidden h-10 w-10 p-0 shrink-0 items-center justify-center"
-              title="Export CSV"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-          )}
-
-          {/* Print (Mobile) */}
-          {!hidePrintBtn && (
-            <Button
-              size="sm"
-              onClick={handlePrint}
-              className="flex md:hidden h-10 w-10 p-0 shrink-0 items-center justify-center bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0"
-              title="Print"
-            >
-              <Printer className="h-4 w-4" />
-            </Button>
-          )}
+            {!hidePrintBtn && (
+              <Button
+                size={searchInSameRowOnMobile ? "default" : "sm"}
+                onClick={handlePrint}
+                className={cn(
+                  "flex p-0 shrink-0 items-center justify-center bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 md:h-10 md:w-auto md:px-3",
+                  searchInSameRowOnMobile ? "h-10 w-10" : (mobileIconSize || "h-8 w-8")
+                )}
+                title="Print"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
+        {/* Mobile Row 2: Search Bar in Full Width (only when !inlineFilters and !searchInSameRowOnMobile) */}
+        {!hideSearch && !inlineFilters && !searchInSameRowOnMobile && (
+          <div className="relative flex items-center w-full md:hidden order-2">
+            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+            <Input
+              placeholder={searchPlaceholderMobile || searchPlaceholder || "Search..."}
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="h-10 pl-8 w-full"
+            />
+          </div>
+        )}
+
         {/* Secondary Row / Desktop Right Side */}
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto md:ml-auto order-2">
+        <div className={cn("flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto md:ml-auto order-2 md:order-2", !hasDesktopRightControls && "md:hidden")}>
           
           {/* Inline Filters (Mobile) */}
           {inlineFilters && filterConfig.length > 0 && filterConfig.map((filter) => (
@@ -459,7 +480,7 @@ const TableComponent = forwardRef(({
                      setColumnFilters((prev) => {
                        const existing = prev.find((f) => f.id === filter.id);
                        if (existing) {
-                         return prev.map((f) => (f.id === filter.id ? { ...f, value: val } : f));
+                         return prev.map((f) => (f.id === filter.id ? { ...f, value } : f));
                        }
                        return [...prev, { id: filter.id, value: val }];
                      });
@@ -473,10 +494,10 @@ const TableComponent = forwardRef(({
              ) : null
           ))}
 
-          {/* Global Search Button/Input (Mobile, if inlineFilters) */}
+          {/* Search Bar after Status (Mobile side-by-side with Status) */}
           {!hideSearch && inlineFilters && (
-            <div className="relative flex items-center w-full md:hidden">
-              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10" />
+            <div className="relative flex items-center w-[calc(50%-0.25rem)] md:hidden">
+              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
               <Input
                 placeholder={searchPlaceholderMobile || searchPlaceholder || "Search..."}
                 value={globalFilter ?? ""}
@@ -485,8 +506,6 @@ const TableComponent = forwardRef(({
               />
             </div>
           )}
-
-
 
           {/* Action Buttons (Desktop) */}
           {actionButtons && (
@@ -524,7 +543,13 @@ const TableComponent = forwardRef(({
         </div>
       </div>
 
-
+      {showTotalCount && (
+        <div className="flex items-center px-1 print:hidden">
+          <div className="text-sm font-medium text-muted-foreground">
+            {totalCountLabel}: {table.getFilteredRowModel().rows.length}
+          </div>
+        </div>
+      )}
 
       {isAwaitingFilter ? (
         <div className="flex flex-col items-center justify-center p-12 text-center border rounded-md bg-muted/10 shadow-sm min-h-[300px]">
@@ -561,10 +586,11 @@ const TableComponent = forwardRef(({
       ) : (
         <div
           ref={tableContainerRef}
-          className="rounded-md border overflow-auto shadow-sm table-print relative"
-          style={{
-            maxHeight: tableHeight,
-          }}
+          className={cn(
+            "rounded-md border shadow-sm table-print relative",
+            isTableHeightAuto ? "overflow-x-auto" : "overflow-auto"
+          )}
+          style={isTableHeightAuto ? undefined : { maxHeight: tableHeight }}
         >
           <div ref={tableRef}>
             <PrintHeader
@@ -600,7 +626,7 @@ const TableComponent = forwardRef(({
               </TableHeader>
               <TableBody>
                 {rows.length > 0 ? (
-                  isPrinting || enablePagination ? (
+                  isPrinting || enablePagination || isTableHeightAuto ? (
                     rows.map((row) => (
                       <TableRow
                         key={row.id}
@@ -688,13 +714,6 @@ const TableComponent = forwardRef(({
             </Table>
           </div>
         </div>
-        </div>
-      )}
-      {showTotalCount && (
-        <div className="flex items-center mt-2 px-1 print:hidden">
-          <div className="text-sm font-medium text-muted-foreground">
-            {totalCountLabel}: {table.getFilteredRowModel().rows.length}
-          </div>
         </div>
       )}
       

@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
+import LibrarianBottomBar from "@/components/LibrarianBottomBar";
 import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseUser } from "@/lib/utils";
@@ -27,8 +28,9 @@ export default async function Layout({ children }) {
             <Topbar user={user} activeRole={activeRole} />
             <main className="flex-1 px-4 lg:p-6 mt-14 overflow-auto container">
               {children}
-              <div className="h-16 no-print"></div>
+              <div className="h-20 lg:h-16 no-print"></div>
             </main>
+            <LibrarianBottomBar user={user} activeRole={activeRole} />
           </div>
         </div>
       </SidebarProvider>
