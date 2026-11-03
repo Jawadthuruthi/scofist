@@ -1345,13 +1345,9 @@ return (
                 const reasonText = student.leaveReason && student.leaveReason !== "No Reason"
                   ? student.leaveReason.trim()
                   : "";
-                const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason :${reasonText ? ` ${reasonText}` : "\u00A0"}`;
-                const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                const url = student.contactNumber
-                  ? isMobile
-                    ? `https://wa.me/${student.contactNumber}?text=${encodeURIComponent(msg)}`
-                    : `https://web.whatsapp.com/send?phone=${student.contactNumber}&text=${encodeURIComponent(msg)}`
-                  : null;
+                const msg = reasonText
+                  ? `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText}`
+                  : `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason :`;
 
                 return (
                   <div
@@ -1380,17 +1376,28 @@ return (
                       </span>
                       <Button
                         size="sm"
-                        disabled={!url}
+                        disabled={!student.contactNumber}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center gap-1.5 shrink-0 transition-transform active:scale-95 disabled:opacity-50"
-                        onClick={() => {
-                          if (!url) return;
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.target = '_blank';
-                          a.rel = 'noopener noreferrer';
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
+                        onClick={(e) => {
+                          if (!student.contactNumber) return;
+                          if (e && typeof e.preventDefault === "function") {
+                            e.preventDefault();
+                          }
+                          const encodedText = encodeURIComponent(msg);
+                          const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                          if (isMobile) {
+                            const nativeUri = `whatsapp://send?phone=${student.contactNumber}&text=${encodedText}`;
+                            const webFallback = `https://wa.me/${student.contactNumber}?text=${encodedText}`;
+                            window.location.href = nativeUri;
+                            setTimeout(() => {
+                              if (typeof document !== "undefined" && document.hasFocus()) {
+                                window.location.href = webFallback;
+                              }
+                            }, 1200);
+                          } else {
+                            const desktopUrl = `https://web.whatsapp.com/send?phone=${student.contactNumber}&text=${encodedText}`;
+                            window.open(desktopUrl, "_blank", "noopener,noreferrer");
+                          }
                         }}
                       >
                         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
