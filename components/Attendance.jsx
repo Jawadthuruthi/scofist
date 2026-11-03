@@ -1343,11 +1343,14 @@ return (
             {whatsappModalData?.students?.length > 0 ? (
               whatsappModalData.students.map((student, idx) => {
                 const reasonText = student.leaveReason && student.leaveReason !== "No Reason"
-                  ? `${student.leaveReason.trim()} `
+                  ? student.leaveReason.trim()
                   : "";
-                const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText}`;
+                const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason :${reasonText ? ` ${reasonText}` : "\u00A0"}`;
+                const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 const url = student.contactNumber
-                  ? `https://wa.me/${student.contactNumber}?text=${encodeURIComponent(msg)}`
+                  ? isMobile
+                    ? `https://wa.me/${student.contactNumber}?text=${encodeURIComponent(msg)}`
+                    : `https://web.whatsapp.com/send?phone=${student.contactNumber}&text=${encodeURIComponent(msg)}`
                   : null;
 
                 return (
