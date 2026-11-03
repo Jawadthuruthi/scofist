@@ -49,24 +49,24 @@ const playAlertSound = () => {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;
     const audioCtx = new AudioContextClass();
-    
+
     const play = () => {
       try {
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
-        
+
         // Create a high-pitched piercing triple beep sound
         oscillator.type = 'square';
         oscillator.frequency.setValueAtTime(2500, audioCtx.currentTime); // 2.5kHz
-        
+
         const beeps = 3;
         const beepDuration = 0.1;
         const beepPause = 0.05;
         const totalDuration = beeps * (beepDuration + beepPause);
-        
+
         for (let i = 0; i < beeps; i++) {
           const startTime = audioCtx.currentTime + i * (beepDuration + beepPause);
           gainNode.gain.setValueAtTime(0, startTime);
@@ -74,14 +74,14 @@ const playAlertSound = () => {
           gainNode.gain.setValueAtTime(0.2, startTime + beepDuration - 0.01); // Sustain
           gainNode.gain.linearRampToValueAtTime(0, startTime + beepDuration); // Release
         }
-        
+
         oscillator.start(audioCtx.currentTime);
         oscillator.stop(audioCtx.currentTime + totalDuration);
 
         setTimeout(() => {
           try {
             audioCtx.close();
-          } catch {}
+          } catch { }
         }, (totalDuration + 0.2) * 1000);
       } catch (err) {
         console.error("Audio node error:", err);
@@ -139,7 +139,30 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [judgeSignature, setJudgeSignature] = useState("");
-  const [activeTab, setActiveTab] = useState("Criteria");
+  const [activeTab, setActiveTab] = useState("Marks");
+  const [infoTab, setInfoTab] = useState("Criteria");
+
+  // Sync tab changes from JudgeBottomBar
+  useEffect(() => {
+    const handleJudgeTabChange = (e) => {
+      const tab = e?.detail;
+      if (tab) {
+        setActiveTab(tab);
+        if (tab !== "Marks") {
+          setInfoTab(tab);
+        }
+      }
+    };
+    window.addEventListener("judge-tab-change", handleJudgeTabChange);
+    return () => window.removeEventListener("judge-tab-change", handleJudgeTabChange);
+  }, []);
+
+  // Broadcast active tab updates to JudgeBottomBar
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("judge-active-tab-updated", { detail: activeTab }));
+    }
+  }, [activeTab]);
   const [hideMarks, setHideMarks] = useState(false);
   const [submittedMarksPreview, setSubmittedMarksPreview] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -156,7 +179,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [showTimerPopup, setShowTimerPopup] = useState(false);
-  
+
   const thankYouTimerRef = useRef(null);
   const prevAlertActiveRef = useRef(false);
   const prevWelcomeOpenRef = useRef(false);
@@ -237,7 +260,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
 
   useEffect(() => {
     currentAssignmentIdRef.current = assignment?._id;
-    
+
     // Play sound when alert becomes active
     if (assignment?.alertActive && !prevAlertActiveRef.current) {
       playAlertSound();
@@ -308,9 +331,9 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
 
       setAssignment(current);
       if (current.programId) {
-        if (current.programId.criteria?.length > 0) setActiveTab("Criteria");
-        else if (current.programId.rules) setActiveTab("Rules");
-        else if (current.programId.topics) setActiveTab("Topics");
+        if (current.programId.criteria?.length > 0) setInfoTab("Criteria");
+        else if (current.programId.rules) setInfoTab("Rules");
+        else if (current.programId.topics) setInfoTab("Topics");
       }
       if (active && active._id !== currentAssignmentIdRef.current) {
         setSubmitted(false);
@@ -549,8 +572,8 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       const average =
         validMarks.length > 0
           ? Math.round(
-              validMarks.reduce((a, b) => a + b, 0) / validMarks.length
-            )
+            validMarks.reduce((a, b) => a + b, 0) / validMarks.length
+          )
           : 0;
 
       participantRows.push({
@@ -747,9 +770,8 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
     <div className="space-y-5">
 
       {/* ── Top Header Section ── */}
-      <div className={`grid grid-cols-1 gap-5 ${
-        showTimerPopup ? "lg:grid-cols-[1fr_auto_1fr]" : "lg:grid-cols-2"
-      }`}>
+      <div className={`grid grid-cols-1 gap-5 ${showTimerPopup ? "lg:grid-cols-[1fr_auto_1fr]" : "lg:grid-cols-2"
+        }`}>
         {/* Unified Division + Program Info Card */}
         <div className="flex flex-col items-center justify-center text-center gap-2 rounded-xl border bg-muted/40 px-2 sm:px-6 py-6 h-full">
           <p className="text-sm md:text-base uppercase tracking-widest text-muted-foreground font-medium">
@@ -758,14 +780,14 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
           <h2 className="font-bold text-3xl">
             {assignment.programName}
           </h2>
-          
+
           {/* Timer input row */}
           <div className="flex flex-row items-center justify-center gap-1.5 sm:gap-3 mt-1.5 sm:mt-2 bg-background px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border shadow-sm w-fit max-w-full mx-auto">
             <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground font-medium">
               <Timer className="h-4 w-4 shrink-0" />
               <span className="text-sm whitespace-nowrap">Timer:</span>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <Input
                 type="number"
@@ -794,13 +816,13 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
               />
               <span className="text-sm text-muted-foreground">sec</span>
             </div>
-            
+
             {/* Start/Resume button — hidden when timer is shown */}
             <div className={`flex items-center ${showTimerPopup ? "hidden" : ""}`}>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
-                className="h-8 text-sm px-3 text-green-600 hover:text-green-700 hover:bg-green-100 border-green-200" 
+                className="h-8 text-sm px-3 text-green-600 hover:text-green-700 hover:bg-green-100 border-green-200"
                 onClick={handleStartTimer}
               >
                 <Play className="h-4 w-4 mr-1 fill-current shrink-0" />
@@ -830,13 +852,12 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
             {/* Body */}
             <div className="flex flex-col items-center justify-center gap-2 px-4 py-2 flex-1">
               <span
-                className={`font-mono text-5xl font-black tracking-tight transition-colors ${
-                  timeLeft === 0
+                className={`font-mono text-5xl font-black tracking-tight transition-colors ${timeLeft === 0
                     ? "text-red-500 animate-pulse"
                     : timeLeft <= 30
-                    ? "text-amber-500"
-                    : "text-blue-700 dark:text-blue-300"
-                }`}
+                      ? "text-amber-500"
+                      : "text-blue-700 dark:text-blue-300"
+                  }`}
               >
                 {formatTime(timeLeft)}
               </span>
@@ -847,11 +868,10 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                 <Button
                   onClick={handlePauseResumeTimer}
                   size="sm"
-                  className={`w-1/2 h-8 font-semibold text-xs ${
-                    timerActive
+                  className={`w-1/2 h-8 font-semibold text-xs ${timerActive
                       ? "bg-amber-500 hover:bg-amber-600 text-white"
                       : "bg-green-600 hover:bg-green-700 text-white"
-                  }`}
+                    }`}
                   disabled={timeLeft === 0}
                 >
                   {timerActive ? (
@@ -878,9 +898,8 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         )}
 
         {/* ── Instructions (Desktop) ── */}
-        <div className={`hidden lg:flex flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl gap-4 h-full ${
-          showTimerPopup ? "py-8 px-5" : "py-6 px-4"
-        }`}>
+        <div className={`hidden lg:flex flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl gap-4 h-full ${showTimerPopup ? "py-8 px-5" : "py-6 px-4"
+          }`}>
           <div className="text-sm sm:text-base text-blue-700 dark:text-blue-400 text-center sm:text-left">
             <strong className="block mb-2 text-base">Instructions:</strong>
             <ul className="list-disc pl-5 leading-relaxed text-left space-y-1 inline-block sm:block">
@@ -894,563 +913,598 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
         {/* Left Column: Rules, Topics, and Criteria */}
-        <div className="lg:sticky lg:top-4 space-y-4">
-          {(assignment.programId?.rules || assignment.programId?.topics || (assignment.programId?.criteria && assignment.programId.criteria.length > 0) || true) && (
-            <div className="bg-muted/30 border rounded-lg p-4 text-sm text-muted-foreground">
-              <div className="grid grid-cols-4 gap-2 mb-5 pb-4 border-b border-muted">
-                <Button 
-                  size="sm"
-                  variant={activeTab === "Criteria" ? "default" : "outline"} 
-                  className={`w-full ${!(assignment.programId?.criteria?.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => assignment.programId?.criteria?.length > 0 && setActiveTab("Criteria")}
-                  disabled={!(assignment.programId?.criteria?.length > 0)}
-                >
-                  Criteria
-                </Button>
-                <Button 
-                  size="sm"
-                  variant={activeTab === "Rules" ? "default" : "outline"} 
-                  className={`w-full ${!assignment.programId?.rules ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => assignment.programId?.rules && setActiveTab("Rules")}
-                  disabled={!assignment.programId?.rules}
-                >
-                  Rules
-                </Button>
-                <Button 
-                  size="sm"
-                  variant={activeTab === "Topics" ? "default" : "outline"} 
-                  className={`w-full ${!assignment.programId?.topics ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => assignment.programId?.topics && setActiveTab("Topics")}
-                  disabled={!assignment.programId?.topics}
-                >
-                  Topics
-                </Button>
-                <Button 
-                  size="sm"
-                  variant={activeTab === "Grade" ? "default" : "outline"} 
-                  className="w-full"
-                  onClick={() => setActiveTab("Grade")}
-                >
-                  Grade
-                </Button>
-              </div>
+          <div className={`lg:sticky lg:top-4 space-y-4 ${activeTab === "Marks" ? "hidden md:block" : "block"}`}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveTab("Marks")}
+              className="w-full md:hidden flex items-center justify-center gap-2 mb-3 bg-primary/10 text-primary border-primary/30 font-medium"
+            >
+              ← Back to Marks Entry
+            </Button>
+            {(assignment.programId?.rules || assignment.programId?.topics || (assignment.programId?.criteria && assignment.programId.criteria.length > 0) || true) && (
+              <div className="bg-muted/30 border rounded-lg p-4 text-sm text-muted-foreground">
+                <div className="grid grid-cols-4 gap-2 mb-5 pb-4 border-b border-muted">
+                  <Button
+                    size="sm"
+                    variant={infoTab === "Criteria" ? "default" : "outline"}
+                    className={`w-full ${!(assignment.programId?.criteria?.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      if (assignment.programId?.criteria?.length > 0) {
+                        setInfoTab("Criteria");
+                        setActiveTab("Criteria");
+                      }
+                    }}
+                    disabled={!(assignment.programId?.criteria?.length > 0)}
+                  >
+                    Criteria
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={infoTab === "Rules" ? "default" : "outline"}
+                    className={`w-full ${!assignment.programId?.rules ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      if (assignment.programId?.rules) {
+                        setInfoTab("Rules");
+                        setActiveTab("Rules");
+                      }
+                    }}
+                    disabled={!assignment.programId?.rules}
+                  >
+                    Rules
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={infoTab === "Topics" ? "default" : "outline"}
+                    className={`w-full ${!assignment.programId?.topics ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      if (assignment.programId?.topics) {
+                        setInfoTab("Topics");
+                        setActiveTab("Topics");
+                      }
+                    }}
+                    disabled={!assignment.programId?.topics}
+                  >
+                    Topics
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={infoTab === "Grade" ? "default" : "outline"}
+                    className="w-full"
+                    onClick={() => {
+                      setInfoTab("Grade");
+                      setActiveTab("Grade");
+                    }}
+                  >
+                    Grade
+                  </Button>
+                </div>
 
-              {activeTab === "Criteria" && assignment.programId?.criteria && assignment.programId.criteria.length > 0 && (
-                <div className="mt-4">
-                  <strong className="text-foreground block mb-2 text-base">Evaluation Criteria:</strong>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left border-collapse border border-muted bg-background">
-                      <thead className="bg-muted/50">
-                        <tr>
-                          <th className="px-4 py-2 font-medium border-b border-muted">Criteria</th>
-                          <th className="px-4 py-2 font-medium border-b border-muted w-24">Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {assignment.programId.criteria.map((c, i) => (
-                          <tr key={i} className="border-b border-muted last:border-0 hover:bg-muted/20">
-                            <td className="px-4 py-2 font-google-sans font-normal text-sm md:text-base">{c.name}</td>
-                            <td className="px-4 py-2 font-medium">{c.score}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-              {activeTab === "Rules" && assignment.programId?.rules && (
-                <div className="mb-2">
-                  <strong className="text-foreground block mb-2 text-sm md:text-base">Rules: </strong>
-                  <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-primary">
-                    <div className="font-google-sans text-sm md:text-base font-normal leading-relaxed break-words">
-                      {renderItemsWithStar(assignment.programId.rules)}
-                    </div>
-                  </div>
-                </div>
-              )}
-              {activeTab === "Topics" && assignment.programId?.topics && (
-                <div className="mb-2">
-                  <strong className="text-foreground block mb-2 text-sm md:text-base">Topics: </strong>
-                  <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-green-500">
-                    <div className="font-google-sans text-sm md:text-base font-normal leading-relaxed break-words">
-                      {renderItemsWithStar(assignment.programId.topics)}
-                    </div>
-                  </div>
-                </div>
-              )}
-              {activeTab === "Grade" && (
-                <div className="mb-2">
-                  <strong className="text-foreground block mb-3 text-sm md:text-base">Grade Scheme:</strong>
-                  {gradeLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader className="animate-spin h-5 w-5 mr-2 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Loading grade scheme...</span>
-                    </div>
-                  ) : gradeSchemes.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No grade scheme configured.
-                    </div>
-                  ) : (
+                {infoTab === "Criteria" && assignment.programId?.criteria && assignment.programId.criteria.length > 0 && (
+                  <div className="mt-4">
+                    <strong className="text-foreground block mb-2 text-base">Evaluation Criteria:</strong>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm text-left border-collapse border border-muted bg-background">
                         <thead className="bg-muted/50">
                           <tr>
-                            <th className="px-4 py-2 font-medium border-b border-muted">Mark Range</th>
-                            <th className="px-4 py-2 font-medium border-b border-muted w-20 text-center">Grade</th>
-                            <th className="px-4 py-2 font-medium border-b border-muted w-20 text-center">Points</th>
+                            <th className="px-4 py-2 font-medium border-b border-muted">Criteria</th>
+                            <th className="px-4 py-2 font-medium border-b border-muted w-24">Score</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {gradeSchemes.map((gs, i) => (
-                            <tr key={gs._id || i} className="border-b border-muted last:border-0 hover:bg-muted/20">
-                              <td className="px-4 py-2 text-sm">{gs.markRange}</td>
-                              <td className="px-4 py-2 text-center">
-                                <span className="inline-block px-2 py-0.5 rounded bg-primary/10 text-primary font-bold text-sm">{gs.grade}</span>
-                              </td>
-                              <td className="px-4 py-2 text-center font-medium">{gs.points}</td>
+                          {assignment.programId.criteria.map((c, i) => (
+                            <tr key={i} className="border-b border-muted last:border-0 hover:bg-muted/20">
+                              <td className="px-4 py-2 font-google-sans font-normal text-sm md:text-base">{c.name}</td>
+                              <td className="px-4 py-2 font-medium">{c.score}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                )}
+                {infoTab === "Rules" && assignment.programId?.rules && (
+                  <div className="mb-2">
+                    <strong className="text-foreground block mb-2 text-sm md:text-base">Rules: </strong>
+                    <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-primary">
+                      <div className="font-google-sans text-sm md:text-base font-normal leading-relaxed break-words">
+                        {renderItemsWithStar(assignment.programId.rules)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {infoTab === "Topics" && assignment.programId?.topics && (
+                  <div className="mb-2">
+                    <strong className="text-foreground block mb-2 text-sm md:text-base">Topics: </strong>
+                    <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-green-500">
+                      <div className="font-google-sans text-sm md:text-base font-normal leading-relaxed break-words">
+                        {renderItemsWithStar(assignment.programId.topics)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {infoTab === "Grade" && (
+                  <div className="mb-2">
+                    <strong className="text-foreground block mb-3 text-sm md:text-base">Grade Scheme:</strong>
+                    {gradeLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader className="animate-spin h-5 w-5 mr-2 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Loading grade scheme...</span>
+                      </div>
+                    ) : gradeSchemes.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        No grade scheme configured.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left border-collapse border border-muted bg-background">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="px-4 py-2 font-medium border-b border-muted">Mark Range</th>
+                              <th className="px-4 py-2 font-medium border-b border-muted w-20 text-center">Grade</th>
+                              <th className="px-4 py-2 font-medium border-b border-muted w-20 text-center">Points</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {gradeSchemes.map((gs, i) => (
+                              <tr key={gs._id || i} className="border-b border-muted last:border-0 hover:bg-muted/20">
+                                <td className="px-4 py-2 text-sm">{gs.markRange}</td>
+                                <td className="px-4 py-2 text-center">
+                                  <span className="inline-block px-2 py-0.5 rounded bg-primary/10 text-primary font-bold text-sm">{gs.grade}</span>
+                                </td>
+                                <td className="px-4 py-2 text-center font-medium">{gs.points}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* ── Instructions (Mobile) ── */}
-          <div className="flex lg:hidden flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 gap-4">
-            <div className="text-sm sm:text-base text-blue-700 dark:text-blue-400 text-center sm:text-left">
-              <strong className="block mb-2 text-base">Instructions:</strong>
-              <ul className="list-disc pl-5 leading-relaxed text-left space-y-1 inline-block sm:block">
-                <li>Enter marks (0–100) and comments for each participant.</li>
-                <li>Once submitted, marks cann&apos;t be changed.</li>
-              </ul>
+            {/* ── Instructions (Mobile) ── */}
+            <div className="flex lg:hidden flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 gap-4">
+              <div className="text-sm sm:text-base text-blue-700 dark:text-blue-400 text-center sm:text-left">
+                <strong className="block mb-2 text-base">Instructions:</strong>
+                <ul className="list-disc pl-5 leading-relaxed text-left space-y-1 inline-block sm:block">
+                  <li>Enter marks (0–100) and comments for each participant.</li>
+                  <li>Once submitted, marks cann&apos;t be changed.</li>
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
 
-      {/* Right Column: Table, Submit */}
-      <div className="space-y-5">
+          {/* Right Column: Table, Submit */}
+            <div className={`space-y-5 ${activeTab !== "Marks" ? "hidden md:block" : "block"}`}>
+              {/* Mobile View Info Notice */}
+                <div className="flex md:hidden items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground">
+                  <span>Currently entering marks</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(infoTab || "Criteria")}
+                    className="font-semibold text-primary hover:underline ml-2"
+                  >
+                    View {infoTab || "Criteria"} →
+                  </button>
+                </div>
 
-      {/* ── Marks Table ── */}
-      {participantRows.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Users className="mx-auto h-10 w-10 mb-3 opacity-30" />
-          <p>No registered participants found for this program.</p>
-        </div>
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table className="w-full">
-            <TableHeader>
-              <TableRow>
-                {/* Sl. */}
-                <TableHead className="w-10 text-center whitespace-nowrap border-r border-border">
-                  Sl.
-                </TableHead>
+                {/* ── Marks Table ── */}
+                {participantRows.length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Users className="mx-auto h-10 w-10 mb-3 opacity-30" />
+                    <p>No registered participants found for this program.</p>
+                  </div>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow>
+                          {/* Sl. */}
+                          <TableHead className="w-10 text-center whitespace-nowrap border-r border-border">
+                            Sl.
+                          </TableHead>
 
-                {/* Code Letter */}
-                <TableHead className="w-20 text-center whitespace-nowrap border-r border-border">
-                  Code
-                </TableHead>
+                          {/* Code Letter */}
+                          <TableHead className="w-20 text-center whitespace-nowrap border-r border-border">
+                            Code
+                          </TableHead>
 
-                {/* Comments */}
-                <TableHead className="text-center border-r border-border">
-                  Comments
-                </TableHead>
+                          {/* Comments */}
+                          <TableHead className="text-center border-r border-border">
+                            Comments
+                          </TableHead>
 
-                {/* Marks */}
-                <TableHead className="w-28 text-center whitespace-nowrap border-r border-border">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>Marks</span>
-                    <button
-                      type="button"
-                      onClick={() => setHideMarks((prev) => !prev)}
-                      className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
-                      title={hideMarks ? "Show marks" : "Hide marks"}
-                      aria-label={hideMarks ? "Show marks" : "Hide marks"}
-                    >
-                      {hideMarks ? (
-                        <EyeOff className="h-4 w-4 text-primary" />
+                          {/* Marks */}
+                          <TableHead className="w-28 text-center whitespace-nowrap border-r border-border">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span>Marks</span>
+                              <button
+                                type="button"
+                                onClick={() => setHideMarks((prev) => !prev)}
+                                className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                                title={hideMarks ? "Show marks" : "Hide marks"}
+                                aria-label={hideMarks ? "Show marks" : "Hide marks"}
+                              >
+                                {hideMarks ? (
+                                  <EyeOff className="h-4 w-4 text-primary" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+
+                      <TableBody>
+                        {participantRows.map((row, idx) => {
+                          const markVal = marks[row.key] ?? "";
+                          const hasValue = markVal !== "" && markVal !== undefined;
+
+                          return (
+                            <TableRow key={row.key}>
+                              {/* Sl. */}
+                              <TableCell className="text-center font-medium text-muted-foreground whitespace-nowrap border-r border-border">
+                                {idx + 1}
+                              </TableCell>
+
+                              {/* Code Letter */}
+                              <TableCell className="text-center whitespace-nowrap border-r border-border align-top">
+                                <Badge
+                                  variant="secondary"
+                                  className="text-sm px-3 mt-1"
+                                >
+                                  {row.codeLetter || "—"}
+                                </Badge>
+                              </TableCell>
+
+                              {/* Comments */}
+                              <TableCell className="border-r border-border align-top p-2">
+                                <Textarea
+                                  value={comments[row.key] || ""}
+                                  onChange={(e) => handleCommentChange(row.key, e.target.value)}
+                                  className="w-full min-h-0 h-8 text-sm resize-none overflow-hidden"
+                                  placeholder="Add comments..."
+                                  rows={1}
+                                />
+                              </TableCell>
+
+                              {/* Judge marks input */}
+                              <TableCell className="text-center border-r border-border align-top p-2">
+                                <Input
+                                  type={hideMarks ? "password" : "number"}
+                                  inputMode="numeric"
+                                  min="0"
+                                  max="100"
+                                  value={markVal}
+                                  onChange={(e) =>
+                                    handleMarkChange(row.key, e.target.value)
+                                  }
+                                  className="w-full mx-auto text-center text-sm px-1"
+                                  placeholder={hideMarks ? "•••" : "0-100"}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* ── Submit Button ── */}
+                {participantRows.length > 0 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                    <p className="text-sm text-muted-foreground text-center sm:text-left">
+                      {allFilled ? (
+                        <span className="text-green-600 font-medium">
+                          ✓ All {participantRows.length} participants marked
+                        </span>
                       ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-
-              <TableBody>
-                {participantRows.map((row, idx) => {
-                  const markVal = marks[row.key] ?? "";
-                  const hasValue = markVal !== "" && markVal !== undefined;
-
-                  return (
-                    <TableRow key={row.key}>
-                      {/* Sl. */}
-                      <TableCell className="text-center font-medium text-muted-foreground whitespace-nowrap border-r border-border">
-                        {idx + 1}
-                      </TableCell>
-
-                      {/* Code Letter */}
-                      <TableCell className="text-center whitespace-nowrap border-r border-border align-top">
-                        <Badge
-                          variant="secondary"
-                          className="text-sm px-3 mt-1"
-                        >
-                          {row.codeLetter || "—"}
-                        </Badge>
-                      </TableCell>
-
-                      {/* Comments */}
-                      <TableCell className="border-r border-border align-top p-2">
-                        <Textarea
-                          value={comments[row.key] || ""}
-                          onChange={(e) => handleCommentChange(row.key, e.target.value)}
-                          className="w-full min-h-0 h-8 text-sm resize-none overflow-hidden"
-                          placeholder="Add comments..."
-                          rows={1}
-                        />
-                      </TableCell>
-
-                      {/* Judge marks input */}
-                      <TableCell className="text-center border-r border-border align-top p-2">
-                        <Input
-                          type={hideMarks ? "password" : "number"}
-                          inputMode="numeric"
-                          min="0"
-                          max="100"
-                          value={markVal}
-                          onChange={(e) =>
-                            handleMarkChange(row.key, e.target.value)
-                          }
-                          className="w-full mx-auto text-center text-sm px-1"
-                          placeholder={hideMarks ? "•••" : "0-100"}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-        </div>
-      )}
-
-      {/* ── Submit Button ── */}
-      {participantRows.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-          <p className="text-sm text-muted-foreground text-center sm:text-left">
-            {allFilled ? (
-              <span className="text-green-600 font-medium">
-                ✓ All {participantRows.length} participants marked
-              </span>
-            ) : (
-              <span>
-                {filledCount} of {participantRows.length} marks entered
-              </span>
-            )}
-          </p>
-
-          <div className="print:hidden w-full sm:w-auto">
-            <Button
-              className="bg-green-600 hover:bg-green-700 text-white w-full sm:min-w-36"
-              disabled={submitting}
-              onClick={() => setShowSubmitConfirm(true)}
-            >
-              {submitting ? (
-                <Loader className="animate-spin h-4 w-4 mr-2" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Submit Marks
-            </Button>
-
-            <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
-              <AlertDialogContent className="rounded-2xl sm:rounded-2xl max-w-lg overflow-y-auto flex flex-col p-0 gap-0 border shadow-2xl">
-                <AlertDialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-500 shrink-0 flex items-center justify-center">
-                    <Send className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 text-left space-y-0.5 min-w-0">
-                    <AlertDialogTitle className="text-lg md:text-xl font-bold m-0 text-foreground">
-                      Submit Marks?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription className="text-xs text-muted-foreground m-0">
-                      You are about to submit marks for <strong>{assignment.divisionName ? `${assignment.divisionName} - ${assignment.programName}` : assignment.programName}</strong>.{" "}
-                      {!allFilled && (
-                        <span className="text-amber-600 font-medium ml-1">
-                          {participantRows.length - filledCount} participant(s) have
-                          no marks — they will be skipped.{" "}
+                        <span>
+                          {filledCount} of {participantRows.length} marks entered
                         </span>
                       )}
-                      Once submitted you cann&apos;t edit the marks.
+                    </p>
+
+                    <div className="print:hidden w-full sm:w-auto">
+                      <Button
+                        className="bg-green-600 hover:bg-green-700 text-white w-full sm:min-w-36"
+                        disabled={submitting}
+                        onClick={() => setShowSubmitConfirm(true)}
+                      >
+                        {submitting ? (
+                          <Loader className="animate-spin h-4 w-4 mr-2" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        Submit Marks
+                      </Button>
+
+                      <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
+                        <AlertDialogContent className="rounded-2xl sm:rounded-2xl max-w-lg overflow-y-auto flex flex-col p-0 gap-0 border shadow-2xl">
+                          <AlertDialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-500 shrink-0 flex items-center justify-center">
+                              <Send className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5 min-w-0">
+                              <AlertDialogTitle className="text-lg md:text-xl font-bold m-0 text-foreground">
+                                Submit Marks?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription className="text-xs text-muted-foreground m-0">
+                                You are about to submit marks for <strong>{assignment.divisionName ? `${assignment.divisionName} - ${assignment.programName}` : assignment.programName}</strong>.{" "}
+                                {!allFilled && (
+                                  <span className="text-amber-600 font-medium ml-1">
+                                    {participantRows.length - filledCount} participant(s) have
+                                    no marks — they will be skipped.{" "}
+                                  </span>
+                                )}
+                                Once submitted you cann&apos;t edit the marks.
+                              </AlertDialogDescription>
+                            </div>
+                            <button
+                              onClick={() => setShowSubmitConfirm(false)}
+                              className="p-1 rounded-md text-muted-foreground hover:bg-muted"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="px-5 py-4 bg-muted/20 border-t flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0 mt-0">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => {
+                                setShowSubmitConfirm(false);
+                                handleOpenPreview();
+                              }}
+                              className="border"
+                            >
+                              <Eye className="h-4 w-4 mr-1.5" />
+                              Preview
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setShowSubmitConfirm(false);
+                                handleSubmit();
+                              }}
+                              disabled={submitting}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              {submitting ? (
+                                <Loader className="animate-spin h-4 w-4 mr-2" />
+                              ) : (
+                                <Send className="h-4 w-4 mr-2" />
+                              )}
+                              Submit
+                            </Button>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Alert Notification Popup ── */}
+              <AlertDialog open={!!assignment.alertActive}>
+                <AlertDialogContent className="max-w-2xl border-amber-200 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 p-8">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-4 text-amber-700 dark:text-amber-500 text-3xl font-bold">
+                      <BellRing className="h-10 w-10 animate-pulse" />
+                      Alert from Program Committee
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-amber-900 dark:text-amber-200 mt-6 text-2xl leading-relaxed bg-white dark:bg-amber-950/50 p-6 rounded-lg border border-amber-100 dark:border-amber-800 shadow-inner break-words font-medium">
+                      {assignment.alertMessage || "You have a new message from the committee."}
                     </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="sm:justify-center mt-8">
+                    <Button
+                      onClick={handleDismissAlert}
+                      disabled={dismissingAlert}
+                      size="lg"
+                      className="bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto min-w-48 h-14 text-xl"
+                    >
+                      {dismissingAlert ? (
+                        <Loader className="animate-spin h-6 w-6 mr-3" />
+                      ) : (
+                        <CheckCircle className="h-6 w-6 mr-3" />
+                      )}
+                      Got it
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* ── Ready Confirmation Popup ── */}
+              <AlertDialog open={Boolean(assignment && !assignment.isReady && !assignment.isCompleted && !showThankYou)}>
+                <AlertDialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl p-6 sm:p-7 md:p-8 border-blue-200 bg-gradient-to-b from-blue-50/95 via-white to-blue-50/50 dark:from-blue-950/60 dark:via-slate-900 dark:to-slate-900 border dark:border-blue-800 rounded-2xl sm:rounded-3xl shadow-2xl">
+                  <AlertDialogHeader className="text-center sm:text-center space-y-3 sm:space-y-4">
+                    <AlertDialogTitle asChild>
+                      <div className="text-center sm:text-center space-y-0.5 sm:space-y-1">
+                        <span className="block text-xl sm:text-2xl md:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
+                          Welcome
+                        </span>
+                        <span className="block text-2xl sm:text-3xl md:text-3xl font-black text-slate-900 dark:text-white tracking-wide uppercase">
+                          {assignment?.judgeName},
+                        </span>
+                      </div>
+                    </AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <div className="text-center sm:text-center space-y-3 sm:space-y-4">
+                        <div className="text-base sm:text-lg md:text-xl font-medium text-slate-700 dark:text-slate-300">
+                          You have been assigned to judge
+                        </div>
+                        <div className="bg-white/90 dark:bg-slate-800/80 border border-blue-200 dark:border-blue-700/60 rounded-xl p-3.5 sm:p-5 shadow-sm space-y-1 sm:space-y-2">
+                          <div className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
+                            Program : <span className="text-blue-600 dark:text-blue-400">{assignment?.programName}.</span>
+                          </div>
+                          <div className="text-sm sm:text-lg md:text-xl font-bold text-slate-900 dark:text-white">
+                            Division : <span className="text-blue-600 dark:text-blue-400">{assignment?.divisionName || ""}</span>
+                          </div>
+                        </div>
+                        <div className="text-lg sm:text-xl md:text-2xl font-extrabold text-blue-900 dark:text-blue-200 pt-1">
+                          Are you ready to begin?
+                        </div>
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="sm:justify-center mt-5 sm:mt-6">
+                    <Button
+                      onClick={handleConfirmReady}
+                      disabled={confirmingReady}
+                      size="lg"
+                      className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto min-w-40 sm:min-w-48 md:min-w-56 h-11 sm:h-13 md:h-14 text-base sm:text-lg md:text-xl font-bold rounded-xl sm:rounded-2xl shadow-lg transition-all hover:scale-105"
+                    >
+                      {confirmingReady ? (
+                        <Loader className="animate-spin h-5 w-5 sm:h-6 sm:w-6 mr-2.5" />
+                      ) : (
+                        <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 mr-2.5" />
+                      )}
+                      Ready
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* ── Thank You Popup (shown for 1 second only) ── */}
+              <AlertDialog open={showThankYou}>
+                <AlertDialogContent className="w-[90vw] sm:max-w-md md:max-w-lg p-8 sm:p-10 md:p-12 text-center border-green-200 bg-white dark:bg-slate-900 dark:border-green-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-4">
+                    <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16" />
                   </div>
-                  <button
-                    onClick={() => setShowSubmitConfirm(false)}
-                    className="p-1 rounded-md text-muted-foreground hover:bg-muted"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="px-5 py-4 bg-muted/20 border-t flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0 mt-0">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setShowSubmitConfirm(false);
-                      handleOpenPreview();
+                  <AlertDialogHeader className="text-center sm:text-center items-center">
+                    <AlertDialogTitle className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white">
+                      Thank You!
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-300 mt-2 font-medium">
+                      You are ready to begin.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* ── Submitted Marks Preview Popup ── */}
+              {renderPreviewModal()}
+
+              {/* ── Floating Draggable Timer Widget (mobile only) ── */}
+              {showTimerPopup && (
+                <div
+                  ref={timerWidgetRef}
+                  style={{
+                    position: "fixed",
+                    top: timerPos.y !== null ? timerPos.y : "50%",
+                    left: timerPos.x !== null ? timerPos.x : "50%",
+                    transform: timerPos.x === null ? "translate(-50%, -50%)" : "none",
+                    zIndex: 9999,
+                    touchAction: "none",
+                    userSelect: "none",
+                  }}
+                  className="lg:hidden w-72 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col"
+                  onPointerMove={(e) => {
+                    if (!isDraggingRef.current) return;
+                    const newX = e.clientX - dragOffsetRef.current.x;
+                    const newY = e.clientY - dragOffsetRef.current.y;
+                    const el = timerWidgetRef.current;
+                    const maxX = window.innerWidth - el.offsetWidth;
+                    const maxY = window.innerHeight - el.offsetHeight;
+                    setTimerPos({
+                      x: Math.max(0, Math.min(newX, maxX)),
+                      y: Math.max(0, Math.min(newY, maxY)),
+                    });
+                  }}
+                  onPointerUp={() => {
+                    isDraggingRef.current = false;
+                  }}
+                  onPointerCancel={() => {
+                    isDraggingRef.current = false;
+                  }}
+                >
+                  {/* Drag handle — touch/hold here to drag */}
+                  <div
+                    className="flex items-center justify-between px-4 py-2 bg-blue-50 dark:bg-blue-950/60 cursor-grab active:cursor-grabbing select-none"
+                    style={{ touchAction: "none" }}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      isDraggingRef.current = true;
+                      const rect = timerWidgetRef.current.getBoundingClientRect();
+                      dragOffsetRef.current = {
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top,
+                      };
+                      // Capture on the outer widget so move/up events always arrive there
+                      timerWidgetRef.current.setPointerCapture(e.pointerId);
                     }}
-                    className="border"
                   >
-                    <Eye className="h-4 w-4 mr-1.5" />
-                    Preview
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setShowSubmitConfirm(false);
-                      handleSubmit();
-                    }}
-                    disabled={submitting}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    {submitting ? (
-                      <Loader className="animate-spin h-4 w-4 mr-2" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
+                    <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                      <Timer className="h-4 w-4" />
+                      <span className="text-xs font-semibold uppercase tracking-widest">Timer</span>
+                    </div>
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={handleCancelTimer}
+                      className="text-muted-foreground hover:text-red-500 transition-colors p-0.5 rounded"
+                      title="Close timer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Time display */}
+                  <div className="flex flex-col items-center justify-center py-5 px-4">
+                    <span
+                      className={`font-mono text-6xl font-black tracking-tight transition-colors ${timeLeft === 0
+                          ? "text-red-500 animate-pulse"
+                          : timeLeft <= 30
+                            ? "text-amber-500"
+                            : "text-slate-900 dark:text-white"
+                        }`}
+                    >
+                      {formatTime(timeLeft)}
+                    </span>
+                    {timeLeft === 0 && (
+                      <span className="text-xs text-red-500 font-semibold mt-1 animate-pulse">Time&apos;s up!</span>
                     )}
-                    Submit
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-      )}
-      </div>
-
-      {/* ── Alert Notification Popup ── */}
-      <AlertDialog open={!!assignment.alertActive}>
-        <AlertDialogContent className="max-w-2xl border-amber-200 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 p-8">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-4 text-amber-700 dark:text-amber-500 text-3xl font-bold">
-              <BellRing className="h-10 w-10 animate-pulse" />
-              Alert from Program Committee
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-amber-900 dark:text-amber-200 mt-6 text-2xl leading-relaxed bg-white dark:bg-amber-950/50 p-6 rounded-lg border border-amber-100 dark:border-amber-800 shadow-inner break-words font-medium">
-              {assignment.alertMessage || "You have a new message from the committee."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-center mt-8">
-            <Button
-              onClick={handleDismissAlert}
-              disabled={dismissingAlert}
-              size="lg"
-              className="bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto min-w-48 h-14 text-xl"
-            >
-              {dismissingAlert ? (
-                <Loader className="animate-spin h-6 w-6 mr-3" />
-              ) : (
-                <CheckCircle className="h-6 w-6 mr-3" />
-              )}
-              Got it
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ── Ready Confirmation Popup ── */}
-      <AlertDialog open={Boolean(assignment && !assignment.isReady && !assignment.isCompleted && !showThankYou)}>
-        <AlertDialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl p-6 sm:p-7 md:p-8 border-blue-200 bg-gradient-to-b from-blue-50/95 via-white to-blue-50/50 dark:from-blue-950/60 dark:via-slate-900 dark:to-slate-900 border dark:border-blue-800 rounded-2xl sm:rounded-3xl shadow-2xl">
-          <AlertDialogHeader className="text-center sm:text-center space-y-3 sm:space-y-4">
-            <AlertDialogTitle asChild>
-              <div className="text-center sm:text-center space-y-0.5 sm:space-y-1">
-                <span className="block text-xl sm:text-2xl md:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">
-                  Welcome
-                </span>
-                <span className="block text-2xl sm:text-3xl md:text-3xl font-black text-slate-900 dark:text-white tracking-wide uppercase">
-                  {assignment?.judgeName},
-                </span>
-              </div>
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="text-center sm:text-center space-y-3 sm:space-y-4">
-                <div className="text-base sm:text-lg md:text-xl font-medium text-slate-700 dark:text-slate-300">
-                  You have been assigned to judge
-                </div>
-                <div className="bg-white/90 dark:bg-slate-800/80 border border-blue-200 dark:border-blue-700/60 rounded-xl p-3.5 sm:p-5 shadow-sm space-y-1 sm:space-y-2">
-                  <div className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
-                    Program : <span className="text-blue-600 dark:text-blue-400">{assignment?.programName}.</span>
                   </div>
-                  <div className="text-sm sm:text-lg md:text-xl font-bold text-slate-900 dark:text-white">
-                    Division : <span className="text-blue-600 dark:text-blue-400">{assignment?.divisionName || ""}</span>
+
+                  {/* Controls */}
+                  <div className="flex gap-2 px-4 pb-4">
+                    <Button
+                      onClick={handlePauseResumeTimer}
+                      size="sm"
+                      className={`flex-1 h-9 font-semibold ${timerActive
+                          ? "bg-amber-500 hover:bg-amber-600 text-white"
+                          : "bg-green-600 hover:bg-green-700 text-white"
+                        }`}
+                      disabled={timeLeft === 0}
+                    >
+                      {timerActive ? (
+                        <><Pause className="h-4 w-4 mr-1.5 fill-current" />Pause</>
+                      ) : (
+                        <><Play className="h-4 w-4 mr-1.5 fill-current" />Resume</>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setTimerActive(false);
+                        setTimeLeft(timerMinutes * 60 + timerSeconds);
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-9 font-semibold"
+                      title="Reset to start"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1.5" />Reset
+                    </Button>
                   </div>
                 </div>
-                <div className="text-lg sm:text-xl md:text-2xl font-extrabold text-blue-900 dark:text-blue-200 pt-1">
-                  Are you ready to begin?
-                </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-center mt-5 sm:mt-6">
-            <Button
-              onClick={handleConfirmReady}
-              disabled={confirmingReady}
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto min-w-40 sm:min-w-48 md:min-w-56 h-11 sm:h-13 md:h-14 text-base sm:text-lg md:text-xl font-bold rounded-xl sm:rounded-2xl shadow-lg transition-all hover:scale-105"
-            >
-              {confirmingReady ? (
-                <Loader className="animate-spin h-5 w-5 sm:h-6 sm:w-6 mr-2.5" />
-              ) : (
-                <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 mr-2.5" />
               )}
-              Ready
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ── Thank You Popup (shown for 1 second only) ── */}
-      <AlertDialog open={showThankYou}>
-        <AlertDialogContent className="w-[90vw] sm:max-w-md md:max-w-lg p-8 sm:p-10 md:p-12 text-center border-green-200 bg-white dark:bg-slate-900 dark:border-green-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16" />
-          </div>
-          <AlertDialogHeader className="text-center sm:text-center items-center">
-            <AlertDialogTitle className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white">
-              Thank You!
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-300 mt-2 font-medium">
-              You are ready to begin.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ── Submitted Marks Preview Popup ── */}
-      {renderPreviewModal()}
-
-      {/* ── Floating Draggable Timer Widget (mobile only) ── */}
-      {showTimerPopup && (
-        <div
-          ref={timerWidgetRef}
-          style={{
-            position: "fixed",
-            top: timerPos.y !== null ? timerPos.y : "50%",
-            left: timerPos.x !== null ? timerPos.x : "50%",
-            transform: timerPos.x === null ? "translate(-50%, -50%)" : "none",
-            zIndex: 9999,
-            touchAction: "none",
-            userSelect: "none",
-          }}
-          className="lg:hidden w-72 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col"
-          onPointerMove={(e) => {
-            if (!isDraggingRef.current) return;
-            const newX = e.clientX - dragOffsetRef.current.x;
-            const newY = e.clientY - dragOffsetRef.current.y;
-            const el = timerWidgetRef.current;
-            const maxX = window.innerWidth - el.offsetWidth;
-            const maxY = window.innerHeight - el.offsetHeight;
-            setTimerPos({
-              x: Math.max(0, Math.min(newX, maxX)),
-              y: Math.max(0, Math.min(newY, maxY)),
-            });
-          }}
-          onPointerUp={() => {
-            isDraggingRef.current = false;
-          }}
-          onPointerCancel={() => {
-            isDraggingRef.current = false;
-          }}
-        >
-          {/* Drag handle — touch/hold here to drag */}
-          <div
-            className="flex items-center justify-between px-4 py-2 bg-blue-50 dark:bg-blue-950/60 cursor-grab active:cursor-grabbing select-none"
-            style={{ touchAction: "none" }}
-            onPointerDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              isDraggingRef.current = true;
-              const rect = timerWidgetRef.current.getBoundingClientRect();
-              dragOffsetRef.current = {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top,
-              };
-              // Capture on the outer widget so move/up events always arrive there
-              timerWidgetRef.current.setPointerCapture(e.pointerId);
-            }}
-          >
-            <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
-              <Timer className="h-4 w-4" />
-              <span className="text-xs font-semibold uppercase tracking-widest">Timer</span>
             </div>
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={handleCancelTimer}
-              className="text-muted-foreground hover:text-red-500 transition-colors p-0.5 rounded"
-              title="Close timer"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
-
-          {/* Time display */}
-          <div className="flex flex-col items-center justify-center py-5 px-4">
-            <span
-              className={`font-mono text-6xl font-black tracking-tight transition-colors ${
-                timeLeft === 0
-                  ? "text-red-500 animate-pulse"
-                  : timeLeft <= 30
-                  ? "text-amber-500"
-                  : "text-slate-900 dark:text-white"
-              }`}
-            >
-              {formatTime(timeLeft)}
-            </span>
-            {timeLeft === 0 && (
-              <span className="text-xs text-red-500 font-semibold mt-1 animate-pulse">Time&apos;s up!</span>
-            )}
-          </div>
-
-          {/* Controls */}
-          <div className="flex gap-2 px-4 pb-4">
-            <Button
-              onClick={handlePauseResumeTimer}
-              size="sm"
-              className={`flex-1 h-9 font-semibold ${
-                timerActive
-                  ? "bg-amber-500 hover:bg-amber-600 text-white"
-                  : "bg-green-600 hover:bg-green-700 text-white"
-              }`}
-              disabled={timeLeft === 0}
-            >
-              {timerActive ? (
-                <><Pause className="h-4 w-4 mr-1.5 fill-current" />Pause</>
-              ) : (
-                <><Play className="h-4 w-4 mr-1.5 fill-current" />Resume</>
-              )}
-            </Button>
-            <Button
-              onClick={() => {
-                setTimerActive(false);
-                setTimeLeft(timerMinutes * 60 + timerSeconds);
-              }}
-              variant="outline"
-              size="sm"
-              className="flex-1 h-9 font-semibold"
-              title="Reset to start"
-            >
-              <RotateCcw className="h-4 w-4 mr-1.5" />Reset
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-);
+          );
 };
 
-export default JudgePortal;
+          export default JudgePortal;

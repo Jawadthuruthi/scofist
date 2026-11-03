@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
+import JudgeBottomBar from "@/components/JudgeBottomBar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseUser, fetchData } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
@@ -65,7 +66,9 @@ export default async function Layout({ children }) {
             <Topbar user={user} festival={festivalWithFullName} activeRole={activeRole} />
             <main className="flex-1 p-4 mt-14 overflow-auto container">
               {children}
+              <div className="h-20 md:h-0 no-print"></div>
             </main>
+            <JudgeBottomBar user={user} activeRole={activeRole} />
           </div>
         </div>
       </SidebarProvider>

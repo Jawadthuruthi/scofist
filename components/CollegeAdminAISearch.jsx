@@ -24,7 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function CollegeAdminAISearch({ settings, apiKey }) {
+export default function CollegeAdminAISearch({ settings, apiKey, className }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -445,7 +445,7 @@ export default function CollegeAdminAISearch({ settings, apiKey }) {
   };
 
   return (
-    <div className="w-full my-3 no-print">
+    <div className={cn("w-full my-3 no-print", className)}>
       {/* Search Bar Container */}
       <div className="relative rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 p-1 border border-emerald-500/25 shadow-sm transition-all focus-within:shadow-md focus-within:border-emerald-500/40">
         <div className="rounded-xl bg-card/95 backdrop-blur-md p-3 sm:p-4">

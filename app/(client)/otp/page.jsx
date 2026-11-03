@@ -88,8 +88,24 @@ function OTPVerificationContent() {
       setLoading(true);
       const res = await axios.post("/api/auth/verifyOTP", { email, otp });
       
-      if (res.data.roles && res.data.roles.includes("Teacher")) {
+      const userRoles = res.data.roles || [];
+      const primaryRole = userRoles[0];
+      if (userRoles.includes("Teacher")) {
         setRedirectUrl("/dashboard/my-periods");
+      } else if (userRoles.includes("Judge") || primaryRole === "Judge") {
+        setRedirectUrl("/judge-portal");
+      } else if (userRoles.includes("Librarian") || primaryRole === "Librarian") {
+        setRedirectUrl("/library-dashboard");
+      } else if (userRoles.includes("Gate Keeper") || primaryRole === "Gate Keeper") {
+        setRedirectUrl("/dashboard/gate-pass");
+      } else if (userRoles.includes("Org Admin") || primaryRole === "Org Admin") {
+        setRedirectUrl("/dashboard/accounts");
+      } else if (userRoles.includes("Literary Leader") || primaryRole === "Literary Leader") {
+        setRedirectUrl("/dashboard/literary-attendance");
+      } else if (userRoles.includes("Program Committee") || primaryRole === "Program Committee") {
+        setRedirectUrl("/dashboard/results");
+      } else if (userRoles.includes("Program Leader") || primaryRole === "Program Leader") {
+        setRedirectUrl("/dashboard/program-registration");
       } else {
         setRedirectUrl("/dashboard");
       }

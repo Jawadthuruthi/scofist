@@ -204,7 +204,12 @@ const pages = [
   {
     title: "Students Certificate",
     path: "/dashboard/students-certificate",
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Program Committee"],
+  },
+  {
+    title: "Certificate",
+    path: "/dashboard/certificate",
+    allowedRoles: ["College Admin", "Program Committee"],
   },
   {
     title: "Clearance Certificate",
@@ -568,6 +573,11 @@ const pages = [
     path: "/dashboard/hifz-doura",
     allowedRoles: ["College Admin"],
   },
+  {
+    title: "AI Search",
+    path: "/dashboard/ai",
+    allowedRoles: ["College Admin"],
+  },
 ];
 
 // Pre-compile pages map/array for O(1) lookup
@@ -653,6 +663,18 @@ async function handleLoginPageRequest(req) {
     } else if (activeRole === "Gate Keeper" || userRoles.includes("Gate Keeper")) {
       destinationUrl = "/dashboard/gate-pass";
       targetActiveRole = "Gate Keeper";
+    } else if (activeRole === "Org Admin" || userRoles.includes("Org Admin")) {
+      destinationUrl = "/dashboard/accounts";
+      targetActiveRole = "Org Admin";
+    } else if (activeRole === "Literary Leader" || userRoles.includes("Literary Leader")) {
+      destinationUrl = "/dashboard/literary-attendance";
+      targetActiveRole = "Literary Leader";
+    } else if (activeRole === "Program Committee" || userRoles.includes("Program Committee")) {
+      destinationUrl = "/dashboard/results";
+      targetActiveRole = "Program Committee";
+    } else if (activeRole === "Program Leader" || userRoles.includes("Program Leader")) {
+      destinationUrl = "/dashboard/program-registration";
+      targetActiveRole = "Program Leader";
     } else {
       destinationUrl = "/dashboard";
       targetActiveRole = activeRole || userRoles[0] || "College Admin";
@@ -1114,6 +1136,17 @@ function prepareResponse(req, token, user, newProfileToken = null) {
     });
   }
 
+  if (req.nextUrl.pathname === "/dashboard") {
+    if (activeRole === "Org Admin") {
+      return NextResponse.redirect(new URL("/dashboard/accounts", req.url));
+    }
+    if (activeRole === "Program Committee") {
+      return NextResponse.redirect(new URL("/dashboard/results", req.url));
+    }
+    if (activeRole === "Program Leader") {
+      return NextResponse.redirect(new URL("/dashboard/program-registration", req.url));
+    }
+  }
   // Now validate access using the resolved (possibly corrected) active role
   if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
     // If user has multiple roles (e.g. Teacher + Admin) and navigated to a page

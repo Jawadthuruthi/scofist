@@ -691,6 +691,12 @@ const items = [
         allowedRoles: ["Program Committee"],
       },
       {
+        title: "Certificate",
+        url: "/dashboard/students-certificate",
+        icon: Award,
+        allowedRoles: ["Program Committee"],
+      },
+      {
         title: "Results QR Code",
         url: "/dashboard/results-qr-code",
         allowedRoles: ["Program Committee", "Program Leader"],
@@ -774,6 +780,16 @@ function ComboBox({ roles, role }) {
                       window.location.href = "/dashboard/gate-pass";
                     } else if (currentValue === "Judge") {
                       window.location.href = "/judge-portal";
+                    } else if (currentValue === "Teacher") {
+                      window.location.href = "/dashboard/my-periods";
+                    } else if (currentValue === "Org Admin") {
+                      window.location.href = "/dashboard/accounts";
+                    } else if (currentValue === "Literary Leader") {
+                      window.location.href = "/dashboard/literary-attendance";
+                    } else if (currentValue === "Program Committee") {
+                      window.location.href = "/dashboard/results";
+                    } else if (currentValue === "Program Leader") {
+                      window.location.href = "/dashboard/program-registration";
                     } else {
                       window.location.href = "/dashboard";
                     }

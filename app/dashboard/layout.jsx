@@ -3,6 +3,13 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
 import TeacherBottomBar from "@/components/TeacherBottomBar";
 import LibrarianBottomBar from "@/components/LibrarianBottomBar";
+import CollegeAdminBottomBar from "@/components/CollegeAdminBottomBar";
+import OrgAdminBottomBar from "@/components/OrgAdminBottomBar";
+import LiteraryLeaderBottomBar from "@/components/LiteraryLeaderBottomBar";
+import ProgramCommitteeBottomBar from "@/components/ProgramCommitteeBottomBar";
+import ProgramLeaderBottomBar from "@/components/ProgramLeaderBottomBar";
+import SparkAdminBottomBar from "@/components/SparkAdminBottomBar";
+import JudgeBottomBar from "@/components/JudgeBottomBar";
 import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseUser, fetchData } from "@/lib/utils";
@@ -77,6 +84,13 @@ export default async function Layout({ children }) {
             </main>
             <TeacherBottomBar user={user} activeRole={activeRole} />
             <LibrarianBottomBar user={user} activeRole={activeRole} />
+            <CollegeAdminBottomBar user={user} activeRole={activeRole} />
+            <OrgAdminBottomBar user={user} activeRole={activeRole} />
+            <LiteraryLeaderBottomBar user={user} activeRole={activeRole} />
+            <ProgramCommitteeBottomBar user={user} activeRole={activeRole} />
+            <ProgramLeaderBottomBar user={user} activeRole={activeRole} />
+            <SparkAdminBottomBar user={user} activeRole={activeRole} />
+            <JudgeBottomBar user={user} activeRole={activeRole} />
           </div>
         </div>
       </SidebarProvider>

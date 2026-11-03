@@ -139,19 +139,19 @@ export default function TeacherBottomBar({ user, activeRole: activeRoleProp }) {
               href={item.href}
               prefetch={true}
               onClick={(e) => {
-                // If it's already active and not pending, let default link handle it
-                if (item.active && !pendingHref) return;
-                setPendingHref(item.href);
+                if (item.href && item.href !== pathname) {
+                  setPendingHref(item.href);
+                  startTransition(() => {
+                    router.push(item.href);
+                  });
+                }
               }}
-              onTouchStart={() => {
-                try {
-                  router.prefetch(item.href);
-                } catch (err) {}
-              }}
-              onMouseEnter={() => {
-                try {
-                  router.prefetch(item.href);
-                } catch (err) {}
+              onPointerDown={() => {
+                if (item.href) {
+                  try {
+                    router.prefetch(item.href);
+                  } catch (err) {}
+                }
               }}
               title={item.title}
               aria-label={item.title}
@@ -173,10 +173,8 @@ export default function TeacherBottomBar({ user, activeRole: activeRoleProp }) {
                     : "group-hover:bg-muted/60"
                 )}
               >
-                {isPendingItem && !item.active ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                ) : (
-                  <Icon className="w-5 h-5 transition-transform" />
+                {Icon && (
+                  <Icon className={cn("w-5 h-5 transition-transform", isSelected && "scale-105")} />
                 )}
               </div>
               <span

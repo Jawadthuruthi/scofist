@@ -25,17 +25,19 @@ export default async function AccountsPage({ searchParams }) {
         const isCollegeAdmin = activeRole === "College Admin";
         const currentUserId = (isCollegeAdmin && user?._id) ? user._id : null;
 
-        summary = await getFinanceSummary(accountType, accountName, currentUserId, startDate, endDate);
-
-        // Fetch all categories for this accountType and user isolated context
         await connectToDB();
         const categoryQuery = { accountType };
         if (currentUserId && accountType === "College") {
             // STRICT ISOLATION: Only show categories used by the current user
             categoryQuery.userId = currentUserId;
         }
-        allCategories = await Finance.distinct("category", categoryQuery);
-        allCategories = allCategories.filter(Boolean); // Remove empty/null categories
+
+        const [summaryResult, categoriesResult] = await Promise.all([
+            getFinanceSummary(accountType, accountName, currentUserId, startDate, endDate),
+            Finance.distinct("category", categoryQuery)
+        ]);
+        summary = summaryResult;
+        allCategories = (categoriesResult || []).filter(Boolean);
     } catch (error) {
         console.error("Error fetching finance summary:", error);
         // Fallback or handle error gracefully so page doesn't crash

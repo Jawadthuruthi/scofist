@@ -161,6 +161,16 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
       window.location.href = "/dashboard/gate-pass";
     } else if (currentValue === "Judge") {
       window.location.href = "/judge-portal";
+    } else if (currentValue === "Teacher") {
+      window.location.href = "/dashboard/my-periods";
+    } else if (currentValue === "Org Admin") {
+      window.location.href = "/dashboard/accounts";
+    } else if (currentValue === "Literary Leader") {
+      window.location.href = "/dashboard/literary-attendance";
+    } else if (currentValue === "Program Committee") {
+      window.location.href = "/dashboard/results";
+    } else if (currentValue === "Program Leader") {
+      window.location.href = "/dashboard/program-registration";
     } else {
       window.location.href = "/dashboard";
     }
@@ -190,35 +200,37 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
 
   return (
     <header className="fixed top-0 left-0 w-full z-10 h-14 min-h-14 shrink-0 bg-background border-b shadow-sm flex items-center px-4 justify-between no-print">
-      {/* Sidebar Toggle Button */}
-      {!hideSidebarToggle && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          aria-label="Toggle sidebar"
-        >
-          <Menu className="w-5 h-5" />
-        </Button>
-      )}
+      {/* Left side: Sidebar Toggle Button + Festival Image (Program Committee, Program Leader, Judge) */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {!hideSidebarToggle && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            aria-label="Toggle sidebar"
+            className="shrink-0"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        )}
 
-      {/* Center: Festival Full Name */}
-      {shouldShowFestival && (festivalFullNameImageUrl || festivalDisplayName) && (
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none max-w-[calc(100%-160px)] sm:max-w-[calc(100%-180px)] md:max-w-xl h-full px-2">
-          {!imageError && festivalFullNameImageUrl ? (
-            <img
-              src={festivalFullNameImageUrl}
-              alt={festivalDisplayName || "Festival Full Name"}
-              className="h-7 sm:h-8 md:h-9 max-h-9 w-auto max-w-full object-contain dark:brightness-0 dark:invert transition-all select-none"
-              onError={() => setImageError(true)}
-            />
-          ) : festivalDisplayName ? (
-            <span className="font-bold text-xs sm:text-sm md:text-base tracking-wider uppercase text-foreground/90 truncate select-none">
-              {festivalDisplayName}
-            </span>
-          ) : null}
-        </div>
-      )}
+        {shouldShowFestival && (festivalFullNameImageUrl || festivalDisplayName) && (
+          <div className="flex items-center min-w-0 h-full py-1">
+            {!imageError && festivalFullNameImageUrl ? (
+              <img
+                src={festivalFullNameImageUrl}
+                alt={festivalDisplayName || "Festival Full Name"}
+                className="h-7 sm:h-8 md:h-9 max-h-9 w-auto max-w-[170px] sm:max-w-[240px] md:max-w-xs object-contain dark:brightness-0 dark:invert transition-all select-none"
+                onError={() => setImageError(true)}
+              />
+            ) : festivalDisplayName ? (
+              <span className="font-bold text-xs sm:text-sm md:text-base tracking-wider uppercase text-foreground/90 truncate select-none">
+                {festivalDisplayName}
+              </span>
+            ) : null}
+          </div>
+        )}
+      </div>
 
       {/* User Profile / Actions */}
       <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">

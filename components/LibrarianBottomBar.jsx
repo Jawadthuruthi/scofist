@@ -146,18 +146,19 @@ export default function LibrarianBottomBar({ user, activeRole: activeRoleProp })
               href={item.href}
               prefetch={true}
               onClick={() => {
-                if (item.active && !pendingHref) return;
-                setPendingHref(item.href);
+                if (item.href && item.href !== pathname) {
+                  setPendingHref(item.href);
+                  startTransition(() => {
+                    router.push(item.href);
+                  });
+                }
               }}
-              onTouchStart={() => {
-                try {
-                  router.prefetch(item.href);
-                } catch (err) {}
-              }}
-              onMouseEnter={() => {
-                try {
-                  router.prefetch(item.href);
-                } catch (err) {}
+              onPointerDown={() => {
+                if (item.href) {
+                  try {
+                    router.prefetch(item.href);
+                  } catch (err) {}
+                }
               }}
               title={item.title}
               aria-label={item.title}
@@ -179,10 +180,8 @@ export default function LibrarianBottomBar({ user, activeRole: activeRoleProp })
                     : "group-hover:bg-muted/60"
                 )}
               >
-                {isPendingItem && !item.active ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                ) : (
-                  <Icon className="w-5 h-5 transition-transform" />
+                {Icon && (
+                  <Icon className={cn("w-5 h-5 transition-transform", isSelected && "scale-105")} />
                 )}
                 {item.badge && (
                   <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center leading-none shadow-xs">

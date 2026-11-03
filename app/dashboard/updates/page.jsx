@@ -6,9 +6,10 @@ import ErrorPage from "@/components/ErrorPage";
 export default async function UpdatesPage() {
   try {
     const apiKey = process.env.API_KEY;
-    const initialUpdates = await fetchData("updates", "", 0);
-    
-    const settingsData = await fetchData("settings", "", 0);
+    const [initialUpdates, settingsData] = await Promise.all([
+      fetchData("updates", "", 0),
+      fetchData("settings", "", 0)
+    ]);
     const initialUpdatesLogo = settingsData?.institution?.updatesLogo || null;
 
     return (
