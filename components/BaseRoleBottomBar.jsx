@@ -110,8 +110,10 @@ export default function BaseRoleBottomBar({
                     : "group-hover:bg-muted/60"
                 )}
               >
-                {Icon && (
-                  <Icon className={cn("w-5 h-5 transition-transform", isSelected && "scale-105")} />
+                {isPendingItem && !item.active ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                ) : (
+                  Icon && <Icon className="w-5 h-5 transition-transform" />
                 )}
                 {item.badge && (
                   <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center leading-none shadow-xs">
@@ -147,19 +149,18 @@ export default function BaseRoleBottomBar({
                   if (item.onClick) {
                     item.onClick(e);
                   }
-                  if (item.href && item.href !== pathname) {
-                    setPendingHref(item.href);
-                    startTransition(() => {
-                      router.push(item.href);
-                    });
-                  }
+                  if (item.active && !pendingHref) return;
+                  setPendingHref(item.href);
                 }}
-                onPointerDown={() => {
-                  if (item.href) {
-                    try {
-                      router.prefetch(item.href);
-                    } catch (err) {}
-                  }
+                onTouchStart={() => {
+                  try {
+                    router.prefetch(item.href);
+                  } catch (err) { }
+                }}
+                onMouseEnter={() => {
+                  try {
+                    router.prefetch(item.href);
+                  } catch (err) { }
                 }}
                 title={item.title || item.label}
                 aria-label={item.title || item.label}
