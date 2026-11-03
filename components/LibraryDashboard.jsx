@@ -99,8 +99,8 @@ export default function LibraryDashboard({
     const [localBooks, setLocalBooks] = useState(sortBooks(initialBooks));
     const [activeFilters, setActiveFilters] = useState([]);
 
-    useEffect(() => {
-        setLocalBooks(sortBooks(initialBooks));
+    useEffect(() => { 
+        setLocalBooks(sortBooks(initialBooks)); 
     }, [initialBooks]);
 
     // --- Popup State ---
@@ -125,14 +125,14 @@ export default function LibraryDashboard({
             const res = await fetch("/api/library/requests");
             const result = await res.json();
             if (result.success) setLocalRequests(result.data || []);
-        } catch {/* silent */ } finally {
+        } catch {/* silent */} finally {
             setRequestsLoading(false);
         }
     };
 
     useEffect(() => {
         fetchRequests();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleRejectRequest = async (requestId) => {
@@ -285,7 +285,7 @@ export default function LibraryDashboard({
     const dynamicCategories = useMemo(() => {
         const selectedLanguage = activeFilters.find(f => f.id === 'language')?.value;
         let booksToExtract = localBooks;
-
+        
         // Handle case where selectedLanguage is an empty array
         const hasSelectedLanguage = selectedLanguage && (!Array.isArray(selectedLanguage) || selectedLanguage.length > 0);
 
@@ -297,7 +297,7 @@ export default function LibraryDashboard({
                 booksToExtract = localBooks.filter(b => b.language?.toUpperCase() === String(selectedLanguage).toUpperCase());
             }
         }
-
+        
         const fromBooks = booksToExtract.map(b => normalizeCategoryName(b.category)).filter(Boolean);
         const fromApi = hasSelectedLanguage ? [] : (Array.isArray(categories) ? categories.map(c => normalizeCategoryName(c.category)) : (categories || []).map(c => typeof c === 'string' ? normalizeCategoryName(c) : c));
         const all = new Set([...fromApi, ...fromBooks]);
@@ -653,10 +653,11 @@ export default function LibraryDashboard({
                     <Button
                         size="sm"
                         variant={isAvailable ? "default" : "outline"}
-                        className={`h-7 px-2 text-xs font-semibold ${isAvailable
+                        className={`h-7 px-2 text-xs font-semibold ${
+                            isAvailable
                                 ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                                 : "text-muted-foreground cursor-not-allowed opacity-60"
-                            }`}
+                        }`}
                         disabled={!isAvailable}
                         title={isAvailable ? `Register rental for ${book.name}` : "Book is not available"}
                         onClick={(e) => {
@@ -675,7 +676,7 @@ export default function LibraryDashboard({
                 className: "print:hidden",
             }
         }] : [])
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     ], [selectedIds.length]);
 
     const rentalColumns = [
@@ -795,7 +796,7 @@ export default function LibraryDashboard({
                 return rental.receivedDate ? (
                     format(new Date(rental.receivedDate), "PPP")
                 ) : (
-                    <span
+                    <span 
                         className="text-red-500 font-bold hover:underline cursor-pointer"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -868,7 +869,7 @@ export default function LibraryDashboard({
                 }
             });
         }
-
+        
         let filename = "books.csv";
         if (filterLabels.length > 0) {
             filename = `books_${filterLabels.join('_')}.csv`;
@@ -963,7 +964,7 @@ export default function LibraryDashboard({
                 try {
                     const res = await fetch(`/api/library/books?id=${id}`, { method: "DELETE" });
                     if (res.ok) router.refresh();
-                } catch (error) { console.error(error); }
+                } catch (error) { console.error(error); } 
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -982,7 +983,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); }
+                } catch (error) { console.error(error); } 
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1067,7 +1068,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); }
+                } catch (error) { console.error(error); } 
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1090,7 +1091,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); }
+                } catch (error) { console.error(error); } 
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1220,7 +1221,7 @@ export default function LibraryDashboard({
                 try {
                     const res = await fetch(`/api/rental?id=${id}`, { method: "DELETE" });
                     if (res.ok) router.refresh();
-                } catch (error) { console.error(error); }
+                } catch (error) { console.error(error); } 
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1647,7 +1648,7 @@ export default function LibraryDashboard({
                                                                             {format(new Date(rental.receivedDate), "PP")}
                                                                         </span>
                                                                     ) : (
-                                                                        <span
+                                                                        <span 
                                                                             className="text-red-500 font-bold hover:underline cursor-pointer"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
@@ -1751,7 +1752,7 @@ export default function LibraryDashboard({
                                                                             {format(new Date(rental.receivedDate), "PP")}
                                                                         </span>
                                                                     ) : (
-                                                                        <span
+                                                                        <span 
                                                                             className="text-red-500 font-bold hover:underline cursor-pointer"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
@@ -2259,7 +2260,7 @@ export default function LibraryDashboard({
                         const selectedBooks = localBooks.filter(b => selectedIds.includes(b._id));
                         const allSelectedAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status === 'Available');
                         const allSelectedNotAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status !== 'Available');
-
+                        
                         const actionButtonsContent = (
                             <>
                                 {selectedIds.length > 0 && (
@@ -2560,10 +2561,11 @@ export default function LibraryDashboard({
                                                 <Button
                                                     size="sm"
                                                     variant={book.status === 'Available' ? "default" : "outline"}
-                                                    className={`w-full mt-1 h-7 text-xs font-semibold ${book.status === 'Available'
+                                                    className={`w-full mt-1 h-7 text-xs font-semibold ${
+                                                        book.status === 'Available'
                                                             ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                                                             : "text-muted-foreground cursor-not-allowed opacity-60"
-                                                        }`}
+                                                    }`}
                                                     disabled={book.status !== 'Available'}
                                                     title={book.status === 'Available' ? `Register rental for ${book.name}` : "Book is not available"}
                                                     onClick={(e) => {
@@ -2888,7 +2890,7 @@ export default function LibraryDashboard({
                         </div>
                     }
                 />
-
+                
                 <Dialog open={deleteErrorPopupOpen} onOpenChange={setDeleteErrorPopupOpen}>
                     <DialogContent className="w-[95vw] sm:max-w-md p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
                         <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
