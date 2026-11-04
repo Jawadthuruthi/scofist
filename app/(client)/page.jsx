@@ -72,6 +72,10 @@ export default async function HomePage() {
     await connectToDB();
     const settingsDoc = await Settings.findOne().lean();
     settings = settingsDoc ? JSON.parse(JSON.stringify(settingsDoc)) : null;
+    if (settings && !settings.institution?.logo?.url) {
+      if (!settings.institution) settings.institution = {};
+      settings.institution.logo = { url: "/sdc_seal.png" };
+    }
   } catch (error) {
     console.error("HomePage: Failed to load settings from DB:", error.message);
     // Continue rendering with null settings — page still works

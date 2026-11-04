@@ -58,6 +58,13 @@ export async function GET(req, res) {
       }
     }
 
+    if (!settings.institution) {
+      settings.institution = {};
+    }
+    if (!settings.institution.logo || !settings.institution.logo.url) {
+      settings.institution.logo = { url: "/sdc_seal.png" };
+    }
+
     console.log("GET Settings - Spark Posters count:", settings.spark?.committeePosters?.length);
     console.log("GET Settings - Org Posters count:", settings.org?.committeePosters?.length);
 
@@ -86,9 +93,9 @@ export async function POST(req, res) {
       institution: {
         name: data.name ?? existingSettings?.institution?.name,
         tagline: data.tagline ?? existingSettings?.institution?.tagline,
-        logo: data.logo ?? existingSettings?.institution?.logo,
-        institutionPhoto: data.institutionPhoto ?? existingSettings?.institution?.institutionPhoto,
-        updatesLogo: data.updatesLogo ?? existingSettings?.institution?.updatesLogo,
+        logo: (data.logo && data.logo.url) ? data.logo : existingSettings?.institution?.logo,
+        institutionPhoto: (data.institutionPhoto && data.institutionPhoto.url) ? data.institutionPhoto : existingSettings?.institution?.institutionPhoto,
+        updatesLogo: (data.updatesLogo && data.updatesLogo.url) ? data.updatesLogo : existingSettings?.institution?.updatesLogo,
         address: data.address ?? existingSettings?.institution?.address,
         contact: {
           primaryPhone:
@@ -398,11 +405,11 @@ export async function PUT(req) {
       updateData.institution = {
         name: data.name ?? existingSettings?.institution?.name,
         tagline: data.tagline ?? existingSettings?.institution?.tagline,
-        logo: data.logo ?? existingSettings?.institution?.logo,
+        logo: (data.logo && data.logo.url) ? data.logo : existingSettings?.institution?.logo,
         institutionPhoto:
-          data.institutionPhoto ?? existingSettings?.institution?.institutionPhoto,
+          (data.institutionPhoto && data.institutionPhoto.url) ? data.institutionPhoto : existingSettings?.institution?.institutionPhoto,
         updatesLogo:
-          data.updatesLogo ?? existingSettings?.institution?.updatesLogo,
+          (data.updatesLogo && data.updatesLogo.url) ? data.updatesLogo : existingSettings?.institution?.updatesLogo,
         address: data.address ?? existingSettings?.institution?.address,
         contact: {
           primaryPhone:

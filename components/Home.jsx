@@ -22,7 +22,7 @@ export default function Home({ settings }) {
     return `https://${trimmed}`;
   };
 
-  const institutionLogo = settings?.institution?.logo?.url;
+  const institutionLogo = settings?.institution?.logo?.url || "/sdc_seal.png";
   const institutionName = settings?.institution?.name;
   const institutionTagline = settings?.institution?.tagline;
   const orgLogo = settings?.org?.logo?.url;

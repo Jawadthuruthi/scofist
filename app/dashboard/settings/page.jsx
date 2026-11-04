@@ -26,7 +26,7 @@ export default async function SettingsPage() {
     const institution = {
       ...data.institution,
       ...data.institution?.contact,
-      logo: data.institution?.logo || {},
+      logo: data.institution?.logo?.url ? data.institution.logo : { url: "/sdc_seal.png" },
     };
 
     const festival = {
