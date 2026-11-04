@@ -58,13 +58,6 @@ export async function GET(req, res) {
       }
     }
 
-    if (!settings.institution) {
-      settings.institution = {};
-    }
-    if (!settings.institution.logo || !settings.institution.logo.url) {
-      settings.institution.logo = { url: "/sdc_seal.png" };
-    }
-
     console.log("GET Settings - Spark Posters count:", settings.spark?.committeePosters?.length);
     console.log("GET Settings - Org Posters count:", settings.org?.committeePosters?.length);
 

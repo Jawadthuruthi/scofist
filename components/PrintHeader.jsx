@@ -85,9 +85,9 @@ export default function PrintHeader({
                 {/* Left side - Logo and Name side-by-side */}
                 <div className="flex flex-row items-center gap-3 sm:gap-6 text-left">
                   <div className="flex-shrink-0 w-14 h-14 sm:w-24 sm:h-24">
-                    {data.logo?.url || "/sdc_seal.png" ? (
+                    {data.logo && data.logo.url ? (
                       <Image
-                        src={data.logo?.url || "/sdc_seal.png"}
+                        src={data.logo.url}
                         alt="Institution Logo"
                         width={96}
                         height={96}

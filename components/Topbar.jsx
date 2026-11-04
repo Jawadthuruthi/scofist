@@ -274,9 +274,9 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
           >
             <Card className="border-none shadow-none">
               <CardHeader className="flex flex-row items-center justify-center gap-3 pb-6 border-b bg-muted/30 space-y-0 text-center">
-                {(institution?.logo?.url || "/sdc_seal.png") && (
+                {institution?.logo?.url && (
                   <img
-                    src={institution?.logo?.url || "/sdc_seal.png"}
+                    src={institution.logo.url}
                     alt="Institution Logo"
                     className="h-11 w-auto object-contain shrink-0"
                   />
