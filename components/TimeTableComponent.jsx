@@ -76,53 +76,71 @@ const AbsenteesDialog = ({
   cellData,
   day,
   periodNumber,
-  absenteesList,
+  absenteesList = [],
   useShortName = false,
   apiKey,
   date,
+  leaveRecords: propLeaveRecords = [],
 }) => {
-  const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
-  const classId = cellData?.classId?._id || cellData?.classId;
   const popupRef = useRef(null);
   const { handleDownload } = useDownloadPopup(popupRef, `Absentees_${day}_Period_${periodNumber}.jpeg`);
   
+  const hasPreloadedLeaves = Array.isArray(propLeaveRecords) && propLeaveRecords.length > 0;
+
   const studentIds = useMemo(() => {
-    return absenteesList
+    if (hasPreloadedLeaves) return "";
+    return (absenteesList || [])
       .map((s) => s.studentId?._id || s.studentId)
       .filter(Boolean)
       .join(",");
-  }, [absenteesList]);
+  }, [absenteesList, hasPreloadedLeaves]);
 
+  const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
   const leaveRecordsQuery = useFetchLeaveRecords(
     0,
     0,
     { studentIds },
-    { enabled: !!studentIds && open, refetchOnWindowFocus: false }
+    { enabled: !!studentIds && open && !hasPreloadedLeaves, refetchOnWindowFocus: false }
   );
 
-  const leaveRecords = leaveRecordsQuery.data?.["leave-records"] || [];
+  const leaveRecords = hasPreloadedLeaves
+    ? propLeaveRecords
+    : (leaveRecordsQuery.data?.["leave-records"] || []);
 
-  const getLeaveReason = (studentObj) => {
+  const studentLeaveMap = useMemo(() => {
+    const map = new Map();
+    if (!leaveRecords?.length) return map;
+    for (const record of leaveRecords) {
+      const sId = (record.studentId?._id || record.studentId)?.toString();
+      if (!sId) continue;
+      if (!map.has(sId)) {
+        map.set(sId, []);
+      }
+      map.get(sId).push(record);
+    }
+    return map;
+  }, [leaveRecords]);
+
+  const targetDateMs = useMemo(() => {
+    const d = new Date(date || new Date());
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, [date]);
+
+  const getLeaveReason = useCallback((studentObj) => {
     // 1. Check if the reason is saved directly on the attendance record
     if (studentObj.leaveReason) return studentObj.leaveReason;
 
-    // 2. Fallback to leave-records
-    if (!leaveRecords.length) return null;
+    // 2. Lookup in pre-indexed student leaves
+    const sId = (studentObj.studentId?._id || studentObj.studentId)?.toString();
+    if (!sId || !studentLeaveMap.has(sId)) return null;
     
-    // studentId might be a populated object or a string
-    const sId = studentObj.studentId?._id || studentObj.studentId;
-    
-    const studentLeaves = leaveRecords.filter(
-      (record) => String(record.studentId?._id || record.studentId) === String(sId)
-    );
-    
-    const targetDate = new Date(date || new Date());
-    targetDate.setHours(0, 0, 0, 0);
-    
+    const studentLeaves = studentLeaveMap.get(sId);
     for (const record of studentLeaves) {
        if (!record.dateOfLeave) continue;
        const leaveDate = new Date(record.dateOfLeave);
        leaveDate.setHours(0, 0, 0, 0);
+       const leaveDateMs = leaveDate.getTime();
        
        // If student has arrived back, use arrivedDate as end; otherwise use dateOfArrival if present
        const hasArrived = !!record.arrivedDate;
@@ -133,17 +151,18 @@ const AbsenteesDialog = ({
            endDate = new Date(leaveDate);
            endDate.setHours(23, 59, 59, 999);
        }
+       const endDateMs = endDate.getTime();
        
-       if (targetDate >= leaveDate && targetDate <= endDate) {
+       if (targetDateMs >= leaveDateMs && targetDateMs <= endDateMs) {
           return record.leaveReason;
        }
        // Overdue: leave started on or before targetDate, student hasn't arrived back yet
-       if (!hasArrived && targetDate > endDate && targetDate >= leaveDate) {
+       if (!hasArrived && targetDateMs > endDateMs && targetDateMs >= leaveDateMs) {
           return record.leaveReason;
        }
     }
     return null;
-  };
+  }, [studentLeaveMap, targetDateMs]);
 
   const dateStrForAbs = getISTDateString(date) || getISTDateString();
   const [ay, am, ad] = dateStrForAbs.split('-').map(Number);
@@ -670,6 +689,7 @@ const TimeTableComponent = ({
   role,
   settings,
   date,
+  leaveRecords = [],
 }) => {
   const timeTableRef = useRef(null);
   
@@ -709,6 +729,56 @@ const TimeTableComponent = ({
     }
     return teachersLeaveRecord;
   }, [isCollegeAdmin, liveLeaveQuery.data, teachersLeaveRecord]);
+
+  // Fast O(1) Map for teacher leave records on this day
+  const leaveRecordsMap = useMemo(() => {
+    const map = new Map();
+    if (!liveLeaveRecords?.length) return map;
+    for (const record of liveLeaveRecords) {
+      const recordDateStr = getISTDateString(record.date);
+      if (recordDateStr !== todayDateStr) continue;
+      const tId = (record.teacherId?._id || record.teacherId)?.toString();
+      const pNum = record.periodNumber;
+      if (tId && pNum !== undefined) {
+        map.set(`${tId}_${pNum}`, record);
+      }
+    }
+    return map;
+  }, [liveLeaveRecords, todayDateStr]);
+
+  // Fast O(1) Map for attendance & absentees by day, period, class, and teacher
+  const attendanceGridMap = useMemo(() => {
+    const map = new Map();
+    if (!attendances?.length) return map;
+    for (const att of attendances) {
+      const cId = (att.classId?._id || att.classId)?.toString();
+      const pNum = att.periodNumber;
+      const day = att.day;
+      const subId = (att.subjectId?._id || att.subjectId)?.toString();
+      const tId = (att.teacherId?._id || att.teacherId)?.toString();
+      const abs = (att.attendanceData || []).filter((record) => record.present === false);
+
+      const item = {
+        isAttendanceMarked: true,
+        absenteesList: abs,
+        attendance: att,
+      };
+
+      if (day && pNum !== undefined) {
+        // Specific key
+        map.set(`${day}_${pNum}_${cId || ""}_${subId || ""}_${tId || ""}`, item);
+        // Fallback key: day_period_class
+        if (cId && !map.has(`${day}_${pNum}_${cId}`)) {
+          map.set(`${day}_${pNum}_${cId}`, item);
+        }
+        // Fallback key: day_period_teacher (for teacher view)
+        if (tId && !map.has(`${day}_${pNum}_t_${tId}`)) {
+          map.set(`${day}_${pNum}_t_${tId}`, item);
+        }
+      }
+    }
+    return map;
+  }, [attendances]);
 
   const { useFetchItems } = useCrud("timeTables", apiKey);
   const fetchTimeTableQuery = useFetchItems(0, 0, {
@@ -948,6 +1018,7 @@ const TimeTableComponent = ({
           apiKey={apiKey}
           title={teacherId ? "MY TIME TABLE" : "TIME TABLE"}
         />
+        <TooltipProvider delayDuration={200}>
         <Table className="w-full">
           <TableHeader>
             <TableRow>
@@ -972,26 +1043,13 @@ const TimeTableComponent = ({
                   const slots = filteredClasses.map(classItem => {
                     const cellData = getCellData(period.periodNumber, currentDay, classItem._id);
                     if (!cellData?.teacherId) return null;
-                    // Check if attendance is already marked — skip those
-                    const attended = attendances.some(
-                      a =>
-                        a.periodNumber === period.periodNumber &&
-                        a.day === currentDay &&
-                        (a.classId?._id || a.classId)?.toString() === classItem._id?.toString() &&
-                        (!cellData.subjectId || (a.subjectId?._id || a.subjectId) === (cellData.subjectId?._id || cellData.subjectId)) &&
-                        (!cellData.teacherId || (a.teacherId?._id || a.teacherId) === (cellData.teacherId?._id || cellData.teacherId))
-                    );
-                    if (attended) return null;
-                    const existingLeaveRecord = liveLeaveRecords.find(record => {
-                      const recordDay = record.day || (record.date ? new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", weekday: "long" }).format(new Date(record.date)) : "");
-                      const recordDateStr = getISTDateString(record.date);
-                      return (
-                        record.periodNumber === period.periodNumber &&
-                        (record.teacherId?._id || record.teacherId) === (cellData?.teacherId?._id || cellData?.teacherId) &&
-                        recordDay === currentDay &&
-                        recordDateStr === todayDateStr
-                      );
-                    });
+                    const cId = classItem._id?.toString();
+                    const subId = (cellData.subjectId?._id || cellData.subjectId)?.toString();
+                    const tId = (cellData.teacherId?._id || cellData.teacherId)?.toString();
+                    const attInfo = attendanceGridMap.get(`${currentDay}_${period.periodNumber}_${cId}_${subId || ""}_${tId || ""}`) ||
+                                    attendanceGridMap.get(`${currentDay}_${period.periodNumber}_${cId}`);
+                    if (attInfo) return null;
+                    const existingLeaveRecord = tId ? leaveRecordsMap.get(`${tId}_${period.periodNumber}`) : null;
                     return {
                       classId: classItem._id,
                       classLabel: useShortName ? (classItem.shortname || classItem.name) : classItem.name,
@@ -1041,28 +1099,13 @@ const TimeTableComponent = ({
                   </TableCell>
                   {periods.map((period) => {
                     const cellData = getCellData(period.periodNumber, day);
+                    const subId = (cellData?.subjectId?._id || cellData?.subjectId)?.toString();
+                    const tId = teacherId?.toString();
 
-                    // Check for marked attendance
-                    const markedAttendance = attendances.filter(
-                      (attendance) =>
-                        attendance.periodNumber === period.periodNumber &&
-                        attendance.day === day &&
-                        attendance.teacherId?._id === teacherId &&
-                        (!cellData?.subjectId || (attendance.subjectId?._id || attendance.subjectId) === (cellData.subjectId?._id || cellData.subjectId))
-                    );
-
-                    // Prepare absentees list
-                    const absentees = markedAttendance?.map((attendance) => ({
-                      absentees: attendance?.attendanceData?.filter(
-                        (record) => record.present === false
-                      ),
-                    }));
-
-                    const absenteesList =
-                      absentees?.flatMap((item) => item.absentees || []) ||
-                      [];
-                    const isAttendanceMarked = false;
-                    const leaveRecord = null;
+                    const attInfo = attendanceGridMap.get(`${day}_${period.periodNumber}_t_${tId}`) || null;
+                    const isAttendanceMarked = !!attInfo;
+                    const absenteesList = attInfo?.absenteesList || [];
+                    const leaveRecord = tId ? leaveRecordsMap.get(`${tId}_${period.periodNumber}`) : null;
 
                     return (
                       <TableCell
@@ -1098,22 +1141,29 @@ const TimeTableComponent = ({
                             {/* Attendance badge */}
                             {isAttendanceMarked &&
                               absenteesList.length > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="outline"
-                                        className="mt-1 text-xxs no-print"
-                                      >
-                                        <UserX className="h-3 w-3 mr-1" />
-                                        {absenteesList.length}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>View absent students</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="outline"
+                                      className="mt-1 text-xxs no-print cursor-pointer hover:bg-destructive/10 hover:border-destructive transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        showAbsenteesDialog(
+                                          period.periodNumber,
+                                          day,
+                                          cellData,
+                                          absenteesList
+                                        );
+                                      }}
+                                    >
+                                      <UserX className="h-3 w-3 mr-1" />
+                                      {absenteesList.length}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View absent students</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
                             {leaveRecord && !isAttendanceMarked && (
                               <div className="flex items-center gap-1 text-xxs text-muted-foreground justify-center">
@@ -1139,26 +1189,13 @@ const TimeTableComponent = ({
                   const slots = periods.map(period => {
                     const cellData = getCellData(period.periodNumber, currentDay, classItem._id);
                     if (!cellData?.teacherId) return null;
-                    // Check if attendance is already marked
-                    const attended = attendances.some(
-                      a =>
-                        a.periodNumber === period.periodNumber &&
-                        a.day === currentDay &&
-                        (a.classId?._id || a.classId)?.toString() === classItem._id?.toString() &&
-                        (!cellData.subjectId || (a.subjectId?._id || a.subjectId) === (cellData.subjectId?._id || cellData.subjectId)) &&
-                        (!cellData.teacherId || (a.teacherId?._id || a.teacherId) === (cellData.teacherId?._id || cellData.teacherId))
-                    );
-                    if (attended) return null; // already marked — skip
-                    const existingLeaveRecord = liveLeaveRecords.find(record => {
-                      const recordDay = record.day || (record.date ? new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", weekday: "long" }).format(new Date(record.date)) : "");
-                      const recordDateStr = getISTDateString(record.date);
-                      return (
-                        record.periodNumber === period.periodNumber &&
-                        (record.teacherId?._id || record.teacherId) === (cellData?.teacherId?._id || cellData?.teacherId) &&
-                        recordDay === currentDay &&
-                        recordDateStr === todayDateStr
-                      );
-                    });
+                    const cId = classItem._id?.toString();
+                    const subId = (cellData.subjectId?._id || cellData.subjectId)?.toString();
+                    const tId = (cellData.teacherId?._id || cellData.teacherId)?.toString();
+                    const attInfo = attendanceGridMap.get(`${currentDay}_${period.periodNumber}_${cId}_${subId || ""}_${tId || ""}`) ||
+                                    attendanceGridMap.get(`${currentDay}_${period.periodNumber}_${cId}`);
+                    if (attInfo) return null;
+                    const existingLeaveRecord = tId ? leaveRecordsMap.get(`${tId}_${period.periodNumber}`) : null;
                     return {
                       classId: classItem._id,
                       classLabel: useShortName ? (classItem.shortname || classItem.name) : classItem.name,
@@ -1195,36 +1232,17 @@ const TimeTableComponent = ({
                       currentDay,
                       classItem?._id
                     );
-                    const markedAttendance = attendances.filter(
-                      (attendance) =>
-                        attendance.periodNumber === period.periodNumber &&
-                        attendance.day === currentDay &&
-                        (attendance.classId?._id || attendance.classId)?.toString() === classItem?._id?.toString() &&
-                        (!cellData?.subjectId || (attendance.subjectId?._id || attendance.subjectId) === (cellData.subjectId?._id || cellData.subjectId)) &&
-                        (!cellData?.teacherId || (attendance.teacherId?._id || attendance.teacherId) === (cellData.teacherId?._id || cellData.teacherId))
-                    );
-                    const absentees = markedAttendance.map((attendance) => ({
-                      absentees: attendance?.attendanceData?.filter(
-                        (record) => record.present === false
-                      ),
-                    }));
-                    const absenteesList =
-                      absentees?.flatMap((item) => item.absentees || []) ||
-                      [];
-                    const isAttendanceMarked = markedAttendance?.length > 0;
+                    const subId = (cellData?.subjectId?._id || cellData?.subjectId)?.toString();
+                    const tId = (cellData?.teacherId?._id || cellData?.teacherId)?.toString();
+                    const cId = classItem?._id?.toString();
 
-                    const leaveRecord = liveLeaveRecords.find((record) => {
-                      const recordDay = record.day || (record.date ? new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", weekday: "long" }).format(new Date(record.date)) : "");
-                      const recordDateStr = getISTDateString(record.date);
-                      
-                      return (
-                        record.periodNumber === period.periodNumber &&
-                        (record.teacherId?._id || record.teacherId) === (cellData?.teacherId?._id || cellData?.teacherId) &&
-                        recordDay === currentDay &&
-                        recordDateStr === todayDateStr
-                      );
-                    });
+                    const attInfo = attendanceGridMap.get(`${currentDay}_${period.periodNumber}_${cId}_${subId || ""}_${tId || ""}`) ||
+                                    attendanceGridMap.get(`${currentDay}_${period.periodNumber}_${cId}`) ||
+                                    null;
 
+                    const isAttendanceMarked = !!attInfo;
+                    const absenteesList = attInfo?.absenteesList || [];
+                    const leaveRecord = tId ? leaveRecordsMap.get(`${tId}_${period.periodNumber}`) : null;
                     const canEditLeave = isCollegeAdmin && cellData && cellData.teacherId && !isAttendanceMarked;
 
                     return (
@@ -1279,22 +1297,29 @@ const TimeTableComponent = ({
                             {/* Attendance badge */}
                             {isAttendanceMarked &&
                               absenteesList.length > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="outline"
-                                        className="mt-1 text-xxs no-print"
-                                      >
-                                        <UserX className="h-3 w-3 mr-1" />
-                                        {absenteesList.length}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>View absent students</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="outline"
+                                      className="mt-1 text-xxs no-print cursor-pointer hover:bg-destructive/10 hover:border-destructive transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        showAbsenteesDialog(
+                                          period.periodNumber,
+                                          currentDay,
+                                          cellData,
+                                          absenteesList
+                                        );
+                                      }}
+                                    >
+                                      <UserX className="h-3 w-3 mr-1" />
+                                      {absenteesList.length}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View absent students</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
 
                             {leaveRecord && !isAttendanceMarked && (
@@ -1317,6 +1342,7 @@ const TimeTableComponent = ({
               })}
           </TableBody>
         </Table>
+        </TooltipProvider>
       </div>
 
       {/* Absentees Dialog */}
@@ -1330,6 +1356,7 @@ const TimeTableComponent = ({
         useShortName={useShortName}
         apiKey={apiKey}
         date={targetDateObj}
+        leaveRecords={leaveRecords}
       />
 
       {/* Edit Leave Reason Dialog (College Admin) */}

@@ -91,18 +91,20 @@ export async function GET(req, res) {
       .populate("classId", ["_id", "name"])
       .skip(page * limit)
       .limit(limit)
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();
     // Get total count for pagination info
     const total = await LeaveRecord.countDocuments(query);
     const formattedLeaveRecords = leaveRecords.map((record) => {
+      const rec = record.toObject ? record.toObject() : record;
       return {
-        ...record.toObject(),
-        arrivedDate: record.arrivedDate || "",
-        studentId: record.studentId?._id,
-        studentName: record.studentId?.name,
-        classId: record.classId?._id,
-        className: record.classId?.name,
-        studentStatus: record.studentId?.studentSpecificField?.status,
+        ...rec,
+        arrivedDate: rec.arrivedDate || "",
+        studentId: rec.studentId?._id,
+        studentName: rec.studentId?.name,
+        classId: rec.classId?._id,
+        className: rec.classId?.name,
+        studentStatus: rec.studentId?.studentSpecificField?.status,
       };
     });
 

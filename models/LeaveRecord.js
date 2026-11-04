@@ -14,6 +14,7 @@ const leaveRecordSchema = new Schema(
       type: String,
       ref: "User",
       required: true,
+      index: true,
     },
     dateOfLeave: {
       type: Date,

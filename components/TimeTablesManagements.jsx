@@ -68,22 +68,21 @@ const AbsenteesDialog = ({
   cellData,
   day,
   periodNumber,
-  absenteesList,
+  absenteesList = [],
   apiKey,
   date,
 }) => {
-  const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
-  const classId = cellData?.classId?._id || cellData?.classId;
   const popupRef = useRef(null);
   const { handleDownload } = useDownloadPopup(popupRef, `Absentees_${day}_Period_${periodNumber}.jpeg`);
 
   const studentIds = useMemo(() => {
-    return absenteesList
+    return (absenteesList || [])
       .map((s) => s.studentId?._id || s.studentId)
       .filter(Boolean)
       .join(",");
   }, [absenteesList]);
 
+  const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
   const leaveRecordsQuery = useFetchLeaveRecords(
     0,
     0,
@@ -93,27 +92,40 @@ const AbsenteesDialog = ({
 
   const leaveRecords = leaveRecordsQuery.data?.["leave-records"] || [];
 
-  const getLeaveReason = (studentObj) => {
+  const studentLeaveMap = useMemo(() => {
+    const map = new Map();
+    if (!leaveRecords?.length) return map;
+    for (const record of leaveRecords) {
+      const sId = (record.studentId?._id || record.studentId)?.toString();
+      if (!sId) continue;
+      if (!map.has(sId)) {
+        map.set(sId, []);
+      }
+      map.get(sId).push(record);
+    }
+    return map;
+  }, [leaveRecords]);
+
+  const targetDateMs = useMemo(() => {
+    const d = new Date(date || new Date());
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, [date]);
+
+  const getLeaveReason = useCallback((studentObj) => {
     // 1. Check if the reason is saved directly on the attendance record
     if (studentObj.leaveReason) return studentObj.leaveReason;
 
     // 2. Fallback to leave-records
-    if (!leaveRecords.length) return null;
-    
-    // studentId might be a populated object or a string
-    const sId = studentObj.studentId?._id || studentObj.studentId;
-    
-    const studentLeaves = leaveRecords.filter(
-      (record) => String(record.studentId?._id || record.studentId) === String(sId)
-    );
-    
-    const targetDate = new Date(date || new Date());
-    targetDate.setHours(0, 0, 0, 0);
-    
+    const sId = (studentObj.studentId?._id || studentObj.studentId)?.toString();
+    if (!sId || !studentLeaveMap.has(sId)) return null;
+
+    const studentLeaves = studentLeaveMap.get(sId);
     for (const record of studentLeaves) {
        if (!record.dateOfLeave) continue;
        const leaveDate = new Date(record.dateOfLeave);
        leaveDate.setHours(0, 0, 0, 0);
+       const leaveDateMs = leaveDate.getTime();
        
        // If student has arrived back, use arrivedDate as end; otherwise use dateOfArrival if present
        const hasArrived = !!record.arrivedDate;
@@ -124,17 +136,18 @@ const AbsenteesDialog = ({
            endDate = new Date(leaveDate);
            endDate.setHours(23, 59, 59, 999);
        }
+       const endDateMs = endDate.getTime();
        
-       if (targetDate >= leaveDate && targetDate <= endDate) {
+       if (targetDateMs >= leaveDateMs && targetDateMs <= endDateMs) {
           return record.leaveReason;
        }
        // Overdue: leave started on or before targetDate, student hasn't arrived back yet
-       if (!hasArrived && targetDate > endDate && targetDate >= leaveDate) {
+       if (!hasArrived && targetDateMs > endDateMs && targetDateMs >= leaveDateMs) {
           return record.leaveReason;
        }
     }
     return null;
-  };
+  }, [studentLeaveMap, targetDateMs]);
 
   const d = new Date(date || new Date());
   const formattedDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}, ${day}`;
