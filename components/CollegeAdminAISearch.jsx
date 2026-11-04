@@ -17,6 +17,7 @@ import {
   Layers,
   FileText,
   Bot,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ export default function CollegeAdminAISearch({ settings, apiKey, className }) {
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
 
@@ -50,9 +52,9 @@ export default function CollegeAdminAISearch({ settings, apiKey, className }) {
     }
 
     setLoading(true);
-    setResult(null);
 
     try {
+      const messages = chatHistory.slice(-6);
       const response = await fetch("/api/dashboard/ai-search", {
         method: "POST",
         credentials: "include",
@@ -60,7 +62,7 @@ export default function CollegeAdminAISearch({ settings, apiKey, className }) {
           "Content-Type": "application/json",
           ...(apiKey ? { "api-key": apiKey } : {}),
         },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({ query: q, messages }),
       });
 
       if (!response.ok) {
@@ -70,6 +72,13 @@ export default function CollegeAdminAISearch({ settings, apiKey, className }) {
 
       const data = await response.json();
       setResult(data);
+      if (data?.answer) {
+        setChatHistory((prev) => [
+          ...prev,
+          { role: "user", text: q },
+          { role: "model", text: data.answer },
+        ]);
+      }
 
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -605,11 +614,33 @@ export default function CollegeAdminAISearch({ settings, apiKey, className }) {
                 <Printer className="w-3.5 h-3.5" />
               </Button>
 
+              {/* New Topic / Clear context */}
+              {chatHistory.length > 2 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setChatHistory([]);
+                    setResult(null);
+                    setQuery("");
+                    toast.info("Conversation reset. Ready for a new topic.");
+                  }}
+                  className="h-8 px-2 text-xs gap-1 hover:bg-muted text-muted-foreground"
+                  title="Clear conversation context and start fresh"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">New Topic</span>
+                </Button>
+              )}
+
               {/* Dismiss */}
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setResult(null)}
+                onClick={() => {
+                  setResult(null);
+                  setChatHistory([]);
+                }}
                 className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                 title="Dismiss"
               >
