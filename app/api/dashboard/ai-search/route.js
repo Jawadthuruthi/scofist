@@ -36,13 +36,72 @@ import Article from "@/models/Article";
 import LibraryRequest from "@/models/LibraryRequest";
 import StudentsFund from "@/models/StudentsFund";
 import RankAchiever from "@/models/RankAchiever";
+import Rental from "@/models/Rental";
 import { generateGeminiContent, isGeminiConfigured } from "@/lib/gemini";
+import {
+  executeSafeMongoQuery,
+  DATABASE_TOOL_DECLARATION,
+  SCOFIST_SCHEMA_CATALOG,
+} from "@/lib/aiDatabaseTools";
+import { normalizeQueryIntent } from "@/lib/fuzzySearch";
+
+export const maxDuration = 60;
 
 /**
  * Remove special regex characters from query
  */
 function escapeRegex(text) {
   return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+}
+
+const MONTH_NAMES = {
+  january: 0, jan: 0,
+  february: 1, feb: 1,
+  march: 2, mar: 2,
+  april: 3, apr: 3,
+  may: 4,
+  june: 5, jun: 5,
+  july: 6, jul: 6,
+  august: 7, aug: 7,
+  september: 8, sep: 8, sept: 8,
+  october: 9, oct: 9,
+  november: 10, nov: 10,
+  december: 11, dec: 11,
+};
+
+/**
+ * Parse query for calendar months and date ranges (e.g. October, November 2026)
+ */
+function parseDateRange(rawQuery, defaultYear = 2026) {
+  const q = rawQuery.toLowerCase();
+  const yearMatch = q.match(/\b(20\d\d)\b/);
+  const currentYear = yearMatch ? parseInt(yearMatch[1], 10) : (defaultYear || 2026);
+
+  let matchedMonth = null;
+  let matchedMonthName = null;
+  for (const [mName, mIdx] of Object.entries(MONTH_NAMES)) {
+    const regex = new RegExp(`\\b${mName}\\b`, "i");
+    if (regex.test(q)) {
+      matchedMonth = mIdx;
+      matchedMonthName = mName.charAt(0).toUpperCase() + mName.slice(1);
+      break;
+    }
+  }
+
+  if (matchedMonth !== null) {
+    const startDate = new Date(Date.UTC(currentYear, matchedMonth, 1));
+    const endDate = new Date(Date.UTC(currentYear, matchedMonth + 1, 0, 23, 59, 59, 999));
+    return { startDate, endDate, monthName: matchedMonthName, year: currentYear };
+  }
+
+  if (yearMatch) {
+    const y = parseInt(yearMatch[1], 10);
+    const startDate = new Date(Date.UTC(y, 0, 1));
+    const endDate = new Date(Date.UTC(y, 11, 31, 23, 59, 59, 999));
+    return { startDate, endDate, monthName: null, year: y };
+  }
+
+  return { startDate: null, endDate: null, monthName: null, year: currentYear };
 }
 
 /**
@@ -68,8 +127,9 @@ function parseYear(query) {
  * Parse query intent into one of the 30 strictly separate dashboard modules
  */
 function parseQueryIntent(rawQuery) {
-  const q = rawQuery.toLowerCase().trim();
-  const { targetYear, endYear, isRange, raw: rawYear } = parseYear(rawQuery);
+  const { normalizedQuery, matchedClass, matchedBatch, matchedTeam } = normalizeQueryIntent(rawQuery);
+  const q = (normalizedQuery || rawQuery).toLowerCase().trim();
+  const { targetYear, endYear, isRange, raw: rawYear } = parseYear(normalizedQuery || rawQuery);
 
   // Extract explicit numeric IDs (excluding any years matched in rawYear)
   const allNumbers = (rawQuery.match(/\b\d+\b/g) || []).map((n) => n.trim());
@@ -114,11 +174,11 @@ function parseQueryIntent(rawQuery) {
   const isQuestionOrAi =
     isExplicitAi ||
     (extractedNumbers.length === 0 &&
-      /\b(how|why|what|when|where|which|explain|tell|describe|draft|write|suggest|rules|rule|policy|policies|guideline|guidelines|procedure|process|requirement|requirements|criteria|overview|summarize|summary|tips|help|format|instructions|meaning|guide|welcome|duties|responsibilities|conduct|circular|announcement)\b/i.test(q));
+      /\b(who|whom|whose|how|why|what|when|where|which|explain|tell|describe|draft|write|suggest|rules|rule|policy|policies|guideline|guidelines|procedure|process|requirement|requirements|criteria|overview|summarize|summary|tips|help|format|instructions|meaning|guide|welcome|duties|responsibilities|conduct|circular|announcement)\b/i.test(q));
 
   if (targetSection !== "stats" && targetSection !== "database_inventory" && isQuestionOrAi) {
     const questionStopWords = new Set([
-      "how", "why", "what", "when", "where", "which", "explain", "tell", "describe",
+      "who", "whom", "whose", "how", "why", "what", "when", "where", "which", "explain", "tell", "describe",
       "draft", "write", "suggest", "rules", "rule", "policy", "policies", "guideline",
       "guidelines", "procedure", "process", "requirement", "requirements", "criteria",
       "overview", "summarize", "summary", "tips", "help", "format", "instructions",
@@ -138,6 +198,10 @@ function parseQueryIntent(rawQuery) {
       extractedNumbers,
       entityKeywords,
       searchKeyword: entityKeywords.join(" ").trim(),
+      normalizedQuery,
+      matchedClass,
+      matchedBatch,
+      matchedTeam,
     };
   }
 
@@ -431,6 +495,10 @@ function parseQueryIntent(rawQuery) {
     extractedNumbers,
     entityKeywords,
     searchKeyword: entityKeywords.join(" ").trim(),
+    normalizedQuery,
+    matchedClass,
+    matchedBatch,
+    matchedTeam,
   };
 }
 
@@ -1090,23 +1158,59 @@ function formatStudentProfile(s) {
  * Retrieve targeted live Scofist database records based on user inquiry
  */
 async function fetchGroundedContext(rawQuery, intent, institution) {
-  const q = rawQuery.toLowerCase();
+  const q = (intent.normalizedQuery || rawQuery).toLowerCase();
   const { targetSection, targetYear, extractedNumbers, searchKeyword } = intent;
   const kwRegex = searchKeyword ? new RegExp(escapeRegex(searchKeyword), "i") : null;
 
   const contextBlocks = [];
   const sources = {};
 
-  // 1. Fetch live institution counts & settings
-  const [studentCount, teacherCount, classCount, courseCount, bookCount, settingsDoc] =
-    await Promise.all([
-      User.countDocuments({ roles: "Student" }).catch(() => 0),
-      User.countDocuments({ roles: "Teacher" }).catch(() => 0),
-      Class.countDocuments().catch(() => 0),
-      Course.countDocuments().catch(() => 0),
-      LibraryBook.countDocuments().catch(() => 0),
-      Settings.findOne({}).lean().catch(() => null),
-    ]);
+  // 1. Fetch live institution counts & settings, plus small active collections for grounding
+  const [
+    studentCount,
+    teacherCount,
+    classCount,
+    courseCount,
+    bookCount,
+    settingsDoc,
+    classesList,
+    batchesList,
+    coursesList,
+    classCountsAgg,
+  ] = await Promise.all([
+    User.countDocuments({ roles: "Student" }).catch(() => 0),
+    User.countDocuments({ roles: "Teacher" }).catch(() => 0),
+    Class.countDocuments().catch(() => 0),
+    Course.countDocuments().catch(() => 0),
+    LibraryBook.countDocuments().catch(() => 0),
+    Settings.findOne({}).lean().catch(() => null),
+    Class.find({}).lean().catch(() => []),
+    Batch.find({}).lean().catch(() => []),
+    Course.find({}).lean().catch(() => []),
+    User.aggregate([
+      { $match: { roles: "Student" } },
+      { $group: { _id: "$studentSpecificField.classId", count: { $sum: 1 } } },
+    ]).catch(() => []),
+  ]);
+
+  const classCountMap = {};
+  classCountsAgg.forEach((c) => {
+    if (c._id) classCountMap[c._id] = c.count;
+  });
+
+  const batchMap = {};
+  batchesList.forEach((b) => {
+    batchMap[b._id] = b.name;
+  });
+
+  const classBreakdown = classesList
+    .map(
+      (c) =>
+        `${c.name} (${c._id}, Batch: ${batchMap[c.batchId] || c.batchId || "N/A"}): ${
+          classCountMap[c._id] || 0
+        } students`
+    )
+    .join("; ");
 
   const stats = {
     students: studentCount,
@@ -1119,19 +1223,218 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
 
   contextBlocks.push(
     `[INSTITUTION LIVE STATISTICS & PROFILE]:\n` +
-    `- Name: ${institution?.name || "Sa-adiya College of Integrated Studies"}\n` +
-    `- Tagline: ${institution?.tagline || "Scofist Educational Management"}\n` +
-    `- Academic Session: ${settingsDoc?.activeYear || "Current"}\n` +
-    `- Working Day Today: ${settingsDoc?.general?.isWorkingDay ? "Yes (Working Day)" : "No (Non-Working Day)"}\n` +
-    `- Total Enrolled Students: ${studentCount}\n` +
-    `- Total Faculty Members: ${teacherCount}\n` +
-    `- Total Active Classes: ${classCount}\n` +
-    `- Total Courses Offered: ${courseCount}\n` +
-    `- Total Books in Library: ${bookCount}`
+      `- Name: ${institution?.name || "Sa-adiya College of Integrated Studies"}\n` +
+      `- Tagline: ${institution?.tagline || "Scofist Educational Management"}\n` +
+      `- Academic Session: ${settingsDoc?.activeYear || "Current"}\n` +
+      `- Working Day Today: ${settingsDoc?.general?.isWorkingDay ? "Yes (Working Day)" : "No (Non-Working Day)"}\n` +
+      `- Total Enrolled Students: ${studentCount}\n` +
+      `- Total Faculty Members: ${teacherCount}\n` +
+      `- Total Active Classes: ${classCount}\n` +
+      `- Active Classes & Enrollment Counts: ${classBreakdown || "None"}\n` +
+      `- Total Courses Offered: ${courseCount}\n` +
+      `- Total Books in Library: ${bookCount}`
   );
+
+  // Match specific classes referenced in user query (use word boundaries to avoid false positives like "ten" inside "attendance")
+  const matchedClasses = classesList.filter((c) => {
+    if (!c.name && !c._id) return false;
+    const nameRegex = c.name ? new RegExp(`\\b${escapeRegex(c.name)}\\b`, "i") : null;
+    const idRegex = c._id ? new RegExp(`\\b${escapeRegex(c._id)}\\b`, "i") : null;
+    return (nameRegex && nameRegex.test(q)) || (idRegex && idRegex.test(q));
+  });
+
+  if (intent.matchedClass) {
+    const found = classesList.find(
+      (c) =>
+        c._id === intent.matchedClass.id ||
+        c.name?.toLowerCase() === intent.matchedClass.name?.toLowerCase()
+    );
+    if (found && !matchedClasses.some((mc) => mc._id === found._id)) {
+      matchedClasses.push(found);
+    }
+  }
+
+  // Match specific batches referenced in user query
+  const matchedBatches = batchesList.filter((b) => {
+    if (!b.name && !b._id) return false;
+    const nameRegex = b.name ? new RegExp(`\\b${escapeRegex(b.name)}\\b`, "i") : null;
+    const idRegex = b._id ? new RegExp(`\\b${escapeRegex(b._id)}\\b`, "i") : null;
+    return (nameRegex && nameRegex.test(q)) || (idRegex && idRegex.test(q));
+  });
+
+  if (intent.matchedBatch) {
+    const found = batchesList.find(
+      (b) =>
+        b._id === intent.matchedBatch.id ||
+        b.name?.toLowerCase() === intent.matchedBatch.name?.toLowerCase()
+    );
+    if (found && !matchedBatches.some((mb) => mb._id === found._id)) {
+      matchedBatches.push(found);
+    }
+  }
+
+  // Match specific courses referenced in user query
+  const matchedCourses = coursesList.filter((c) => {
+    if (!c.name) return false;
+    const nameRegex = new RegExp(`\\b${escapeRegex(c.name)}\\b`, "i");
+    return nameRegex.test(q);
+  });
+
+  // Inject matched class inventory & count if any matched
+  if (matchedClasses.length > 0) {
+    sources.classes = matchedClasses.length;
+    for (const mc of matchedClasses) {
+      const enrolledCount =
+        classCountMap[mc._id] !== undefined
+          ? classCountMap[mc._id]
+          : await User.countDocuments({
+              roles: "Student",
+              $or: [
+                { "studentSpecificField.classId": mc._id },
+                { "studentSpecificField.classId": mc.name },
+              ],
+            }).catch(() => 0);
+
+      const sampleClassStudents = await User.find({
+        roles: "Student",
+        $or: [
+          { "studentSpecificField.classId": mc._id },
+          { "studentSpecificField.classId": mc.name },
+        ],
+      })
+        .select("name studentSpecificField.admissionNumber contactNumber")
+        .limit(10)
+        .lean()
+        .catch(() => []);
+
+      contextBlocks.push(
+        `[MATCHED CLASS INVENTORY & STUDENT COUNT: ${mc.name}]:\n` +
+          `- Class Name: ${mc.name}\n` +
+          `- Class ID: ${mc._id}\n` +
+          `- Associated Batch: ${mc.batchId ? `${batchMap[mc.batchId] || ""} (ID: ${mc.batchId})` : "N/A"}\n` +
+          `- Total Students Enrolled in ${mc.name}: ${enrolledCount} students\n` +
+          `- Sample Students in ${mc.name} (${sampleClassStudents.length} listed): ` +
+          (sampleClassStudents.length > 0
+            ? sampleClassStudents
+                .map(
+                  (s, idx) =>
+                    `${idx + 1}. ${s.name} (ID: ${s.studentSpecificField?.admissionNumber || s._id})`
+                )
+                .join(", ")
+            : "None registered yet")
+      );
+    }
+  }
+
+  // Inject matched batch inventory & count if any matched
+  if (matchedBatches.length > 0) {
+    sources.batches = matchedBatches.length;
+    for (const mb of matchedBatches) {
+      const enrolledCount = await User.countDocuments({
+        roles: "Student",
+        $or: [
+          { "studentSpecificField.batchId": mb._id },
+          { "studentSpecificField.batchId": mb.name },
+        ],
+      }).catch(() => 0);
+
+      const sampleBatchStudents = await User.find({
+        roles: "Student",
+        $or: [
+          { "studentSpecificField.batchId": mb._id },
+          { "studentSpecificField.batchId": mb.name },
+        ],
+      })
+        .select("name studentSpecificField.admissionNumber contactNumber")
+        .limit(10)
+        .lean()
+        .catch(() => []);
+
+      contextBlocks.push(
+        `[MATCHED BATCH INVENTORY & STUDENT COUNT: ${mb.name}]:\n` +
+          `- Batch Name: ${mb.name}\n` +
+          `- Batch ID: ${mb._id}\n` +
+          `- Academic Year: ${mb.academicYear || `${mb.startYear || ""}-${mb.endYear || ""}`}\n` +
+          `- Total Students Enrolled in Batch ${mb.name}: ${enrolledCount} students\n` +
+          `- Sample Students in Batch ${mb.name} (${sampleBatchStudents.length} listed): ` +
+          (sampleBatchStudents.length > 0
+            ? sampleBatchStudents
+                .map(
+                  (s, idx) =>
+                    `${idx + 1}. ${s.name} (ID: ${s.studentSpecificField?.admissionNumber || s._id})`
+                )
+                .join(", ")
+            : "None registered yet")
+      );
+    }
+  }
+
+  // Inject matched course inventory & count if any matched
+  if (matchedCourses.length > 0) {
+    sources.courses = matchedCourses.length;
+    for (const mcr of matchedCourses) {
+      const enrolledCount = await User.countDocuments({
+        roles: "Student",
+        $or: [
+          { "studentSpecificField.academicCourses.courseName": new RegExp(escapeRegex(mcr.name), "i") },
+          { "studentSpecificField.islamicCourses.courseName": new RegExp(escapeRegex(mcr.name), "i") },
+        ],
+      }).catch(() => 0);
+
+      contextBlocks.push(
+        `[MATCHED COURSE INVENTORY & STUDENT COUNT: ${mcr.name}]:\n` +
+          `- Course Name: ${mcr.name}\n` +
+          `- Type: ${mcr.type || "Academic"}\n` +
+          `- Board / University: ${mcr.universityBoard || "N/A"}\n` +
+          `- Total Students Enrolled in Course ${mcr.name}: ${enrolledCount} students`
+      );
+    }
+  }
+
+  const isClassOrBatchOrStatsQuery =
+    matchedClasses.length > 0 ||
+    matchedBatches.length > 0 ||
+    matchedCourses.length > 0 ||
+    q.includes("how many") ||
+    q.includes("total count") ||
+    q.includes("statistics") ||
+    targetSection === "stats" ||
+    targetSection === "classes" ||
+    targetSection === "batches" ||
+    targetSection === "courses";
+
+  const isGeneralDomainQuery =
+    isClassOrBatchOrStatsQuery ||
+    q.includes("attend") ||
+    q.includes("present") ||
+    q.includes("absent") ||
+    q.includes("topper") ||
+    q.includes("toppers") ||
+    q.includes("shortage") ||
+    q.includes("exam") ||
+    q.includes("mark") ||
+    q.includes("marks") ||
+    q.includes("score") ||
+    q.includes("grade") ||
+    q.includes("fee") ||
+    q.includes("fees") ||
+    q.includes("due") ||
+    q.includes("debt") ||
+    q.includes("debtor") ||
+    q.includes("book") ||
+    q.includes("books") ||
+    q.includes("library") ||
+    q.includes("fest") ||
+    q.includes("team") ||
+    q.includes("result") ||
+    targetSection === "attendance" ||
+    targetSection === "marks" ||
+    targetSection === "debtors" ||
+    targetSection === "library";
 
   // 2. Specific Student Lookup by Admission Number / ID / Name
   let studentQuery = null;
+  let matchedStudentCount = 0;
   if (extractedNumbers.length > 0) {
     const studentOr = [
       { "studentSpecificField.admissionNumber": { $in: extractedNumbers } },
@@ -1145,7 +1448,7 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
       roles: "Student",
       $or: studentOr,
     };
-  } else if (kwRegex) {
+  } else if (kwRegex && !isGeneralDomainQuery) {
     const studentOr = [
       { name: kwRegex },
       { contactNumber: kwRegex },
@@ -1169,6 +1472,7 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
       .catch(() => []);
 
     if (students.length > 0) {
+      matchedStudentCount = students.length;
       sources.students = students.length;
       for (const s of students) {
         const sId = s._id;
@@ -1219,7 +1523,7 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
           `- Hifz/Doura Recitation: ${hifzDocs.reduce((sum, h) => sum + (h.pagesCount || 0), 0)} pages`
         );
       }
-    } else if (extractedNumbers.length > 0 || q.includes("student")) {
+    } else if (extractedNumbers.length > 0 || (!isGeneralDomainQuery && q.includes("student"))) {
       contextBlocks.push(
         `[STUDENT SEARCH RESULT]: Queried student identifier "${extractedNumbers.join(", ") || searchKeyword}" - 0 records found in active database.`
       );
@@ -1267,58 +1571,405 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
     }
   }
 
-  // 4. Classes & Sections
-  if (q.includes("class") || q.includes("classes") || q.includes("division") || q.includes("section")) {
-    const classes = await Class.find({}).lean().catch(() => []);
-    sources.classes = classes.length;
+  // 3b. Student Attendance Aggregations, Toppers & Shortages
+  const isAttendanceQuery =
+    q.includes("attend") ||
+    q.includes("present") ||
+    q.includes("absent") ||
+    targetSection === "attendance" ||
+    targetSection === "attendance_sheet" ||
+    targetSection === "attendance_table";
+
+  if (isAttendanceQuery && (!studentQuery || matchedStudentCount === 0)) {
+    const { startDate, endDate, monthName, year } = parseDateRange(rawQuery, 2026);
+    const dateLabel = monthName ? `${monthName} ${year}` : (year ? `Year ${year}` : "All Recorded Periods");
+
+    const matchCond = {};
+    if (startDate && endDate) {
+      matchCond["attendanceRecords.date"] = { $gte: startDate, $lte: endDate };
+    }
+
+    const isAcrossAllClasses =
+      q.includes("each class") ||
+      q.includes("all class") ||
+      q.includes("every class") ||
+      q.includes("across class");
+
+    if (matchedClasses.length > 0 && !isAcrossAllClasses) {
+      const targetClassIds = matchedClasses.map((c) => c._id);
+      matchCond["attendanceRecords.classId"] = { $in: targetClassIds };
+    }
+
+    const isShortageQuery =
+      q.includes("shortage") ||
+      q.includes("short") ||
+      q.includes("below") ||
+      q.includes("low") ||
+      q.includes("lowest") ||
+      q.includes("poor") ||
+      q.includes("defaulter");
+
+    const pipeline = [
+      { $unwind: "$attendanceRecords" },
+      ...(Object.keys(matchCond).length > 0 ? [{ $match: matchCond }] : []),
+      {
+        $group: {
+          _id: {
+            studentId: "$studentId",
+            classId: "$attendanceRecords.classId",
+          },
+          totalClasses: { $sum: 1 },
+          presentCount: {
+            $sum: { $cond: [{ $eq: ["$attendanceRecords.present", true] }, 1, 0] },
+          },
+        },
+      },
+      {
+        $project: {
+          studentId: "$_id.studentId",
+          classId: "$_id.classId",
+          totalClasses: 1,
+          presentCount: 1,
+          percentage: {
+            $round: [{ $multiply: [{ $divide: ["$presentCount", "$totalClasses"] }, 100] }, 1],
+          },
+        },
+      },
+      { $sort: { classId: 1, percentage: isShortageQuery ? 1 : -1 } },
+    ];
+
+    const attAggResults = await StudentAttendance.aggregate(pipeline).catch(() => []);
+
+    if (attAggResults.length > 0) {
+      sources.attendance = attAggResults.length;
+      const attStudentIds = [...new Set(attAggResults.map((r) => r.studentId))];
+      const attUsers = await User.find({ _id: { $in: attStudentIds } })
+        .select("name studentSpecificField.admissionNumber")
+        .lean()
+        .catch(() => []);
+      const attUserMap = {};
+      attUsers.forEach((u) => {
+        attUserMap[u._id] = u;
+      });
+
+      const classMap = {};
+      classesList.forEach((c) => {
+        classMap[c._id] = c.name;
+      });
+
+      if (isShortageQuery) {
+        const shortages = attAggResults.filter((r) => r.percentage < 75);
+        const displayList = (shortages.length > 0 ? shortages : attAggResults).slice(0, 30);
+        contextBlocks.push(
+          `[STUDENTS WITH ATTENDANCE SHORTAGE (< 75%) (${dateLabel})]:\n` +
+          `- Direct Portal Link: [👉 Open Attendance Portal](/dashboard/attendances)\n` +
+          `- Total Students with < 75% Attendance: ${shortages.length}\n` +
+          `- Student List:\n` +
+          displayList
+            .map((r, idx) => {
+              const u = attUserMap[r.studentId];
+              const sName = u?.name || `Student ${r.studentId}`;
+              const admNo = u?.studentSpecificField?.admissionNumber || r.studentId;
+              const cName = classMap[r.classId] || r.classId;
+              return `${idx + 1}. **${sName}** (ID: ${admNo}, Class: ${cName}) — **${r.percentage}%** (${r.presentCount}/${r.totalClasses} periods)`;
+            })
+            .join("\n")
+        );
+      } else {
+        const byClass = {};
+        attAggResults.forEach((r) => {
+          const cName = classMap[r.classId] || r.classId;
+          if (!byClass[cName]) byClass[cName] = [];
+          if (byClass[cName].length < 3) {
+            const u = attUserMap[r.studentId];
+            byClass[cName].push({
+              name: u?.name || `Student ${r.studentId}`,
+              admNo: u?.studentSpecificField?.admissionNumber || r.studentId,
+              percentage: r.percentage,
+              present: r.presentCount,
+              total: r.totalClasses,
+            });
+          }
+        });
+
+        let toppersText =
+          `[ATTENDANCE TOPPERS BY CLASS (${dateLabel})]:\n` +
+          `- Direct Portal Link: [👉 Open Attendance Portal](/dashboard/attendances)\n` +
+          `- Academic Period: ${dateLabel}\n`;
+
+        for (const [cName, students] of Object.entries(byClass)) {
+          toppersText += `### Class: ${cName}\n`;
+          students.forEach((s, idx) => {
+            toppersText += `${idx + 1}. **${s.name}** (ID: ${s.admNo}) — **${s.percentage}%** (${s.present}/${s.total} periods attended)\n`;
+          });
+        }
+        contextBlocks.push(toppersText);
+      }
+    }
+  }
+
+  // 3c. Exam Results & Toppers
+  const isExamQuery =
+    q.includes("exam") ||
+    q.includes("mark") ||
+    q.includes("marks") ||
+    q.includes("score") ||
+    q.includes("grade") ||
+    (q.includes("topper") && !isAttendanceQuery) ||
+    targetSection === "marks";
+
+  if (isExamQuery && (!studentQuery || matchedStudentCount === 0)) {
+    let markFilter = {};
+    if (matchedClasses.length > 0) {
+      const cIds = matchedClasses.map((c) => c._id);
+      markFilter = { $or: [{ classId: { $in: cIds } }, { classIds: { $in: cIds } }] };
+    }
+    const markDocs = await Mark.find(markFilter)
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .lean()
+      .catch(() => []);
+
+    if (markDocs.length > 0) {
+      sources.marks = markDocs.length;
+      const allStudentIdsInMarks = [];
+      markDocs.forEach((m) => {
+        (m.students || []).forEach((st) => {
+          if (st.studentId) allStudentIdsInMarks.push(st.studentId);
+        });
+      });
+      const uniqueStudentIds = [...new Set(allStudentIdsInMarks)];
+      const markUsers = await User.find({ _id: { $in: uniqueStudentIds } })
+        .select("name studentSpecificField.admissionNumber studentSpecificField.classId")
+        .lean()
+        .catch(() => []);
+      const markUserMap = {};
+      markUsers.forEach((u) => {
+        markUserMap[u._id] = u;
+      });
+
+      const examReports = [];
+      for (const m of markDocs) {
+        const studentScores = (m.students || []).map((st) => {
+          let totalScore = 0;
+          if (typeof st.marks === "object" && st.marks !== null) {
+            for (const val of Object.values(st.marks)) {
+              if (typeof val === "number") totalScore += val;
+              else if (typeof val === "object" && val !== null) {
+                for (const subVal of Object.values(val)) {
+                  if (typeof subVal === "number") totalScore += subVal;
+                }
+              }
+            }
+          } else if (typeof st.marks === "number") {
+            totalScore = st.marks;
+          }
+          const u = markUserMap[st.studentId];
+          return {
+            studentId: st.studentId,
+            name: u?.name || `Student ${st.studentId}`,
+            admNo: u?.studentSpecificField?.admissionNumber || st.studentId,
+            classId: u?.studentSpecificField?.classId || m.classId || "N/A",
+            totalScore,
+            manualRemark: st.manualRemark || "",
+          };
+        });
+
+        studentScores.sort((a, b) => b.totalScore - a.totalScore);
+        const topPerformers = studentScores.slice(0, 5);
+
+        examReports.push(
+          `Exam: "${m.examName}" (Class: ${m.classId || (m.classIds || []).join(", ") || "General"})\n` +
+          `- Total Students Evaluated: ${studentScores.length}\n` +
+          `- Subjects: ${(m.subjects || []).map((s) => s.name).join(", ") || "N/A"}\n` +
+          `- Top Performers:\n` +
+          topPerformers
+            .map((tp, idx) => `  ${idx + 1}. **${tp.name}** (ID: ${tp.admNo}) — Total Score: **${tp.totalScore}** ${tp.manualRemark ? `(${tp.manualRemark})` : ""}`)
+            .join("\n")
+        );
+      }
+
+      contextBlocks.push(
+        `[EXAM RESULTS & TOPPERS]:\n` +
+        `- Direct Portal Link: [👉 Open Marks Portal](/dashboard/marks)\n` +
+        examReports.join("\n\n")
+      );
+    }
+  }
+
+  // 3d. Faculty Attendance & Leaves
+  const isFacultyAttQuery =
+    (q.includes("teacher") || q.includes("faculty") || q.includes("staff")) &&
+    (q.includes("attend") || q.includes("absent") || q.includes("leave"));
+
+  if (isFacultyAttQuery) {
+    const [teacherLeaves, teacherAtt] = await Promise.all([
+      TeachersLeaveRecord.find({})
+        .populate("teacherId", "name contactNumber")
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean()
+        .catch(() => []),
+      TeacherAttendance.find({})
+        .sort({ date: -1 })
+        .limit(10)
+        .lean()
+        .catch(() => []),
+    ]);
+
+    sources.teacherLeaves = teacherLeaves.length;
     contextBlocks.push(
-      `[CLASSES & DIVISIONS (${classes.length} total)]: \n` +
-      classes.map((c, i) => `${i + 1}. ${c.name} (ID: ${c._id}) | Section: ${c.section || "A"} | Batch: ${c.batchId || "N/A"}`).join("\n")
+      `[FACULTY ATTENDANCE & LEAVES (${teacherLeaves.length} recent leave records)]:\n` +
+      `- Direct Portal Link: [👉 Open Faculty Portal](/dashboard/teachers)\n` +
+      `- Recent Faculty Leaves:\n` +
+      (teacherLeaves.length > 0
+        ? teacherLeaves
+            .map(
+              (tl, idx) =>
+                `${idx + 1}. **${tl.teacherId?.name || "Teacher"}** | From: ${tl.fromDate ? new Date(tl.fromDate).toLocaleDateString("en-IN") : "N/A"} to ${tl.toDate ? new Date(tl.toDate).toLocaleDateString("en-IN") : "N/A"} | Reason: "${tl.reason || "N/A"}" | Status: ${tl.status || "Approved"}`
+            )
+            .join("\n")
+        : "- No recent teacher leaves recorded.")
+    );
+  }
+
+  // 4. Classes & Sections
+  if (
+    (q.includes("class") || q.includes("classes") || q.includes("division") || q.includes("section")) &&
+    matchedClasses.length === 0
+  ) {
+    sources.classes = classesList.length;
+    contextBlocks.push(
+      `[CLASSES & DIVISIONS (${classesList.length} total)]: \n` +
+      classesList.map((c, i) => `${i + 1}. ${c.name} (ID: ${c._id}) | Section: ${c.section || "A"} | Batch: ${batchMap[c.batchId] || c.batchId || "N/A"} | Enrolled Students: ${classCountMap[c._id] || 0}`).join("\n")
     );
   }
 
   // 5. Batches
-  if (q.includes("batch") || q.includes("batches") || targetYear !== null) {
-    const batches = await Batch.find({}).sort({ startYear: -1 }).lean().catch(() => []);
-    sources.batches = batches.length;
+  if (
+    (q.includes("batch") || q.includes("batches") || targetYear !== null) &&
+    matchedBatches.length === 0
+  ) {
+    sources.batches = batchesList.length;
     contextBlocks.push(
-      `[BATCHES (${batches.length} total)]: \n` +
-      batches.map((b, i) => `${i + 1}. ${b.name} (ID: ${b._id}) | Duration: ${b.startYear}-${b.endYear} | Academic Year: ${b.academicYear || "N/A"}`).join("\n")
+      `[BATCHES (${batchesList.length} total)]: \n` +
+      batchesList.map((b, i) => `${i + 1}. ${b.name} (ID: ${b._id}) | Duration: ${b.startYear || ""}-${b.endYear || ""} | Academic Year: ${b.academicYear || "N/A"}`).join("\n")
     );
   }
 
   // 6. Courses
-  if (q.includes("course") || q.includes("courses") || q.includes("program")) {
-    const courses = await Course.find({}).lean().catch(() => []);
-    sources.courses = courses.length;
+  if (
+    (q.includes("course") || q.includes("courses") || q.includes("program")) &&
+    matchedCourses.length === 0
+  ) {
+    sources.courses = coursesList.length;
     contextBlocks.push(
-      `[COURSES (${courses.length} total)]: \n` +
-      courses.map((c, i) => `${i + 1}. ${c.name} [${c.type || "Academic"}] | Board: ${c.universityBoard || "N/A"}${c.description ? ` | Info: ${c.description}` : ""}`).join("\n")
+      `[COURSES (${coursesList.length} total)]: \n` +
+      coursesList.map((c, i) => `${i + 1}. ${c.name} [${c.type || "Academic"}] | Board: ${c.universityBoard || "N/A"}${c.description ? ` | Info: ${c.description}` : ""}`).join("\n")
     );
   }
 
-  // 7. Library Books
-  if (q.includes("book") || q.includes("books") || q.includes("library")) {
+  // 7. Library Books & Lending Records
+  if (
+    q.includes("book") ||
+    q.includes("books") ||
+    q.includes("library") ||
+    q.includes("reader") ||
+    q.includes("borrow") ||
+    q.includes("rental")
+  ) {
     const bookQuery = kwRegex ? { $or: [{ name: kwRegex }, { author: kwRegex }, { category: kwRegex }] } : {};
-    const books = await LibraryBook.find(bookQuery).limit(30).lean().catch(() => []);
+    const [books, rentals] = await Promise.all([
+      LibraryBook.find(bookQuery).limit(30).lean().catch(() => []),
+      Rental.find({}).sort({ rentedDate: -1 }).limit(40).lean().catch(() => []),
+    ]);
+
     sources.books = books.length;
-    contextBlocks.push(
-      `[LIBRARY BOOKS CATALOG (${books.length} records shown)]: \n` +
-      books.map((b, i) => `${i + 1}. "${b.name}" by ${b.author || "Unknown"} [${b.category || "General"}] — Status: ${b.status || "Available"}`).join("\n")
-    );
+    sources.rentals = rentals.length;
+
+    const readerCounts = {};
+    rentals.forEach((r) => {
+      const rName = r.studentName || r.studentId || "Student";
+      readerCounts[rName] = (readerCounts[rName] || 0) + 1;
+    });
+    const topReaders = Object.entries(readerCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    let libText = `[LIBRARY CATALOG & BORROWING RECORDS (${books.length} books, ${rentals.length} recent rentals)]:\n` +
+      `- Direct Portal Link: [👉 Open Library Dashboard](/library-dashboard)\n`;
+
+    if (topReaders.length > 0) {
+      libText += `- Top Library Borrowers / Readers:\n` +
+        topReaders.map(([name, count], idx) => `  ${idx + 1}. **${name}** — **${count}** books borrowed`).join("\n") + `\n`;
+    }
+
+    if (books.length > 0) {
+      libText += `- Available Books Catalog:\n` +
+        books.slice(0, 20).map((b, i) => `  ${i + 1}. "${b.name}" by ${b.author || "Unknown"} [${b.category || "General"}] — Status: ${b.status || "Available"}`).join("\n");
+    }
+
+    contextBlocks.push(libText);
   }
 
-  // 8. Accounts & Debtors
-  if (q.includes("fee") || q.includes("fees") || q.includes("due") || q.includes("debt") || q.includes("debtor") || q.includes("account")) {
-    const debtors = await Debtor.find({}).populate("studentId", "name contactNumber").limit(30).lean().catch(() => []);
+  // 8. Accounts & Student Fee Dues
+  if (
+    q.includes("fee") ||
+    q.includes("fees") ||
+    q.includes("due") ||
+    q.includes("debt") ||
+    q.includes("debtor") ||
+    q.includes("account") ||
+    q.includes("balance") ||
+    q.includes("pending") ||
+    q.includes("unpaid")
+  ) {
+    const debtors = await Debtor.find({})
+      .populate("studentId", "name contactNumber studentSpecificField.admissionNumber studentSpecificField.classId")
+      .limit(50)
+      .lean()
+      .catch(() => []);
+
     sources.debtors = debtors.length;
+    let overallAssigned = 0;
+    let overallPaid = 0;
+
+    const debtorList = debtors.map((d) => {
+      const paid = (d.payments || []).reduce((sum, p) => sum + p.amount, 0);
+      const balance = (d.totalAmount || 0) - paid;
+      overallAssigned += d.totalAmount || 0;
+      overallPaid += paid;
+      const sName = d.studentId?.name || `Student ${d.studentId}`;
+      const admNo = d.studentId?.studentSpecificField?.admissionNumber || d.studentId?._id || "N/A";
+      const cName = d.studentId?.studentSpecificField?.classId || d.classId || "N/A";
+      return {
+        name: sName,
+        admNo,
+        class: cName,
+        category: d.category,
+        year: d.year,
+        total: d.totalAmount || 0,
+        paid,
+        balance,
+      };
+    });
+
+    debtorList.sort((a, b) => b.balance - a.balance);
+    const topDebtors = debtorList.slice(0, 15);
+
     contextBlocks.push(
-      `[ACCOUNTS & DEBTORS (${debtors.length} records)]: \n` +
-      debtors.map((d, i) => {
-        const sName = d.studentId?.name || `Student ${d.studentId}`;
-        const paid = (d.payments || []).reduce((sum, p) => sum + p.amount, 0);
-        return `${i + 1}. ${sName} | Category: ${d.category} (Year: ${d.year}) | Total Fee: ₹${d.totalAmount} | Paid: ₹${paid} | Balance Due: ₹${d.totalAmount - paid}`;
-      }).join("\n")
+      `[ACCOUNTS & STUDENT FEE DUES (${debtors.length} records analyzed)]:\n` +
+      `- Direct Portal Link: [👉 Open Debtors Portal](/dashboard/debtors)\n` +
+      `- Total Fees Assigned: ₹${overallAssigned.toLocaleString("en-IN")}\n` +
+      `- Total Fees Collected: ₹${overallPaid.toLocaleString("en-IN")}\n` +
+      `- Total Outstanding Balance: ₹${(overallAssigned - overallPaid).toLocaleString("en-IN")}\n` +
+      `- Top Outstanding Fee Balances:\n` +
+      topDebtors
+        .map(
+          (d, idx) =>
+            `${idx + 1}. **${d.name}** (ID: ${d.admNo}, Class: ${d.class}) | Category: ${d.category} (${d.year}) | Total: ₹${d.total} | Paid: ₹${d.paid} | **Due: ₹${d.balance}**`
+        )
+        .join("\n")
     );
   }
 
@@ -1445,12 +2096,12 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
   if (isNavQuery || isRemarksQuery) {
     contextBlocks.push(
       `[OFFICIAL SCOFIST DASHBOARD NAVIGATION DIRECTORY]:\n` +
-      `- [👉 Open Remarks Portal](/dashboard/remarks): Remarks & Conduct (Manage all 123 behavioral and disciplinary notes)\n` +
-      `- [👉 Open Students Portal](/dashboard/students): Students Directory (Search and view 1,059 enrolled students)\n` +
-      `- [👉 Open Faculty Portal](/dashboard/faculty): Teaching Staff (All 16 faculty members and phone numbers)\n` +
+      `- [👉 Open Remarks Portal](/dashboard/remarks): Remarks & Conduct (Manage behavioral and disciplinary notes)\n` +
+      `- [👉 Open Students Portal](/dashboard/students): Students Directory (Search and view ${studentCount} enrolled students)\n` +
+      `- [👉 Open Faculty Portal](/dashboard/teachers): Teaching Staff (All ${teacherCount} faculty members and profiles)\n` +
       `- [👉 Open Attendance Portal](/dashboard/attendances): Student Attendance (Track presence, absences, and attendance %)\n` +
       `- [👉 Open Marks Portal](/dashboard/marks): Exam Marks & Grading Sheets\n` +
-      `- [👉 Open Classes Portal](/dashboard/classes): Classes & Divisions (11 classes active)\n` +
+      `- [👉 Open Classes Portal](/dashboard/classes): Classes & Divisions (${classCount} classes active)\n` +
       `- [👉 Open Batches Portal](/dashboard/batches): Academic Batches\n` +
       `- [👉 Open Subjects Portal](/dashboard/subjects): Subject Code Directory\n` +
       `- [👉 Open Time Tables Portal](/dashboard/time-tables): Class Timetables & Schedules\n` +
@@ -1494,9 +2145,11 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
       );
     }
     if (teams.length > 0) {
+      teams.sort((a, b) => ((b.stagePoints || 0) + (b.offStagePoints || 0)) - ((a.stagePoints || 0) + (a.offStagePoints || 0)));
       contextBlocks.push(
         `[TEAMS & ARTS FEST LEADERBOARD (${teams.length} teams)]: \n` +
-        teams.map((t, i) => `${i + 1}. Team ${t.name} (ID: ${t._id}) | Stage Points: ${t.stagePoints || 0} | Off-Stage Points: ${t.offStagePoints || 0} | Total Points: ${(t.stagePoints || 0) + (t.offStagePoints || 0)}`).join("\n")
+        `- Direct Portal Link: [👉 Open Teams Portal](/dashboard/teams)\n` +
+        teams.map((t, i) => `${i + 1}. **Rank ${i + 1}**: Team **${t.name}** | Total Points: **${(t.stagePoints || 0) + (t.offStagePoints || 0)}** (Stage: ${t.stagePoints || 0}, Off-Stage: ${t.offStagePoints || 0})`).join("\n")
       );
     }
     if (results.length > 0) {
@@ -1540,18 +2193,49 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
     q.includes("surah") ||
     q.includes("memoriz")
   ) {
-    const hifzLogs = await HifzDoura.find({})
-      .populate("studentId", "name studentSpecificField")
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean()
-      .catch(() => []);
+    const [hifzLogs, hifzLeaderboard] = await Promise.all([
+      HifzDoura.find({})
+        .populate("studentId", "name studentSpecificField")
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean()
+        .catch(() => []),
+      HifzDoura.aggregate([
+        { $group: { _id: "$studentId", totalPages: { $sum: "$pagesCount" }, totalMistakes: { $sum: "$mistakesCount" } } },
+        { $sort: { totalPages: -1 } },
+        { $limit: 10 },
+      ]).catch(() => []),
+    ]);
 
     sources.hifz = hifzLogs.length;
+
+    let hifzLeadText = "";
+    if (hifzLeaderboard.length > 0) {
+      const hStudentIds = hifzLeaderboard.map((hl) => hl._id);
+      const hUsers = await User.find({ _id: { $in: hStudentIds } })
+        .select("name studentSpecificField.admissionNumber studentSpecificField.classId")
+        .lean()
+        .catch(() => []);
+      const hUserMap = {};
+      hUsers.forEach((u) => { hUserMap[u._id] = u; });
+
+      hifzLeadText = `- Top Quran Hifz Reciters (by total pages recited):\n` +
+        hifzLeaderboard.map((hl, idx) => {
+          const u = hUserMap[hl._id];
+          const name = u?.name || `Student ${hl._id}`;
+          const adm = u?.studentSpecificField?.admissionNumber || hl._id;
+          const cls = u?.studentSpecificField?.classId || "N/A";
+          return `  ${idx + 1}. **${name}** (ID: ${adm}, Class: ${cls}) — **${hl.totalPages} pages** recited (${hl.totalMistakes} mistakes)`;
+        }).join("\n") + "\n";
+    }
+
     contextBlocks.push(
       `[QURAN HIFZ & DOURA RECITATION RECORDS (${hifzLogs.length} recent entries)]: \n` +
+      `- Direct Portal Link: [👉 Open Hifz Portal](/dashboard/hifz-doura)\n` +
+      hifzLeadText +
+      `- Recent Recitation Entries:\n` +
       (hifzLogs.length > 0
-        ? hifzLogs.map((h, i) => `${i + 1}. Student: ${h.studentId?.name || "Student"} | Surah/Portion: ${h.surah || h.portion || "N/A"} | Pages Recited: ${h.pagesCount || 0} | Mistakes: ${h.mistakesCount || 0} | Date: ${h.date ? new Date(h.date).toLocaleDateString("en-IN") : "N/A"}`).join("\n")
+        ? hifzLogs.map((h, i) => `  ${i + 1}. Student: ${h.studentId?.name || "Student"} | Surah/Portion: ${h.surah || h.portion || "N/A"} | Pages: ${h.pagesCount || 0} | Date: ${h.date ? new Date(h.date).toLocaleDateString("en-IN") : "N/A"}`).join("\n")
         : "- No Hifz/Doura recitation logs found.")
     );
   }
@@ -1729,8 +2413,30 @@ async function fetchGroundedContext(rawQuery, intent, institution) {
  */
 async function synthesizeDatabaseAnswer(rawQuery, intent, institution) {
   const { contextText, sources, stats } = await fetchGroundedContext(rawQuery, intent, institution);
-  const q = rawQuery.toLowerCase().trim();
+  const q = (intent.normalizedQuery || rawQuery).toLowerCase().trim();
   const { targetYear } = intent;
+
+  // 0a. If matched class inventory & student count blocks were found (e.g. "students in PG FIRST YEAR"):
+  const classInventoryMatches = contextText.match(/\[MATCHED CLASS INVENTORY & STUDENT COUNT:[\s\S]*?(?=\n\n\[|$)/g);
+  if (classInventoryMatches && classInventoryMatches.length > 0) {
+    const lines = [`### 🎓 Class Enrollment & Student Roster`];
+    classInventoryMatches.forEach((blk) => {
+      lines.push(blk.replace(/\[MATCHED CLASS INVENTORY & STUDENT COUNT:.*?\]:\s*/, ""));
+    });
+    lines.push(`\n🔗 **Direct Link:** [👉 Open Students Portal](/dashboard/students)`);
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 0b. If matched batch inventory was found:
+  const batchInventoryMatches = contextText.match(/\[MATCHED BATCH INVENTORY & STUDENT COUNT:[\s\S]*?(?=\n\n\[|$)/g);
+  if (batchInventoryMatches && batchInventoryMatches.length > 0) {
+    const lines = [`### 🎓 Batch Enrollment & Student Roster`];
+    batchInventoryMatches.forEach((blk) => {
+      lines.push(blk.replace(/\[MATCHED BATCH INVENTORY & STUDENT COUNT:.*?\]:\s*/, ""));
+    });
+    lines.push(`\n🔗 **Direct Link:** [👉 Open Students Portal](/dashboard/students)`);
+    return { answer: lines.join("\n\n"), sources };
+  }
 
   // 1. If individual student profile blocks were found:
   const studentProfiles = contextText.match(/\[STUDENT PROFILE:[\s\S]*?(?=\n\n\[|$)/g);
@@ -1766,6 +2472,71 @@ async function synthesizeDatabaseAnswer(rawQuery, intent, institution) {
     return { answer: lines.join("\n\n"), sources };
   }
 
+  // 1b. Attendance Toppers / Shortages
+  const attTopperBlock = contextText.match(/\[ATTENDANCE TOPPERS[\s\S]*?(?=\n\n\[|$)/);
+  if (attTopperBlock) {
+    const lines = [
+      `### 🏆 Attendance Toppers by Class`,
+      attTopperBlock[0].replace(/\[ATTENDANCE TOPPERS.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Attendance Portal](/dashboard/attendances)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  const attShortageBlock = contextText.match(/\[STUDENTS WITH ATTENDANCE SHORTAGE[\s\S]*?(?=\n\n\[|$)/);
+  if (attShortageBlock) {
+    const lines = [
+      `### ⚠️ Attendance Shortage Report (< 75%)`,
+      attShortageBlock[0].replace(/\[STUDENTS WITH ATTENDANCE SHORTAGE.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Attendance Portal](/dashboard/attendances)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 1c. Exam Results & Toppers
+  const examBlock = contextText.match(/\[EXAM RESULTS & TOPPERS[\s\S]*?(?=\n\n\[|$)/);
+  if (examBlock) {
+    const lines = [
+      `### 📝 Exam Results & Performance Toppers`,
+      examBlock[0].replace(/\[EXAM RESULTS & TOPPERS.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Marks Portal](/dashboard/marks)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 1d. Teams & Arts Fest Leaderboard
+  const teamsBlock = contextText.match(/\[TEAMS & ARTS FEST LEADERBOARD[\s\S]*?(?=\n\n\[|$)/);
+  if (teamsBlock) {
+    const lines = [
+      `### 🎭 Arts Fest Teams Leaderboard`,
+      teamsBlock[0].replace(/\[TEAMS & ARTS FEST LEADERBOARD.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Teams Portal](/dashboard/teams)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 1e. Quran Hifz & Doura
+  const hifzBlock = contextText.match(/\[QURAN HIFZ & DOURA[\s\S]*?(?=\n\n\[|$)/);
+  if (hifzBlock) {
+    const lines = [
+      `### 📖 Quran Hifz & Doura Memorization Progress`,
+      hifzBlock[0].replace(/\[QURAN HIFZ & DOURA.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Hifz Portal](/dashboard/hifz-doura)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
+  // 1f. Faculty Attendance & Leaves
+  const facAttBlock = contextText.match(/\[FACULTY ATTENDANCE[\s\S]*?(?=\n\n\[|$)/);
+  if (facAttBlock) {
+    const lines = [
+      `### 👨‍🏫 Faculty Attendance & Leaves`,
+      facAttBlock[0].replace(/\[FACULTY ATTENDANCE.*\]:\s*/, ""),
+      `\n🔗 **Direct Link:** [👉 Open Faculty Portal](/dashboard/teachers)`,
+    ];
+    return { answer: lines.join("\n\n"), sources };
+  }
+
   // 2. If teaching faculty matched:
   const facultyBlock = contextText.match(/\[FACULTY MEMBERS[\s\S]*?(?=\n\n\[|$)/);
   if (facultyBlock) {
@@ -1778,11 +2549,11 @@ async function synthesizeDatabaseAnswer(rawQuery, intent, institution) {
   }
 
   // 3. If library books matched:
-  const booksBlock = contextText.match(/\[LIBRARY BOOKS CATALOG[\s\S]*?(?=\n\n\[|$)/);
+  const booksBlock = contextText.match(/\[LIBRARY (?:BOOKS CATALOG|CATALOG & BORROWING)[\s\S]*?(?=\n\n\[|$)/);
   if (booksBlock) {
     const lines = [
-      `### 📚 Library Catalog Search`,
-      booksBlock[0].replace(/\[LIBRARY BOOKS CATALOG.*\]:\s*/, ""),
+      `### 📚 Library Catalog & Borrowing Records`,
+      booksBlock[0].replace(/\[LIBRARY (?:BOOKS CATALOG|CATALOG & BORROWING).*\]:\s*/, ""),
       `\n🔗 **Direct Link:** [👉 Open Library Dashboard](/library-dashboard)`,
     ];
     return { answer: lines.join("\n\n"), sources };
@@ -1811,11 +2582,11 @@ async function synthesizeDatabaseAnswer(rawQuery, intent, institution) {
   }
 
   // 6. If fee debtors / accounts matched:
-  const debtorsBlock = contextText.match(/\[ACCOUNTS & DEBTORS[\s\S]*?(?=\n\n\[|$)/);
+  const debtorsBlock = contextText.match(/\[ACCOUNTS & (?:STUDENT FEE DUES|DEBTORS)[\s\S]*?(?=\n\n\[|$)/);
   if (debtorsBlock) {
     const lines = [
       `### 💰 Fee Accounts & Debtors Summary`,
-      debtorsBlock[0].replace(/\[ACCOUNTS & DEBTORS.*\]:\s*/, ""),
+      debtorsBlock[0].replace(/\[ACCOUNTS & (?:STUDENT FEE DUES|DEBTORS).*\]:\s*/, ""),
       `\n🔗 **Direct Link:** [👉 Open Debtors Portal](/dashboard/debtors)`,
     ];
     return { answer: lines.join("\n\n"), sources };
@@ -1899,6 +2670,7 @@ export async function POST(req) {
 
     const body = await req.json().catch(() => ({}));
     const rawQuery = (body?.query || "").trim();
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
 
     if (!rawQuery) {
       return NextResponse.json(
@@ -1938,40 +2710,53 @@ export async function POST(req) {
 
         const systemInstruction =
           `You are the official administrative AI assistant for ${institution.name} (${institution.tagline}), powered by Google Gemini. ` +
-          `You have authoritative access to live, verified records from the Scofist college database across all 56 collections. ` +
+          `You have authoritative access to live, verified records from the Scofist college database across all 56 collections.\n\n` +
+          `${SCOFIST_SCHEMA_CATALOG}\n\n` +
           `Your instructions:\n` +
-          `1. Answer the user's inquiry directly, accurately, and thoroughly based on the live Scofist database context provided below.\n` +
-          `2. When the user asks for "everything", a full database search, or an inventory of the database, synthesize a comprehensive executive dashboard report. Present structured markdown tables grouping the collections (Academics, Students & Conduct, Faculty, Library, Arts Fest & Extracurriculars), quoting exact active record counts and providing clickable markdown links (e.g. [👉 Open Remarks Portal](/dashboard/remarks)).\n` +
-          `3. Quote exact numbers, names, IDs, dates, contact numbers, and balances directly from the data.\n` +
-          `4. Format responses cleanly in GitHub-flavored Markdown with clear headings (###), bold key figures, and interactive markdown tables for listings, standings, or inventories.\n` +
-          `5. When referring to dashboard pages or modules (e.g. remarks, students, faculty, library), always provide the direct clickable link in markdown format (e.g. [👉 Open Remarks Portal](/dashboard/remarks)).\n` +
-          `6. If a specific student, teacher, or record was searched but not found in the database, explicitly state that no record was found for that query in the active database, mention the total counts (e.g. ${stats.students} enrolled students, ${stats.teachers} faculty), and provide helpful guidance.\n` +
-          `7. Maintain a polite, professional, and administrative tone at all times.\n` +
-          `8. NEVER output tips on adding API keys, suggestions about environment variables or .env files, or lists of supported search commands. Deliver only direct, clean answers.`;
+          `1. Answer the user's inquiry directly, accurately, and thoroughly based on the live Scofist database.\n` +
+          `2. You have access to the 'query_college_database' tool. Whenever the inquiry requires specific records, aggregations, counts, rankings, dates, or details not immediately found in the provided context, CALL 'query_college_database' with the appropriate collection and query/pipeline.\n` +
+          `3. When the user asks for "everything", a full database search, or an inventory of the database, synthesize a comprehensive executive dashboard report. Present structured markdown tables grouping the collections (Academics, Students & Conduct, Faculty, Library, Arts Fest & Extracurriculars), quoting exact active record counts and providing clickable markdown links (e.g. [👉 Open Remarks Portal](/dashboard/remarks)).\n` +
+          `4. Quote exact numbers, names, IDs, dates, contact numbers, and balances directly from the database.\n` +
+          `5. Format responses cleanly in GitHub-flavored Markdown with clear headings (###), bold key figures, and interactive markdown tables for listings, standings, or inventories.\n` +
+          `6. When referring to dashboard pages or modules (e.g. remarks, students, faculty, library), always provide the direct clickable link in markdown format (e.g. [👉 Open Remarks Portal](/dashboard/remarks)).\n` +
+          `7. If a specific student, teacher, or record was searched but not found in the database, explicitly state that no record was found for that query in the active database, mention the total counts (e.g. ${stats.students} enrolled students, ${stats.teachers} faculty), and provide helpful guidance.\n` +
+          `8. Maintain a polite, professional, and administrative tone at all times.\n` +
+          `9. NEVER output tips on adding API keys, suggestions about environment variables or .env files, or lists of supported search commands. Deliver only direct, clean answers.\n` +
+          `10. When answering queries about attendance toppers, attendance shortages, exam rankings, fee balances, library readers, or arts fest standings, ALWAYS present the data clearly using Markdown tables or numbered lists with exact names, classes, percentages/scores, and periods/amounts from the verified records.\n` +
+          `11. Never deflect or state that records are too extensive or suggest going to the portal instead of answering. Always synthesize the exact answer directly from the live database records.`;
 
         const userPrompt =
           `USER INQUIRY: "${rawQuery}"\n\n` +
           `=== LIVE DATABASE RECORDS FROM SCOFIST ===\n` +
           contextText +
           `\n=== END OF DATABASE RECORDS ===\n\n` +
-          `Based strictly on the verified Scofist database records above, please answer the user's inquiry directly and accurately:`;
+          `Based strictly on the verified Scofist database records above (and calling 'query_college_database' if additional specific records are needed), please answer the user's inquiry directly and accurately:`;
 
-        const { text, model } = await generateGeminiContent({
+        const { text, model, toolCalls } = await generateGeminiContent({
           prompt: userPrompt,
+          messages,
           systemInstruction,
           institution,
           stats,
           apiKey: geminiKey,
+          tools: [DATABASE_TOOL_DECLARATION],
+          toolExecutor: executeSafeMongoQuery,
         });
 
         if (text && text.trim()) {
+          const toolSources = {};
+          if (toolCalls && toolCalls.length > 0) {
+            toolCalls.forEach((tc, idx) => {
+              toolSources[`tool_${tc.args?.collection || idx}`] = 1;
+            });
+          }
           return NextResponse.json({
             success: true,
             query: rawQuery,
             answer: text,
             isAiGenerated: true,
             model,
-            sources: { gemini: 1, ...sources },
+            sources: { gemini: 1, ...sources, ...toolSources },
           });
         }
       } catch (geminiError) {
