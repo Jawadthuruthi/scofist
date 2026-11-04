@@ -64,11 +64,7 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
         const response = await fetch("/api/settings");
         const data = await response.json();
         if (data.settings?.institution) {
-          const inst = { ...data.settings.institution };
-          if (!inst.logo?.url && data.settings?.general?.appIcon?.url) {
-            inst.logo = data.settings.general.appIcon;
-          }
-          setInstitution(inst);
+          setInstitution(data.settings.institution);
         }
 
         const role = activeRoleProp || (typeof window !== "undefined" ? Cookies.get("active-role") : null);
@@ -278,9 +274,9 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
           >
             <Card className="border-none shadow-none">
               <CardHeader className="flex flex-row items-center justify-center gap-3 pb-6 border-b bg-muted/30 space-y-0 text-center">
-                {(institution?.logo?.url || institution?.appIcon?.url) && (
+                {institution?.logo?.url && (
                   <img
-                    src={institution?.logo?.url || institution?.appIcon?.url}
+                    src={institution.logo.url}
                     alt="Institution Logo"
                     className="h-11 w-auto object-contain shrink-0"
                   />

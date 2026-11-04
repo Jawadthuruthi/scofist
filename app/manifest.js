@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 
 export default async function manifest() {
   let appIconUrl = "/sdc_seal.png";
-  let appIconType = "image/png";
   let appName = "Scofist";
   let appShortName = "Scofist";
   let appDescription =
@@ -14,20 +13,8 @@ export default async function manifest() {
   try {
     await connectToDB();
     const settings = await Settings.findOne({}).lean();
-    const resolvedUrl =
-      settings?.general?.appIcon?.url ||
-      settings?.institution?.logo?.url;
-
-    if (resolvedUrl) {
-      appIconUrl = resolvedUrl;
-      const lower = resolvedUrl.toLowerCase();
-      if (lower.endsWith(".svg") || lower.includes(".svg?")) {
-        appIconType = "image/svg+xml";
-      } else if (lower.endsWith(".webp") || lower.includes(".webp?")) {
-        appIconType = "image/webp";
-      } else {
-        appIconType = "image/png";
-      }
+    if (settings?.general?.appIcon?.url) {
+      appIconUrl = settings.general.appIcon.url;
     }
 
     if (settings?.institution?.name) {
@@ -40,7 +27,23 @@ export default async function manifest() {
     console.error("Error fetching app icon for manifest:", error);
   }
 
+  // Format exact 192x192 and 512x512 PNGs for Android WebAPK minting server
+  let icon192 = appIconUrl;
+  let icon512 = appIconUrl;
+  let iconMaskable = appIconUrl;
+  let iconType = "image/png";
+
+  if (appIconUrl.includes("res.cloudinary.com") && appIconUrl.includes("/upload/")) {
+    icon192 = appIconUrl.replace("/upload/", "/upload/w_192,h_192,c_fill,f_png,q_auto/");
+    icon512 = appIconUrl.replace("/upload/", "/upload/w_512,h_512,c_fill,f_png,q_auto/");
+    iconMaskable = appIconUrl.replace("/upload/", "/upload/w_512,h_512,c_pad,b_white,f_png,q_auto/");
+    iconType = "image/png";
+  } else if (appIconUrl.toLowerCase().endsWith(".svg") || appIconUrl.includes(".svg?")) {
+    iconType = "image/svg+xml";
+  }
+
   return {
+    id: "/",
     name: appName,
     short_name: appShortName,
     description: appDescription,
@@ -51,21 +54,21 @@ export default async function manifest() {
     theme_color: "#008000",
     icons: [
       {
-        src: appIconUrl,
+        src: icon192,
         sizes: "192x192",
-        type: appIconType,
+        type: iconType,
         purpose: "any",
       },
       {
-        src: appIconUrl,
+        src: icon512,
         sizes: "512x512",
-        type: appIconType,
+        type: iconType,
         purpose: "any",
       },
       {
-        src: appIconUrl,
+        src: iconMaskable,
         sizes: "512x512",
-        type: appIconType,
+        type: iconType,
         purpose: "maskable",
       },
     ],
@@ -77,9 +80,9 @@ export default async function manifest() {
         url: "/dashboard/my-periods",
         icons: [
           {
-            src: appIconUrl,
+            src: icon192,
             sizes: "96x96",
-            type: appIconType,
+            type: iconType,
           },
         ],
       },
@@ -90,9 +93,9 @@ export default async function manifest() {
         url: "/dashboard",
         icons: [
           {
-            src: appIconUrl,
+            src: icon192,
             sizes: "96x96",
-            type: appIconType,
+            type: iconType,
           },
         ],
       },

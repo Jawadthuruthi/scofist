@@ -3,7 +3,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Settings from "@/models/Settings";
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function GET(req, res) {
   try {
@@ -19,7 +19,7 @@ export async function GET(req, res) {
 
     const { getYear } = await import("@/lib/getYear");
     const activeYear = await getYear(req);
-    
+
     // Inject session-specific festival settings
     if (settings.festivals && settings.festivals.length > 0) {
       const festivalForYear = settings.festivals.find(f => f.year === activeYear);
@@ -27,20 +27,20 @@ export async function GET(req, res) {
         settings.festival = festivalForYear;
       } else {
         // Do not bleed old session data into new sessions
-        settings.festival = { 
-          year: activeYear, 
-          festivalInfo: { year: parseInt(activeYear) || new Date().getFullYear() }, 
-          resultPosters: [] 
+        settings.festival = {
+          year: activeYear,
+          festivalInfo: { year: parseInt(activeYear) || new Date().getFullYear() },
+          resultPosters: []
         };
       }
     } else {
       // If no festivals array yet, but activeYear is different from the legacy year
       // (assuming legacy is "2025 november"), we still shouldn't bleed data.
       if (activeYear && activeYear !== "2025 november") {
-        settings.festival = { 
-          year: activeYear, 
-          festivalInfo: { year: parseInt(activeYear) || new Date().getFullYear() }, 
-          resultPosters: [] 
+        settings.festival = {
+          year: activeYear,
+          festivalInfo: { year: parseInt(activeYear) || new Date().getFullYear() },
+          resultPosters: []
         };
       }
     }
@@ -56,15 +56,6 @@ export async function GET(req, res) {
       if (!settings.general.activeSchedule) {
         settings.general.activeSchedule = settings.general.isSpecialDay ? "thursday" : "normal";
       }
-    }
-
-    // Ensure logo and appIcon stay synchronized across general and institution profiles
-    if (!settings.general?.appIcon?.url && settings.institution?.logo?.url) {
-      if (!settings.general) settings.general = {};
-      settings.general.appIcon = settings.institution.logo;
-    } else if (!settings.institution?.logo?.url && settings.general?.appIcon?.url) {
-      if (!settings.institution) settings.institution = {};
-      settings.institution.logo = settings.general.appIcon;
     }
 
     console.log("GET Settings - Spark Posters count:", settings.spark?.committeePosters?.length);
@@ -90,16 +81,12 @@ export async function POST(req, res) {
     // Fetch existing settings first
     const existingSettings = await Settings.findOne({});
 
-    // Synchronize logo and appIcon so updates to either apply everywhere
-    const effectiveLogo = data.logo ?? data.appIcon ?? existingSettings?.institution?.logo;
-    const effectiveAppIcon = data.appIcon ?? data.logo ?? existingSettings?.general?.appIcon;
-
     // Merge festival data safely
     const formattedData = {
       institution: {
         name: data.name ?? existingSettings?.institution?.name,
         tagline: data.tagline ?? existingSettings?.institution?.tagline,
-        logo: effectiveLogo,
+        logo: data.logo ?? existingSettings?.institution?.logo,
         institutionPhoto: data.institutionPhoto ?? existingSettings?.institution?.institutionPhoto,
         updatesLogo: data.updatesLogo ?? existingSettings?.institution?.updatesLogo,
         address: data.address ?? existingSettings?.institution?.address,
@@ -169,7 +156,7 @@ export async function POST(req, res) {
         isWorkingDay:
           data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
         occasion: data.occasion ?? existingSettings?.general?.occasion,
-        appIcon: effectiveAppIcon,
+        appIcon: data.appIcon ?? existingSettings?.general?.appIcon,
         allowPreviousDayAttendance: data.allowPreviousDayAttendance ?? existingSettings?.general?.allowPreviousDayAttendance ?? true,
         isSpecialDay: data.isSpecialDay ?? existingSettings?.general?.isSpecialDay ?? false,
         activeSchedule:
@@ -284,7 +271,9 @@ export async function POST(req, res) {
       );
 
       try {
+        revalidateTag("settings");
         revalidatePath("/", "layout");
+        revalidatePath("/dashboard", "layout");
         revalidatePath("/manifest.webmanifest");
       } catch (e) {
         console.error("Error revalidating settings paths in POST:", e);
@@ -302,7 +291,9 @@ export async function POST(req, res) {
       const newSettings = await Settings.create(formattedData);
 
       try {
+        revalidateTag("settings");
         revalidatePath("/", "layout");
+        revalidatePath("/dashboard", "layout");
         revalidatePath("/manifest.webmanifest");
       } catch (e) {
         console.error("Error revalidating settings paths in POST:", e);
@@ -321,7 +312,7 @@ export async function POST(req, res) {
 export async function PUT(req) {
   try {
     await connectToDB();
-    
+
     let data = {};
     const contentType = req.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
@@ -431,11 +422,6 @@ export async function PUT(req) {
             data.instagram ?? existingSettings?.institution?.contact?.instagram,
         },
       };
-
-      // Automatically keep general.appIcon in sync when institution logo is updated
-      if (data.logo && !data.appIcon) {
-        updateData["general.appIcon"] = data.logo;
-      }
     }
 
     // ID Card
@@ -535,10 +521,6 @@ export async function PUT(req) {
       }
       if (data.appIcon !== undefined) {
         updateData["general.appIcon"] = data.appIcon;
-        // Automatically keep institution.logo in sync when general.appIcon is updated
-        if (!data.logo && data.appIcon) {
-          updateData["institution.logo"] = data.appIcon;
-        }
       }
       if (data.allowPreviousDayAttendance !== undefined) {
         updateData["general.allowPreviousDayAttendance"] = data.allowPreviousDayAttendance;
@@ -606,7 +588,7 @@ export async function PUT(req) {
           const block = new Set();
           let curr = maxDate;
           const dateStrs = new Set(sorted.map(d => d.toISOString().split("T")[0]));
-          
+
           for (let i = 0; i < 365; i++) { // safety limit
             const currStr = curr.toISOString().split("T")[0];
             const isFriday = curr.getUTCDay() === 5;
@@ -687,7 +669,7 @@ export async function PUT(req) {
           const block = new Set();
           let curr = maxDate;
           const dateStrs = new Set(sorted.map(d => d.toISOString().split("T")[0]));
-          
+
           for (let i = 0; i < 365; i++) {
             const currStr = curr.toISOString().split("T")[0];
             const isFriday = curr.getUTCDay() === 5;
@@ -706,7 +688,7 @@ export async function PUT(req) {
         // Also backfill existing nonWorkingDays that don't have a log entry yet,
         // but ONLY for the latest continuous block (prevents overwriting old disconnected legacy dates)
         const latestBlockStrsTrue = getLatestBlockStrsTrue(newNonWorkingDays);
-        
+
         newNonWorkingDays.forEach((dt) => {
           const dateStr = new Date(dt).toISOString().split("T")[0];
           if (latestBlockStrsTrue.has(dateStr) && dateStr !== todayDS) {
@@ -958,7 +940,7 @@ export async function PUT(req) {
         newFestivals.push(updatedFestivalForYear);
       }
       updateData.festivals = newFestivals;
-      
+
       // Update legacy object ONLY if we are editing the legacy year,
       // otherwise we overwrite old session data!
       if (reqYear === "2025 november") {
@@ -978,7 +960,7 @@ export async function PUT(req) {
         if (removedYears.length === 1 && addedYears.length === 1) {
           const oldYearName = removedYears[0];
           const newYearName = addedYears[0];
-          
+
           try {
             const db = (await connectToDB()).connection.db;
             const collections = await db.listCollections().toArray();
@@ -1014,7 +996,9 @@ export async function PUT(req) {
     console.log("Settings updated. Org Posters count:", updatedSettings?.org?.committeePosters?.length);
 
     try {
+      revalidateTag("settings");
       revalidatePath("/", "layout");
+      revalidatePath("/dashboard", "layout");
       revalidatePath("/manifest.webmanifest");
     } catch (e) {
       console.error("Error revalidating settings paths in PUT:", e);

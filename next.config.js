@@ -97,6 +97,32 @@ const nextConfig = {
       },
       // ── Per-file headers ─────────────────────────────────────────────────
       {
+        source: '/manifest.webmanifest',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+        ],
+      },
+      {
+        source: '/api/app-icon',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+        ],
+      },
+      {
         source: '/sdc_seal.png',
         headers: [
           {

@@ -774,7 +774,7 @@ function ComboBox({ roles, role }) {
                     } catch (error) {
                       console.error("Error setting cookie:", error);
                     }
- if (currentValue === "Librarian") {
+                    if (currentValue === "Librarian") {
                       window.location.href = "/library-dashboard";
                     } else if (currentValue === "Gate Keeper") {
                       window.location.href = "/dashboard/gate-pass";
@@ -813,7 +813,6 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
   const [role, setRole] = useState(activeRole || filteredRoles[0] || "");
   const pathname = usePathname();
   const appLogoUrl =
-    settingsData?.institution?.logo?.url ||
     settingsData?.general?.appIcon?.url ||
     "/favicon.svg";
   const [logoSrc, setLogoSrc] = useState(appLogoUrl);
@@ -821,6 +820,15 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
   useEffect(() => {
     if (appLogoUrl) setLogoSrc(appLogoUrl);
   }, [appLogoUrl]);
+
+  useEffect(() => {
+    const handleAppIconUpdate = (e) => {
+      const newUrl = e.detail?.url;
+      if (newUrl) setLogoSrc(newUrl);
+    };
+    window.addEventListener("scofist:app-icon-updated", handleAppIconUpdate);
+    return () => window.removeEventListener("scofist:app-icon-updated", handleAppIconUpdate);
+  }, []);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [pendingTeacherRequestsCount, setPendingTeacherRequestsCount] = useState(0);
   const [pendingStudentRequestsCount, setPendingStudentRequestsCount] = useState(0);
@@ -836,7 +844,7 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
         ]);
         const teacherData = await teacherRes.json();
         const studentData = await studentRes.json();
-        
+
         if (teacherData.pagination?.total !== undefined) {
           setPendingTeacherRequestsCount(teacherData.pagination.total);
         }
@@ -953,8 +961,8 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
         ...item,
         subItems: item.subItems
           ? item.subItems.filter((subItem) =>
-              subItem.allowedRoles?.includes(role)
-            )
+            subItem.allowedRoles?.includes(role)
+          )
           : undefined,
       }))
       .filter((item) => {

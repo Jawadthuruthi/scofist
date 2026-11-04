@@ -20,13 +20,13 @@ export default async function SettingsPage() {
 
     const general = {
       ...data.general,
-      appIcon: data.general?.appIcon?.url ? data.general.appIcon : (data.institution?.logo?.url ? data.institution.logo : {}),
+      appIcon: data.general?.appIcon || {},
     };
 
     const institution = {
       ...data.institution,
       ...data.institution?.contact,
-      logo: data.institution?.logo?.url ? data.institution.logo : (data.general?.appIcon?.url ? data.general.appIcon : {}),
+      logo: data.institution?.logo || {},
     };
 
     const festival = {
@@ -90,9 +90,9 @@ export default async function SettingsPage() {
 
     return (
       <>
-        <Header 
-          title={isFestivalRole ? "FESTIVAL SETTINGS" : "SETTINGS"} 
-          subTitle={isFestivalRole ? "Configure Festival Details" : "Configure all settings"} 
+        <Header
+          title={isFestivalRole ? "FESTIVAL SETTINGS" : "SETTINGS"}
+          subTitle={isFestivalRole ? "Configure Festival Details" : "Configure all settings"}
         />
         <SettingsClient
           activeRole={activeRole}

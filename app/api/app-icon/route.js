@@ -8,9 +8,7 @@ export async function GET(req) {
   try {
     await connectToDB();
     const settings = await Settings.findOne({}).lean();
-    const targetUrl =
-      settings?.general?.appIcon?.url ||
-      settings?.institution?.logo?.url;
+    const targetUrl = settings?.general?.appIcon?.url;
 
     if (targetUrl) {
       return NextResponse.redirect(targetUrl, {
@@ -25,7 +23,7 @@ export async function GET(req) {
   } catch (error) {
     console.error("Error fetching app icon:", error);
   }
-  
+
   return NextResponse.redirect(new URL("/favicon.svg", req.url), {
     status: 302,
     headers: {

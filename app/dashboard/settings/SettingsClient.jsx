@@ -464,6 +464,22 @@ export default function SettingsClient({
               title="App Icon"
               description="Configure the PWA App Icon"
               hideDefaultSubmit={true}
+              onSuccess={() => {
+                if (typeof window !== "undefined") {
+                  fetch("/api/settings")
+                    .then((r) => r.json())
+                    .then((d) => {
+                      if (d.settings?.general?.appIcon?.url) {
+                        window.dispatchEvent(
+                          new CustomEvent("scofist:app-icon-updated", {
+                            detail: d.settings.general.appIcon,
+                          })
+                        );
+                      }
+                    })
+                    .catch(() => {});
+                }
+              }}
             />
           </div>
         </>
