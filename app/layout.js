@@ -96,6 +96,7 @@ export const metadata = {
   },
 
   category: "Education",
+  manifest: "/manifest.webmanifest",
 };
 
 // Additional JSON-LD structured data for your pages

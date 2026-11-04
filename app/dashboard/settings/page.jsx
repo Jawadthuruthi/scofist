@@ -20,11 +20,13 @@ export default async function SettingsPage() {
 
     const general = {
       ...data.general,
+      appIcon: data.general?.appIcon?.url ? data.general.appIcon : (data.institution?.logo?.url ? data.institution.logo : {}),
     };
 
     const institution = {
       ...data.institution,
-      ...data.institution.contact,
+      ...data.institution?.contact,
+      logo: data.institution?.logo?.url ? data.institution.logo : (data.general?.appIcon?.url ? data.general.appIcon : {}),
     };
 
     const festival = {

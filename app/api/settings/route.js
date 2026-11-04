@@ -3,6 +3,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Settings from "@/models/Settings";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 export async function GET(req, res) {
   try {
@@ -57,6 +58,15 @@ export async function GET(req, res) {
       }
     }
 
+    // Ensure logo and appIcon stay synchronized across general and institution profiles
+    if (!settings.general?.appIcon?.url && settings.institution?.logo?.url) {
+      if (!settings.general) settings.general = {};
+      settings.general.appIcon = settings.institution.logo;
+    } else if (!settings.institution?.logo?.url && settings.general?.appIcon?.url) {
+      if (!settings.institution) settings.institution = {};
+      settings.institution.logo = settings.general.appIcon;
+    }
+
     console.log("GET Settings - Spark Posters count:", settings.spark?.committeePosters?.length);
     console.log("GET Settings - Org Posters count:", settings.org?.committeePosters?.length);
 
@@ -80,12 +90,16 @@ export async function POST(req, res) {
     // Fetch existing settings first
     const existingSettings = await Settings.findOne({});
 
+    // Synchronize logo and appIcon so updates to either apply everywhere
+    const effectiveLogo = data.logo ?? data.appIcon ?? existingSettings?.institution?.logo;
+    const effectiveAppIcon = data.appIcon ?? data.logo ?? existingSettings?.general?.appIcon;
+
     // Merge festival data safely
     const formattedData = {
       institution: {
         name: data.name ?? existingSettings?.institution?.name,
         tagline: data.tagline ?? existingSettings?.institution?.tagline,
-        logo: data.logo ?? existingSettings?.institution?.logo,
+        logo: effectiveLogo,
         institutionPhoto: data.institutionPhoto ?? existingSettings?.institution?.institutionPhoto,
         updatesLogo: data.updatesLogo ?? existingSettings?.institution?.updatesLogo,
         address: data.address ?? existingSettings?.institution?.address,
@@ -155,7 +169,7 @@ export async function POST(req, res) {
         isWorkingDay:
           data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
         occasion: data.occasion ?? existingSettings?.general?.occasion,
-        appIcon: data.appIcon ?? existingSettings?.general?.appIcon,
+        appIcon: effectiveAppIcon,
         allowPreviousDayAttendance: data.allowPreviousDayAttendance ?? existingSettings?.general?.allowPreviousDayAttendance ?? true,
         isSpecialDay: data.isSpecialDay ?? existingSettings?.general?.isSpecialDay ?? false,
         activeSchedule:
@@ -269,6 +283,13 @@ export async function POST(req, res) {
         { new: true }
       );
 
+      try {
+        revalidatePath("/", "layout");
+        revalidatePath("/manifest.webmanifest");
+      } catch (e) {
+        console.error("Error revalidating settings paths in POST:", e);
+      }
+
       return NextResponse.json(
         {
           settings: updatedSettings,
@@ -279,6 +300,13 @@ export async function POST(req, res) {
     } else {
       // Create new settings
       const newSettings = await Settings.create(formattedData);
+
+      try {
+        revalidatePath("/", "layout");
+        revalidatePath("/manifest.webmanifest");
+      } catch (e) {
+        console.error("Error revalidating settings paths in POST:", e);
+      }
 
       return NextResponse.json(
         { settings: newSettings, message: "Settings created successfully!" },
@@ -403,6 +431,11 @@ export async function PUT(req) {
             data.instagram ?? existingSettings?.institution?.contact?.instagram,
         },
       };
+
+      // Automatically keep general.appIcon in sync when institution logo is updated
+      if (data.logo && !data.appIcon) {
+        updateData["general.appIcon"] = data.logo;
+      }
     }
 
     // ID Card
@@ -502,6 +535,10 @@ export async function PUT(req) {
       }
       if (data.appIcon !== undefined) {
         updateData["general.appIcon"] = data.appIcon;
+        // Automatically keep institution.logo in sync when general.appIcon is updated
+        if (!data.logo && data.appIcon) {
+          updateData["institution.logo"] = data.appIcon;
+        }
       }
       if (data.allowPreviousDayAttendance !== undefined) {
         updateData["general.allowPreviousDayAttendance"] = data.allowPreviousDayAttendance;
@@ -975,6 +1012,13 @@ export async function PUT(req) {
       { new: true, runValidators: true }
     );
     console.log("Settings updated. Org Posters count:", updatedSettings?.org?.committeePosters?.length);
+
+    try {
+      revalidatePath("/", "layout");
+      revalidatePath("/manifest.webmanifest");
+    } catch (e) {
+      console.error("Error revalidating settings paths in PUT:", e);
+    }
 
     return NextResponse.json(
       { settings: updatedSettings, message: "Settings updated successfully!" },

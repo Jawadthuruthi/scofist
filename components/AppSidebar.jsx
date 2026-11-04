@@ -813,8 +813,8 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
   const [role, setRole] = useState(activeRole || filteredRoles[0] || "");
   const pathname = usePathname();
   const appLogoUrl =
-    settingsData?.general?.appIcon?.url ||
     settingsData?.institution?.logo?.url ||
+    settingsData?.general?.appIcon?.url ||
     "/favicon.svg";
   const [logoSrc, setLogoSrc] = useState(appLogoUrl);
 
