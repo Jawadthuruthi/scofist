@@ -473,8 +473,8 @@ const Attendance = ({ apiKey, teacherId }) => {
         const name = (student.name || "").toLowerCase();
         const admNo = String(
           student.studentSpecificField?.admissionNumber ||
-            student.admissionNumber ||
-            ""
+          student.admissionNumber ||
+          ""
         ).toLowerCase();
         const id = String(student._id || "").toLowerCase();
         const rollStr = String(originalIndex);
@@ -488,53 +488,53 @@ const Attendance = ({ apiKey, teacherId }) => {
       });
   }, [filteredStudents, searchQuery]);
 
-    // Navigate to my-periods
-    const navigateToMyPeriods = useCallback(() => {
-      if (typeof window !== "undefined") {
-        try {
-          sessionStorage.removeItem("autoWhatsAppSlot");
-        } catch (e) {
-          // ignore
-        }
-        window.location.href = `/dashboard/my-periods${attendanceDate ? `?date=${encodeURIComponent(attendanceDate)}` : ""
-          }`;
+  // Navigate to my-periods
+  const navigateToMyPeriods = useCallback(() => {
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.removeItem("autoWhatsAppSlot");
+      } catch (e) {
+        // ignore
       }
-    }, [attendanceDate]);
+      window.location.href = `/dashboard/my-periods${attendanceDate ? `?date=${encodeURIComponent(attendanceDate)}` : ""
+        }`;
+    }
+  }, [attendanceDate]);
 
-    // Extract absent students with leave reasons and formatted contact numbers
-    const getAbsentStudentsToMessage = useCallback(() => {
-      const isReset = successMessage?.toLowerCase().includes("reset");
-      if (isReset) return [];
+  // Extract absent students with leave reasons and formatted contact numbers
+  const getAbsentStudentsToMessage = useCallback(() => {
+    const isReset = successMessage?.toLowerCase().includes("reset");
+    if (isReset) return [];
 
-          const absentStudents = filteredStudents.filter((s) => !attendance[s._id]);
-          const list = [];
+    const absentStudents = filteredStudents.filter((s) => !attendance[s._id]);
+    const list = [];
 
-          absentStudents.forEach((student) => {
-            const number =
-              student.guardianContactNumber ||
-              student.studentSpecificField?.guardianContactNumber ||
-              student.contactNumber;
-            let formattedNumber = number ? String(number).replace(/\D/g, "") : "";
-            if (formattedNumber.length === 10) {
-              formattedNumber = `91${formattedNumber}`;
-            }
+    absentStudents.forEach((student) => {
+      const number =
+        student.guardianContactNumber ||
+        student.studentSpecificField?.guardianContactNumber ||
+        student.contactNumber;
+      let formattedNumber = number ? String(number).replace(/\D/g, "") : "";
+      if (formattedNumber.length === 10) {
+        formattedNumber = `91${formattedNumber}`;
+      }
 
-            if (!list.some((s) => s.id === student._id || (formattedNumber && s.contactNumber === formattedNumber))) {
-              const rawReason =
-                attendanceReasons[student._id] ||
-                studentLeaveStatus[student._id]?.leaveReason ||
-                "";
-              const leaveReason =
-                rawReason && rawReason !== "No Reason" ? rawReason.trim() : "";
+      if (!list.some((s) => s.id === student._id || (formattedNumber && s.contactNumber === formattedNumber))) {
+        const rawReason =
+          attendanceReasons[student._id] ||
+          studentLeaveStatus[student._id]?.leaveReason ||
+          "";
+        const leaveReason =
+          rawReason && rawReason !== "No Reason" ? rawReason.trim() : "";
 
-              list.push({
-                id: student._id,
-                name: student.name || "Student",
-                contactNumber: formattedNumber,
-                leaveReason: leaveReason,
-              });
-            }
+        list.push({
+          id: student._id,
+          name: student.name || "Student",
+          contactNumber: formattedNumber,
+          leaveReason: leaveReason,
         });
+      }
+    });
 
     return list;
   }, [
@@ -567,623 +567,623 @@ const Attendance = ({ apiKey, teacherId }) => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-}, [showSuccessDialog, handleSuccessClose]);
+  }, [showSuccessDialog, handleSuccessClose]);
 
-// Toggle individual student attendance
-const toggleAttendance = useCallback((studentId) => {
-  setPreviousAttendanceState(null);
-  setAttendance((prev) => {
-    const isCurrentlyPresent = prev[studentId];
-    if (!isCurrentlyPresent) {
-      // Marking as present, so clear the leave reason
-      setAttendanceReasons((reasons) => {
-        const newReasons = { ...reasons };
-        delete newReasons[studentId];
-        return newReasons;
-      });
-    }
-    return {
-      ...prev,
-      [studentId]: !isCurrentlyPresent,
-    };
-  });
-}, []);
+  // Toggle individual student attendance
+  const toggleAttendance = useCallback((studentId) => {
+    setPreviousAttendanceState(null);
+    setAttendance((prev) => {
+      const isCurrentlyPresent = prev[studentId];
+      if (!isCurrentlyPresent) {
+        // Marking as present, so clear the leave reason
+        setAttendanceReasons((reasons) => {
+          const newReasons = { ...reasons };
+          delete newReasons[studentId];
+          return newReasons;
+        });
+      }
+      return {
+        ...prev,
+        [studentId]: !isCurrentlyPresent,
+      };
+    });
+  }, []);
 
-// Memoize attendance statistics
-const attendanceStats = useMemo(() => {
-  const total = filteredStudents.length;
-  const present = filteredStudents.filter(st => attendance[st._id]).length;
-  const absent = total - present;
-  const presentPercentage =
-    total > 0 ? Math.round((present / total) * 100) : 0;
-  const absentPercentage = total > 0 ? Math.round((absent / total) * 100) : 0;
+  // Memoize attendance statistics
+  const attendanceStats = useMemo(() => {
+    const total = filteredStudents.length;
+    const present = filteredStudents.filter(st => attendance[st._id]).length;
+    const absent = total - present;
+    const presentPercentage =
+      total > 0 ? Math.round((present / total) * 100) : 0;
+    const absentPercentage = total > 0 ? Math.round((absent / total) * 100) : 0;
 
-  return { total, present, absent, presentPercentage, absentPercentage };
-}, [filteredStudents, attendance]);
+    return { total, present, absent, presentPercentage, absentPercentage };
+  }, [filteredStudents, attendance]);
 
-// Memoize absentee info lookup
-const getStudentAbsenteeInfo = useCallback(
-  (studentId) =>
-    absenteeData.find(
-      (student) => String(student.studentId) === String(studentId)
-    ),
-  [absenteeData]
-);
+  // Memoize absentee info lookup
+  const getStudentAbsenteeInfo = useCallback(
+    (studentId) =>
+      absenteeData.find(
+        (student) => String(student.studentId) === String(studentId)
+      ),
+    [absenteeData]
+  );
 
-// Determine row styling based on student status
-const getRowStyling = useCallback(
-  (studentId, isPresent) => {
-    const leaveInfo = studentLeaveStatus[studentId];
+  // Determine row styling based on student status
+  const getRowStyling = useCallback(
+    (studentId, isPresent) => {
+      const leaveInfo = studentLeaveStatus[studentId];
 
-    if (isPresent) {
-      return { className: "hover:bg-muted/50", textColor: "" };
-    }
+      if (isPresent) {
+        return { className: "hover:bg-muted/50", textColor: "" };
+      }
 
-    // Student is absent - check leave status
-    if (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived) {
+      // Student is absent - check leave status
+      if (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived) {
+        return {
+          className:
+            "bg-red-100 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-950",
+          textColor: "text-red-900 dark:text-red-100",
+        };
+      }
+
+      // Regular absent student
       return {
         className:
-          "bg-red-100 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-950",
-        textColor: "text-red-900 dark:text-red-100",
+          "bg-rose-50 dark:bg-rose-950 hover:bg-rose-50 dark:hover:bg-rose-950",
+        textColor: "text-rose-900 dark:text-rose-100",
       };
+    },
+    [studentLeaveStatus]
+  );
+
+  // Handle save attendance
+  const handleSaveAttendance = useCallback(async () => {
+    if (saving) return;
+
+    try {
+      setSaving(true);
+
+      const attendanceData = filteredStudents.map((student) => ({
+        studentId: student._id,
+        present: !!attendance[student._id],
+        leaveReason: attendance[student._id] ? null : (attendanceReasons[student._id] || null),
+      }));
+
+      const payload = {
+        classId,
+        batchId,
+        subjectId,
+        teacherId,
+        periodNumber: parseInt(periodNumber),
+        day,
+        date: attendanceDate,
+        attendanceData,
+      };
+
+      if (attendanceExists && existingAttendanceId) {
+        await updateAttendance.mutateAsync({
+          data: { _id: existingAttendanceId, ...payload },
+        });
+        setSuccessMessage("Attendance Updated Successfully!");
+        setShowSuccessDialog(true);
+        setPreviousAttendanceState(null);
+        historicalAttendanceQuery.refetch();
+      } else {
+        await createAttendance.mutateAsync(payload);
+        setSuccessMessage("Attendance Saved Successfully!");
+        setShowSuccessDialog(true);
+        setAttendanceExists(true);
+        setPreviousAttendanceState(null);
+        historicalAttendanceQuery.refetch();
+      }
+    } catch (error) {
+      console.error("Error saving attendance:", error);
+      toast.error(`Failed to save attendance: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
+  }, [
+    saving,
+    filteredStudents,
+    attendance,
+    classId,
+    batchId,
+    subjectId,
+    teacherId,
+    periodNumber,
+    day,
+    attendanceDate,
+    attendanceExists,
+    existingAttendanceId,
+    updateAttendance,
+    createAttendance,
+    historicalAttendanceQuery,
+  ]);
 
-    // Regular absent student
-    return {
-      className:
-        "bg-rose-50 dark:bg-rose-950 hover:bg-rose-50 dark:hover:bg-rose-950",
-      textColor: "text-rose-900 dark:text-rose-100",
-    };
-  },
-  [studentLeaveStatus]
-);
+  // Handle delete attendance
+  const handleDeleteAttendance = useCallback(async () => {
+    if (saving || !attendanceExists || !existingAttendanceId) return;
 
-// Handle save attendance
-const handleSaveAttendance = useCallback(async () => {
-  if (saving) return;
-
-  try {
-    setSaving(true);
-
-    const attendanceData = filteredStudents.map((student) => ({
-      studentId: student._id,
-      present: !!attendance[student._id],
-      leaveReason: attendance[student._id] ? null : (attendanceReasons[student._id] || null),
-    }));
-
-    const payload = {
-      classId,
-      batchId,
-      subjectId,
-      teacherId,
-      periodNumber: parseInt(periodNumber),
-      day,
-      date: attendanceDate,
-      attendanceData,
-    };
-
-    if (attendanceExists && existingAttendanceId) {
-      await updateAttendance.mutateAsync({
-        data: { _id: existingAttendanceId, ...payload },
+    try {
+      setSaving(true);
+      await deleteAttendance.mutateAsync({
+        data: { ids: [existingAttendanceId] },
       });
-      setSuccessMessage("Attendance Updated Successfully!");
+      setSuccessMessage("Attendance Reset Successfully!");
       setShowSuccessDialog(true);
+
+      setAttendanceExists(false);
+      setExistingAttendanceId(null);
       setPreviousAttendanceState(null);
-      historicalAttendanceQuery.refetch();
-    } else {
-      await createAttendance.mutateAsync(payload);
-      setSuccessMessage("Attendance Saved Successfully!");
-      setShowSuccessDialog(true);
-      setAttendanceExists(true);
-      setPreviousAttendanceState(null);
-      historicalAttendanceQuery.refetch();
+
+      // Reset attendance based on leave status
+      const resetAttendance = initializeAttendance(
+        filteredStudents,
+        studentLeaveStatus
+      );
+      setAttendance(resetAttendance);
+    } catch (error) {
+      console.error("Error resetting attendance:", error);
+      toast.error(`Failed to reset attendance: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
-  } catch (error) {
-    console.error("Error saving attendance:", error);
-    toast.error(`Failed to save attendance: ${error.message}`);
-  } finally {
-    setSaving(false);
-  }
-}, [
-  saving,
-  filteredStudents,
-  attendance,
-  classId,
-  batchId,
-  subjectId,
-  teacherId,
-  periodNumber,
-  day,
-  attendanceDate,
-  attendanceExists,
-  existingAttendanceId,
-  updateAttendance,
-  createAttendance,
-  historicalAttendanceQuery,
-]);
+  }, [
+    saving,
+    attendanceExists,
+    existingAttendanceId,
+    deleteAttendance,
+    students,
+    studentLeaveStatus,
+    initializeAttendance,
+  ]);
 
-// Handle delete attendance
-const handleDeleteAttendance = useCallback(async () => {
-  if (saving || !attendanceExists || !existingAttendanceId) return;
-
-  try {
-    setSaving(true);
-    await deleteAttendance.mutateAsync({
-      data: { ids: [existingAttendanceId] },
-    });
-    setSuccessMessage("Attendance Reset Successfully!");
-    setShowSuccessDialog(true);
-
-    setAttendanceExists(false);
-    setExistingAttendanceId(null);
+  const handleQuickLeaveSubmit = async () => {
+    if (!quickLeaveStudent) return;
     setPreviousAttendanceState(null);
 
-    // Reset attendance based on leave status
-    const resetAttendance = initializeAttendance(
-      filteredStudents,
-      studentLeaveStatus
-    );
-    setAttendance(resetAttendance);
-  } catch (error) {
-    console.error("Error resetting attendance:", error);
-    toast.error(`Failed to reset attendance: ${error.message}`);
-  } finally {
-    setSaving(false);
-  }
-}, [
-  saving,
-  attendanceExists,
-  existingAttendanceId,
-  deleteAttendance,
-  students,
-  studentLeaveStatus,
-  initializeAttendance,
-]);
+    if (quickLeaveStudent === 'bulk') {
+      const applicableStudents = filteredStudents.filter(student => {
+        const isPresent = attendance[student._id];
+        const leaveInfo = studentLeaveStatus[student._id];
+        const isOfficialLeave = leaveInfo?.isOnLeave && !leaveInfo?.hasArrived;
+        return !isPresent && !isOfficialLeave;
+      });
 
-const handleQuickLeaveSubmit = async () => {
-  if (!quickLeaveStudent) return;
-  setPreviousAttendanceState(null);
+      setBulkLeaveReason(quickLeaveReason);
 
-  if (quickLeaveStudent === 'bulk') {
-    const applicableStudents = filteredStudents.filter(student => {
-      const isPresent = attendance[student._id];
-      const leaveInfo = studentLeaveStatus[student._id];
-      const isOfficialLeave = leaveInfo?.isOnLeave && !leaveInfo?.hasArrived;
-      return !isPresent && !isOfficialLeave;
-    });
-
-    setBulkLeaveReason(quickLeaveReason);
+      if (!quickLeaveReason.trim()) {
+        setAttendanceReasons((prev) => {
+          const next = { ...prev };
+          applicableStudents.forEach(s => delete next[s._id]);
+          return next;
+        });
+        toast.success("Leave reasons cleared for all absentees!");
+      } else {
+        setAttendanceReasons((prev) => {
+          const next = { ...prev };
+          applicableStudents.forEach(s => {
+            next[s._id] = quickLeaveReason;
+          });
+          return next;
+        });
+        toast.success("Leave reason added for all absentees!");
+      }
+      setQuickLeaveOpen(false);
+      return;
+    }
 
     if (!quickLeaveReason.trim()) {
+      // Clear existing leave reason locally
       setAttendanceReasons((prev) => {
         const next = { ...prev };
-        applicableStudents.forEach(s => delete next[s._id]);
+        delete next[quickLeaveStudent._id];
         return next;
       });
-      toast.success("Leave reasons cleared for all absentees!");
-    } else {
-      setAttendanceReasons((prev) => {
-        const next = { ...prev };
-        applicableStudents.forEach(s => {
-          next[s._id] = quickLeaveReason;
-        });
-        return next;
-      });
-      toast.success("Leave reason added for all absentees!");
+      toast.success("Leave reason cleared!");
+      setQuickLeaveOpen(false);
+      return;
     }
-    setQuickLeaveOpen(false);
-    return;
-  }
 
-  if (!quickLeaveReason.trim()) {
-    // Clear existing leave reason locally
-    setAttendanceReasons((prev) => {
+    setAttendanceReasons((prev) => ({
+      ...prev,
+      [quickLeaveStudent._id]: quickLeaveReason,
+    }));
+    toast.success("Leave reason added!");
+    setQuickLeaveOpen(false);
+  };
+
+  // Handle Present count touch / click
+  const handlePresentCountClick = useCallback(() => {
+    if (saving || !filteredStudents.length) return;
+
+    const allPresent = filteredStudents.every((st) => !!attendance[st._id]);
+
+    // If currently in all-present mode or all students are present and we have an earlier state saved:
+    if (previousAttendanceState && (previousAttendanceState.mode === "present" || allPresent)) {
+      setAttendance(previousAttendanceState.attendance);
+      setAttendanceReasons(previousAttendanceState.reasons);
+      setPreviousAttendanceState(null);
+      toast.info("Restored earlier attendance");
+      return;
+    }
+
+    // If all are already present and no earlier state exists
+    if (allPresent) {
+      toast.info("All students are already marked present");
+      return;
+    }
+
+    // Save previous state (preserve original snapshot if switching between bulk modes)
+    setPreviousAttendanceState((prev) =>
+      prev
+        ? { ...prev, mode: "present" }
+        : {
+          attendance: { ...attendance },
+          reasons: { ...attendanceReasons },
+          mode: "present",
+        }
+    );
+
+    // Mark all filtered students as present
+    setAttendance((prev) => {
       const next = { ...prev };
-      delete next[quickLeaveStudent._id];
+      filteredStudents.forEach((st) => {
+        next[st._id] = true;
+      });
       return next;
     });
-    toast.success("Leave reason cleared!");
-    setQuickLeaveOpen(false);
-    return;
-  }
 
-  setAttendanceReasons((prev) => ({
-    ...prev,
-    [quickLeaveStudent._id]: quickLeaveReason,
-  }));
-  toast.success("Leave reason added!");
-  setQuickLeaveOpen(false);
-};
+    toast.success("Marked all students as present");
+  }, [filteredStudents, attendance, attendanceReasons, previousAttendanceState, saving]);
 
-// Handle Present count touch / click
-const handlePresentCountClick = useCallback(() => {
-  if (saving || !filteredStudents.length) return;
+  // Handle Absent count touch / click
+  const handleAbsentCountClick = useCallback(() => {
+    if (saving || !filteredStudents.length) return;
 
-  const allPresent = filteredStudents.every((st) => !!attendance[st._id]);
+    const allAbsent = filteredStudents.every((st) => !attendance[st._id]);
 
-  // If currently in all-present mode or all students are present and we have an earlier state saved:
-  if (previousAttendanceState && (previousAttendanceState.mode === "present" || allPresent)) {
-    setAttendance(previousAttendanceState.attendance);
-    setAttendanceReasons(previousAttendanceState.reasons);
-    setPreviousAttendanceState(null);
-    toast.info("Restored earlier attendance");
-    return;
-  }
+    // If currently in all-absent mode or all students are absent and we have an earlier state saved:
+    if (previousAttendanceState && (previousAttendanceState.mode === "absent" || allAbsent)) {
+      setAttendance(previousAttendanceState.attendance);
+      setAttendanceReasons(previousAttendanceState.reasons);
+      setPreviousAttendanceState(null);
+      toast.info("Restored earlier attendance");
+      return;
+    }
 
-  // If all are already present and no earlier state exists
-  if (allPresent) {
-    toast.info("All students are already marked present");
-    return;
-  }
+    // If all are already absent and no earlier state exists
+    if (allAbsent) {
+      toast.info("All students are already marked absent");
+      return;
+    }
 
-  // Save previous state (preserve original snapshot if switching between bulk modes)
-  setPreviousAttendanceState((prev) =>
-    prev
-      ? { ...prev, mode: "present" }
-      : {
-        attendance: { ...attendance },
-        reasons: { ...attendanceReasons },
-        mode: "present",
-      }
-  );
+    // Save previous state (preserve original snapshot if switching between bulk modes)
+    setPreviousAttendanceState((prev) =>
+      prev
+        ? { ...prev, mode: "absent" }
+        : {
+          attendance: { ...attendance },
+          reasons: { ...attendanceReasons },
+          mode: "absent",
+        }
+    );
 
-  // Mark all filtered students as present
-  setAttendance((prev) => {
-    const next = { ...prev };
-    filteredStudents.forEach((st) => {
-      next[st._id] = true;
+    // Mark all filtered students as absent
+    setAttendance((prev) => {
+      const next = { ...prev };
+      filteredStudents.forEach((st) => {
+        next[st._id] = false;
+      });
+      return next;
     });
-    return next;
-  });
 
-  toast.success("Marked all students as present");
-}, [filteredStudents, attendance, attendanceReasons, previousAttendanceState, saving]);
+    toast.success("Marked all students as absent");
+  }, [filteredStudents, attendance, attendanceReasons, previousAttendanceState, saving]);
 
-// Handle Absent count touch / click
-const handleAbsentCountClick = useCallback(() => {
-  if (saving || !filteredStudents.length) return;
-
-  const allAbsent = filteredStudents.every((st) => !attendance[st._id]);
-
-  // If currently in all-absent mode or all students are absent and we have an earlier state saved:
-  if (previousAttendanceState && (previousAttendanceState.mode === "absent" || allAbsent)) {
-    setAttendance(previousAttendanceState.attendance);
-    setAttendanceReasons(previousAttendanceState.reasons);
-    setPreviousAttendanceState(null);
-    toast.info("Restored earlier attendance");
-    return;
-  }
-
-  // If all are already absent and no earlier state exists
-  if (allAbsent) {
-    toast.info("All students are already marked absent");
-    return;
-  }
-
-  // Save previous state (preserve original snapshot if switching between bulk modes)
-  setPreviousAttendanceState((prev) =>
-    prev
-      ? { ...prev, mode: "absent" }
-      : {
-        attendance: { ...attendance },
-        reasons: { ...attendanceReasons },
-        mode: "absent",
-      }
-  );
-
-  // Mark all filtered students as absent
-  setAttendance((prev) => {
-    const next = { ...prev };
-    filteredStudents.forEach((st) => {
-      next[st._id] = false;
-    });
-    return next;
-  });
-
-  toast.success("Marked all students as absent");
-}, [filteredStudents, attendance, attendanceReasons, previousAttendanceState, saving]);
-
-// Render loading state
-if (loading) {
-  return (
-    <div className="space-y-6">
-      <Header
-        title="ATTENDANCE MANAGEMENT"
-        subTitle="Loading attendance data..."
-      />
-      <div className="flex justify-center items-center h-40">
-        <Loader className="h-8 w-8 animate-spin" />
-      </div>
-    </div>
-  );
-}
-
-return (
-  <div className="space-y-4">
-    {/* Header & Metadata */}
-    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-      <div className="flex-1 -mb-4 md:mb-0">
+  // Render loading state
+  if (loading) {
+    return (
+      <div className="space-y-6">
         <Header
           title="ATTENDANCE MANAGEMENT"
-          subTitle={`${classDetails?.name || "Class"} - ${subjectName || "Subject"}`}
+          subTitle="Loading attendance data..."
         />
-      </div>
-
-      {/* Metadata */}
-      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 text-muted-foreground px-3 md:px-0 pb-0 md:pb-0 -mb-1 md:mb-0">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          <span className="text-sm font-medium">{today}</span>
-        </div>
-        <div className="hidden md:block h-4 w-px bg-border"></div>
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4" />
-          <span className="text-sm font-medium">
-            Period {periodNumber}: {periodDetails?.formattedTime}
-          </span>
+        <div className="flex justify-center items-center h-40">
+          <Loader className="h-8 w-8 animate-spin" />
         </div>
       </div>
-    </div>
+    );
+  }
 
-    {/* Stats Cards */}
-    <div className="border border-border rounded-lg p-2 md:p-4 bg-card/30">
-      <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={handlePresentCountClick}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handlePresentCountClick();
-            }
-          }}
-          className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
-          title={
-            previousAttendanceState && (previousAttendanceState.mode === "present" || (attendanceStats.present === attendanceStats.total && attendanceStats.total > 0))
-              ? "Click to restore earlier attendance"
-              : "Click to mark all present"
-          }
-        >
-          <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-            Total
-          </span>
-          <div
-            className={cn(
-              "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
-              previousAttendanceState?.mode === "present" && "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
-            )}
-          >
-            {attendanceStats.total}
-          </div>
+  return (
+    <div className="space-y-4">
+      {/* Header & Metadata */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+        <div className="flex-1 -mb-4 md:mb-0">
+          <Header
+            title="ATTENDANCE MANAGEMENT"
+            subTitle={`${classDetails?.name || "Class"} - ${subjectName || "Subject"}`}
+          />
         </div>
 
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={handlePresentCountClick}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handlePresentCountClick();
-            }
-          }}
-          className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
-          title={
-            previousAttendanceState && (previousAttendanceState.mode === "present" || (attendanceStats.present === attendanceStats.total && attendanceStats.total > 0))
-              ? "Click to restore earlier attendance"
-              : "Click to mark all present"
-          }
-        >
-          <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-            Present
-          </span>
-          <div
-            className={cn(
-              "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
-              previousAttendanceState?.mode === "present" && "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
-            )}
-          >
-            {attendanceStats.present}
+        {/* Metadata */}
+        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 text-muted-foreground px-3 md:px-0 pb-0 md:pb-0 -mb-1 md:mb-0">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span className="text-sm font-medium">{today}</span>
           </div>
-        </div>
-
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={handleAbsentCountClick}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleAbsentCountClick();
-            }
-          }}
-          className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg transition-all"
-          title={
-            previousAttendanceState && (previousAttendanceState.mode === "absent" || (attendanceStats.absent === attendanceStats.total && attendanceStats.total > 0))
-              ? "Click to restore earlier attendance"
-              : "Click to mark all absent"
-          }
-        >
-          <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
-            Absent
-          </span>
-          <div
-            className={cn(
-              "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:bg-red-600 group-hover:shadow-md",
-              previousAttendanceState?.mode === "absent" && "ring-2 ring-red-400 ring-offset-2 dark:ring-offset-background font-extrabold"
-            )}
-          >
-            {attendanceStats.absent}
+          <div className="hidden md:block h-4 w-px bg-border"></div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              Period {periodNumber}: {periodDetails?.formattedTime}
+            </span>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Stats Cards */}
+      <div className="border border-border rounded-lg p-2 md:p-4 bg-card/30">
+        <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={handlePresentCountClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handlePresentCountClick();
+              }
+            }}
+            className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
+            title={
+              previousAttendanceState && (previousAttendanceState.mode === "present" || (attendanceStats.present === attendanceStats.total && attendanceStats.total > 0))
+                ? "Click to restore earlier attendance"
+                : "Click to mark all present"
+            }
+          >
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              Total
+            </span>
+            <div
+              className={cn(
+                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
+                previousAttendanceState?.mode === "present" && "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+              )}
+            >
+              {attendanceStats.total}
+            </div>
+          </div>
+
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={handlePresentCountClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handlePresentCountClick();
+              }
+            }}
+            className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
+            title={
+              previousAttendanceState && (previousAttendanceState.mode === "present" || (attendanceStats.present === attendanceStats.total && attendanceStats.total > 0))
+                ? "Click to restore earlier attendance"
+                : "Click to mark all present"
+            }
+          >
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              Present
+            </span>
+            <div
+              className={cn(
+                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
+                previousAttendanceState?.mode === "present" && "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+              )}
+            >
+              {attendanceStats.present}
+            </div>
+          </div>
+
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={handleAbsentCountClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleAbsentCountClick();
+              }
+            }}
+            className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg transition-all"
+            title={
+              previousAttendanceState && (previousAttendanceState.mode === "absent" || (attendanceStats.absent === attendanceStats.total && attendanceStats.total > 0))
+                ? "Click to restore earlier attendance"
+                : "Click to mark all absent"
+            }
+          >
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+              Absent
+            </span>
+            <div
+              className={cn(
+                "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:bg-red-600 group-hover:shadow-md",
+                previousAttendanceState?.mode === "absent" && "ring-2 ring-red-400 ring-offset-2 dark:ring-offset-background font-extrabold"
+              )}
+            >
+              {attendanceStats.absent}
+            </div>
+          </div>
+        </div>
+      </div>
 
 
-    {/* Students Table */}
-    <div className="border rounded-md">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-10 text-center px-2">R.no</TableHead>
-            <TableHead className="px-2 py-1.5 min-w-[150px]">
-              <div className="relative flex items-center w-full max-w-xs">
-                <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                <Input
-                  type="text"
-                  placeholder="Search students..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") setSearchQuery("");
-                  }}
-                  className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSearchQuery("");
-                    }}
-                    className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
-                    title="Clear search"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            </TableHead>
-            <TableHead className="w-[50px] md:w-[70px] text-center px-1">
-              <span className="hidden md:inline">History</span>
-              <History className="h-5 w-5 md:hidden mx-auto" />
-            </TableHead>
-            <TableHead className="w-[50px] md:w-[90px] text-center px-1">
-              <div
-                className="cursor-pointer flex items-center justify-center mx-auto"
-                onClick={() => {
-                  setQuickLeaveStudent('bulk');
-                  setQuickLeaveReason(bulkLeaveReason);
-                  setQuickLeaveComboboxOpen(false);
-                  setQuickLeaveOpen(true);
-                }}
-                title="Add reason for all absentees"
-              >
-                <FilePlus className="text-muted-foreground h-5 w-5 md:hidden mx-auto hover:text-foreground" />
-                <Button size="sm" className="hidden md:inline-flex">
-                  Leave
-                </Button>
-              </div>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {displayedStudents.length > 0 ? (
-            displayedStudents.map(({ student, originalIndex }) => {
-              const absenteeInfo = getStudentAbsenteeInfo(student._id);
-              const hasAbsenceHistory = absenteeInfo?.continuousAbsences > 0;
-              const isPresent = attendance[student._id];
-              const rowStyling = getRowStyling(student._id, isPresent);
-              const leaveInfo = studentLeaveStatus[student._id];
-
-              return (
-                <TableRow
-                  key={student._id}
-                  className={`cursor-pointer ${rowStyling.className}`}
-                  onClick={() => toggleAttendance(student._id)}
-                >
-                  <TableCell className={`text-center align-middle px-2 ${rowStyling.textColor}`}>
-                    {originalIndex}
-                  </TableCell>
-                  <TableCell className="px-2">
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-center gap-1 shrink-0">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={student.profilePic?.url} />
-                          <AvatarFallback>
-                            {student.name.substring(0, 1)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <p className={`text-[9px] ${rowStyling.textColor || "text-muted-foreground"}`}>
-                          {student.studentSpecificField?.admissionNumber || student.admissionNumber || student._id}
-                        </p>
-                      </div>
-                      <div className="flex flex-col">
-                        <p className={`font-medium text-[13px] ${rowStyling.textColor}`}>
-                          {student.name}
-                        </p>
-                        {(!isPresent && (attendanceReasons[student._id] || (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived))) && (
-                          <span className="text-[10px] font-medium text-red-600 dark:text-red-400 mt-0.5">
-                            {attendanceReasons[student._id] || leaveInfo?.leaveReason}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center align-middle">
-                    {hasAbsenceHistory && (
-                      <div className="inline-flex items-center justify-center text-sm font-bold text-white bg-red-500 px-2.5 py-1 rounded-md">
-                        {absenteeInfo.continuousAbsences}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center align-middle">
-                    {(!isPresent && !(leaveInfo?.isOnLeave && !leaveInfo?.hasArrived)) && (
-                      <div
-                        className="cursor-pointer flex justify-center"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setQuickLeaveStudent(student);
-                          setQuickLeaveReason(attendanceReasons[student._id] || "");
-                          setQuickLeaveOpen(true);
-                        }}
-                      >
-                        <FilePlus className="text-muted-foreground h-5 w-5 md:hidden hover:text-foreground" />
-                        <Button size="sm" className="hidden md:inline-flex">
-                          Leave
-                        </Button>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          ) : (
+      {/* Students Table */}
+      <div className="border rounded-md">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                {searchQuery ? `No students found matching "${searchQuery}"` : "No students found in this class"}
-              </TableCell>
+              <TableHead className="w-10 text-center px-2">R.no</TableHead>
+              <TableHead className="px-2 py-1.5 min-w-[150px]">
+                <div className="relative flex items-center w-full max-w-xs">
+                  <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder="Search students..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setSearchQuery("");
+                    }}
+                    className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSearchQuery("");
+                      }}
+                      className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
+                      title="Clear search"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="w-[50px] md:w-[70px] text-center px-1">
+                <span className="hidden md:inline">History</span>
+                <History className="h-5 w-5 md:hidden mx-auto" />
+              </TableHead>
+              <TableHead className="w-[50px] md:w-[90px] text-center px-1">
+                <div
+                  className="cursor-pointer flex items-center justify-center mx-auto"
+                  onClick={() => {
+                    setQuickLeaveStudent('bulk');
+                    setQuickLeaveReason(bulkLeaveReason);
+                    setQuickLeaveComboboxOpen(false);
+                    setQuickLeaveOpen(true);
+                  }}
+                  title="Add reason for all absentees"
+                >
+                  <FilePlus className="text-muted-foreground h-5 w-5 md:hidden mx-auto hover:text-foreground" />
+                  <Button size="sm" className="hidden md:inline-flex">
+                    Leave
+                  </Button>
+                </div>
+              </TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {displayedStudents.length > 0 ? (
+              displayedStudents.map(({ student, originalIndex }) => {
+                const absenteeInfo = getStudentAbsenteeInfo(student._id);
+                const hasAbsenceHistory = absenteeInfo?.continuousAbsences > 0;
+                const isPresent = attendance[student._id];
+                const rowStyling = getRowStyling(student._id, isPresent);
+                const leaveInfo = studentLeaveStatus[student._id];
 
-    {/* Action Buttons */}
-    <div className="flex justify-between">
-      <Button
-        variant="outline"
-        className="border border-border"
-        onClick={handleDeleteAttendance}
-        disabled={!attendanceExists || saving}
-      >
-        {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-        Reset
-      </Button>
-      <Button
-        onClick={handleSaveAttendance}
-        disabled={saving || !filteredStudents.length}
-      >
-        {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-        <Save className="mr-2 h-4 w-4" />
-        {attendanceExists ? "Update" : "Save"}
-      </Button>
-    </div>
+                return (
+                  <TableRow
+                    key={student._id}
+                    className={`cursor-pointer ${rowStyling.className}`}
+                    onClick={() => toggleAttendance(student._id)}
+                  >
+                    <TableCell className={`text-center align-middle px-2 ${rowStyling.textColor}`}>
+                      {originalIndex}
+                    </TableCell>
+                    <TableCell className="px-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-center gap-1 shrink-0">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={student.profilePic?.url} />
+                            <AvatarFallback>
+                              {student.name.substring(0, 1)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className={`text-[9px] ${rowStyling.textColor || "text-muted-foreground"}`}>
+                            {student.studentSpecificField?.admissionNumber || student.admissionNumber || student._id}
+                          </p>
+                        </div>
+                        <div className="flex flex-col">
+                          <p className={`font-medium text-[13px] ${rowStyling.textColor}`}>
+                            {student.name}
+                          </p>
+                          {(!isPresent && (attendanceReasons[student._id] || (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived))) && (
+                            <span className="text-[10px] font-medium text-red-600 dark:text-red-400 mt-0.5">
+                              {attendanceReasons[student._id] || leaveInfo?.leaveReason}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center align-middle">
+                      {hasAbsenceHistory && (
+                        <div className="inline-flex items-center justify-center text-sm font-bold text-white bg-red-500 px-2.5 py-1 rounded-md">
+                          {absenteeInfo.continuousAbsences}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center align-middle">
+                      {(!isPresent && !(leaveInfo?.isOnLeave && !leaveInfo?.hasArrived)) && (
+                        <div
+                          className="cursor-pointer flex justify-center"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickLeaveStudent(student);
+                            setQuickLeaveReason(attendanceReasons[student._id] || "");
+                            setQuickLeaveOpen(true);
+                          }}
+                        >
+                          <FilePlus className="text-muted-foreground h-5 w-5 md:hidden hover:text-foreground" />
+                          <Button size="sm" className="hidden md:inline-flex">
+                            Leave
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  {searchQuery ? `No students found matching "${searchQuery}"` : "No students found in this class"}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-    {/* Success Dialog */}
+      {/* Action Buttons */}
+      <div className="flex justify-between">
+        <Button
+          variant="outline"
+          className="border border-border"
+          onClick={handleDeleteAttendance}
+          disabled={!attendanceExists || saving}
+        >
+          {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+          Reset
+        </Button>
+        <Button
+          onClick={handleSaveAttendance}
+          disabled={saving || !filteredStudents.length}
+        >
+          {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+          <Save className="mr-2 h-4 w-4" />
+          {attendanceExists ? "Update" : "Save"}
+        </Button>
+      </div>
+
+      {/* Success Dialog */}
       <Dialog
         open={showSuccessDialog}
         onOpenChange={(open) => {
@@ -1195,28 +1195,28 @@ return (
         <DialogContent
           ref={successPopupRef}
           data-html2canvas-popup="true"
-          className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+          className="rounded-2xl sm:rounded-2xl max-w-md overflow-hidden [&>button.absolute]:hidden flex flex-col p-0 gap-0"
         >
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
             <button
               type="button"
               className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer ${successMessage?.toLowerCase().includes("reset")
-                  ? "bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50"
-                  : "bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
+                ? "bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                : "bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
                 }`}
               onClick={handleSuccessDownload}
               title="Download Image"
               data-html2canvas-ignore="true"
             >
               <CheckCircle2 className={`h-5 w-5 ${successMessage?.toLowerCase().includes("reset")
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-emerald-600 dark:text-emerald-400"
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-emerald-600 dark:text-emerald-400"
                 }`} />
             </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className={`text-xl font-bold m-0 ${successMessage?.toLowerCase().includes("reset")
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-emerald-600 dark:text-emerald-400"
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-emerald-600 dark:text-emerald-400"
                 }`}>
                 {successMessage?.toLowerCase().includes("reset")
                   ? "Attendance Reset"
@@ -1305,7 +1305,7 @@ return (
         <DialogContent
           ref={whatsappPopupRef}
           data-html2canvas-popup="true"
-          className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+          className="rounded-2xl sm:rounded-2xl max-w-md overflow-hidden [&>button.absolute]:hidden flex flex-col p-0 gap-0"
         >
           <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <button
@@ -1339,15 +1339,13 @@ return (
             </DialogClose>
           </DialogHeader>
 
-          <div className="p-4 space-y-2 bg-muted/5 flex-1 overflow-y-auto max-h-[60vh]">
+          <div className="p-4 space-y-2 bg-muted/5 overflow-y-auto max-h-[22.5rem]">
             {whatsappModalData?.students?.length > 0 ? (
               whatsappModalData.students.map((student, idx) => {
                 const reasonText = student.leaveReason && student.leaveReason !== "No Reason"
                   ? student.leaveReason.trim()
                   : "";
-                const msg = reasonText
-                  ? `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText}`
-                  : `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason :`;
+                const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText || "No Reason"}`;
 
                 return (
                   <div
@@ -1377,7 +1375,7 @@ return (
                       <Button
                         size="sm"
                         disabled={!student.contactNumber}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center gap-1.5 shrink-0 transition-transform active:scale-95 disabled:opacity-50"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95 disabled:opacity-50"
                         onClick={(e) => {
                           if (!student.contactNumber) return;
                           if (e && typeof e.preventDefault === "function") {
@@ -1416,18 +1414,19 @@ return (
             )}
           </div>
 
-          <DialogFooter className="px-5 py-3 border-t bg-muted/20 flex flex-row justify-end items-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setWhatsappModalData(null);
-                navigateToMyPeriods();
-              }}
-            >
-              Done
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="px-5 py-3 border-t bg-muted/20 flex flex-row justify-end items-center">
+              <Button
+                size="sm"
+                className="bg-black text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85 font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95"
+                onClick={() => {
+                  setWhatsappModalData(null);
+                  navigateToMyPeriods();
+                }}
+              >
+                <Check className="h-3.5 w-3.5" />
+                Done
+              </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1529,8 +1528,8 @@ return (
           </DialogFooter>
         </DialogContent>
       </Dialog>
-  </div >
-);
+    </div >
+  );
 };
 
 export default Attendance;

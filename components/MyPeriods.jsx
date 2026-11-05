@@ -200,9 +200,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   });
   const subjects = useMemo(() => subjectsQuery.data?.subjects || [], [subjectsQuery.data?.subjects]);
 
-  const usersQuery = useFetchUsers(0, 0, { roles: "Teacher" }, { 
+  const usersQuery = useFetchUsers(0, 0, { roles: "Teacher" }, {
     staleTime: 1000 * 60 * 60,
-    enabled: isPrincipal 
+    enabled: isPrincipal
   });
   const teachers = useMemo(() => usersQuery.data?.users || [], [usersQuery.data]);
 
@@ -904,83 +904,79 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     if (e && typeof e.stopPropagation === "function") {
       e.stopPropagation();
     }
-    
+
     const cId = getCleanId(slot.classId);
     const sId = getCleanId(slot.subjectId);
     const key = `${cId}:${sId}:${slot.periodNumber}`;
     const attendanceRecord = attendanceStatus[key] || attendanceStatus[`${cId}:${slot.periodNumber}`];
-    
+
     if (!attendanceRecord || typeof attendanceRecord !== "object") {
       toast.error("Attendance not found or not marked yet.");
       return;
     }
-    
+
     const subjectName =
       slot.subjectId?.name ||
       (slot.subjectId ? subjects.find((s) => s._id === getCleanId(slot.subjectId))?.name : null) ||
       attendanceRecord.subjectId?.name ||
       (attendanceRecord.subjectId ? subjects.find((s) => s._id === getCleanId(attendanceRecord.subjectId))?.name : null) ||
       "this subject";
-    
-    // Use pre-fetched attendanceData from attendanceQuery
+
     const absentStudents = attendanceRecord.attendanceData?.filter(student => !student.present) || [];
-    
+
     if (absentStudents.length === 0) {
       toast.info("No absent students for this period.");
       return;
     }
-    
-    setWhatsappModalData({
-      subjectName,
-      loading: true,
-      students: []
-    });
 
-    let leaveRecordsData = [];
-    try {
-      const response = await fetchItems("leave-records", apiKey, 0, 0, { classId: slot.classId?._id || slot.classId, isArrived: "false" });
-      leaveRecordsData = response?.["leave-records"] || [];
-    } catch (err) {
-      console.error("Failed to fetch leave records:", err);
-    }
-
-    const studentsToMessage = [];
-    absentStudents.forEach(student => {
-      const number = student.guardianContactNumber || student.contactNumber;
-      if (number) {
-        let formattedNumber = number.replace(/\D/g, '');
-        if (formattedNumber.length === 10) {
-          formattedNumber = `91${formattedNumber}`;
+    // Build initial list immediately from cached attendance data (no wait)
+    const buildStudentList = (leaveRecordsData = []) => {
+      const studentsToMessage = [];
+      absentStudents.forEach(student => {
+        const number = student.guardianContactNumber || student.contactNumber;
+        if (number) {
+          let formattedNumber = number.replace(/\D/g, '');
+          if (formattedNumber.length === 10) {
+            formattedNumber = `91${formattedNumber}`;
+          }
+          if (!studentsToMessage.some(s => s.contactNumber === formattedNumber)) {
+            const studentLeave = leaveRecordsData.find(record => {
+              const rId = typeof record.studentId === 'object' ? record.studentId?._id : record.studentId;
+              const sId = typeof student.studentId === 'object' ? student.studentId?._id : student.studentId;
+              return String(rId) === String(sId);
+            });
+            const rawLeaveReason = studentLeave?.leaveReason || student?.leaveReason || "";
+            const leaveReason = rawLeaveReason && rawLeaveReason !== "No Reason" ? rawLeaveReason.trim() : "";
+            studentsToMessage.push({
+              name: student.studentName || "Student",
+              contactNumber: formattedNumber,
+              leaveReason
+            });
+          }
         }
-        if (!studentsToMessage.some(s => s.contactNumber === formattedNumber)) {
-          const studentLeave = leaveRecordsData.find(record => {
-            const rId = typeof record.studentId === 'object' ? record.studentId?._id : record.studentId;
-            const sId = typeof student.studentId === 'object' ? student.studentId?._id : student.studentId;
-            return String(rId) === String(sId);
-          });
-          const rawLeaveReason = studentLeave?.leaveReason || student?.leaveReason || "";
-          const leaveReason = rawLeaveReason && rawLeaveReason !== "No Reason" ? rawLeaveReason.trim() : "";
+      });
+      return studentsToMessage;
+    };
 
-          studentsToMessage.push({
-            name: student.studentName || "Student",
-            contactNumber: formattedNumber,
-            leaveReason: leaveReason
-          });
-        }
-      }
-    });
-    
-    if (studentsToMessage.length === 0) {
-      setWhatsappModalData(null);
+    // Show popup instantly with what we already have
+    const initialList = buildStudentList([]);
+    if (initialList.length === 0) {
       toast.error("No contact numbers found for absent students.");
       return;
     }
-    
-    setWhatsappModalData({
-      subjectName,
-      loading: false,
-      students: studentsToMessage
-    });
+    setWhatsappModalData({ subjectName, loading: false, students: initialList });
+
+    // Fetch leave records in background and silently update reasons
+    try {
+      const response = await fetchItems("leave-records", apiKey, 0, 0, { classId: slot.classId?._id || slot.classId, isArrived: "false" });
+      const leaveRecordsData = response?.["leave-records"] || [];
+      if (leaveRecordsData.length > 0) {
+        const enrichedList = buildStudentList(leaveRecordsData);
+        setWhatsappModalData(prev => prev ? { ...prev, students: enrichedList } : prev);
+      }
+    } catch (err) {
+      console.error("Failed to fetch leave records:", err);
+    }
   }, [getCleanId, attendanceStatus, subjects, apiKey]);
 
   const lastAutoWhatsAppKeyRef = useRef(null);
@@ -1120,7 +1116,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         const name = data?.users?.[0]?.name || "";
         if (name) setTeacherName(name);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [teacherId, apiKey]);
 
   // Classes where this teacher is the Hifz teacher
@@ -1383,12 +1379,12 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
               </Button>
             )}
           </div>
-          
+
           {isPrincipal && (
             <div className="shrink-0">
-              <TodayStatusModal 
-                type="teacher" 
-                students={teachers} 
+              <TodayStatusModal
+                type="teacher"
+                students={teachers}
                 customTrigger={
                   <Button variant="outline" className="flex items-center gap-1.5 md:gap-2 font-semibold text-sm md:text-base h-9 md:h-10 px-3 md:px-4">
                     <CalendarDays className="h-4 w-4" />
@@ -1450,161 +1446,161 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                   </div>
                 )}
               <div className="overflow-x-auto border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16 hidden md:table-cell">
-                      Period
-                    </TableHead>
-                    <TableHead className="w-32 whitespace-nowrap">Time</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead className="hidden md:table-cell">
-                      Subject
-                    </TableHead>
-                    <TableHead className="text-left md:text-center w-24 md:w-auto pl-0 md:pl-4">
-                      <div
-                        className="flex justify-start md:justify-center items-center pl-1 md:pl-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Pre-populate with existing reason from non-attended slots
-                          const nonAttendedSlots = filteredSlots.filter((slot) => !isAttendanceMarked(slot));
-                          const existingRecords = nonAttendedSlots
-                            .map((slot) =>
-                              leaveRecords.find(
-                                (record) =>
-                                  getCleanId(record.classId) === getCleanId(slot.classId) &&
-                                  record.periodNumber === slot.periodNumber &&
-                                  formatDate(new Date(record.date)) === formattedDate
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16 hidden md:table-cell">
+                        Period
+                      </TableHead>
+                      <TableHead className="w-32 whitespace-nowrap">Time</TableHead>
+                      <TableHead>Class</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Subject
+                      </TableHead>
+                      <TableHead className="text-left md:text-center w-24 md:w-auto pl-0 md:pl-4">
+                        <div
+                          className="flex justify-start md:justify-center items-center pl-1 md:pl-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Pre-populate with existing reason from non-attended slots
+                            const nonAttendedSlots = filteredSlots.filter((slot) => !isAttendanceMarked(slot));
+                            const existingRecords = nonAttendedSlots
+                              .map((slot) =>
+                                leaveRecords.find(
+                                  (record) =>
+                                    getCleanId(record.classId) === getCleanId(slot.classId) &&
+                                    record.periodNumber === slot.periodNumber &&
+                                    formatDate(new Date(record.date)) === formattedDate
+                                )
                               )
-                            )
-                            .filter(Boolean);
-                          const existingIds = existingRecords.map((r) => r._id).filter(Boolean);
-                          // Use the first found reason to pre-fill
-                          const firstReason = existingRecords[0]?.leaveReason || "";
-                          setBulkExistingRecordIds(existingIds);
-                          setBulkReason(firstReason);
-                          setBulkError(false);
-                          setBulkReasonOpen(true);
-                        }}
-                      >
-                        <FileText className="text-muted-foreground h-5 w-5 md:hidden cursor-pointer" title="Add reason for all periods" />
-                        <Button size="sm" className="hidden md:inline-flex">
-                          Reason
-                        </Button>
-                      </div>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSlots.map((slot) => {
-                    const leaveRecord = leaveRecords.find(
-                      (record) =>
-                        getCleanId(record.classId) === getCleanId(slot.classId) &&
-                        record.periodNumber === slot.periodNumber &&
-                        formatDate(new Date(record.date)) === formattedDate
-                    );
-                    return (
-                      <TableRow
-                        key={slot._id || `${getCleanId(slot.classId)}-${slot.periodNumber}`}
-                        className="hover:bg-accent/50"
-                        onClick={() => {
-                          handleNavigation(slot);
-                        }}
-                      >
-                        <TableCell className="hidden md:table-cell">
-                          <div className="flex items-center justify-center font-medium">
-                            <Badge variant="outline">{slot.periodNumber}</Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap w-32">
-                          <div className="flex items-center gap-2">
-                            {slot.periodDetails?.formattedTime ||
-                              `Period ${slot.periodNumber}`}
-                          </div>
-                          {isAttendanceMarked(slot) && (
-                            <div className="flex items-center gap-1 text-xxs text-muted-foreground">
-                              <CheckCircle2 className="text-green-500 h-3 w-3" />
-                              <span>Attendance Marked</span>
+                              .filter(Boolean);
+                            const existingIds = existingRecords.map((r) => r._id).filter(Boolean);
+                            // Use the first found reason to pre-fill
+                            const firstReason = existingRecords[0]?.leaveReason || "";
+                            setBulkExistingRecordIds(existingIds);
+                            setBulkReason(firstReason);
+                            setBulkError(false);
+                            setBulkReasonOpen(true);
+                          }}
+                        >
+                          <FileText className="text-muted-foreground h-5 w-5 md:hidden cursor-pointer" title="Add reason for all periods" />
+                          <Button size="sm" className="hidden md:inline-flex">
+                            Reason
+                          </Button>
+                        </div>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSlots.map((slot) => {
+                      const leaveRecord = leaveRecords.find(
+                        (record) =>
+                          getCleanId(record.classId) === getCleanId(slot.classId) &&
+                          record.periodNumber === slot.periodNumber &&
+                          formatDate(new Date(record.date)) === formattedDate
+                      );
+                      return (
+                        <TableRow
+                          key={slot._id || `${getCleanId(slot.classId)}-${slot.periodNumber}`}
+                          className="hover:bg-accent/50"
+                          onClick={() => {
+                            handleNavigation(slot);
+                          }}
+                        >
+                          <TableCell className="hidden md:table-cell">
+                            <div className="flex items-center justify-center font-medium">
+                              <Badge variant="outline">{slot.periodNumber}</Badge>
                             </div>
-                          )}
-                          {leaveRecord && !isAttendanceMarked(slot) && leaveRecord.leaveReason && (
-                            <div className="flex flex-col gap-0.5 mt-1">
-                              <span className="text-[10px] text-red-600 leading-tight">
-                                {leaveRecord.leaveReason}
-                              </span>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap w-32">
+                            <div className="flex items-center gap-2">
+                              {slot.periodDetails?.formattedTime ||
+                                `Period ${slot.periodNumber}`}
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div className="text-xs md:text-base">
-                            {slot.classId?.name || (typeof slot.classId === "string" ? slot.classId : "-")}
-                          </div>
-                          <div className="text-xs md:hidden mt-1 text-muted-foreground">
+                            {isAttendanceMarked(slot) && (
+                              <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                                <CheckCircle2 className="text-green-500 h-3 w-3" />
+                                <span>Attendance Marked</span>
+                              </div>
+                            )}
+                            {leaveRecord && !isAttendanceMarked(slot) && leaveRecord.leaveReason && (
+                              <div className="flex flex-col gap-0.5 mt-1">
+                                <span className="text-[10px] text-red-600 leading-tight">
+                                  {leaveRecord.leaveReason}
+                                </span>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <div className="text-xs md:text-base">
+                              {slot.classId?.name || (typeof slot.classId === "string" ? slot.classId : "-")}
+                            </div>
+                            <div className="text-xs md:hidden mt-1 text-muted-foreground">
+                              {slot.subjectId?.name ||
+                                (slot.subjectId ? subjects.find((s) => s._id === getCleanId(slot.subjectId))?.name : null) ||
+                                (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
                             {slot.subjectId?.name ||
                               (slot.subjectId ? subjects.find((s) => s._id === getCleanId(slot.subjectId))?.name : null) ||
                               (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {slot.subjectId?.name ||
-                            (slot.subjectId ? subjects.find((s) => s._id === getCleanId(slot.subjectId))?.name : null) ||
-                            (typeof slot.subjectId === "string" ? slot.subjectId : "-")}
-                        </TableCell>
-                        <TableCell className="text-left md:text-center align-middle pl-0 md:pl-4">
-                          {isAttendanceMarked(slot) ? (
-                            <div className="flex items-center justify-start md:justify-center gap-1 md:gap-2 -ml-2 md:ml-0">
-                              <button
-                                onClick={(e) => handleWhatsAppClick(e, slot)}
-                                className="text-green-500 hover:text-green-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-green-50 inline-flex items-center justify-center gap-1.5"
-                                title="Message Absent Students"
-                              >
-                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                                <span className="hidden md:inline font-medium text-sm">Message</span>
-                              </button>
-                              <button
+                          </TableCell>
+                          <TableCell className="text-left md:text-center align-middle pl-0 md:pl-4">
+                            {isAttendanceMarked(slot) ? (
+                              <div className="flex items-center justify-start md:justify-center gap-1 md:gap-2 -ml-2 md:ml-0">
+                                <button
+                                  onClick={(e) => handleWhatsAppClick(e, slot)}
+                                  className="text-green-500 hover:text-green-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-green-50 inline-flex items-center justify-center gap-1.5"
+                                  title="Message Absent Students"
+                                >
+                                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                  <span className="hidden md:inline font-medium text-sm">Message</span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const cId = getCleanId(slot.classId);
+                                    const sId = getCleanId(slot.subjectId);
+                                    const key = `${cId}:${sId}:${slot.periodNumber}`;
+                                    setPerformanceSlot(slot);
+                                    setPerformanceAttendanceRecord(
+                                      attendanceStatus[key] || attendanceStatus[`${cId}:${slot.periodNumber}`]
+                                    );
+                                    setPerformanceModalOpen(true);
+                                  }}
+                                  className="text-indigo-500 hover:text-indigo-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-indigo-50 inline-flex items-center justify-center gap-1.5"
+                                  title="Class Performance"
+                                >
+                                  <TrendingUp className="h-4 w-4" />
+                                  <span className="hidden md:inline font-medium text-sm">Performance</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <div
+                                className="z-10 flex justify-start md:justify-center items-center pl-1 md:pl-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const cId = getCleanId(slot.classId);
-                                  const sId = getCleanId(slot.subjectId);
-                                  const key = `${cId}:${sId}:${slot.periodNumber}`;
-                                  setPerformanceSlot(slot);
-                                  setPerformanceAttendanceRecord(
-                                    attendanceStatus[key] || attendanceStatus[`${cId}:${slot.periodNumber}`]
-                                  );
-                                  setPerformanceModalOpen(true);
+                                  setOpen(true);
+                                  setClassId(getCleanId(slot.classId));
+                                  setPeriodNumber(slot.periodNumber);
+                                  setReason(leaveRecord?.leaveReason || "");
+                                  setSelectedRecordId(leaveRecord?._id || "");
                                 }}
-                                className="text-indigo-500 hover:text-indigo-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-indigo-50 inline-flex items-center justify-center gap-1.5"
-                                title="Class Performance"
                               >
-                                <TrendingUp className="h-4 w-4" />
-                                <span className="hidden md:inline font-medium text-sm">Performance</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <div
-                              className="z-10 flex justify-start md:justify-center items-center pl-1 md:pl-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpen(true);
-                                setClassId(getCleanId(slot.classId));
-                                setPeriodNumber(slot.periodNumber);
-                                setReason(leaveRecord?.leaveReason || "");
-                                setSelectedRecordId(leaveRecord?._id || "");
-                              }}
-                            >
-                              <FileText className="text-muted-foreground h-5 w-5 md:hidden" />
-                              <Button size="sm" className="hidden md:inline-flex">
-                                Reason
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                                <FileText className="text-muted-foreground h-5 w-5 md:hidden" />
+                                <Button size="sm" className="hidden md:inline-flex">
+                                  Reason
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           ) : (
             <div className="text-center p-8 border rounded-md font-bold text-muted-foreground text-lg">
@@ -1665,17 +1661,17 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                     const summary = hifzClassSummary[cls.classId];
                     const summaryEntries = summary
                       ? cls.students.map((enrollment, si) => {
-                          const sId = enrollment.studentId?._id || enrollment.studentId;
-                          const sName = enrollment.studentId?.name || summary?.byStudent?.[sId]?.name || sId;
-                          const info = summary?.byStudent?.[sId];
-                          return {
-                            sl: si + 1,
-                            sId,
-                            sName,
-                            totalPages: info?.totalPages ?? 0,
-                            lastDate: info?.lastDate ?? null,
-                          };
-                        })
+                        const sId = enrollment.studentId?._id || enrollment.studentId;
+                        const sName = enrollment.studentId?.name || summary?.byStudent?.[sId]?.name || sId;
+                        const info = summary?.byStudent?.[sId];
+                        return {
+                          sl: si + 1,
+                          sId,
+                          sName,
+                          totalPages: info?.totalPages ?? 0,
+                          lastDate: info?.lastDate ?? null,
+                        };
+                      })
                       : null;
                     return (
                       <TableRow
@@ -1822,18 +1818,18 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
               const summary = hifzClassSummary[hifzRecordsDialogClassId];
               const summaryEntries = recordsClass && summary
                 ? recordsClass.students.map((enrollment, si) => {
-                    const sId = enrollment.studentId?._id || enrollment.studentId;
-                    const sName = enrollment.studentId?.name || summary?.byStudent?.[sId]?.name || sId;
-                    const info = summary?.byStudent?.[sId];
-                    return {
-                      sl: si + 1,
-                      sId,
-                      sName,
-                      totalPages: info?.totalPages ?? 0,
-                      lastDate: info?.lastDate ?? null,
-                      records: info?.records ?? [],
-                    };
-                  })
+                  const sId = enrollment.studentId?._id || enrollment.studentId;
+                  const sName = enrollment.studentId?.name || summary?.byStudent?.[sId]?.name || sId;
+                  const info = summary?.byStudent?.[sId];
+                  return {
+                    sl: si + 1,
+                    sId,
+                    sName,
+                    totalPages: info?.totalPages ?? 0,
+                    lastDate: info?.lastDate ?? null,
+                    records: info?.records ?? [],
+                  };
+                })
                 : null;
 
               const drillStudent = selectedRecordsStudent
@@ -1994,84 +1990,84 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                           <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                       ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-12 text-center">Sl.No</TableHead>
-                            <TableHead>Student</TableHead>
-                            <TableHead className="text-center w-32">Action</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(waClass?.students || []).map((enrollment, idx) => {
-                            const sId = enrollment.studentId?._id || enrollment.studentId;
-                            const sName = enrollment.studentId?.name || sId;
-                            // Use fetched contact map (handles String-typed ref — populate doesn't work)
-                            const guardian = hifzStudentContacts[sId] || "";
-                            const formattedNumber = guardian.replace(/\D/g, "");
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-12 text-center">Sl.No</TableHead>
+                              <TableHead>Student</TableHead>
+                              <TableHead className="text-center w-32">Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(waClass?.students || []).map((enrollment, idx) => {
+                              const sId = enrollment.studentId?._id || enrollment.studentId;
+                              const sName = enrollment.studentId?.name || sId;
+                              // Use fetched contact map (handles String-typed ref — populate doesn't work)
+                              const guardian = hifzStudentContacts[sId] || "";
+                              const formattedNumber = guardian.replace(/\D/g, "");
 
-                            const studentInfo = summary?.byStudent?.[sId];
-                            const todayRecord = studentInfo?.records?.find((r) => {
-                              if (!r.date) return false;
-                              const rStr = new Date(r.date).toISOString().slice(0, 10);
-                              return rStr === hifzDate;
-                            });
-                            const pagesCount = todayRecord?.pagesCount ?? 0;
+                              const studentInfo = summary?.byStudent?.[sId];
+                              const todayRecord = studentInfo?.records?.find((r) => {
+                                if (!r.date) return false;
+                                const rStr = new Date(r.date).toISOString().slice(0, 10);
+                                return rStr === hifzDate;
+                              });
+                              const pagesCount = todayRecord?.pagesCount ?? 0;
 
-                            const dateLabel = hifzDate
-                              ? new Date(hifzDate).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric" })
-                              : new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric" });
+                              const dateLabel = hifzDate
+                                ? new Date(hifzDate).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric" })
+                                : new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric" });
 
-                            const msg = `*Hifz & Doura Progress Report*
+                              const msg = `*Hifz & Doura Progress Report*
 Date: ${dateLabel}
 Student: ${sName}
 Class: ${waClass?.className}
 *Pages Recited: ${pagesCount}*
 Teacher: ${teacherName || "Teacher"}`;
-                            const waUrl = formattedNumber
-                              ? `https://wa.me/${formattedNumber}?text=${encodeURIComponent(msg)}`
-                              : null;
+                              const waUrl = formattedNumber
+                                ? `https://wa.me/${formattedNumber}?text=${encodeURIComponent(msg)}`
+                                : null;
 
-                            return (
-                              <TableRow key={sId}>
-                                <TableCell className="text-center text-muted-foreground font-medium">{idx + 1}</TableCell>
-                                <TableCell>
-                                  <p className="font-medium text-sm">{sName}</p>
-                                  {guardian ? (
-                                    <p className="text-xs text-muted-foreground mt-0.5">{guardian}</p>
-                                  ) : (
-                                    <p className="text-xs text-destructive mt-0.5">No contact</p>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {waUrl ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="flex items-center gap-1.5 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
-                                      onClick={() => {
-                                        const a = document.createElement("a");
-                                        a.href = waUrl;
-                                        a.target = "_blank";
-                                        document.body.appendChild(a);
-                                        a.click();
-                                        document.body.removeChild(a);
-                                      }}
-                                    >
-                                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                                      </svg>
-                                      Message
-                                    </Button>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                              return (
+                                <TableRow key={sId}>
+                                  <TableCell className="text-center text-muted-foreground font-medium">{idx + 1}</TableCell>
+                                  <TableCell>
+                                    <p className="font-medium text-sm">{sName}</p>
+                                    {guardian ? (
+                                      <p className="text-xs text-muted-foreground mt-0.5">{guardian}</p>
+                                    ) : (
+                                      <p className="text-xs text-destructive mt-0.5">No contact</p>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {waUrl ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="flex items-center gap-1.5 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
+                                        onClick={() => {
+                                          const a = document.createElement("a");
+                                          a.href = waUrl;
+                                          a.target = "_blank";
+                                          document.body.appendChild(a);
+                                          a.click();
+                                          document.body.removeChild(a);
+                                        }}
+                                      >
+                                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                        </svg>
+                                        Message
+                                      </Button>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
                       )}
                     </div>
                   </DialogContent>
@@ -2156,7 +2152,7 @@ Teacher: ${teacherName || "Teacher"}`;
         <Dialog open={bulkReasonOpen} onOpenChange={(o) => { setBulkReasonOpen(o); if (!o) { setBulkReason(""); setBulkError(false); setBulkExistingRecordIds([]); } }}>
           <DialogContent ref={bulkPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <button 
+              <button
                 type="button"
                 className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
                 onClick={handleBulkDownload}
@@ -2179,86 +2175,86 @@ Teacher: ${teacherName || "Teacher"}`;
             </DialogHeader>
             <div className="p-5 space-y-4 bg-muted/5 flex-1 overflow-y-auto">
               <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
-              <div className="relative">
-                <Input
-                  autoFocus
-                  placeholder="Select or type a reason..."
-                  value={bulkReason}
-                  onChange={(e) => {
-                    if (e.target.value.length > 20) {
-                      setBulkError(true);
-                    } else {
-                      setBulkError(false);
-                    }
-                    setBulkReason(e.target.value);
-                  }}
-                  className="pl-10 pr-10"
-                />
-                <Popover open={bulkComboboxOpen} onOpenChange={setBulkComboboxOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    >
-                      <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0" align="end">
-                    <Command>
-                      <CommandList>
-                        <CommandGroup>
-                          {leaveReasons.map((r) => (
-                            <CommandItem
-                              key={r}
-                              value={r}
-                              onSelect={(currentValue) => {
-                                setBulkReason(currentValue);
-                                setBulkComboboxOpen(false);
-                                setBulkError(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  bulkReason === r ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {r}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {bulkError && (
-                <p className="text-destructive text-xs p-1 mt-1">
-                  Leave reason should not exceed 20 characters.
-                </p>
-              )}
+                <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
+                <div className="relative">
+                  <Input
+                    autoFocus
+                    placeholder="Select or type a reason..."
+                    value={bulkReason}
+                    onChange={(e) => {
+                      if (e.target.value.length > 20) {
+                        setBulkError(true);
+                      } else {
+                        setBulkError(false);
+                      }
+                      setBulkReason(e.target.value);
+                    }}
+                    className="pl-10 pr-10"
+                  />
+                  <Popover open={bulkComboboxOpen} onOpenChange={setBulkComboboxOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      >
+                        <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0" align="end">
+                      <Command>
+                        <CommandList>
+                          <CommandGroup>
+                            {leaveReasons.map((r) => (
+                              <CommandItem
+                                key={r}
+                                value={r}
+                                onSelect={(currentValue) => {
+                                  setBulkReason(currentValue);
+                                  setBulkComboboxOpen(false);
+                                  setBulkError(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    bulkReason === r ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {r}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {bulkError && (
+                  <p className="text-destructive text-xs p-1 mt-1">
+                    Leave reason should not exceed 20 characters.
+                  </p>
+                )}
               </div>
               <div className="flex gap-2">
                 {bulkExistingRecordIds.length > 0 && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                    disabled={deleteLeaveRecord.isPending}
+                    onClick={handleBulkClear}
+                  >
+                    Clear All
+                  </Button>
+                )}
                 <Button
-                  variant="outline"
-                  className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
-                  disabled={deleteLeaveRecord.isPending}
-                  onClick={handleBulkClear}
+                  disabled={addLeaveRecord.isPending || bulkError}
+                  onClick={handleBulkLeave}
+                  className={bulkExistingRecordIds.length > 0 ? "flex-1" : "w-full"}
                 >
-                  Clear All
+                  {bulkExistingRecordIds.length > 0 ? "Update All" : "Apply to All Periods"}
                 </Button>
-              )}
-              <Button
-                disabled={addLeaveRecord.isPending || bulkError}
-                onClick={handleBulkLeave}
-                className={bulkExistingRecordIds.length > 0 ? "flex-1" : "w-full"}
-              >
-                {bulkExistingRecordIds.length > 0 ? "Update All" : "Apply to All Periods"}
-              </Button>
-            </div>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -2266,7 +2262,7 @@ Teacher: ${teacherName || "Teacher"}`;
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent ref={reasonPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <button 
+              <button
                 type="button"
                 className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
                 onClick={handleReasonDownload}
@@ -2289,58 +2285,58 @@ Teacher: ${teacherName || "Teacher"}`;
             </DialogHeader>
             <div className="p-5 space-y-4 bg-muted/5 flex-1 overflow-y-auto">
               <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
-              <div className="relative">
-                <Input
-                  autoFocus
-                  placeholder="Select or type a reason..."
-                  value={reason}
-                  onChange={(e) => {
-                    if (e.target.value.length > 20) {
-                      setError(true);
-                    }
-                    setReason(e.target.value);
-                  }}
-                  className="pl-10 pr-10"
-                />
-                <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    >
-                      <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0" align="end">
-                    <Command>
-                      <CommandList>
-                        <CommandGroup>
-                          {leaveReasons.map((r) => (
-                            <CommandItem
-                              key={r}
-                              value={r}
-                              onSelect={(currentValue) => {
-                                setReason(currentValue);
-                                setComboboxOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  reason === r ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {r}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>{" "}
+                <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
+                <div className="relative">
+                  <Input
+                    autoFocus
+                    placeholder="Select or type a reason..."
+                    value={reason}
+                    onChange={(e) => {
+                      if (e.target.value.length > 20) {
+                        setError(true);
+                      }
+                      setReason(e.target.value);
+                    }}
+                    className="pl-10 pr-10"
+                  />
+                  <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      >
+                        <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0" align="end">
+                      <Command>
+                        <CommandList>
+                          <CommandGroup>
+                            {leaveReasons.map((r) => (
+                              <CommandItem
+                                key={r}
+                                value={r}
+                                onSelect={(currentValue) => {
+                                  setReason(currentValue);
+                                  setComboboxOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    reason === r ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {r}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>{" "}
                 {error && (
                   <p className="text-destructive text-xs p-1 mt-1">
                     Leave reason should not exceed 20 characters.
@@ -2349,17 +2345,17 @@ Teacher: ${teacherName || "Teacher"}`;
               </div>
               <div className="flex gap-2">
                 {selectedRecordId && (
-                <Button 
-                  variant="outline" 
-                  className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
-                  disabled={deleteLeaveRecord.isPending} 
-                  onClick={handleClear}
-                >
-                  Clear
-                </Button>
-              )}
-                <Button 
-                  disabled={addLeaveRecord.isPending || error} 
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                    disabled={deleteLeaveRecord.isPending}
+                    onClick={handleClear}
+                  >
+                    Clear
+                  </Button>
+                )}
+                <Button
+                  disabled={addLeaveRecord.isPending || error}
                   onClick={handleLeave}
                   className={selectedRecordId ? "flex-1" : "w-full"}
                 >
@@ -2372,13 +2368,13 @@ Teacher: ${teacherName || "Teacher"}`;
 
         {/* ── WhatsApp Absent Students Dialog ── */}
         <Dialog open={!!whatsappModalData} onOpenChange={(open) => !open && setWhatsappModalData(null)}>
-          <DialogContent 
-            ref={whatsappPopupRef} 
-            data-html2canvas-popup="true" 
-            className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+          <DialogContent
+            ref={whatsappPopupRef}
+            data-html2canvas-popup="true"
+            className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md [&>button.absolute]:hidden flex flex-col p-0 gap-0"
           >
             <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <button 
+              <button
                 type="button"
                 className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors focus:outline-none cursor-pointer text-emerald-600 dark:text-emerald-400 shrink-0"
                 onClick={handleWhatsappDownload}
@@ -2397,8 +2393,8 @@ Teacher: ${teacherName || "Teacher"}`;
                   {whatsappModalData?.subjectName ? `Absent for ${whatsappModalData.subjectName}` : "Message parents of absent students"}
                 </DialogDescription>
               </div>
-              <DialogClose 
-                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" 
+              <DialogClose
+                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
                 onClick={() => setWhatsappModalData(null)}
                 data-html2canvas-ignore="true"
               >
@@ -2406,7 +2402,7 @@ Teacher: ${teacherName || "Teacher"}`;
               </DialogClose>
             </DialogHeader>
 
-            <div className="p-4 space-y-2 bg-muted/5 flex-1 overflow-y-auto max-h-[60vh]">
+            <div className="p-4 space-y-2 bg-muted/5 overflow-y-auto max-h-[22.5rem]">
               {whatsappModalData?.loading ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
                   <Loader className="h-8 w-8 animate-spin text-emerald-500" />
@@ -2417,13 +2413,11 @@ Teacher: ${teacherName || "Teacher"}`;
                   const reasonText = student.leaveReason && student.leaveReason !== "No Reason"
                     ? student.leaveReason.trim()
                     : "";
-                  const msg = reasonText
-                    ? `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText}`
-                    : `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason :`;
+                  const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText || "No Reason"}`;
 
                   return (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className="flex justify-between items-center py-2.5 px-3.5 border bg-card hover:bg-muted/40 rounded-xl transition-all shadow-xs gap-3"
                     >
                       <div className="flex items-start gap-2.5 min-w-0 flex-1">
@@ -2446,9 +2440,9 @@ Teacher: ${teacherName || "Teacher"}`;
                         <span className="text-xs text-muted-foreground font-medium">
                           {student.contactNumber}
                         </span>
-                        <Button 
-                          size="sm" 
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center gap-1.5 shrink-0 transition-transform active:scale-95"
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95"
                           onClick={(e) => {
                             if (e && typeof e.preventDefault === "function") {
                               e.preventDefault();
@@ -2485,11 +2479,22 @@ Teacher: ${teacherName || "Teacher"}`;
                 </div>
               )}
             </div>
+
+            <div className="px-5 py-3 border-t bg-muted/20 flex flex-row justify-end items-center">
+              <Button
+                size="sm"
+                className="bg-black text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85 font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95"
+                onClick={() => setWhatsappModalData(null)}
+              >
+                <Check className="h-3.5 w-3.5" />
+                Done
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
 
-        <ClassPerformanceModal 
-          open={performanceModalOpen} 
+        <ClassPerformanceModal
+          open={performanceModalOpen}
           onOpenChange={setPerformanceModalOpen}
           slot={performanceSlot}
           attendanceRecord={performanceAttendanceRecord}
