@@ -1345,7 +1345,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                 const reasonText = student.leaveReason && student.leaveReason !== "No Reason"
                   ? student.leaveReason.trim()
                   : "";
-                const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText || "No Reason"}`;
+                const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${reasonText || "No Reason"} `;
 
                 return (
                   <div
@@ -1372,29 +1372,30 @@ const Attendance = ({ apiKey, teacherId }) => {
                       <span className="text-xs text-muted-foreground font-medium">
                         {student.contactNumber || "No contact"}
                       </span>
-                      <Button
-                        size="sm"
-                        disabled={!student.contactNumber}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95 disabled:opacity-50"
-                        onClick={(e) => {
-                          if (!student.contactNumber) return;
-                          if (e && typeof e.preventDefault === "function") {
-                            e.preventDefault();
-                          }
-                          const encodedText = encodeURIComponent(msg);
-                          const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                          if (isMobile) {
-                            window.location.href = `https://wa.me/${student.contactNumber}?text=${encodedText}`;
-                          } else {
-                            window.open(`https://web.whatsapp.com/send?phone=${student.contactNumber}&text=${encodedText}`, "_blank", "noopener,noreferrer");
-                          }
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                        </svg>
-                        Message
-                      </Button>
+                      {student.contactNumber ? (
+                        <a
+                          href={`https://api.whatsapp.com/send?phone=${student.contactNumber}&text=${encodeURIComponent(msg)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95 shrink-0"
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                          </svg>
+                          Message
+                        </a>
+                      ) : (
+                        <Button
+                          size="sm"
+                          disabled
+                          className="bg-emerald-600 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 opacity-50 shrink-0"
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                          </svg>
+                          Message
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );
