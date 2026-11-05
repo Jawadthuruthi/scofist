@@ -82,15 +82,15 @@ export default async function Layout({ children }) {
               {children}
               <div className="h-20 lg:h-16 no-print"></div>
             </main>
-            <TeacherBottomBar user={user} activeRole={activeRole} />
-            <LibrarianBottomBar user={user} activeRole={activeRole} />
-            <CollegeAdminBottomBar user={user} activeRole={activeRole} />
-            <OrgAdminBottomBar user={user} activeRole={activeRole} />
-            <LiteraryLeaderBottomBar user={user} activeRole={activeRole} />
-            <ProgramCommitteeBottomBar user={user} activeRole={activeRole} />
-            <ProgramLeaderBottomBar user={user} activeRole={activeRole} />
-            <SparkAdminBottomBar user={user} activeRole={activeRole} />
-            <JudgeBottomBar user={user} activeRole={activeRole} />
+            {activeRole === "Teacher" && <TeacherBottomBar user={user} activeRole={activeRole} />}
+            {activeRole === "Librarian" && <LibrarianBottomBar user={user} activeRole={activeRole} />}
+            {activeRole === "College Admin" && <CollegeAdminBottomBar user={user} activeRole={activeRole} />}
+            {activeRole === "Org Admin" && <OrgAdminBottomBar user={user} activeRole={activeRole} />}
+            {activeRole === "Literary Leader" && <LiteraryLeaderBottomBar user={user} activeRole={activeRole} />}
+            {activeRole === "Program Committee" && <ProgramCommitteeBottomBar user={user} activeRole={activeRole} />}
+            {activeRole === "Program Leader" && <ProgramLeaderBottomBar user={user} activeRole={activeRole} />}
+            {activeRole === "Spark Admin" && <SparkAdminBottomBar user={user} activeRole={activeRole} />}
+            {activeRole === "Judge" && <JudgeBottomBar user={user} activeRole={activeRole} />}
           </div>
         </div>
       </SidebarProvider>
