@@ -606,7 +606,6 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
     },
     {
       enabled: activeRole === "College Admin" && !isReadOnly && pageTitle !== "ADMISSION REGISTER",
-      refetchInterval: 15000,
     }
   );
 
@@ -753,7 +752,6 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
           initialData={[]}
           columnsConfig={filteredColumnsConfig}
           formFields={formFields}
-          refetchInterval={15000}
           apiKey={apiKey}
           createFormTitle="Add New Student"
           editFormTitle="Edit Student"
@@ -762,7 +760,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
-          limit={100000}
+          limit={50}
           apiFilters={apiFilters}
           filterTitle={filterTitle || "Students"}
           printTitle={pageTitle || "Students"}

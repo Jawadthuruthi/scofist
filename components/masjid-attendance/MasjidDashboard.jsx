@@ -751,11 +751,9 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
         fetchCategories();
         
         window.addEventListener("focus", fetchCategories);
-        const pollInterval = setInterval(fetchCategories, 5000);
         
         return () => {
             window.removeEventListener("focus", fetchCategories);
-            clearInterval(pollInterval);
         };
     }, []);
 

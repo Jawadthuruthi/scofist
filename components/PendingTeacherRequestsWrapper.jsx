@@ -20,9 +20,6 @@ export default function PendingTeacherRequestsWrapper({ apiKey }) {
     {
       roles: "Teacher",
       profileUpdateStatus: "Pending",
-    },
-    {
-      refetchInterval: 15000,
     }
   );
 

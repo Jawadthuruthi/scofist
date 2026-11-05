@@ -253,15 +253,6 @@ const DataTableComponent = ({
     setIsFilterChanged(true);
   }, [apiFilters]);
 
-  // Periodic refresh
-  useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [router]);
-
   // Client-side filtering
   const initialFilters = useMemo(() => {
     const defaults = {};

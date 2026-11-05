@@ -214,12 +214,10 @@ const JudgesManagement = ({
   useEffect(() => {
     fetchAssignments();
     
-    // Poll every 3 seconds for real-time status updates
-    const intervalId = setInterval(() => {
-      fetchAssignments(true);
-    }, 3000);
-    
-    return () => clearInterval(intervalId);
+    // Refresh on tab focus
+    const handleFocus = () => fetchAssignments(true);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [fetchAssignments]);
 
   // Reset program when division changes

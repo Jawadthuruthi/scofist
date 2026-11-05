@@ -17,9 +17,10 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { toast } from 'sonner'
-import { Search, Scan, LogIn, LogOut, History, User, Shield, Clock, CheckCircle2, AlertCircle, X, UserCheck, Trash2, Save } from 'lucide-react'
+import { Search, Scan, LogIn, LogOut, History, User, Shield, Clock, CheckCircle2, AlertCircle, X, UserCheck, Trash2, Save, RefreshCw } from 'lucide-react'
 import BarcodeScanner from './BarcodeScanner'
 import Image from 'next/image'
+import { cn } from '@/lib/utils'
 
 export default function GatePass({ activeRole, currentUser }) {
     const [studentId, setStudentId] = useState('')
@@ -91,10 +92,6 @@ export default function GatePass({ activeRole, currentUser }) {
         if (activeRole === 'Teacher' && currentUser?._id) {
             setSelectedTeacher(currentUser._id)
         }
-
-        // Poll for updates every 5 seconds to provide real-time updates and handle expiry
-        const interval = setInterval(() => fetchLogs(true), 5000)
-        return () => clearInterval(interval)
     }, [fetchLogs, fetchTeachers, activeRole, currentUser])
 
     const handleSearch = async (e) => {
@@ -104,7 +101,7 @@ export default function GatePass({ activeRole, currentUser }) {
 
         setLoading(true)
         try {
-            const res = await fetch(`/api/users?roles=Student&global=${encodeURIComponent(term)}&limit=1000`)
+            const res = await fetch(`/api/users?roles=Student&global=${encodeURIComponent(term)}&limit=20`)
             const data = await res.json()
 
             if (res.ok && data.users && data.users.length > 0) {
@@ -616,7 +613,19 @@ export default function GatePass({ activeRole, currentUser }) {
                             <History className="w-5 h-5 text-primary" />
                             Activity Log
                         </CardTitle>
-                        <Badge variant="outline" className="bg-background">Activity History</Badge>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fetchLogs()}
+                                disabled={fetchingLogs}
+                                className="h-8 gap-1.5"
+                            >
+                                <RefreshCw className={cn("w-3.5 h-3.5", fetchingLogs && "animate-spin")} />
+                                <span>Refresh</span>
+                            </Button>
+                            <Badge variant="outline" className="bg-background">Activity History</Badge>
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">

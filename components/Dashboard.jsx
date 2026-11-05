@@ -2854,14 +2854,6 @@ export default function Dashboard({
     fetchStudentsQuery.data,
   ]);
 
-  // Periodic refresh
-  useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [router]);
-
   // Error handling
   useEffect(() => {
     if (fetchStudentsQuery.error) {

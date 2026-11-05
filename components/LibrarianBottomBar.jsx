@@ -63,8 +63,9 @@ export default function LibrarianBottomBar({ user, activeRole: activeRoleProp })
     };
 
     fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
+    const handleUpdate = () => fetchCount();
+    window.addEventListener("scofist:library-requests-updated", handleUpdate);
+    return () => window.removeEventListener("scofist:library-requests-updated", handleUpdate);
   }, [isLibrarian]);
 
   const navItems = [

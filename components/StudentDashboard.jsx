@@ -1340,10 +1340,8 @@ export default function StudentDashboard({
 
     if (activeTab === "LIBRARY") {
       fetchLibraryBooks(true);
-      const interval = setInterval(() => fetchLibraryBooks(false), 30000);
       return () => {
         isMounted = false;
-        clearInterval(interval);
       };
     }
   }, [apiKey, isActiveStudent, activeTab]);
@@ -1373,8 +1371,6 @@ export default function StudentDashboard({
   useEffect(() => {
     if (activeTab === "LIBRARY") {
       fetchPendingRequests();
-      const interval = setInterval(fetchPendingRequests, 30000);
-      return () => clearInterval(interval);
     }
   }, [apiKey, currentUser?._id, activeTab]);
 

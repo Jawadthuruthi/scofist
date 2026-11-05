@@ -400,12 +400,10 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   useEffect(() => {
     fetchAssignment();
 
-    // Poll every 1 second to check for new assignments and alerts automatically
-    const intervalId = setInterval(() => {
-      fetchAssignment(true);
-    }, 1000);
-
-    return () => clearInterval(intervalId);
+    // Refresh on tab focus
+    const handleFocus = () => fetchAssignment(true);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [fetchAssignment]);
 
   const handleMarkChange = (key, value) => {

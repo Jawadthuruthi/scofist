@@ -792,15 +792,6 @@ const TimeTableComponent = ({
 
   const router = useRouter();
 
-  // Periodic refresh
-  useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [router]);
-
   const currentTodayIST = useMemo(() => getISTDateString(), []);
   const isPastDate = todayDateStr < currentTodayIST;
   const [snapshotData, setSnapshotData] = useState(null);

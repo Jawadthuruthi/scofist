@@ -587,15 +587,6 @@ const TimeTablesManagements = ({
     []
   );
 
-  // Periodically refresh data
-  useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [router]);
-
   const currentClass = useMemo(
     () => classes.find((cls) => cls?._id === selectedClass),
     [classes, selectedClass]

@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Check, X, BookOpen, Clock, User, Trash2 } from "lucide-react";
+import { Check, X, BookOpen, Clock, User, Trash2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import Header from "@/components/Header";
+import { cn } from "@/lib/utils";
 
 export default function LibraryRequests() {
     const [requests, setRequests] = useState([]);
@@ -37,10 +38,6 @@ export default function LibraryRequests() {
 
     useEffect(() => {
         fetchRequests();
-        
-        // Auto-refresh every 10 seconds
-        const interval = setInterval(fetchRequests, 10000);
-        return () => clearInterval(interval);
     }, []);
 
     const handleReject = async (requestId) => {
@@ -54,6 +51,7 @@ export default function LibraryRequests() {
             if (res.ok) {
                 toast.success("Request rejected");
                 fetchRequests();
+                window.dispatchEvent(new CustomEvent("scofist:library-requests-updated"));
             }
         } catch (error) {
             toast.error("Failed to reject request");
@@ -79,6 +77,7 @@ export default function LibraryRequests() {
                 }
                 toast.success("Rental created and request approved");
                 fetchRequests();
+                window.dispatchEvent(new CustomEvent("scofist:library-requests-updated"));
                 setRentalPopupOpen(false);
                 return true;
             } else {
@@ -302,17 +301,28 @@ export default function LibraryRequests() {
                 tableHeight="auto"
                 searchInSameRowOnMobile={true}
                 actionButtons={
-                    selectedIds.length > 0 && (
+                    <div className="flex items-center gap-2">
                         <Button 
-                            variant="destructive" 
+                            variant="outline" 
                             className="h-10 px-2.5 sm:px-3 flex items-center justify-center shrink-0"
-                            onClick={handleBulkDelete}
+                            onClick={() => fetchRequests()}
+                            disabled={loading}
                         >
-                            <Trash2 className="h-4 w-4 sm:mr-1.5" />
-                            <span className="hidden sm:inline">Delete </span>
-                            ({selectedIds.length})
+                            <RefreshCw className={cn("h-4 w-4 sm:mr-1.5", loading && "animate-spin")} />
+                            <span className="hidden sm:inline">Refresh</span>
                         </Button>
-                    )
+                        {selectedIds.length > 0 && (
+                            <Button 
+                                variant="destructive" 
+                                className="h-10 px-2.5 sm:px-3 flex items-center justify-center shrink-0"
+                                onClick={handleBulkDelete}
+                            >
+                                <Trash2 className="h-4 w-4 sm:mr-1.5" />
+                                <span className="hidden sm:inline">Delete </span>
+                                ({selectedIds.length})
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 

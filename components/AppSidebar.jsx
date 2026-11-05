@@ -833,7 +833,7 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
   const [pendingTeacherRequestsCount, setPendingTeacherRequestsCount] = useState(0);
   const [pendingStudentRequestsCount, setPendingStudentRequestsCount] = useState(0);
 
-  // Fetch pending profile requests for College Admin
+  // Fetch pending profile requests for College Admin on mount
   useEffect(() => {
     if (role !== "College Admin") return;
     const fetchCounts = async () => {
@@ -854,11 +854,12 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
       } catch { /* silent */ }
     };
     fetchCounts();
-    const interval = setInterval(fetchCounts, 30000);
-    return () => clearInterval(interval);
+    const handleUpdate = () => fetchCounts();
+    window.addEventListener("scofist:profile-requests-updated", handleUpdate);
+    return () => window.removeEventListener("scofist:profile-requests-updated", handleUpdate);
   }, [role]);
 
-  // Fetch pending book requests count for Librarian
+  // Fetch pending book requests count for Librarian on mount
   useEffect(() => {
     if (role !== "Librarian") return;
     const fetchCount = async () => {
@@ -869,8 +870,9 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
       } catch { /* silent */ }
     };
     fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
+    const handleUpdate = () => fetchCount();
+    window.addEventListener("scofist:library-requests-updated", handleUpdate);
+    return () => window.removeEventListener("scofist:library-requests-updated", handleUpdate);
   }, [role]);
 
   // Close sidebar on outside click
