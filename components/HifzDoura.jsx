@@ -393,7 +393,7 @@ const HifzDoura = ({ apiKey, classes, teachers, currentUser }) => {
   const [loadingRecords, setLoadingRecords] = useState(false);
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
   const [removingIds, setRemovingIds] = useState([]);
-  const [filterDate, setFilterDate] = useState(formatDate(new Date()));
+  const [filterDate, setFilterDate] = useState(() => formatDate(new Date()));
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const selectedDate = useMemo(() => {
@@ -441,7 +441,7 @@ const HifzDoura = ({ apiKey, classes, teachers, currentUser }) => {
   };
   const [searchEnroll, setSearchEnroll] = useState("");
   const [activeTab, setActiveTab] = useState("records");
-  const [activeYear, setActiveYear] = useState(Cookies.get("active-year") || "");
+  const [activeYear, setActiveYear] = useState(() => Cookies.get("active-year") || "");
   const [selectedEnrollments, setSelectedEnrollments] = useState([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedForEdit, setSelectedForEdit] = useState([]);

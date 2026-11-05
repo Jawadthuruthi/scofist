@@ -41,7 +41,6 @@ import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { applyPrintStyles, removePrintStyles, formatDateForDisplay, formatDateMonthYear, formatTime12Hour, cn, sortClasses } from "@/lib/utils";
-import * as XLSX from "xlsx";
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -649,7 +648,7 @@ const DataTableComponent = ({
     removePrintStyles();
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const exportData = table.getFilteredRowModel().rows.map(row => row.original);
 
     const excelData = exportData.map((row, index) => {
@@ -707,6 +706,7 @@ const DataTableComponent = ({
       return rowData;
     });
 
+    const XLSX = await import("xlsx");
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, printTitle || resource || "Sheet1");

@@ -73,7 +73,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [classDetails, setClassDetails] = useState(null);
   const [periodDetails, setPeriodDetails] = useState(null);
   const [attendanceExists, setAttendanceExists] = useState(false);
-  const [attendanceDate] = useState(dateParam || formatDate(new Date()));
+  const [attendanceDate] = useState(() => dateParam || formatDate(new Date()));
   const [existingAttendanceId, setExistingAttendanceId] = useState(null);
   const [studentLeaveStatus, setStudentLeaveStatus] = useState({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
