@@ -2450,17 +2450,9 @@ Teacher: ${teacherName || "Teacher"}`;
                             const encodedText = encodeURIComponent(msg);
                             const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                             if (isMobile) {
-                              const nativeUri = `whatsapp://send?phone=${student.contactNumber}&text=${encodedText}`;
-                              const webFallback = `https://wa.me/${student.contactNumber}?text=${encodedText}`;
-                              window.location.href = nativeUri;
-                              setTimeout(() => {
-                                if (typeof document !== "undefined" && document.hasFocus()) {
-                                  window.location.href = webFallback;
-                                }
-                              }, 1200);
+                              window.location.href = `https://wa.me/${student.contactNumber}?text=${encodedText}`;
                             } else {
-                              const desktopUrl = `https://web.whatsapp.com/send?phone=${student.contactNumber}&text=${encodedText}`;
-                              window.open(desktopUrl, "_blank", "noopener,noreferrer");
+                              window.open(`https://web.whatsapp.com/send?phone=${student.contactNumber}&text=${encodedText}`, "_blank", "noopener,noreferrer");
                             }
                           }}
                         >
