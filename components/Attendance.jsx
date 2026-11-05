@@ -42,7 +42,7 @@ import {
 
 // Hooks and Utils
 import useCrud from "@/hooks/use-crud";
-import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, cn, getWhatsAppUrl, openWhatsAppChat } from "@/lib/utils";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import Header from "./Header";
 import AbsenteeStatus from "./AbsenteeStatus";
@@ -515,6 +515,9 @@ const Attendance = ({ apiKey, teacherId }) => {
         student.studentSpecificField?.guardianContactNumber ||
         student.contactNumber;
       let formattedNumber = number ? String(number).replace(/\D/g, "") : "";
+      if (formattedNumber.startsWith("0") && formattedNumber.length === 11) {
+        formattedNumber = formattedNumber.slice(1);
+      }
       if (formattedNumber.length === 10) {
         formattedNumber = `91${formattedNumber}`;
       }
@@ -1374,7 +1377,11 @@ const Attendance = ({ apiKey, teacherId }) => {
                       </span>
                       {student.contactNumber ? (
                         <a
-                          href={`https://api.whatsapp.com/send?phone=${student.contactNumber}&text=${encodeURIComponent(msg)}`}
+                          href={getWhatsAppUrl(student.contactNumber, msg)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openWhatsAppChat(student.contactNumber, msg);
+                          }}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95 shrink-0"

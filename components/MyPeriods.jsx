@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 // Hooks and Utils
-import { formatDate, formatDateForDisplay, cn, getISTDate } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, cn, getISTDate, getWhatsAppUrl, openWhatsAppChat } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import { fetchItems } from "@/lib/api";
 import Header from "./Header";
@@ -936,6 +936,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         const number = student.guardianContactNumber || student.contactNumber;
         if (number) {
           let formattedNumber = number.replace(/\D/g, '');
+          if (formattedNumber.startsWith("0") && formattedNumber.length === 11) {
+            formattedNumber = formattedNumber.slice(1);
+          }
           if (formattedNumber.length === 10) {
             formattedNumber = `91${formattedNumber}`;
           }
@@ -2046,12 +2049,7 @@ Teacher: ${teacherName || "Teacher"}`;
                                         variant="outline"
                                         className="flex items-center gap-1.5 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
                                         onClick={() => {
-                                          const a = document.createElement("a");
-                                          a.href = waUrl;
-                                          a.target = "_blank";
-                                          document.body.appendChild(a);
-                                          a.click();
-                                          document.body.removeChild(a);
+                                          openWhatsAppChat(formattedNumber, msg);
                                         }}
                                       >
                                         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -2442,7 +2440,11 @@ Teacher: ${teacherName || "Teacher"}`;
                         </span>
                         {student.contactNumber ? (
                           <a
-                            href={`https://api.whatsapp.com/send?phone=${student.contactNumber}&text=${encodeURIComponent(msg)}`}
+                            href={getWhatsAppUrl(student.contactNumber, msg)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              openWhatsAppChat(student.contactNumber, msg);
+                            }}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95 shrink-0"
