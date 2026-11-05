@@ -288,6 +288,10 @@ const userSchema = new Schema(
 
 // Indexes for common query patterns
 userSchema.index({ name: "text" });
+userSchema.index({ roles: 1, profileUpdateStatus: 1 });
+userSchema.index({ roles: 1, "studentSpecificField.classId": 1 });
+userSchema.index({ roles: 1, "studentSpecificField.batchId": 1 });
+userSchema.index({ "studentSpecificField.admissionNumber": 1 });
 
 // Virtual for student's funds
 userSchema.virtual('funds', {

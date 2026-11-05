@@ -174,7 +174,7 @@ export async function GET(req) {
       sortConfig = { "studentSpecificField.admissionNumber": sortDirection, _id: sortDirection };
     }
 
-    // Use lean for better performance when appropriate
+    // Use lean for better performance and memory efficiency
     let usersQuery = User.find(query, projections)
       .populate("studentSpecificField.batchId")
       .populate("studentSpecificField.classId")
@@ -182,7 +182,12 @@ export async function GET(req) {
       .skip(page * limit)
       .limit(limit)
       .sort(sortConfig)
-      .collation({ locale: "en_US", numericOrdering: true });
+      .lean();
+
+    // Only apply heavy collation when sorting students by admission number
+    if (filterParams.roles && filterParams.roles.includes("Student")) {
+      usersQuery = usersQuery.collation({ locale: "en_US", numericOrdering: true });
+    }
 
     if (url.searchParams.get("populate") === "funds") {
       usersQuery = usersQuery
@@ -203,7 +208,7 @@ export async function GET(req) {
 
     // Optimize the data transformation to avoid deep cloning
     const formattedUsers = users.map((u) => {
-      const user = u.toObject({ virtuals: true });
+      const user = (typeof u.toObject === "function") ? u.toObject({ virtuals: true }) : u;
       const studentSpecificField = user.studentSpecificField || {};
       // Handle null/undefined safely
       const address = user.address || {};
