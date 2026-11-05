@@ -73,7 +73,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [classDetails, setClassDetails] = useState(null);
   const [periodDetails, setPeriodDetails] = useState(null);
   const [attendanceExists, setAttendanceExists] = useState(false);
-  const [attendanceDate] = useState(() => dateParam || formatDate(new Date()));
+  const [attendanceDate] = useState(dateParam || formatDate(new Date()));
   const [existingAttendanceId, setExistingAttendanceId] = useState(null);
   const [studentLeaveStatus, setStudentLeaveStatus] = useState({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
@@ -1406,19 +1406,19 @@ const Attendance = ({ apiKey, teacherId }) => {
             )}
           </div>
 
-            <DialogFooter className="px-5 py-3 border-t bg-muted/20 flex flex-row justify-end items-center">
-              <Button
-                size="sm"
-                className="bg-black text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85 font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95"
-                onClick={() => {
-                  setWhatsappModalData(null);
-                  navigateToMyPeriods();
-                }}
-              >
-                <Check className="h-3.5 w-3.5" />
-                Done
-              </Button>
-            </DialogFooter>
+          <DialogFooter className="px-5 py-3 border-t bg-muted/20 flex flex-row justify-end items-center">
+            <Button
+              size="sm"
+              className="bg-black text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85 font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center justify-center gap-1.5 w-24 transition-transform active:scale-95"
+              onClick={() => {
+                setWhatsappModalData(null);
+                navigateToMyPeriods();
+              }}
+            >
+              <Check className="h-3.5 w-3.5" />
+              Done
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
