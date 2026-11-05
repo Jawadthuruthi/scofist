@@ -1,62 +1,52 @@
-# Implementation Plan: Zero-Idle Resource Optimization & Polling Elimination
+# Implementation Plan: Vercel React Performance & Bundle Optimization
 
 ## Overview
-Eliminate serverless CPU exhaustion on Vercel (breached at 6h 12m Fluid Active CPU and 420K invocations) by replacing blind continuous client-side polling with an on-demand, cache-first architecture. This plan de-escalates all 5s–60s polling loops across admin sidebars, student tables, gate pass, library, and masjid attendance into on-demand fetches with manual refresh actions, and hardens MongoDB indexes and lean queries in `/api/users`.
+Implement key optimizations identified in the Vercel React Best Practices audit. This plan cuts client-side bundle size by dynamically importing `xlsx` in `DataTableComponent`, reduces DOM hydration overhead by conditionally mounting role-specific bottom bars in `layout.jsx`, eliminates server-side waterfalls and over-fetching in `app/dashboard/page.jsx`, parallelizes independent database queries in `app/api/attendance-sheet/route.js`, and converts inline `useState` calculations to lazy initializers.
 
 ---
 
 ## Architecture Decisions
-- **Zero Idle Polling:** No component is permitted to maintain an unthrottled `setInterval` or `refetchInterval` calling Vercel serverless routes while idle.
-- **On-Demand & Mutation-Driven Updates:** Pages fetch once upon mounting (or reuse TanStack Query cache). Updates occur reactively when the user creates/updates/deletes a record, changes search filters, or explicitly clicks the manual "Refresh" button.
-- **Standardized Manual Refresh UI:** Provide a consistent `<Button variant="outline" size="sm" onClick={refetch}>` with an animated `RefreshCw` icon on live operational views (`GatePass`, `LibraryRequests`).
-- **Compound Database Indexing & Lean Serialization:** Add targeted MongoDB compound indexes on `User` collection and switch high-frequency read handlers to `.lean()` to drastically drop per-invocation CPU execution duration.
+- **Dynamic On-Demand Excel Export:** Convert `import * as XLSX from "xlsx"` to dynamic `const XLSX = await import("xlsx")` inside `exportToExcel`. Users never download the ~800KB library unless they actually click the Export button.
+- **Role-Guarded Bottom Bars:** Render only the single bottom navigation bar corresponding to `activeRole` in `app/dashboard/layout.jsx`, preventing 9 component trees from hydrating on mobile screens.
+- **Early Student Branching:** In `app/dashboard/page.jsx`, check `if (activeRole === "Student")` before fetching 7 unused admin endpoints (`periods`, `teachersLeaveRecord`, `attendances`, etc.), slashing student SSR latency.
+- **Parallel Query Execution:** In `app/api/attendance-sheet/route.js`, execute `Attendance.find` and `LeaveRecord.find` concurrently via `Promise.all`.
+- **Lazy State Initializers:** Replace inline computations in `useState` with lazy callback initializers (`useState(() => ...)`) to avoid running functions on every re-render.
 
 ---
 
 ## Dependency Graph
 ```text
-Task 1: Core Admin & Table Views (DataTableComponent, StudentsClient, AppSidebar, LibrarianBottomBar)
+Task 1: Bundle Size & Layout Optimization (DataTableComponent.jsx, layout.jsx)
         │
         ▼
-Task 2: Operational & Student Views (GatePass, LibraryRequests, MasjidDashboard, StudentDashboard)
+Task 2: Server-Side Performance & Waterfall Elimination (app/dashboard/page.jsx, attendance-sheet/route.js)
         │
         ▼
-Task 3: Backend Database Indexing & API Lean Query Optimization (User.js, /api/users/route.js)
-        │
-        ▼
-Task 4: System-Wide Audit & Production Build Verification
+Task 3: Re-render Optimizations (Attendance.jsx, HifzDoura.jsx) & Production Build Verification
 ```
 
 ---
 
 ## Tasks Overview
 
-### Phase 1: Core Admin & Table Views
-- [ ] **Task 1:** Remove periodic `router.refresh()` from `DataTableComponent.jsx`, remove `refetchInterval` (15000) and `limit={100000}` from `StudentsClient.jsx`, and eliminate 30s polling loops in `AppSidebar.jsx` and `LibrarianBottomBar.jsx`.
+### Phase 1: Bundle Size & Layout
+- [ ] **Task 1:** Lazy-load `xlsx` on button click in `DataTableComponent.jsx` and conditionally render matching bottom bar in `app/dashboard/layout.jsx`.
 
-### Checkpoint: Core Views
-- [ ] Admin pages and tables load cleanly with zero background polling intervals.
-
----
-
-### Phase 2: Operational & Student Views
-- [ ] **Task 2:** Convert `GatePass.jsx` (5s), `MasjidDashboard.jsx` (5s), `LibraryRequests.jsx` (10s), and `StudentDashboard.jsx` (30s) to on-demand data fetching with visible manual refresh buttons.
-
-### Checkpoint: Operational Views
-- [ ] Gate pass, library, and masjid portals operate smoothly on-demand with instant manual refresh and zero idle requests.
+### Checkpoint: Bundle & Layout
+- [ ] Excel export works smoothly on demand; bottom bar renders for matching role without mounting redundant trees.
 
 ---
 
-### Phase 3: Backend Indexing & Query Lean Optimization
-- [ ] **Task 3:** Add compound indexes in `models/User.js` for roles, profile status, classId, and batchId; apply `.lean()` and sane limit ceilings in `app/api/users/route.js`.
+### Phase 2: Server-Side Performance
+- [ ] **Task 2:** Move student branching early in `app/dashboard/page.jsx` to eliminate over-fetching; parallelize independent DB queries in `app/api/attendance-sheet/route.js`.
 
-### Checkpoint: Database Efficiency
-- [ ] `/api/users` query latency and memory footprint reduced, leveraging MongoDB compound index lookups.
+### Checkpoint: Server-Side Optimization
+- [ ] Student dashboard SSR avoids admin queries; attendance sheet API queries execute concurrently.
 
 ---
 
-### Phase 4: Full Audit & Build Verification
-- [ ] **Task 4:** Grep entire codebase for remaining unthrottled interval polls, run `npm.cmd run build`, and confirm production readiness.
+### Phase 3: Re-render Polish & Build Verification
+- [ ] **Task 3:** Convert inline `useState` computations in `Attendance.jsx` and `HifzDoura.jsx` to lazy initializers; run `npm.cmd run build` to verify all 94 routes.
 
 ### Checkpoint: Complete
-- [ ] All 94+ routes build with 0 errors. Idle network activity drops to 0 requests/min.
+- [ ] Full production build succeeds cleanly; all acceptance criteria met.

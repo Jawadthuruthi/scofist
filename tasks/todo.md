@@ -1,119 +1,85 @@
-# Tasks: Zero-Idle Resource Optimization & Polling Elimination
+# Tasks: Vercel React Performance & Bundle Optimization
 
-## Task 1: Core Admin & Table Views Polling Removal
+## Task 1: Bundle Size & Layout Optimization
 
-**Description:** De-escalate background polling in core administrative components. In `DataTableComponent.jsx`, remove the 60s `router.refresh()` interval and ensure default refetch intervals stay disabled. In `StudentsClient.jsx`, remove `refetchInterval: 15000` from pending requests and remove `refetchInterval={15000}` & `limit={100000}` from the main student data table. In `AppSidebar.jsx` and `LibrarianBottomBar.jsx`, remove 30s `setInterval` count polling and load badge counts once on mount, listening for local mutations.
+**Description:** Strip heavy static dependencies and unnecessary DOM hydration. In `components/DataTableComponent.jsx`, remove top-level `import * as XLSX from "xlsx"` and dynamically load it with `await import("xlsx")` inside the export handler. In `app/dashboard/layout.jsx`, conditionally render only the bottom navigation bar matching `activeRole` instead of mounting all 9 bottom bar components simultaneously.
 
 **Acceptance criteria:**
-- [x] Remove `router.refresh()` interval from `components/DataTableComponent.jsx`.
-- [x] Remove `refetchInterval: 15000` and `limit={100000}` from `components/StudentsClient.jsx`.
-- [x] Remove `setInterval(fetchCounts, 30000)` and `setInterval(fetchCount, 30000)` from `components/AppSidebar.jsx`.
-- [x] Remove `setInterval(fetchCount, 30000)` from `components/LibrarianBottomBar.jsx`.
-- [x] Also check `components/PendingTeacherRequestsWrapper.jsx` to remove `refetchInterval: 15000`.
+- [x] In `components/DataTableComponent.jsx`: remove top-level static `xlsx` import; dynamically import `xlsx` in `exportToExcel`.
+- [x] In `app/dashboard/layout.jsx`: render only `{activeRole === "Role" && <RoleBottomBar ... />}` for all 9 role bottom bars.
+- [x] Excel export button continues to generate and download `.xlsx` files properly.
 
 **Verification:**
-- [x] Git grep verifies no `setInterval` or `refetchInterval` remain in touched files.
-- [x] Table and sidebar render and navigate normally without console errors.
+- [x] Verify `DataTableComponent.jsx` has no top-level `import * as XLSX`.
+- [x] Verify `app/dashboard/layout.jsx` mounts only the matching bottom bar.
 
 **Dependencies:** None
 
 **Files likely touched:**
 - `components/DataTableComponent.jsx`
-- `components/StudentsClient.jsx`
-- `components/PendingTeacherRequestsWrapper.jsx`
-- `components/AppSidebar.jsx`
-- `components/LibrarianBottomBar.jsx`
-
-**Estimated scope:** Medium (4-5 files)
-
----
-
-## Checkpoint: Core Views
-- [ ] Admin dashboard and student tables no longer fire automated periodic requests when idle.
-
----
-
-## Task 2: Operational & Student Views to On-Demand + Manual Refresh
-
-**Description:** Convert operational views that have tight 5s–30s polling into on-demand loading with visible manual refresh triggers. In `GatePass.jsx`, replace the 5s interval with an explicit Refresh button with loading spinner in the toolbar/header, refreshing automatically after approving/rejecting a gate pass. In `MasjidDashboard.jsx`, remove the 5s polling interval while preserving window focus refetching. In `LibraryRequests.jsx`, remove the 10s interval and provide a manual refresh button. In `StudentDashboard.jsx`, remove the twin 30s intervals on the Library tab.
-
-**Acceptance criteria:**
-- [x] `components/GatePass.jsx`: Remove 5s `setInterval`; add manual Refresh button; refresh upon user actions.
-- [x] `components/masjid-attendance/MasjidDashboard.jsx`: Remove 5s `setInterval` polling loop.
-- [x] `components/LibraryRequests.jsx`: Remove 10s `setInterval`; add manual Refresh button.
-- [x] `components/StudentDashboard.jsx`: Remove 30s intervals for `fetchLibraryBooks` and `fetchPendingRequests`.
-
-**Verification:**
-- [x] Git grep confirms removal of 5s, 10s, and 30s polling in these files.
-- [x] Manual refresh buttons trigger fetches properly without page reloads.
-
-**Dependencies:** Task 1
-
-**Files likely touched:**
-- `components/GatePass.jsx`
-- `components/masjid-attendance/MasjidDashboard.jsx`
-- `components/LibraryRequests.jsx`
-- `components/StudentDashboard.jsx`
-
-**Estimated scope:** Medium (4 files)
-
----
-
-## Checkpoint: Operational Views
-- [ ] Gate pass, library, and masjid portals operate smoothly on-demand with instant manual refresh and zero idle network calls.
-
----
-
-## Task 3: Backend Database Indexing & API Lean Query Optimization
-
-**Description:** Optimize database read paths and reduce serverless CPU duration per invocation. In `models/User.js`, add compound indexes on high-frequency query filters (`{ roles: 1, profileUpdateStatus: 1 }`, `{ "studentSpecificField.classId": 1 }`, `{ "studentSpecificField.batchId": 1 }`). In `app/api/users/route.js`, apply `.lean()` on queries where document instances are not modified, and enforce sane pagination defaults to prevent unbounded memory serialization.
-
-**Acceptance criteria:**
-- [x] In `models/User.js`: define compound indexes for `roles` + `profileUpdateStatus`, `studentSpecificField.classId`, and `studentSpecificField.batchId`.
-- [x] In `app/api/users/route.js`: use `.lean()` on the find query and eliminate heavy unindexed collation overhead when not performing student admission sorting.
-- [x] Ensure API response schema remains 100% backward-compatible with frontend data tables.
-
-**Verification:**
-- [x] Test GET `/api/users?roles=Teacher&profileUpdateStatus=Pending&limit=1` returns expected JSON structure rapidly.
-- [x] Test GET `/api/users?roles=Student&classId=...` returns formatted students with `.lean()`.
-
-**Dependencies:** None (can be done in parallel or sequence)
-
-**Files likely touched:**
-- `models/User.js`
-- `app/api/users/route.js`
+- `app/dashboard/layout.jsx`
 
 **Estimated scope:** Small (2 files)
 
 ---
 
-## Checkpoint: Database Efficiency
-- [ ] Database queries are index-backed and serialization memory/CPU footprint is minimized.
+## Checkpoint: Bundle & Layout
+- [ ] Table pages no longer bundle `xlsx` by default; layout DOM contains only 1 active bottom bar.
 
 ---
 
-## Task 4: System-Wide Audit & Production Build Verification
+## Task 2: Server-Side Performance & Waterfall Elimination
 
-**Description:** Perform a comprehensive audit for any remaining unthrottled timer or polling leaks across the entire codebase. Run the full Next.js production build (`npm.cmd run build`) to ensure zero bundling, lint, or type issues.
+**Description:** Eliminate server-side over-fetching and parallelize database queries. In `app/dashboard/page.jsx`, move the `if (activeRole === "Student")` condition above the main admin `Promise.all` fetch, querying only `classes`, `batches`, `updates`, and `debtBalances` for students. In `app/api/attendance-sheet/route.js`, parallelize independent `Attendance.find` and `LeaveRecord.find` queries using `Promise.all`.
 
 **Acceptance criteria:**
-- [x] Complete codebase scan confirms zero automated `setInterval` or `refetchInterval` calling APIs in the background.
-- [x] Full Next.js production build passes with exit code 0 (`npm.cmd run build`).
+- [x] In `app/dashboard/page.jsx`: when `activeRole === "Student"`, skip fetching the 7 unused admin endpoints (`periods`, `teachersLeaveRecord`, `attendances`, `leaveRecords`, `settings`, `teachers`).
+- [x] In `app/api/attendance-sheet/route.js`: execute `Attendance.find` and `LeaveRecord.find` concurrently via `Promise.all`.
+- [x] Student dashboard and admin dashboard render identically without data omissions.
 
 **Verification:**
-- [x] `git grep -in "setInterval" components/ app/` shows only non-network UI timers (e.g. countdowns, image carousel rotation).
-- [x] `npm.cmd run build` finishes cleanly.
+- [x] Verify code branches early on `activeRole === "Student"`.
+- [x] Verify both `attendanceRecords` and `leaveRecords` resolve concurrently in `attendance-sheet/route.js`.
 
-**Dependencies:** Tasks 1, 2, 3
+**Dependencies:** Task 1
 
 **Files likely touched:**
-- None (verification and test execution)
+- `app/dashboard/page.jsx`
+- `app/api/attendance-sheet/route.js`
 
-**Estimated scope:** Small
+**Estimated scope:** Small (2 files)
+
+---
+
+## Checkpoint: Server-Side Optimization
+- [ ] Student SSR latency reduced by skipping admin queries; attendance sheet API queries execute in parallel.
+
+---
+
+## Task 3: Re-render Polish & Production Build Verification
+
+**Description:** Optimize component initializations and verify the entire system. In `components/Attendance.jsx` and `components/HifzDoura.jsx`, wrap function calls in `useState` with lazy initializers (`useState(() => ...)`). Run the full Next.js production build (`npm.cmd run build`) to confirm zero type, lint, or bundling errors.
+
+**Acceptance criteria:**
+- [x] In `components/Attendance.jsx`: convert `useState(dateParam || formatDate(new Date()))` to lazy function.
+- [x] In `components/HifzDoura.jsx`: convert `useState(formatDate(new Date()))` and `useState(Cookies.get("active-year") || "")` to lazy functions.
+- [x] Full production build succeeds cleanly (`npm.cmd run build`).
+
+**Verification:**
+- [x] Grep confirms lazy initializers in touched components.
+- [x] `npm.cmd run build` completes with exit code 0.
+
+**Dependencies:** Tasks 1, 2
+
+**Files likely touched:**
+- `components/Attendance.jsx`
+- `components/HifzDoura.jsx`
+
+**Estimated scope:** Small (2 files + build verification)
 
 ---
 
 ## Checkpoint: Complete
-- [x] All 4 tasks completed.
-- [x] Scofist client operates with zero idle background requests.
-- [x] Serverless resource consumption is safely contained within Vercel Free Tier limits.
+- [x] All 3 tasks completed.
+- [x] Client bundles are significantly lighter (~800KB saved on tables).
+- [x] Server component data fetching and API query execution streamlined.
