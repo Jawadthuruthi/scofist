@@ -150,20 +150,21 @@ export async function GET(request) {
             attendanceQuery.batchId = batchId;
         }
 
-        const attendanceRecords = await Attendance.find(attendanceQuery).populate("teacherId", "name");
-
-        // 2.5 Fetch Leave Records for the range using the student list
+        // 2.5 Fetch Attendance and Leave Records in parallel using lean queries
         const studentIds = students.map(s => s._id);
-        const leaveRecords = await LeaveRecord.find({
-            studentId: { $in: studentIds },
-            dateOfLeave: { $lte: endDate },
-            $or: [
-                { dateOfArrival: { $gte: startDate } },
-                { arrivedDate: { $gte: startDate } },
-                { arrivedDate: { $exists: false } },
-                { arrivedDate: null }
-            ]
-        });
+        const [attendanceRecords, leaveRecords] = await Promise.all([
+            Attendance.find(attendanceQuery).populate("teacherId", "name").lean(),
+            LeaveRecord.find({
+                studentId: { $in: studentIds },
+                dateOfLeave: { $lte: endDate },
+                $or: [
+                    { dateOfArrival: { $gte: startDate } },
+                    { arrivedDate: { $gte: startDate } },
+                    { arrivedDate: { $exists: false } },
+                    { arrivedDate: null }
+                ]
+            }).lean()
+        ]);
 
         // 3. Transform DataMap
         // Map: studentId -> { dateStr: { present: bool, markedBy: string, markedAt: date } }
