@@ -1,121 +1,119 @@
-# Tasks: Resilient Fuzzy Query Engine & Typo-Tolerant AI Search
+# Tasks: Zero-Idle Resource Optimization & Polling Elimination
 
-## Task 1: In-Memory Fuzzy Entity Resolver (`lib/fuzzySearch.js`)
+## Task 1: Core Admin & Table Views Polling Removal
 
-**Description:** Create a zero-dependency string distance & fuzzy matcher module in `lib/fuzzySearch.js`. Implement Damerau-Levenshtein distance calculation, n-gram token similarity scoring, canonical entity resolution (classes, batches, teams, keywords), and abbreviation normalization (`PG1` $\rightarrow$ `PG FIRST YEAR`, `FY` $\rightarrow$ `FIRST YEAR`).
+**Description:** De-escalate background polling in core administrative components. In `DataTableComponent.jsx`, remove the 60s `router.refresh()` interval and ensure default refetch intervals stay disabled. In `StudentsClient.jsx`, remove `refetchInterval: 15000` from pending requests and remove `refetchInterval={15000}` & `limit={100000}` from the main student data table. In `AppSidebar.jsx` and `LibrarianBottomBar.jsx`, remove 30s `setInterval` count polling and load badge counts once on mount, listening for local mutations.
 
 **Acceptance criteria:**
-- [x] Implement `levenshteinDistance(str1, str2)` and `stringSimilarity(str1, str2)` scoring between 0.0 and 1.0.
-- [x] Implement `fuzzyMatchEntity(query, candidateList, threshold = 0.65)` returning best match and confidence score.
-- [x] Pre-index canonical classes (`PLUS ONE`, `DEGREE FIRST YEAR`, `PG FIRST YEAR`, etc.), batches (`BLUMEA`, `NOVEA`, etc.), teams (`DEEDATIAN`, `ATTASIAN`, etc.), and administrative keywords.
-- [x] Implement `normalizeQueryIntent(rawQuery)` correcting common educational misspellings (e.g. `studnts` $\rightarrow$ `students`, `atenance` $\rightarrow$ `attendance`, `rsults` $\rightarrow$ `results`).
+- [x] Remove `router.refresh()` interval from `components/DataTableComponent.jsx`.
+- [x] Remove `refetchInterval: 15000` and `limit={100000}` from `components/StudentsClient.jsx`.
+- [x] Remove `setInterval(fetchCounts, 30000)` and `setInterval(fetchCount, 30000)` from `components/AppSidebar.jsx`.
+- [x] Remove `setInterval(fetchCount, 30000)` from `components/LibrarianBottomBar.jsx`.
+- [x] Also check `components/PendingTeacherRequestsWrapper.jsx` to remove `refetchInterval: 15000`.
 
 **Verification:**
-- [x] Run test script verifying:
-  - `"firt year"` matches `"FIRST YEAR"` with score > 0.8.
-  - `"dedatn"` matches `"DEEDATIAN"` with score > 0.75.
-  - `"atenance for bluma"` normalizes to query for batch `"BLUMEA"` and intent `"attendance"`.
+- [x] Git grep verifies no `setInterval` or `refetchInterval` remain in touched files.
+- [x] Table and sidebar render and navigate normally without console errors.
 
 **Dependencies:** None
 
 **Files likely touched:**
-- `lib/fuzzySearch.js`
+- `components/DataTableComponent.jsx`
+- `components/StudentsClient.jsx`
+- `components/PendingTeacherRequestsWrapper.jsx`
+- `components/AppSidebar.jsx`
+- `components/LibrarianBottomBar.jsx`
 
-**Estimated scope:** Small (1 file)
+**Estimated scope:** Medium (4-5 files)
 
 ---
 
-## Checkpoint: Foundation
-- [x] In-memory fuzzy matcher accurately maps mistyped strings and abbreviations to canonical database entities.
+## Checkpoint: Core Views
+- [ ] Admin dashboard and student tables no longer fire automated periodic requests when idle.
 
 ---
 
-## Task 2: Typo-Tolerant Tool Runner & Schema Catalog (`lib/aiDatabaseTools.js`)
+## Task 2: Operational & Student Views to On-Demand + Manual Refresh
 
-**Description:** Update `SCOFIST_SCHEMA_CATALOG` to guide Gemini into generating case-insensitive partial regexes (`{ $regex: "keyword", $options: "i" }`) instead of strict string equality. Enhance `executeSafeMongoQuery` so that when a find or count query on key collections (`classes`, `batches`, `teams`) yields zero results due to an exact string mismatch, it attempts an automated fuzzy regex retry before giving up.
+**Description:** Convert operational views that have tight 5s–30s polling into on-demand loading with visible manual refresh triggers. In `GatePass.jsx`, replace the 5s interval with an explicit Refresh button with loading spinner in the toolbar/header, refreshing automatically after approving/rejecting a gate pass. In `MasjidDashboard.jsx`, remove the 5s polling interval while preserving window focus refetching. In `LibraryRequests.jsx`, remove the 10s interval and provide a manual refresh button. In `StudentDashboard.jsx`, remove the twin 30s intervals on the Library tab.
 
 **Acceptance criteria:**
-- [x] Update `SCOFIST_SCHEMA_CATALOG` with explicit instructions: *"For string filters (names, titles, classes), always use case-insensitive partial regexes ($regex: 'term', $options: 'i') to tolerate slight misspellings."*
-- [x] In `executeSafeMongoQuery`: if `find` on `classes` or `batches` returns empty array, run fallback search using regex wildcards.
-- [x] Maintain all existing AST safety checks (blocking `$out`, `$merge`, `$where`, and unauthorized collections).
+- [x] `components/GatePass.jsx`: Remove 5s `setInterval`; add manual Refresh button; refresh upon user actions.
+- [x] `components/masjid-attendance/MasjidDashboard.jsx`: Remove 5s `setInterval` polling loop.
+- [x] `components/LibraryRequests.jsx`: Remove 10s `setInterval`; add manual Refresh button.
+- [x] `components/StudentDashboard.jsx`: Remove 30s intervals for `fetchLibraryBooks` and `fetchPendingRequests`.
 
 **Verification:**
-- [x] Test query with partial or slightly mistyped name (`{ name: { $regex: "dedat", $options: "i" } }`) retrieves team document.
-- [x] All security checks (`$out` rejection) continue to pass.
+- [x] Git grep confirms removal of 5s, 10s, and 30s polling in these files.
+- [x] Manual refresh buttons trigger fetches properly without page reloads.
 
 **Dependencies:** Task 1
 
 **Files likely touched:**
-- `lib/aiDatabaseTools.js`
+- `components/GatePass.jsx`
+- `components/masjid-attendance/MasjidDashboard.jsx`
+- `components/LibraryRequests.jsx`
+- `components/StudentDashboard.jsx`
 
-**Estimated scope:** Small (1 file)
-
----
-
-## Checkpoint: Typo-Tolerant Tooling
-- [x] Tool runner safely handles case-insensitive partial regexes and auto-recovers near-miss filters.
+**Estimated scope:** Medium (4 files)
 
 ---
 
-## Task 3: Deterministic Fallback Engine & Route Integration (`app/api/dashboard/ai-search/route.js`)
+## Checkpoint: Operational Views
+- [ ] Gate pass, library, and masjid portals operate smoothly on-demand with instant manual refresh and zero idle network calls.
 
-**Description:** Integrate `fuzzySearch` into `app/api/dashboard/ai-search/route.js`. Use fuzzy resolution in `parseQueryIntent`, `fetchGroundedContext`, and `synthesizeDatabaseAnswer`. When Gemini encounters HTTP 429 (Quota Exceeded) or times out, `synthesizeDatabaseAnswer` immediately executes clean, lean MongoDB queries and formats rich Markdown tables with direct links for all 30 Scofist modules.
+---
+
+## Task 3: Backend Database Indexing & API Lean Query Optimization
+
+**Description:** Optimize database read paths and reduce serverless CPU duration per invocation. In `models/User.js`, add compound indexes on high-frequency query filters (`{ roles: 1, profileUpdateStatus: 1 }`, `{ "studentSpecificField.classId": 1 }`, `{ "studentSpecificField.batchId": 1 }`). In `app/api/users/route.js`, apply `.lean()` on queries where document instances are not modified, and enforce sane pagination defaults to prevent unbounded memory serialization.
 
 **Acceptance criteria:**
-- [x] Import `fuzzyMatchEntity` and `normalizeQueryIntent` in `route.js`.
-- [x] Apply entity normalization in `parseQueryIntent` to extract target class, batch, or team even with typos.
-- [x] Upgrade `synthesizeDatabaseAnswer` across:
-  - Class enrollment inquiries (e.g. *"studnts in PG FIRT YEAR"* $\rightarrow$ exact student count and names).
-  - Arts Fest standings (e.g. *"top tams"* $\rightarrow$ leaderboard table with stage & off-stage points).
-  - Attendance summaries (e.g. *"atenance for bluma"* $\rightarrow$ present/absent stats).
-  - Fee balances (e.g. *"fees for blumea"* $\rightarrow$ debtors summary).
-- [x] Enforce sub-second execution (<100ms) for deterministic fallback.
+- [x] In `models/User.js`: define compound indexes for `roles` + `profileUpdateStatus`, `studentSpecificField.classId`, and `studentSpecificField.batchId`.
+- [x] In `app/api/users/route.js`: use `.lean()` on the find query and eliminate heavy unindexed collation overhead when not performing student admission sorting.
+- [x] Ensure API response schema remains 100% backward-compatible with frontend data tables.
 
 **Verification:**
-- [x] Test POST `/api/dashboard/ai-search` with `"how many studnts in PG FIRT YEAR"`: returns verified student count and markdown details.
-- [x] Test POST `/api/dashboard/ai-search` with Gemini offline/simulated 429: returns complete database answer in <100ms.
+- [x] Test GET `/api/users?roles=Teacher&profileUpdateStatus=Pending&limit=1` returns expected JSON structure rapidly.
+- [x] Test GET `/api/users?roles=Student&classId=...` returns formatted students with `.lean()`.
 
-**Dependencies:** Tasks 1, 2
+**Dependencies:** None (can be done in parallel or sequence)
 
 **Files likely touched:**
-- `app/api/dashboard/ai-search/route.js`
+- `models/User.js`
+- `app/api/users/route.js`
 
-**Estimated scope:** Medium (1 file)
-
----
-
-## Checkpoint: Resilient Route
-- [x] Search endpoint returns correct, verified database answers within 100ms for mistyped queries, completely immune to 429 quota exhaustion.
+**Estimated scope:** Small (2 files)
 
 ---
 
-## Task 4: Multi-Domain Verification & Production Build
+## Checkpoint: Database Efficiency
+- [ ] Database queries are index-backed and serialization memory/CPU footprint is minimized.
 
-**Description:** Execute end-to-end tests across multiple domains with intentional typos and misspellings. Run the full Next.js production build (`npm.cmd run build`) to ensure zero type, lint, or bundling errors.
+---
+
+## Task 4: System-Wide Audit & Production Build Verification
+
+**Description:** Perform a comprehensive audit for any remaining unthrottled timer or polling leaks across the entire codebase. Run the full Next.js production build (`npm.cmd run build`) to ensure zero bundling, lint, or type issues.
 
 **Acceptance criteria:**
-- [x] Verify test queries:
-  1. `"how many studnts in PG FIRT YEAR"`
-  2. `"who are top 2 tams in arts fest by stge points"`
-  3. `"atenance for bluma batch"`
-  4. `"fee balnce for novia"`
-  5. `"any remrks for studnts"`
-- [x] Confirm each query returns exact active numbers and direct clickable links.
-- [x] `npm.cmd run build` completes with exit code 0.
+- [x] Complete codebase scan confirms zero automated `setInterval` or `refetchInterval` calling APIs in the background.
+- [x] Full Next.js production build passes with exit code 0 (`npm.cmd run build`).
 
 **Verification:**
-- [x] Build succeeds: `npm.cmd run build` (All 94 routes generated cleanly).
-- [x] Test suite verifies 100% accuracy on typo queries.
+- [x] `git grep -in "setInterval" components/ app/` shows only non-network UI timers (e.g. countdowns, image carousel rotation).
+- [x] `npm.cmd run build` finishes cleanly.
 
-**Dependencies:** Task 3
+**Dependencies:** Tasks 1, 2, 3
 
 **Files likely touched:**
 - None (verification and test execution)
 
-**Estimated scope:** Small (test verification)
+**Estimated scope:** Small
 
 ---
 
 ## Checkpoint: Complete
-- [x] All acceptance criteria in `SPEC-ai-fuzzy-engine.md` met.
-- [x] System is 100% typo-tolerant and immune to API quota limits.
+- [x] All 4 tasks completed.
+- [x] Scofist client operates with zero idle background requests.
+- [x] Serverless resource consumption is safely contained within Vercel Free Tier limits.
