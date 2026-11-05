@@ -1,85 +1,111 @@
-# Tasks: Vercel React Performance & Bundle Optimization
+# Tasks: Remove AI Chat from Project Entirely
 
-## Task 1: Bundle Size & Layout Optimization
+## Task 1: Unlink and remove UI & Navigation references
 
-**Description:** Strip heavy static dependencies and unnecessary DOM hydration. In `components/DataTableComponent.jsx`, remove top-level `import * as XLSX from "xlsx"` and dynamically load it with `await import("xlsx")` inside the export handler. In `app/dashboard/layout.jsx`, conditionally render only the bottom navigation bar matching `activeRole` instead of mounting all 9 bottom bar components simultaneously.
+**Description:** Decouple all active components and routing rules that import or reference the AI chat feature. In `components/Dashboard.jsx`, remove the `CollegeAdminAISearch` import and JSX render block. In `components/CollegeAdminBottomBar.jsx`, remove the AI Search item and unused icon import. In `middleware.js`, remove the `/dashboard/ai` route entry from `pages`.
 
 **Acceptance criteria:**
-- [x] In `components/DataTableComponent.jsx`: remove top-level static `xlsx` import; dynamically import `xlsx` in `exportToExcel`.
-- [x] In `app/dashboard/layout.jsx`: render only `{activeRole === "Role" && <RoleBottomBar ... />}` for all 9 role bottom bars.
-- [x] Excel export button continues to generate and download `.xlsx` files properly.
+- [x] In `components/Dashboard.jsx`: `import CollegeAdminAISearch ...` is removed.
+- [x] In `components/Dashboard.jsx`: `{activeRole === "College Admin" && <CollegeAdminAISearch ... />}` block is removed.
+- [x] In `components/CollegeAdminBottomBar.jsx`: "AI Search" navigation item is removed and `Sparkles` import is removed if unused.
+- [x] In `middleware.js`: `/dashboard/ai` route item is removed from `pages` array.
 
 **Verification:**
-- [x] Verify `DataTableComponent.jsx` has no top-level `import * as XLSX`.
-- [x] Verify `app/dashboard/layout.jsx` mounts only the matching bottom bar.
+- [x] `Select-String -Path components\Dashboard.jsx, components\CollegeAdminBottomBar.jsx, middleware.js -Pattern "ai-search|CollegeAdminAISearch|/dashboard/ai"` returns no results.
 
 **Dependencies:** None
 
 **Files likely touched:**
-- `components/DataTableComponent.jsx`
-- `app/dashboard/layout.jsx`
+- `components/Dashboard.jsx`
+- `components/CollegeAdminBottomBar.jsx`
+- `middleware.js`
 
-**Estimated scope:** Small (2 files)
-
----
-
-## Checkpoint: Bundle & Layout
-- [ ] Table pages no longer bundle `xlsx` by default; layout DOM contains only 1 active bottom bar.
+**Estimated scope:** Small (3 files)
 
 ---
 
-## Task 2: Server-Side Performance & Waterfall Elimination
+## Checkpoint: Decoupling
+- [x] UI and middleware routes cleanly decoupled without dangling references to the AI feature.
 
-**Description:** Eliminate server-side over-fetching and parallelize database queries. In `app/dashboard/page.jsx`, move the `if (activeRole === "Student")` condition above the main admin `Promise.all` fetch, querying only `classes`, `batches`, `updates`, and `debtBalances` for students. In `app/api/attendance-sheet/route.js`, parallelize independent `Attendance.find` and `LeaveRecord.find` queries using `Promise.all`.
+---
+
+## Task 2: Delete AI Pages, Components, APIs, and Backend Helper Files
+
+**Description:** Remove all dedicated AI chat files and directories: the `/dashboard/ai` page directory, the `/api/dashboard/ai-search` route directory, the `CollegeAdminAISearch.jsx` component, `lib/gemini.js`, `lib/aiDatabaseTools.js`, and `lib/fuzzySearch.js`.
 
 **Acceptance criteria:**
-- [x] In `app/dashboard/page.jsx`: when `activeRole === "Student"`, skip fetching the 7 unused admin endpoints (`periods`, `teachersLeaveRecord`, `attendances`, `leaveRecords`, `settings`, `teachers`).
-- [x] In `app/api/attendance-sheet/route.js`: execute `Attendance.find` and `LeaveRecord.find` concurrently via `Promise.all`.
-- [x] Student dashboard and admin dashboard render identically without data omissions.
+- [x] `app/dashboard/ai/` directory and all files inside (`page.jsx`, `loading.jsx`) are deleted.
+- [x] `app/api/dashboard/ai-search/` directory and `route.js` are deleted.
+- [x] `components/CollegeAdminAISearch.jsx` is deleted.
+- [x] `lib/gemini.js` is deleted.
+- [x] `lib/aiDatabaseTools.js` is deleted.
+- [x] `lib/fuzzySearch.js` is deleted.
 
 **Verification:**
-- [x] Verify code branches early on `activeRole === "Student"`.
-- [x] Verify both `attendanceRecords` and `leaveRecords` resolve concurrently in `attendance-sheet/route.js`.
+- [x] Verify using `Test-Path` that none of the deleted paths exist.
 
 **Dependencies:** Task 1
 
 **Files likely touched:**
-- `app/dashboard/page.jsx`
-- `app/api/attendance-sheet/route.js`
+- `app/dashboard/ai/page.jsx`
+- `app/dashboard/ai/loading.jsx`
+- `app/api/dashboard/ai-search/route.js`
+- `components/CollegeAdminAISearch.jsx`
+- `lib/gemini.js`
+- `lib/aiDatabaseTools.js`
+- `lib/fuzzySearch.js`
 
-**Estimated scope:** Small (2 files)
+**Estimated scope:** Medium (6 files + 2 directories)
 
 ---
 
-## Checkpoint: Server-Side Optimization
-- [ ] Student SSR latency reduced by skipping admin queries; attendance sheet API queries execute in parallel.
+## Task 3: Delete Outdated AI Specs and Run Global Reference Audit
 
----
-
-## Task 3: Re-render Polish & Production Build Verification
-
-**Description:** Optimize component initializations and verify the entire system. In `components/Attendance.jsx` and `components/HifzDoura.jsx`, wrap function calls in `useState` with lazy initializers (`useState(() => ...)`). Run the full Next.js production build (`npm.cmd run build`) to confirm zero type, lint, or bundling errors.
+**Description:** Delete outdated AI specifications (`SPEC-ai-fuzzy-engine.md`, `SPEC-ai-text-to-mql.md`), run a global repository search for any leftover AI chat references across the codebase, and verify that `GEMINI_API_KEY` and `GEMINI_MODEL` remain preserved in `.env.example` and `.env.local`.
 
 **Acceptance criteria:**
-- [x] In `components/Attendance.jsx`: convert `useState(dateParam || formatDate(new Date()))` to lazy function.
-- [x] In `components/HifzDoura.jsx`: convert `useState(formatDate(new Date()))` and `useState(Cookies.get("active-year") || "")` to lazy functions.
-- [x] Full production build succeeds cleanly (`npm.cmd run build`).
+- [x] `SPEC-ai-fuzzy-engine.md` and `SPEC-ai-text-to-mql.md` are deleted.
+- [x] Global search in `app/`, `components/`, `lib/`, `models/`, `libservices/` shows zero matches for `ai-search`, `CollegeAdminAISearch`, `aiDatabaseTools`, `gemini.js`, `fuzzySearch.js`.
+- [x] `.env.example` and `.env.local` still contain `GEMINI_API_KEY` and `GEMINI_MODEL`.
 
 **Verification:**
-- [x] Grep confirms lazy initializers in touched components.
-- [x] `npm.cmd run build` completes with exit code 0.
+- [x] Search script confirms zero occurrences of removed symbols/files.
+- [x] `Select-String -Path .env.example, .env.local -Pattern "GEMINI"` confirms keys are preserved.
 
-**Dependencies:** Tasks 1, 2
+**Dependencies:** Task 2
 
 **Files likely touched:**
-- `components/Attendance.jsx`
-- `components/HifzDoura.jsx`
+- `SPEC-ai-fuzzy-engine.md`
+- `SPEC-ai-text-to-mql.md`
 
-**Estimated scope:** Small (2 files + build verification)
+**Estimated scope:** Small (2 files + verification script)
+
+---
+
+## Checkpoint: Clean Workspace
+- [x] All AI code and outdated specs removed, active code verified clean of AI search references.
+
+---
+
+## Task 4: Production Build Verification & Regression Check
+
+**Description:** Run the full Next.js production build (`npm.cmd run build`) to ensure there are no compilation errors, no broken module imports, and no bundle failures.
+
+**Acceptance criteria:**
+- [x] `npm.cmd run build` executes and succeeds with exit code 0.
+- [x] Next.js successfully compiles client and server bundles without warnings about missing modules.
+
+**Verification:**
+- [x] Build terminal logs show successful compilation and page generation.
+
+**Dependencies:** Tasks 1, 2, 3
+
+**Files likely touched:** None (verification run)
+
+**Estimated scope:** Small (Verification command)
 
 ---
 
 ## Checkpoint: Complete
-- [x] All 3 tasks completed.
-- [x] Client bundles are significantly lighter (~800KB saved on tables).
-- [x] Server component data fetching and API query execution streamlined.
+- [x] All 4 tasks completed and verified.
+- [x] AI chat is completely excised from the project.

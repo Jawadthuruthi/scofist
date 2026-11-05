@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Sparkles, FileText, FolderCheck, FileSpreadsheet } from "lucide-react";
+import { LayoutDashboard, FileText, FolderCheck, FileSpreadsheet } from "lucide-react";
 import BaseRoleBottomBar from "./BaseRoleBottomBar";
 
 export default function CollegeAdminBottomBar({ user, activeRole }) {
@@ -14,13 +14,6 @@ export default function CollegeAdminBottomBar({ user, activeRole }) {
       href: "/dashboard",
       icon: LayoutDashboard,
       active: pathname === "/dashboard",
-    },
-    {
-      title: "AI Search",
-      label: "AI",
-      href: "/dashboard/ai",
-      icon: Sparkles,
-      active: pathname === "/dashboard/ai" || pathname?.startsWith("/dashboard/ai"),
     },
     {
       title: "Accounts",

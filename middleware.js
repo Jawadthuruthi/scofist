@@ -573,11 +573,6 @@ const pages = [
     path: "/dashboard/hifz-doura",
     allowedRoles: ["College Admin"],
   },
-  {
-    title: "AI Search",
-    path: "/dashboard/ai",
-    allowedRoles: ["College Admin"],
-  },
 ];
 
 // Pre-compile pages map/array for O(1) lookup
