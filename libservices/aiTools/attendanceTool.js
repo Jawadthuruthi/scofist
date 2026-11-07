@@ -607,6 +607,15 @@ export const attendanceTool = () =>
         }
 
         // Daily Class Attendance / Absent List
+        // Load all classes for human-readable class name mapping
+        const allClasses = await Class.find().select("_id name shortname").lean();
+        const classMap = new Map();
+        for (const c of allClasses) {
+          if (c._id) classMap.set(String(c._id).toUpperCase(), c.name || c.shortname || String(c._id));
+          if (c.name) classMap.set(c.name.toUpperCase(), c.name);
+          if (c.shortname) classMap.set(c.shortname.toUpperCase(), c.name);
+        }
+
         // Match specific absent records directly in MongoDB to avoid false zeros
         const dailyQuery = {
           attendanceRecords: {
@@ -621,7 +630,7 @@ export const attendanceTool = () =>
 
         const records = await StudentAttendance.find(dailyQuery)
           .populate("studentId", "name studentSpecificField")
-          .limit(30)
+          .limit(100)
           .maxTimeMS(2500)
           .lean();
 
@@ -641,15 +650,109 @@ export const attendanceTool = () =>
               : slotsToday;
 
           if (filteredSlots.length > 0) {
+            const rawClassId =
+              filteredSlots[0]?.classId ||
+              doc.studentId?.studentSpecificField?.classId ||
+              doc.studentId?.studentSpecificField?.admissionClassId;
+            const className =
+              (rawClassId && classMap.get(String(rawClassId).toUpperCase())) ||
+              rawClassId ||
+              "General";
+
             absentees.push({
               student: doc.studentId?.name || "Unknown",
-              admissionNo: doc.studentId?.studentSpecificField?.admissionNumber || doc.studentId?._id || "N/A",
-              class: doc.studentId?.studentSpecificField?.classId || "N/A",
-              periods: filteredSlots.map((s) => s.periodNumber),
+              admissionNo:
+                doc.studentId?.studentSpecificField?.admissionNumber ||
+                doc.studentId?._id ||
+                "N/A",
+              className,
+              periods: filteredSlots.map((s) => s.periodNumber).filter(Boolean),
               status: statusFilter,
             });
           }
         }
+
+        // Fallback: If no records found in StudentAttendance, check the Attendance collection
+        if (absentees.length === 0) {
+          const attDocs = await Attendance.find({
+            date: { $gte: startOfDay, $lte: endOfDay },
+            ...(resolvedClassId ? { classId: resolvedClassId } : {}),
+          })
+            .populate("attendanceData.studentId", "name studentSpecificField")
+            .populate("classId", "name")
+            .limit(50)
+            .maxTimeMS(2500)
+            .lean();
+
+          for (const att of attDocs) {
+            const cName =
+              att.classId?.name ||
+              (att.classId && classMap.get(String(att.classId).toUpperCase())) ||
+              att.classId ||
+              "General";
+
+            const absentEntries = (att.attendanceData || []).filter((e) =>
+              statusFilter === "absent" ? !e.present : statusFilter === "present" ? e.present : true
+            );
+
+            for (const entry of absentEntries) {
+              const studentObj = entry.studentId;
+              const studentName = studentObj?.name || "Unknown Student";
+              const admNo =
+                studentObj?.studentSpecificField?.admissionNumber ||
+                studentObj?._id ||
+                entry.studentId ||
+                "N/A";
+
+              const existing = absentees.find(
+                (a) => a.className === cName && (a.admissionNo === String(admNo) || a.student === studentName)
+              );
+              if (existing) {
+                if (att.periodNumber && !existing.periods.includes(att.periodNumber)) {
+                  existing.periods.push(att.periodNumber);
+                }
+              } else {
+                absentees.push({
+                  student: studentName,
+                  admissionNo: String(admNo),
+                  className: cName,
+                  periods: att.periodNumber ? [att.periodNumber] : ["All"],
+                  status: statusFilter,
+                });
+              }
+            }
+          }
+        }
+
+        // Group absentees by class and assign sequential Serial Numbers (Sl No. starting from 1 for each class)
+        const classGroupMap = new Map();
+        for (const item of absentees) {
+          const cName = item.className;
+          if (!classGroupMap.has(cName)) {
+            classGroupMap.set(cName, []);
+          }
+          classGroupMap.get(cName).push(item);
+        }
+
+        const absenteesByClass = [];
+        for (const [cName, list] of classGroupMap.entries()) {
+          list.sort((a, b) => (a.student || "").localeCompare(b.student || ""));
+          const studentsWithSlNo = list.map((s, idx) => ({
+            slNo: idx + 1,
+            student: s.student,
+            admissionNo: s.admissionNo,
+            periods: s.periods.length > 0 ? s.periods : ["All"],
+            status: s.status,
+          }));
+          absenteesByClass.push({
+            className: cName,
+            totalCount: studentsWithSlNo.length,
+            students: studentsWithSlNo,
+          });
+        }
+
+        // Sort classes alphabetically
+        absenteesByClass.sort((a, b) => a.className.localeCompare(b.className));
 
         let contextNote = null;
         if (absentees.length === 0 && (!date || date.toLowerCase() === "today")) {
@@ -673,8 +776,8 @@ export const attendanceTool = () =>
         return {
           date: startOfDay.toISOString().split("T")[0],
           filter: statusFilter,
-          totalRecordsFound: absentees.length,
-          records: absentees,
+          totalAbsentees: absentees.length,
+          absenteesByClass,
           note: contextNote || undefined,
         };
       } catch (error) {

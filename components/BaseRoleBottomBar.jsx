@@ -149,7 +149,7 @@ export default function BaseRoleBottomBar({
                   if (item.onClick) {
                     item.onClick(e);
                   }
-                  if (item.active && !pendingHref) return;
+                  if ((item.active || pathname === item.href) && !pendingHref) return;
                   setPendingHref(item.href);
                 }}
                 onTouchStart={() => {

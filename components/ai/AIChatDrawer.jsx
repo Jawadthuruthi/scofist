@@ -12,35 +12,8 @@ import {
   Loader2,
   RotateCcw,
   AlertCircle,
-  BookOpen,
-  Calendar,
-  Users,
-  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const QUICK_PROMPTS = [
-  {
-    icon: Calendar,
-    label: "Today's Absentees",
-    prompt: "Who was absent in class today?",
-  },
-  {
-    icon: Users,
-    label: "Free Teachers",
-    prompt: "Which teachers are free for substitution in period 3 today?",
-  },
-  {
-    icon: BookOpen,
-    label: "Exam Scores",
-    prompt: "Show recent exam marks and top scorers.",
-  },
-  {
-    icon: CreditCard,
-    label: "Pending Fees",
-    prompt: "Show students who have pending fee dues.",
-  },
-];
 
 const FRIENDLY_TOOL_NAMES = {
   lookupDirectory: "Directory",
@@ -97,6 +70,7 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
+  const prevOpenRef = useRef(isOpen);
 
   const {
     messages = [],
@@ -123,6 +97,14 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
     setMessages([]);
     setInput("");
   };
+
+  useEffect(() => {
+    if (prevOpenRef.current === true && isOpen === false) {
+      setMessages([]);
+      setInput("");
+    }
+    prevOpenRef.current = isOpen;
+  }, [isOpen, setMessages]);
 
   useEffect(() => {
     setMounted(true);
@@ -152,7 +134,7 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
       window.removeEventListener("close-ai-chat", handleClose);
       window.removeEventListener("toggle-ai-chat", handleToggle);
     };
-  }, [onOpenChange, isOpen, setMessages]);
+  }, [onOpenChange, isOpen]);
 
   const isLoading = status === "streaming" || status === "submitted";
   const hasConversation = messages.length > 0;
@@ -187,14 +169,6 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
     }
   }, [messages, isLoading, isOpen]);
 
-  const handlePromptClick = (promptText) => {
-    if (isLoading) return;
-    sendMessage(
-      { text: promptText },
-      { body: { clientTime: new Date().toISOString() } }
-    );
-  };
-
   if (!mounted) return null;
 
   return (
@@ -228,9 +202,8 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
 
       {/* Slide-over Drawer Panel — sits below topbar (top-14), stops above bottom bar on mobile */}
       <div
-        className={`fixed top-14 bottom-16 lg:bottom-0 right-0 z-40 w-full sm:w-[480px] lg:w-[520px] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-14 bottom-16 lg:bottom-0 right-0 z-40 w-full sm:w-[480px] lg:w-[520px] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+          }`}
       >
         {/* Drawer Header — sticky so it never scrolls with messages */}
         <div className="sticky top-0 z-10 px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
@@ -277,10 +250,11 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
         {/* Drawer Body / Messages */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
           {!hasConversation ? (
-            /* ── Empty state: icon + heading + search bar centred ── */
+            /* ── Empty state: icon with AI text + heading + search bar centred ── */
             <div className="h-full flex flex-col justify-center items-center text-center p-6 gap-6">
-              <div className="h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
-                <Sparkles className="h-7 w-7" />
+              <div className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shadow-inner">
+                <span className="text-lg font-bold tracking-tight">AI</span>
+                <Sparkles className="h-6 w-6" />
               </div>
               <div className="space-y-1.5 max-w-sm">
                 <h4 className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
@@ -301,23 +275,6 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
                   autoFocus={!hasConversation}
                 />
               </div>
-
-              {/* Quick Starter Pills */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-sm">
-                {QUICK_PROMPTS.map((item, idx) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => handlePromptClick(item.prompt)}
-                      className="flex items-center gap-2.5 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-left hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-all text-xs text-zinc-700 dark:text-zinc-300 group"
-                    >
-                      <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-110 transition-transform" />
-                      <span className="font-medium leading-tight">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           ) : (
             /* ── Conversation messages ── */
@@ -326,9 +283,8 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
               return (
                 <div
                   key={m.id}
-                  className={`flex gap-3 text-xs leading-relaxed ${
-                    isUser ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex gap-3 text-xs leading-relaxed ${isUser ? "justify-end" : "justify-start"
+                    }`}
                 >
                   {!isUser && (
                     <div className="h-7 w-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
@@ -337,20 +293,19 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
                   )}
 
                   <div
-                    className={`rounded-2xl px-4 py-3 max-w-[85%] ${
-                      isUser
-                        ? "bg-emerald-600 text-white rounded-tr-none shadow-sm font-normal"
-                        : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-200 dark:border-zinc-800 font-normal"
-                    }`}
+                    className={`rounded-2xl px-4 py-3 max-w-[85%] ${isUser
+                      ? "bg-emerald-600 text-white rounded-tr-none shadow-sm font-normal"
+                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-200 dark:border-zinc-800 font-normal"
+                      }`}
                   >
                     {(() => {
                       const text =
                         m.content ||
                         (m.parts
                           ? m.parts
-                              .filter((p) => p.type === "text")
-                              .map((p) => p.text)
-                              .join("")
+                            .filter((p) => p.type === "text")
+                            .map((p) => p.text)
+                            .join("")
                           : "");
 
                       // Collect friendly, deduplicated badges for non-technical users

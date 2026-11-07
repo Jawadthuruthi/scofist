@@ -204,6 +204,97 @@ export async function PUT(req) {
     await connectToDB();
 
     const body = await req.json();
+
+    // Batch save/sync periods for a specific schedule
+    if (body.schedule && Array.isArray(body.periods)) {
+      const scheduleId = body.schedule;
+      const periodsData = body.periods;
+
+      // Validate each period
+      for (const p of periodsData) {
+        if (!p.periodNumber || !p.startTime || !p.endTime) {
+          return NextResponse.json(
+            { message: "Each period must have periodNumber, startTime, and endTime" },
+            { status: 400 }
+          );
+        }
+
+        const sDate = new Date(`2000-01-01T${p.startTime}`);
+        const eDate = new Date(`2000-01-01T${p.endTime}`);
+        if (sDate >= eDate) {
+          return NextResponse.json(
+            { message: `Period ${p.periodNumber}: Start time must be before end time` },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Check for duplicate period numbers
+      const periodNumbers = periodsData.map((p) => parseInt(p.periodNumber, 10));
+      const hasDuplicates = new Set(periodNumbers).size !== periodNumbers.length;
+      if (hasDuplicates) {
+        return NextResponse.json(
+          { message: "Duplicate period numbers are not allowed" },
+          { status: 400 }
+        );
+      }
+
+      // Check for overlapping periods within the schedule
+      const sortedPeriods = [...periodsData].sort(
+        (a, b) => parseInt(a.periodNumber, 10) - parseInt(b.periodNumber, 10)
+      );
+      for (let i = 1; i < sortedPeriods.length; i++) {
+        const prev = sortedPeriods[i - 1];
+        const curr = sortedPeriods[i];
+        const prevEnd = new Date(`2000-01-01T${prev.endTime}`);
+        const currStart = new Date(`2000-01-01T${curr.startTime}`);
+        if (currStart < prevEnd) {
+          return NextResponse.json(
+            {
+              message: `Period ${curr.periodNumber} cannot start before Period ${prev.periodNumber} ends (${prev.endTime})`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      const scheduleFilter = {
+        $or: [
+          { schedule: scheduleId },
+          ...(scheduleId === "normal"
+            ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
+            : scheduleId === "thursday"
+            ? [{ schedule: { $exists: false }, isSpecialDay: true }]
+            : []),
+        ],
+      };
+
+      await Period.deleteMany(scheduleFilter);
+
+      if (sortedPeriods.length > 0) {
+        const docs = sortedPeriods.map((p) => ({
+          periodNumber: parseInt(p.periodNumber, 10),
+          startTime: p.startTime,
+          endTime: p.endTime,
+          schedule: scheduleId,
+          isSpecialDay: scheduleId !== "normal",
+        }));
+        await Period.insertMany(docs);
+      }
+
+      const updatedPeriods = await Period.find(scheduleFilter).sort({
+        periodNumber: 1,
+      });
+
+      return NextResponse.json(
+        {
+          periods: updatedPeriods,
+          message: `Periods for schedule "${scheduleId}" saved successfully!`,
+        },
+        { status: 200 }
+      );
+    }
+
     const { ids, periodNumber, startTime, endTime, isSpecialDay, schedule } = body;
 
     const _id = ids ? ids[0] : body._id;

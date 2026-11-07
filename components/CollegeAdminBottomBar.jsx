@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Sparkles, FileText, FolderCheck, FileSpreadsheet } from "lucide-react";
 import BaseRoleBottomBar from "./BaseRoleBottomBar";
@@ -22,6 +23,37 @@ function GreenRoundBlinkingAIIcon() {
 
 export default function CollegeAdminBottomBar({ user, activeRole }) {
   const pathname = usePathname();
+  const [isAiOpen, setIsAiOpen] = useState(false);
+
+  // Close AI chat whenever the route changes
+  useEffect(() => {
+    setIsAiOpen(false);
+  }, [pathname]);
+
+  const handleCloseAi = useCallback(() => {
+    setIsAiOpen(false);
+  }, []);
+
+  const handleToggleAi = useCallback(() => {
+    setIsAiOpen((prev) => !prev);
+  }, []);
+
+  // Listen to global open/close events (e.g. from Dashboard.jsx on desktop)
+  useEffect(() => {
+    const handleOpen = () => setIsAiOpen(true);
+    const handleClose = () => setIsAiOpen(false);
+    const handleToggle = () => setIsAiOpen((prev) => !prev);
+
+    window.addEventListener("open-ai-chat", handleOpen);
+    window.addEventListener("close-ai-chat", handleClose);
+    window.addEventListener("toggle-ai-chat", handleToggle);
+
+    return () => {
+      window.removeEventListener("open-ai-chat", handleOpen);
+      window.removeEventListener("close-ai-chat", handleClose);
+      window.removeEventListener("toggle-ai-chat", handleToggle);
+    };
+  }, []);
 
   const navItems = [
     {
@@ -29,37 +61,39 @@ export default function CollegeAdminBottomBar({ user, activeRole }) {
       label: "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
-      active: pathname === "/dashboard",
+      active: !isAiOpen && pathname === "/dashboard",
+      onClick: handleCloseAi,
     },
     {
       title: "Accounts",
       label: "Accounts",
       href: "/dashboard/accounts",
       icon: FileText,
-      active: pathname?.startsWith("/dashboard/accounts"),
+      active: !isAiOpen && Boolean(pathname?.startsWith("/dashboard/accounts")),
+      onClick: handleCloseAi,
     },
     {
       title: "Applications",
       label: "Applications",
       href: "/dashboard/applications",
       icon: FolderCheck,
-      active: pathname?.startsWith("/dashboard/applications"),
+      active: !isAiOpen && Boolean(pathname?.startsWith("/dashboard/applications")),
+      onClick: handleCloseAi,
     },
     {
       title: "Marks",
       label: "Marks",
       href: "/dashboard/marks",
       icon: FileSpreadsheet,
-      active: pathname?.startsWith("/dashboard/marks"),
+      active: !isAiOpen && Boolean(pathname?.startsWith("/dashboard/marks")),
+      onClick: handleCloseAi,
     },
     {
       title: "AI Assistant",
       label: "AI",
       icon: GreenRoundBlinkingAIIcon,
-      onClick: () => {
-        window.dispatchEvent(new CustomEvent("open-ai-chat"));
-      },
-      active: false,
+      onClick: handleToggleAi,
+      active: isAiOpen,
     },
   ];
 
@@ -72,7 +106,11 @@ export default function CollegeAdminBottomBar({ user, activeRole }) {
         navItems={navItems}
         ariaLabel="College Admin mobile and tablet navigation"
       />
-      <AIChatDrawer hideFloatingButton={true} />
+      <AIChatDrawer
+        open={isAiOpen}
+        onOpenChange={setIsAiOpen}
+        hideFloatingButton={true}
+      />
     </>
   );
 }

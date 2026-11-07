@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader, Save, Calendar, Clock, CheckCircle2, FilePlus, X, History, Check, ChevronsUpDown, FileText, Search } from "lucide-react";
+import { Loader, Save, Calendar, Clock, CheckCircle2, FilePlus, X, History, Check, FileText, Search } from "lucide-react";
 
 // UI Components
 import {
@@ -82,15 +82,227 @@ const Attendance = ({ apiKey, teacherId }) => {
   const whatsappPopupRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Quick Leave states
+// Quick Leave states
   const [quickLeaveOpen, setQuickLeaveOpen] = useState(false);
   const [quickLeaveStudent, setQuickLeaveStudent] = useState(null);
   const [quickLeaveReason, setQuickLeaveReason] = useState("");
   const [quickLeaveSaving, setQuickLeaveSaving] = useState(false);
-  const [quickLeaveComboboxOpen, setQuickLeaveComboboxOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [attendanceReasons, setAttendanceReasons] = useState({});
   const [bulkLeaveReason, setBulkLeaveReason] = useState("");
   const [previousAttendanceState, setPreviousAttendanceState] = useState(null);
+
+  const STORAGE_KEY_LEAVE_REASONS = "scofist_previous_leave_reasons";
+  const DEFAULT_LEAVE_REASONS = useMemo(
+    () => [
+      "Sick",
+      "Fever",
+      "Headache",
+      "Stomach ache",
+      "Function",
+      "Family Function",
+      "Emergency",
+      "Hospital",
+      "Medical Checkup",
+      "Travel",
+      "Personal",
+      "No reason",
+    ],
+    []
+  );
+
+  const [savedLeaveReasons, setSavedLeaveReasons] = useState([]);
+  const leaveReasonContainerRef = useRef(null);
+  const reasonInputRef = useRef(null);
+
+  // Load previous leave reasons from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_LEAVE_REASONS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setSavedLeaveReasons(parsed);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load saved leave reasons", e);
+    }
+  }, []);
+
+  // Save reason to history (state + localStorage)
+  const saveLeaveReasonToHistory = useCallback((reason) => {
+    if (!reason || !reason.trim()) return;
+    const clean = reason.trim();
+    setSavedLeaveReasons((prev) => {
+      const filtered = prev.filter((r) => r.toLowerCase() !== clean.toLowerCase());
+      const updated = [clean, ...filtered].slice(0, 50);
+      try {
+        localStorage.setItem(STORAGE_KEY_LEAVE_REASONS, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Failed to save leave reason to localStorage", e);
+      }
+      return updated;
+    });
+  }, []);
+
+  // Combine all available reasons: session reasons, stored historical reasons, and default reasons
+  const allAvailableReasons = useMemo(() => {
+    const reasonMap = new Map();
+
+    // 1. Session reasons from current attendanceReasons and leave status
+    Object.values(attendanceReasons || {}).forEach((r) => {
+      if (r && typeof r === "string" && r.trim()) {
+        const clean = r.trim();
+        if (!reasonMap.has(clean.toLowerCase())) {
+          reasonMap.set(clean.toLowerCase(), { text: clean, isPrevious: true });
+        }
+      }
+    });
+
+    Object.values(studentLeaveStatus || {}).forEach((item) => {
+      if (item?.leaveReason && typeof item.leaveReason === "string" && item.leaveReason.trim()) {
+        const clean = item.leaveReason.trim();
+        if (!reasonMap.has(clean.toLowerCase())) {
+          reasonMap.set(clean.toLowerCase(), { text: clean, isPrevious: true });
+        }
+      }
+    });
+
+    // 2. Persistent reasons from localStorage
+    (savedLeaveReasons || []).forEach((r) => {
+      if (r && typeof r === "string" && r.trim()) {
+        const clean = r.trim();
+        if (!reasonMap.has(clean.toLowerCase())) {
+          reasonMap.set(clean.toLowerCase(), { text: clean, isPrevious: true });
+        }
+      }
+    });
+
+    // 3. Defaults
+    DEFAULT_LEAVE_REASONS.forEach((r) => {
+      const clean = r.trim();
+      if (!reasonMap.has(clean.toLowerCase())) {
+        reasonMap.set(clean.toLowerCase(), { text: clean, isPrevious: false });
+      }
+    });
+
+    return Array.from(reasonMap.values());
+  }, [attendanceReasons, studentLeaveStatus, savedLeaveReasons, DEFAULT_LEAVE_REASONS]);
+
+  // Filter reasons dynamically based on typed characters
+  const filteredReasons = useMemo(() => {
+    const query = quickLeaveReason.trim().toLowerCase();
+    if (!query) {
+      return [];
+    }
+    return allAvailableReasons
+      .filter((item) => item.text.toLowerCase().includes(query))
+      .sort((a, b) => {
+        const aLower = a.text.toLowerCase();
+        const bLower = b.text.toLowerCase();
+        const aStarts = aLower.startsWith(query);
+        const bStarts = bLower.startsWith(query);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        if (a.isPrevious && !b.isPrevious) return -1;
+        if (!a.isPrevious && b.isPrevious) return 1;
+        return aLower.localeCompare(bLower);
+      });
+  }, [allAvailableReasons, quickLeaveReason]);
+
+  // Auto-focus input when dialog opens
+  useEffect(() => {
+    if (quickLeaveOpen) {
+      setDropdownOpen(false);
+      setHighlightedIndex(-1);
+      const timer = setTimeout(() => {
+        reasonInputRef.current?.focus();
+        reasonInputRef.current?.select();
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      setDropdownOpen(false);
+      setHighlightedIndex(-1);
+    }
+  }, [quickLeaveOpen]);
+
+  // Click outside to close suggestion dropdown
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handleClickOutside = (e) => {
+      if (leaveReasonContainerRef.current && !leaveReasonContainerRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  // Keyboard navigation for leave reason dropdown
+  const handleReasonKeyDown = (e) => {
+    const hasQuery = Boolean(quickLeaveReason && quickLeaveReason.trim());
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!hasQuery) return;
+      if (!dropdownOpen) {
+        setDropdownOpen(true);
+        setHighlightedIndex(0);
+      } else if (filteredReasons.length > 0) {
+        setHighlightedIndex((prev) => (prev < filteredReasons.length - 1 ? prev + 1 : 0));
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!hasQuery) return;
+      if (dropdownOpen && filteredReasons.length > 0) {
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : filteredReasons.length - 1));
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (dropdownOpen && hasQuery && highlightedIndex >= 0 && highlightedIndex < filteredReasons.length) {
+        const selected = filteredReasons[highlightedIndex].text;
+        setQuickLeaveReason(selected);
+        setDropdownOpen(false);
+        setHighlightedIndex(-1);
+      } else {
+        setDropdownOpen(false);
+        handleQuickLeaveSubmit();
+      }
+    } else if (e.key === "Escape") {
+      if (dropdownOpen) {
+        e.preventDefault();
+        setDropdownOpen(false);
+      }
+    }
+  };
+
+  // Helper to highlight matching letters in suggestions
+  const renderReasonWithHighlight = (text, query) => {
+    if (!query) return text;
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const matchIndex = lowerText.indexOf(lowerQuery);
+    if (matchIndex === -1) return text;
+
+    const before = text.slice(0, matchIndex);
+    const match = text.slice(matchIndex, matchIndex + query.length);
+    const after = text.slice(matchIndex + query.length);
+
+    return (
+      <span>
+        {before}
+        <span className="font-bold underline text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/40 px-0.5 rounded">
+          {match}
+        </span>
+        {after}
+      </span>
+    );
+  };
 
   const quickLeavePopupRef = useRef(null);
   const { handleDownload: handleQuickLeaveDownload } = useDownloadPopup(quickLeavePopupRef, `Leave_Reason.jpeg`);
@@ -573,10 +785,19 @@ const Attendance = ({ apiKey, teacherId }) => {
   }, [showSuccessDialog, handleSuccessClose]);
 
   // Toggle individual student attendance
-  const toggleAttendance = useCallback((studentId) => {
-    setPreviousAttendanceState(null);
-    setAttendance((prev) => {
-      const isCurrentlyPresent = prev[studentId];
+  const toggleAttendance = useCallback(
+    (studentOrId) => {
+      const studentId = typeof studentOrId === "object" ? studentOrId?._id : studentOrId;
+      const student =
+        typeof studentOrId === "object"
+          ? studentOrId
+          : students.find((s) => s._id === studentId) ||
+            filteredStudents.find((s) => s._id === studentId);
+
+      setPreviousAttendanceState(null);
+
+      const isCurrentlyPresent = attendance[studentId] !== false;
+
       if (!isCurrentlyPresent) {
         // Marking as present, so clear the leave reason
         setAttendanceReasons((reasons) => {
@@ -584,13 +805,32 @@ const Attendance = ({ apiKey, teacherId }) => {
           delete newReasons[studentId];
           return newReasons;
         });
+        setAttendance((prev) => ({
+          ...prev,
+          [studentId]: true,
+        }));
+      } else {
+        // Marking as absent -> IMMEDIATELY show leave reason popup!
+        setAttendance((prev) => ({
+          ...prev,
+          [studentId]: false,
+        }));
+
+        if (student) {
+          setQuickLeaveStudent(student);
+          const existing =
+            attendanceReasons[studentId] ||
+            studentLeaveStatus[studentId]?.leaveReason ||
+            "";
+          setQuickLeaveReason(existing);
+          setDropdownOpen(false);
+          setHighlightedIndex(-1);
+          setQuickLeaveOpen(true);
+        }
       }
-      return {
-        ...prev,
-        [studentId]: !isCurrentlyPresent,
-      };
-    });
-  }, []);
+    },
+    [attendance, students, filteredStudents, attendanceReasons, studentLeaveStatus]
+  );
 
   // Memoize attendance statistics
   const attendanceStats = useMemo(() => {
@@ -765,36 +1005,46 @@ const Attendance = ({ apiKey, teacherId }) => {
         });
         toast.success("Leave reasons cleared for all absentees!");
       } else {
+        const trimmed = quickLeaveReason.trim();
+        saveLeaveReasonToHistory(trimmed);
         setAttendanceReasons((prev) => {
           const next = { ...prev };
           applicableStudents.forEach(s => {
-            next[s._id] = quickLeaveReason;
+            next[s._id] = trimmed;
           });
           return next;
         });
         toast.success("Leave reason added for all absentees!");
       }
+      setDropdownOpen(false);
       setQuickLeaveOpen(false);
       return;
     }
 
-    if (!quickLeaveReason.trim()) {
+    const trimmed = quickLeaveReason.trim();
+    if (!trimmed) {
+      const hadExistingReason = !!attendanceReasons[quickLeaveStudent._id];
       // Clear existing leave reason locally
       setAttendanceReasons((prev) => {
         const next = { ...prev };
         delete next[quickLeaveStudent._id];
         return next;
       });
-      toast.success("Leave reason cleared!");
+      if (hadExistingReason) {
+        toast.success("Leave reason cleared!");
+      }
+      setDropdownOpen(false);
       setQuickLeaveOpen(false);
       return;
     }
 
+    saveLeaveReasonToHistory(trimmed);
     setAttendanceReasons((prev) => ({
       ...prev,
-      [quickLeaveStudent._id]: quickLeaveReason,
+      [quickLeaveStudent._id]: trimmed,
     }));
     toast.success("Leave reason added!");
+    setDropdownOpen(false);
     setQuickLeaveOpen(false);
   };
 
@@ -1070,7 +1320,8 @@ const Attendance = ({ apiKey, teacherId }) => {
                   onClick={() => {
                     setQuickLeaveStudent('bulk');
                     setQuickLeaveReason(bulkLeaveReason);
-                    setQuickLeaveComboboxOpen(false);
+                    setDropdownOpen(false);
+                    setHighlightedIndex(-1);
                     setQuickLeaveOpen(true);
                   }}
                   title="Add reason for all absentees"
@@ -1096,7 +1347,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                   <TableRow
                     key={student._id}
                     className={`cursor-pointer ${rowStyling.className}`}
-                    onClick={() => toggleAttendance(student._id)}
+                    onClick={() => toggleAttendance(student)}
                   >
                     <TableCell className={`text-center align-middle px-2 ${rowStyling.textColor}`}>
                       {originalIndex}
@@ -1141,6 +1392,8 @@ const Attendance = ({ apiKey, teacherId }) => {
                             e.stopPropagation();
                             setQuickLeaveStudent(student);
                             setQuickLeaveReason(attendanceReasons[student._id] || "");
+                            setDropdownOpen(false);
+                            setHighlightedIndex(-1);
                             setQuickLeaveOpen(true);
                           }}
                         >
@@ -1432,8 +1685,12 @@ const Attendance = ({ apiKey, teacherId }) => {
 
       {/* Quick Leave Dialog */}
       <Dialog open={quickLeaveOpen} onOpenChange={setQuickLeaveOpen}>
-        <DialogContent ref={quickLeavePopupRef} data-html2canvas-popup="true" className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
+        <DialogContent
+          ref={quickLeavePopupRef}
+          data-html2canvas-popup="true"
+          className="sm:max-w-md p-0 gap-0 overflow-visible rounded-2xl [&>button.absolute]:hidden"
+        >
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md rounded-t-2xl">
             <button
               type="button"
               className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none cursor-pointer"
@@ -1455,75 +1712,202 @@ const Attendance = ({ apiKey, teacherId }) => {
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
-          <div className="px-5 py-3">
+          <div className="px-5 py-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="reason" className="text-sm font-medium">Leave Reason</Label>
-              <div className="relative">
+              <div className="relative" ref={leaveReasonContainerRef}>
                 <FileText className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 z-10" />
-                <div className="relative">
-                  <Input
-                    autoFocus
-                    id="reason"
-                    value={quickLeaveReason}
-                    onChange={(e) => setQuickLeaveReason(e.target.value)}
-                    placeholder="Select or type a reason..."
-                    className="pl-10 pr-10 h-10"
-                  />
-                  <Popover open={quickLeaveComboboxOpen} onOpenChange={setQuickLeaveComboboxOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                <Input
+                  ref={reasonInputRef}
+                  autoFocus
+                  id="reason"
+                  value={quickLeaveReason}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setQuickLeaveReason(val);
+                    setDropdownOpen(val.trim().length > 0);
+                    setHighlightedIndex(-1);
+                  }}
+                  onKeyDown={handleReasonKeyDown}
+                  placeholder="Select or type a reason..."
+                  className="pl-10 pr-10 h-10 rounded-lg text-sm"
+                  autoComplete="off"
+                />
+                {quickLeaveReason && (
+                  <div className="absolute right-1 top-0 h-full flex items-center pr-1" data-html2canvas-ignore="true">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      tabIndex={-1}
+                      onClick={() => {
+                        setQuickLeaveReason("");
+                        setDropdownOpen(false);
+                        setHighlightedIndex(-1);
+                        reasonInputRef.current?.focus();
+                      }}
+                      className="h-7 w-7 p-0 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Autocomplete Dropdown */}
+                {dropdownOpen && quickLeaveReason.trim().length > 0 && (
+                  <div
+                    data-html2canvas-ignore="true"
+                    className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-popover text-popover-foreground border border-border rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-border/30 animate-in fade-in-0 zoom-in-95 duration-100"
+                  >
+                    {filteredReasons.length > 0 ? (
+                      filteredReasons.map((item, index) => {
+                        const isSelected =
+                          quickLeaveReason.trim().toLowerCase() === item.text.toLowerCase();
+                        const isHighlighted = highlightedIndex === index;
+                        return (
+                          <div
+                            key={`${item.text}-${index}`}
+                            className={cn(
+                              "flex items-center justify-between px-3.5 py-2.5 text-xs cursor-pointer transition-colors select-none",
+                              isHighlighted
+                                ? "bg-accent text-accent-foreground font-medium"
+                                : "hover:bg-muted/70",
+                              isSelected && "bg-primary/5 text-primary font-semibold"
+                            )}
+                            onMouseEnter={() => setHighlightedIndex(index)}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setQuickLeaveReason(item.text);
+                              setDropdownOpen(false);
+                              setHighlightedIndex(-1);
+                              reasonInputRef.current?.focus();
+                            }}
+                            onClick={() => {
+                              setQuickLeaveReason(item.text);
+                              setDropdownOpen(false);
+                              setHighlightedIndex(-1);
+                              reasonInputRef.current?.focus();
+                            }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {item.isPrevious ? (
+                                <History className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                              ) : (
+                                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              )}
+                              <span className="truncate">
+                                {renderReasonWithHighlight(item.text, quickLeaveReason.trim())}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              {item.isPrevious && (
+                                <span className="text-[9px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50 dark:border-amber-800/40 px-1.5 py-0.5 rounded">
+                                  Recent
+                                </span>
+                              )}
+                              {isSelected && <Check className="h-3.5 w-3.5 text-emerald-600" />}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : quickLeaveReason.trim() ? (
+                      <div
+                        className="flex items-center justify-between p-3 text-xs cursor-pointer hover:bg-muted/60 transition-colors"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setDropdownOpen(false);
+                          handleQuickLeaveSubmit();
+                        }}
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          handleQuickLeaveSubmit();
+                        }}
                       >
-                        <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0" align="end">
-                      <Command>
-                        <CommandList>
-                          <CommandGroup>
-                            {["Sick", "Fever", "Headache", "Function", "No reason"].map((r) => (
-                              <CommandItem
-                                key={r}
-                                value={r}
-                                onSelect={(currentValue) => {
-                                  setQuickLeaveReason(currentValue);
-                                  setQuickLeaveComboboxOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    quickLeaveReason === r ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {r}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FilePlus className="h-4 w-4 text-red-600 shrink-0" />
+                          <span className="truncate">
+                            Use custom: <strong>&ldquo;{quickLeaveReason.trim()}&rdquo;</strong>
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded shrink-0 ml-2">
+                          Press Enter
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-3 text-xs text-muted-foreground text-center">
+                        No reasons available
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          <DialogFooter className="px-5 py-4 border-t bg-muted/20 sm:justify-start">
-            <div className="flex items-center gap-2 w-full justify-between sm:justify-end">
+          <DialogFooter className="px-5 py-4 border-t bg-muted/20 sm:justify-start rounded-b-2xl">
+            <div className="flex items-center gap-2 w-full justify-between flex-wrap sm:flex-nowrap">
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setQuickLeaveOpen(false)} disabled={quickLeaveSaving}>
+                {quickLeaveStudent !== "bulk" && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-xs px-2.5 h-9"
+                    onClick={() => {
+                      if (quickLeaveStudent?._id) {
+                        setAttendance((prev) => ({
+                          ...prev,
+                          [quickLeaveStudent._id]: true,
+                        }));
+                        setAttendanceReasons((reasons) => {
+                          const newReasons = { ...reasons };
+                          delete newReasons[quickLeaveStudent._id];
+                          return newReasons;
+                        });
+                        toast.info(`${quickLeaveStudent.name} marked as present`);
+                      }
+                      setQuickLeaveOpen(false);
+                    }}
+                  >
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Mark Present
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickLeaveOpen(false)}
+                  disabled={quickLeaveSaving}
+                  className="h-9 text-xs"
+                >
                   Cancel
                 </Button>
-                <Button variant="outline" onClick={() => setQuickLeaveReason("")} disabled={quickLeaveSaving}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setQuickLeaveReason("");
+                    setDropdownOpen(false);
+                  }}
+                  disabled={quickLeaveSaving}
+                  className="h-9 text-xs"
+                >
                   Clear
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleQuickLeaveSubmit}
+                  disabled={quickLeaveSaving}
+                  className="h-9 text-xs bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {quickLeaveSaving ? <Loader className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                  Save
+                </Button>
               </div>
-              <Button onClick={handleQuickLeaveSubmit} disabled={quickLeaveSaving}>
-                {quickLeaveSaving ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}
-                Save
-              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
