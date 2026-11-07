@@ -587,6 +587,23 @@ pages.forEach((page) => {
   }
 });
 
+// Pre-compiled Set of public GET endpoints for O(1) lookup
+const PUBLIC_GET_ROUTES = new Set([
+  "/api/divisions",
+  "/api/programs",
+  "/api/results",
+  "/api/settings",
+  "/api/student-attendance-lookup",
+  "/api/vcard",
+  "/api/vcard/class",
+  "/api/team-points-poster",
+  "/api/teams",
+  "/api/schedules",
+  "/api/gallery",
+  "/api/rank-achievers",
+  "/api/download-file",
+]);
+
 export async function middleware(req, event) {
   if (req.nextUrl.pathname === "/") {
     return NextResponse.next();
@@ -721,29 +738,12 @@ async function handleApiRequest(req) {
     });
   }
 
-  const url = new URL(req.url);
+  const pathname = req.nextUrl.pathname;
   const apiKey = req.headers.get("api-key") || req.headers.get("x-api-key");
-  const cronSecret = url.searchParams.get("cronSecret");
+  const cronSecret = req.nextUrl.searchParams.get("cronSecret");
   const authToken = req.cookies.get("auth-token")?.value || req.cookies.get("custom-member-token")?.value;
 
-  // Public GET endpoints that don't require API key
-  const publicGet = [
-    "/api/divisions",
-    "/api/programs",
-    "/api/results",
-    "/api/settings",
-    "/api/student-attendance-lookup",
-    "/api/vcard",
-    "/api/vcard/class",
-    "/api/team-points-poster",
-    "/api/teams",
-    "/api/schedules",
-    "/api/gallery",
-    "/api/rank-achievers",
-    "/api/download-file",
-  ];
-
-  if (req.method === "GET" && publicGet.includes(url.pathname)) {
+  if (req.method === "GET" && PUBLIC_GET_ROUTES.has(pathname)) {
     return NextResponse.next({
       request: { headers: strippedHeaders },
     });
@@ -906,20 +906,38 @@ async function handleAuthRequest(req, event) {
     return redirectToLogin(req);
   }
 
-  const activeToken = token || customToken;
+  let activeToken = token;
+  let decoded = null;
+
+  if (token) {
+    try {
+      decoded = await jwtVerify(token, SECRET_KEY);
+    } catch {
+      // Standard token invalid or expired; will attempt customToken
+    }
+  }
+
+  if (!decoded && customToken) {
+    try {
+      decoded = await jwtVerify(customToken, SECRET_KEY);
+      activeToken = customToken;
+    } catch {
+      // Both tokens failed verification
+    }
+  }
+
+  if (!decoded) {
+    return redirectToLogin(req);
+  }
+
+  const { payload } = decoded;
+  const effectiveUserId = payload.userId || payload.email;
+
+  if (!effectiveUserId) {
+    return redirectToLogin(req);
+  }
 
   try {
-    // Verify JWT token
-    const { payload } = await jwtVerify(activeToken, SECRET_KEY);
-    const { userId } = payload;
-
-    // For custom members without a userId in payload (older tokens), use email
-    const effectiveUserId = userId || payload.email;
-
-    if (!effectiveUserId) {
-      return redirectToLogin(req);
-    }
-
     // 1. Check for cookie-based profile cache
     const forceRefresh = req.cookies.has("force-profile-refresh");
     const profileCacheToken = req.cookies.get("profile-cache")?.value;
@@ -947,7 +965,8 @@ async function handleAuthRequest(req, event) {
         const revalidatePromise = fetchUserProfile(effectiveUserId, process.env.API_KEY, req.nextUrl.origin)
           .then((updatedUser) => {
             if (updatedUser) {
-              storeUserInCache(effectiveUserId, updatedUser);
+              const safeProfile = sanitizeProfile(updatedUser);
+              storeUserInCache(effectiveUserId, safeProfile);
             }
           })
           .catch((err) => {
@@ -967,16 +986,17 @@ async function handleAuthRequest(req, event) {
       const user = await fetchUserProfile(effectiveUserId, process.env.API_KEY, req.nextUrl.origin);
 
       if (user) {
-        storeUserInCache(effectiveUserId, user);
+        const safeProfile = sanitizeProfile(user);
+        storeUserInCache(effectiveUserId, safeProfile);
 
         // Create new JWT for the cookie
-        const newProfileToken = await new SignJWT(user)
+        const newProfileToken = await new SignJWT(safeProfile)
           .setProtectedHeader({ alg: 'HS256' })
           .setIssuedAt()
           .setExpirationTime('5m')
           .sign(SECRET_KEY);
 
-        return prepareResponse(req, activeToken, user, newProfileToken);
+        return prepareResponse(req, activeToken, safeProfile, newProfileToken);
       }
     } catch (fetchError) {
       console.error("Error fetching user profile:", fetchError.message);
@@ -993,6 +1013,36 @@ async function handleAuthRequest(req, event) {
     console.error("Authentication error:", error.message);
     return redirectToLogin(req);
   }
+}
+
+function sanitizeProfile(user) {
+  const userRoles = Array.isArray(user?.roles) ? user.roles : ["User"];
+  return {
+    _id: user._id || user.userId,
+    userId: user._id || user.userId,
+    name: user.name || "User",
+    email: user.email,
+    roles: userRoles,
+    teacherSpecificField: user.teacherSpecificField?.status
+      ? { status: user.teacherSpecificField.status }
+      : undefined,
+    profilePic: user.profilePic,
+    contactNumber: user.contactNumber,
+  };
+}
+
+function createFallbackUser(payload) {
+  const payloadRoles = Array.isArray(payload.roles) && payload.roles.length > 0
+    ? payload.roles
+    : (Array.isArray(payload.customRoles) && payload.customRoles.length > 0 ? payload.customRoles : ["User"]);
+
+  return {
+    _id: payload.userId || payload.email,
+    userId: payload.userId || payload.email,
+    roles: payloadRoles,
+    name: payload.name || "User",
+    email: payload.email,
+  };
 }
 
 function isUserAllowed(activeRole, path) {
@@ -1016,16 +1066,6 @@ function isUserAllowed(activeRole, path) {
 
   // Check if user has the required role
   return allowedRoles.includes(activeRole);
-}
-
-function createFallbackUser(payload) {
-  // Create minimal user object from JWT token payload
-  return {
-    _id: payload.userId,
-    roles: payload.roles || ["User"], // Use fallback role if not in token
-    name: payload.name || "User",
-    // Add other critical fields that your app needs
-  };
 }
 
 function getUserFromCache(userId) {
@@ -1102,8 +1142,34 @@ async function fetchUserProfile(userId, apiKey, origin) {
   }
 }
 
+function createRedirectWithCookies(url, activeRole, newProfileToken, req) {
+  const res = NextResponse.redirect(url);
+  if (activeRole) {
+    res.cookies.set("active-role", activeRole, {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+  if (newProfileToken) {
+    res.cookies.set("profile-cache", newProfileToken, {
+      httpOnly: true,
+      path: "/",
+      maxAge: 5 * 60,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+  if (req.cookies.has("force-profile-refresh")) {
+    res.cookies.delete("force-profile-refresh");
+  }
+  return res;
+}
+
 function prepareResponse(req, token, user, newProfileToken = null) {
-  if (user?.roles?.includes("Teacher") && user?.teacherSpecificField?.status === "Retired") {
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+
+  if (userRoles.includes("Teacher") && user?.teacherSpecificField?.status === "Retired") {
     const loginUrl = new URL("/login", req.url);
     const logoutRes = NextResponse.redirect(loginUrl);
     logoutRes.cookies.delete("auth-token");
@@ -1113,84 +1179,91 @@ function prepareResponse(req, token, user, newProfileToken = null) {
     return logoutRes;
   }
 
-  const res = NextResponse.next();
-
   // Resolve the active role FIRST — before any access checks.
-  // This prevents a stale `active-role` cookie (from a previous session
-  // with a different role) from causing a false 404 redirect.
   let activeRole = req.cookies.get("active-role")?.value;
 
-  // If the current cookie value is missing or not one of the user's roles, reset it
-  if (!activeRole || !user.roles.includes(activeRole)) {
-    activeRole = user.roles.includes("Teacher") ? "Teacher" : user.roles[0];
-
-    res.cookies.set("active-role", activeRole, {
-      path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
+  // If the current cookie value is missing or not one of the user's verified roles, reset it
+  if (!activeRole || !userRoles.includes(activeRole)) {
+    activeRole = userRoles.includes("Teacher") ? "Teacher" : (userRoles[0] || "User");
   }
 
+  // Handle role-specific portals and landing redirects
   if (req.nextUrl.pathname === "/dashboard") {
     if (activeRole === "Org Admin") {
-      return NextResponse.redirect(new URL("/dashboard/accounts", req.url));
+      return createRedirectWithCookies(new URL("/dashboard/accounts", req.url), activeRole, newProfileToken, req);
     }
     if (activeRole === "Program Committee") {
-      return NextResponse.redirect(new URL("/dashboard/results", req.url));
+      return createRedirectWithCookies(new URL("/dashboard/results", req.url), activeRole, newProfileToken, req);
     }
     if (activeRole === "Program Leader") {
-      return NextResponse.redirect(new URL("/dashboard/program-registration", req.url));
+      return createRedirectWithCookies(new URL("/dashboard/program-registration", req.url), activeRole, newProfileToken, req);
+    }
+    if (activeRole === "Librarian") {
+      return createRedirectWithCookies(new URL("/library-dashboard", req.url), activeRole, newProfileToken, req);
+    }
+    if (activeRole === "Gate Keeper") {
+      return createRedirectWithCookies(new URL("/dashboard/gate-pass", req.url), activeRole, newProfileToken, req);
+    }
+    if (activeRole === "Judge") {
+      return createRedirectWithCookies(new URL("/judge-portal", req.url), activeRole, newProfileToken, req);
     }
   }
-  // Now validate access using the resolved (possibly corrected) active role
+
+  // Validate access using the resolved active role
   if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
     // If user has multiple roles (e.g. Teacher + Admin) and navigated to a page
     // allowed for another of their roles (e.g. /dashboard/my-periods), switch activeRole
-    const matchingRole = user?.roles?.find((r) => isUserAllowed(r, req.nextUrl.pathname));
+    const matchingRole = userRoles.find((r) => isUserAllowed(r, req.nextUrl.pathname));
     if (matchingRole) {
       activeRole = matchingRole;
-      res.cookies.set("active-role", activeRole, {
-        path: "/",
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      });
     }
   }
 
-  // If still not allowed, redirect to role-specific dashboard or 404
+  // If still not allowed, redirect to 404
   if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
-    if (activeRole === "Librarian" && req.nextUrl.pathname === "/dashboard") {
-      return NextResponse.redirect(
-        new URL("/library-dashboard", req.url)
-      );
-    }
-    if (activeRole === "Gate Keeper" && req.nextUrl.pathname === "/dashboard") {
-      return NextResponse.redirect(
-        new URL("/dashboard/gate-pass", req.url)
-      );
-    }
-    if (activeRole === "Judge" && req.nextUrl.pathname === "/dashboard") {
-      return NextResponse.redirect(
-        new URL("/judge-portal", req.url)
-      );
-    }
     return redirectTo404(req);
   }
 
   // Validate user object before JSON.stringify to prevent errors
   const safeUser = {
     ...user,
-    userId: user?._id,
+    _id: user?._id || user?.userId,
+    userId: user?._id || user?.userId,
+    roles: userRoles,
   };
 
-  // Set headers safely with try/catch
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("active-role", activeRole);
+
+  try {
+    requestHeaders.set("x-user", JSON.stringify(safeUser));
+  } catch (error) {
+    try {
+      requestHeaders.set("x-user", encodeURIComponent(JSON.stringify(safeUser)));
+    } catch (e) {
+      console.error("Error setting x-user request header:", e.message);
+    }
+  }
+
+  const res = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
   try {
     res.headers.set("x-user", JSON.stringify(safeUser));
-    // ✅ FIX #4: Removed x-auth-token header — JWT is already secure in httpOnly cookie.
-    // Sending it in a response header unnecessarily exposes it to page-level scripts.
-  } catch (error) {
-    console.error("Error setting headers:", error.message);
+  } catch {
+    try {
+      res.headers.set("x-user", encodeURIComponent(JSON.stringify(safeUser)));
+    } catch {}
   }
+
+  res.cookies.set("active-role", activeRole, {
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
 
   if (req.cookies.has("force-profile-refresh")) {
     res.cookies.delete("force-profile-refresh");
@@ -1198,21 +1271,11 @@ function prepareResponse(req, token, user, newProfileToken = null) {
 
   if (newProfileToken) {
     res.cookies.set("profile-cache", newProfileToken, {
+      httpOnly: true,
       path: "/",
       maxAge: 5 * 60, // 5 minutes
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
-    });
-  }
-
-  // Upgrade / refresh auth-token cookie with sameSite: "lax"
-  if (token) {
-    res.cookies.set("auth-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: "lax",
-      path: "/",
     });
   }
 
@@ -1231,5 +1294,13 @@ function redirectTo404(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/library-dashboard/:path*", "/library-dashboard", "/judge-portal", "/judge-portal/:path*", "/api/:path*", "/", "/login"],
+  matcher: [
+    "/dashboard/:path*",
+    "/library-dashboard/:path*",
+    "/library-dashboard",
+    "/judge-portal",
+    "/judge-portal/:path*",
+    "/api/:path*",
+    "/login",
+  ],
 };
