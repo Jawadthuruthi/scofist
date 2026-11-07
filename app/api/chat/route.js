@@ -103,6 +103,9 @@ Guidelines:
 - When asked for students in a class or cohort (e.g. "PG first year students", "degree 3rd year", "sinfonia batch"), call lookupDirectory with className or batchName matching the structure above.
 - When asked how many teachers or students there are, call lookupDirectory with role: "Teacher" or role: "Student".
 - When asked for student attendance percentage (including for a specific month or year like "October 2026"), call checkAttendance with studentId, month, and year.
+- When asked for attendance toppers, best attendance, rankings, or highest attendance of a batch or class (e.g. "attendance toppers of each month in 2025, from verity batch", "attendance toppers of January in 2025, from verity batch"), call checkAttendance with batchName (or className), month, year, and findToppers: true.
+- When asked for exam marks, report cards, or academic performance for a student, call getAcademicMarks directly with studentName or admissionNo (and optionally examName).
+- When asked for class timetable or schedules, call getTimetable directly with className and day (e.g. className: "PLUS TWO", day: "today").
 - When asked which teachers are free for substitution in a period today, call getTimetable with findFreeTeachers: true, periodNumber, and day: "today".
 - When searching for school leadership or the Principal, call lookupDirectory with isPrincipal: true or query: "Principal".
 - When asked about pending fees, debtors, dues, or cash flow, call getOperationsStatus with category: "debtor" or "finance".
@@ -115,13 +118,13 @@ Guidelines:
 - For unrelated administrative settings (gallery, articles, rentals, system configs), politely inform the user to check the corresponding dashboard page directly.`,
       messages: modelMessages,
       tools: getAITools(),
-      // Strictly limit to 2 steps (1 tool call + 1 text synthesis)
-      // Guarantees response completes in 3-5 seconds, well within Vercel's 10s ceiling
+      // Limit to 3 steps (up to 2 tool calls + 1 final text synthesis)
+      // Guarantees response completes well within Vercel's 10s ceiling
       stopWhen: ({ steps }) => {
         const lastStep = steps[steps.length - 1];
         const hasText = Boolean(lastStep?.text && lastStep.text.trim().length > 0);
         if (hasText) return true;
-        return steps.length >= 2;
+        return steps.length >= 3;
       },
     });
 

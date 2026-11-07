@@ -73,11 +73,15 @@ import {
 } from "recharts";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
-import AIChatDrawer from "@/components/ai/AIChatDrawer";
+
+const AIChatDrawer = dynamic(() => import("@/components/ai/AIChatDrawer"), {
+  ssr: false,
+});
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";

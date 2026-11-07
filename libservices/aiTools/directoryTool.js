@@ -193,16 +193,19 @@ export const directoryTool = () =>
           queryObj.roles = "Student";
         }
 
-        // 8. Execute query with correct population paths
-        const users = await User.find(queryObj)
-          .select(
-            "name roles email contactNumber alternativeNumber address studentSpecificField teacherSpecificField"
-          )
-          .populate("studentSpecificField.batchId", "name")
-          .populate("studentSpecificField.classId", "name")
-          .limit(25)
-          .maxTimeMS(2500)
-          .lean();
+        // 8. Execute query with correct population paths (parallelized with total count)
+        const [users, totalCount] = await Promise.all([
+          User.find(queryObj)
+            .select(
+              "name roles email contactNumber alternativeNumber address studentSpecificField teacherSpecificField"
+            )
+            .populate("studentSpecificField.batchId", "name")
+            .populate("studentSpecificField.classId", "name")
+            .limit(25)
+            .maxTimeMS(2500)
+            .lean(),
+          User.countDocuments(queryObj),
+        ]);
 
         if (!users || users.length === 0) {
           return {
@@ -211,8 +214,6 @@ export const directoryTool = () =>
             message: `No directory records found matching '${searchTerm || role || targetId || "criteria"}'.`,
           };
         }
-
-        const totalCount = await User.countDocuments(queryObj);
 
         return {
           totalCount,

@@ -55,6 +55,7 @@ export default function AIChatDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
@@ -90,10 +91,19 @@ export default function AIChatDrawer() {
     setInput("");
   };
 
-  // Instant scroll during token streaming to prevent animation jitter
+  // Optimized auto-scroll during token streaming using container scrollTop to avoid document layout reflows
   useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: isLoading ? "auto" : "smooth" });
+    if (!isOpen) return;
+    if (isLoading) {
+      if (scrollContainerRef.current) {
+        requestAnimationFrame(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          }
+        });
+      }
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isLoading, isOpen]);
 
@@ -184,7 +194,7 @@ export default function AIChatDrawer() {
         </div>
 
         {/* Drawer Body / Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col justify-center items-center text-center p-6 space-y-6">
               <div className="h-14 w-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-inner">

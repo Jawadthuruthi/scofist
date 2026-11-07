@@ -29,9 +29,11 @@ export const timetableTool = () =>
         .optional()
         .describe("Set to true to find available/free teachers for substitution who do not have a class at this period/day"),
     }),
-    execute: async ({ query, day, className, teacherName, periodNumber, findFreeTeachers }) => {
+    execute: async ({ query: rawQuery, day, className, teacherName, periodNumber, findFreeTeachers }) => {
       try {
         await connectToDB();
+
+        const queryStr = typeof rawQuery === "string" ? rawQuery : "";
 
         // Normalize day string or default to today's weekday
         let normDay = day;
@@ -48,7 +50,7 @@ export const timetableTool = () =>
         // Auto-detect free teacher query from parameters or query string
         const isFreeTeacherQuery =
           findFreeTeachers === true ||
-          Boolean(query && /free|substitut|availab/i.test(query));
+          Boolean(queryStr && /free|substitut|availab/i.test(queryStr));
 
         // Resolve human-readable class name to classId if provided
         let resolvedClassId = null;
@@ -191,12 +193,12 @@ export const timetableTool = () =>
         }
 
         // Case 3: Class Timetable
-        const query = {};
+        const ttQuery = {};
         if (resolvedClassId) {
-          query.classId = resolvedClassId;
+          ttQuery.classId = resolvedClassId;
         }
 
-        const timetables = await TimeTable.find(query)
+        const timetables = await TimeTable.find(ttQuery)
           .populate("classId", "name")
           .populate("timeSlots.teacherId", "name")
           .populate("timeSlots.subjectId", "name")
