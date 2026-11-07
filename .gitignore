@@ -46,3 +46,7 @@ next-env.d.ts
 # OpenNext & Cloudflare
 .open-next/
 .wrangler/
+
+# Agent scratch & local tooling
+/.agents/
+/scratch/

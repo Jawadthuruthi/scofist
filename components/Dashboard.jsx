@@ -77,6 +77,7 @@ import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
+import AIChatDrawer from "@/components/ai/AIChatDrawer";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";
@@ -3231,6 +3232,9 @@ export default function Dashboard({
         </TabsContent>
 
       </Tabs>
+
+      {/* Floating AI Assistant for College Admin */}
+      {activeRole === "College Admin" && <AIChatDrawer />}
     </div>
   );
 }

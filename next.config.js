@@ -25,6 +25,7 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "date-fns", "lodash"],
   },
+  turbopack: {},
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -159,5 +160,6 @@ const pwaConfig = withPWA({
   ],
 })(nextConfig);
 
-export default pwaConfig;
+// In development, export raw nextConfig without withPWA to prevent Turbopack-Webpack conflict warnings
+export default process.env.NODE_ENV === "development" ? nextConfig : pwaConfig;
  
