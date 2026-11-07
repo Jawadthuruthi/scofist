@@ -6,8 +6,9 @@ import { getAITools } from "@/libservices/aiTools/index.js";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
 
-// Enforce Vercel 10s ceiling
-export const maxDuration = 10;
+// Set maximum execution duration for Vercel serverless execution
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 // Initialize Google provider with project's GEMINI_API_KEY
 const google = createGoogleGenerativeAI({
@@ -100,6 +101,9 @@ Institutional Structure:
 Guidelines:
 - Always use the provided tools to fetch real database data. Never hallucinate or assume facts.
 - When asked for students in a class or cohort (e.g. "PG first year students", "degree 3rd year", "sinfonia batch"), call lookupDirectory with className or batchName matching the structure above.
+- When asked how many teachers or students there are, call lookupDirectory with role: "Teacher" or role: "Student".
+- When asked for student attendance percentage (including for a specific month or year like "October 2026"), call checkAttendance with studentId, month, and year.
+- When asked which teachers are free for substitution in a period today, call getTimetable with findFreeTeachers: true, periodNumber, and day: "today".
 - When searching for school leadership or the Principal, call lookupDirectory with isPrincipal: true or query: "Principal".
 - When asked about pending fees, debtors, dues, or cash flow, call getOperationsStatus with category: "debtor" or "finance".
 - When searching for a person by name, always pass their name into the name or query parameter of the relevant tool.

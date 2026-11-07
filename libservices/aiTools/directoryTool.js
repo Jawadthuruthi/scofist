@@ -212,7 +212,10 @@ export const directoryTool = () =>
           };
         }
 
+        const totalCount = await User.countDocuments(queryObj);
+
         return {
+          totalCount,
           count: users.length,
           results: users.map((u) => {
             const isStudent =
