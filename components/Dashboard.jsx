@@ -45,6 +45,7 @@ import {
   Plus,
   Award,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import RankAchieverCard from "./RankAchieverCard";
 import RankAchieverModal from "./RankAchieverModal";
@@ -78,10 +79,6 @@ import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
-
-const AIChatDrawer = dynamic(() => import("@/components/ai/AIChatDrawer"), {
-  ssr: false,
-});
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";
@@ -3071,6 +3068,18 @@ export default function Dashboard({
         title="DASHBOARD"
         subTitle={currentDateStr}
         icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+        rightAction={
+          activeRole === "College Admin" ? (
+            <Button
+              variant="outline"
+              onClick={() => window.dispatchEvent(new CustomEvent("open-ai-chat"))}
+              className="hidden lg:inline-flex items-center gap-2 border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium shadow-xs transition-all cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>AI Assistant</span>
+            </Button>
+          ) : null
+        }
       />
 
       {error && <ErrorAlert message={error} />}
@@ -3236,9 +3245,6 @@ export default function Dashboard({
         </TabsContent>
 
       </Tabs>
-
-      {/* Floating AI Assistant for College Admin */}
-      {activeRole === "College Admin" && <AIChatDrawer />}
     </div>
   );
 }

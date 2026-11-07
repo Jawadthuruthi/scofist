@@ -199,7 +199,7 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
     "";
 
   return (
-    <header className="fixed top-0 left-0 w-full z-10 h-14 min-h-14 shrink-0 bg-background border-b shadow-sm flex items-center px-4 justify-between no-print">
+    <header className="fixed top-0 left-0 w-full z-50 h-14 min-h-14 shrink-0 bg-background border-b shadow-sm flex items-center px-4 justify-between no-print">
       {/* Left side: Sidebar Toggle Button + Festival Image (Program Committee, Program Leader, Judge) */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {!hideSidebarToggle && (

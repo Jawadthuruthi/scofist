@@ -46,6 +46,7 @@ import {
   Monitor,
   Camera,
   Layers2,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -812,6 +813,24 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
   const { setOpen, setOpenMobile } = useSidebar();
   const [role, setRole] = useState(activeRole || filteredRoles[0] || "");
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (activeRole) {
+      setRole(activeRole);
+    } else if (typeof window !== "undefined") {
+      const cookieRole = Cookies.get("active-role");
+      if (cookieRole) setRole(cookieRole);
+    }
+  }, [activeRole]);
+
+  useEffect(() => {
+    const handleRoleChanged = (e) => {
+      const newRole = e?.detail || (typeof window !== "undefined" ? Cookies.get("active-role") : null);
+      if (newRole) setRole(newRole);
+    };
+    window.addEventListener("active-role-changed", handleRoleChanged);
+    return () => window.removeEventListener("active-role-changed", handleRoleChanged);
+  }, []);
   const appLogoUrl =
     settingsData?.general?.appIcon?.url ||
     "/favicon.svg";
