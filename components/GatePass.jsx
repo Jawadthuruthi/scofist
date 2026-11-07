@@ -452,7 +452,7 @@ export default function GatePass({ activeRole, currentUser }) {
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="w-full max-w-[280px] bg-black rounded overflow-hidden shadow-2xl">
+                                <div className="w-full max-w-[320px]">
                                     <BarcodeScanner onScan={(res) => {
                                         handleScan(res)
                                         setIsScannerOpen(false)

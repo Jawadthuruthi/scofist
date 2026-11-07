@@ -501,23 +501,16 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
 
                 {showScanner && (
                     <CardContent className="p-4 border-t">
-                        <div className="relative aspect-video max-w-sm mx-auto overflow-hidden rounded-lg bg-black">
+                        <div className="relative max-w-sm mx-auto">
                             <BarcodeScanner
                                 onScan={handleBarcodeScan}
+                                onClose={() => setShowScanner(false)}
                                 onError={(err) => {
                                     console.error(err);
                                     toast.error("Scanner error");
                                     setShowScanner(false);
                                 }}
                             />
-                            <Button
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 z-50 h-8 w-8 rounded-full"
-                                onClick={() => setShowScanner(false)}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
                         </div>
                     </CardContent>
                 )}

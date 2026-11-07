@@ -29,23 +29,27 @@ const ChatInputForm = memo(function ChatInputForm({
   onChange,
   onSubmit,
   isLoading,
-  autoFocus,
+  autoFocus = false,
+  disabled = false,
   className = "",
+  inputRef,
 }) {
   return (
     <form onSubmit={onSubmit} className={`flex gap-2 items-center ${className}`}>
       <input
+        ref={inputRef}
         type="text"
         value={input || ""}
         onChange={onChange}
         placeholder="Ask about attendance, timetable, marks..."
-        className="flex-1 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-900 dark:text-zinc-100 shadow-sm placeholder:text-zinc-400"
-        disabled={isLoading}
+        className="flex-1 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-900 dark:text-zinc-100 shadow-sm placeholder:text-zinc-400 disabled:opacity-50"
+        disabled={isLoading || disabled}
         autoFocus={autoFocus}
+        tabIndex={disabled ? -1 : 0}
       />
       <Button
         type="submit"
-        disabled={isLoading || !input?.trim()}
+        disabled={isLoading || disabled || !input?.trim()}
         className="h-9 px-3.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
       >
         {isLoading ? (
@@ -70,7 +74,20 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
+  const inputRef = useRef(null);
   const prevOpenRef = useRef(isOpen);
+
+  // Safely manage focus: only auto-focus on desktop when explicitly opened
+  useEffect(() => {
+    if (isOpen) {
+      if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+        const timer = setTimeout(() => {
+          inputRef.current?.focus();
+        }, 150);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isOpen]);
 
   const {
     messages = [],
@@ -202,6 +219,7 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
 
       {/* Slide-over Drawer Panel — sits below topbar (top-14), stops above bottom bar on mobile */}
       <div
+        aria-hidden={!isOpen}
         className={`fixed top-14 bottom-16 lg:bottom-0 right-0 z-40 w-full sm:w-[480px] lg:w-[520px] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
           }`}
       >
@@ -268,11 +286,13 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
               {/* Centred search bar */}
               <div className="w-full max-w-sm">
                 <ChatInputForm
+                  inputRef={inputRef}
                   input={input}
                   onChange={handleInputChange}
                   onSubmit={handleSubmit}
                   isLoading={isLoading}
-                  autoFocus={!hasConversation}
+                  disabled={!isOpen}
+                  autoFocus={false}
                 />
               </div>
             </div>
@@ -416,10 +436,12 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
         {hasConversation && (
           <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
             <ChatInputForm
+              inputRef={inputRef}
               input={input}
               onChange={handleInputChange}
               onSubmit={handleSubmit}
               isLoading={isLoading}
+              disabled={!isOpen}
               autoFocus={false}
             />
             <p className="text-[10px] text-center text-zinc-400 dark:text-zinc-500 mt-2">
