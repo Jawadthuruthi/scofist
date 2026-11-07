@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import { useChat } from "@ai-sdk/react";
 import ReactMarkdown from "react-markdown";
 import {
@@ -49,6 +49,41 @@ const FRIENDLY_TOOL_NAMES = {
   getAcademicMarks: "Exam Marks",
   getOperationsStatus: "Fees & Passes",
 };
+
+// Define ChatInputForm outside AIChatDrawer so React never unmounts the input on re-renders
+const ChatInputForm = memo(function ChatInputForm({
+  input,
+  onChange,
+  onSubmit,
+  isLoading,
+  autoFocus,
+  className = "",
+}) {
+  return (
+    <form onSubmit={onSubmit} className={`flex gap-2 items-center ${className}`}>
+      <input
+        type="text"
+        value={input || ""}
+        onChange={onChange}
+        placeholder="Ask about attendance, timetable, marks..."
+        className="flex-1 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-900 dark:text-zinc-100 shadow-sm placeholder:text-zinc-400"
+        disabled={isLoading}
+        autoFocus={autoFocus}
+      />
+      <Button
+        type="submit"
+        disabled={isLoading || !input?.trim()}
+        className="h-9 px-3.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Send className="h-4 w-4" />
+        )}
+      </Button>
+    </form>
+  );
+});
 
 export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = false }) {
   const [mounted, setMounted] = useState(false);
@@ -160,32 +195,6 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
     );
   };
 
-  // Shared input form used in both empty-state (centre) and footer (conversation)
-  const InputForm = ({ className = "" }) => (
-    <form onSubmit={handleSubmit} className={`flex gap-2 items-center ${className}`}>
-      <input
-        type="text"
-        value={input || ""}
-        onChange={handleInputChange}
-        placeholder="Ask about attendance, timetable, marks..."
-        className="flex-1 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-900 dark:text-zinc-100 shadow-sm placeholder:text-zinc-400"
-        disabled={isLoading}
-        autoFocus={!hasConversation}
-      />
-      <Button
-        type="submit"
-        disabled={isLoading || !input?.trim()}
-        className="h-9 px-3.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Send className="h-4 w-4" />
-        )}
-      </Button>
-    </form>
-  );
-
   if (!mounted) return null;
 
   return (
@@ -284,7 +293,13 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
 
               {/* Centred search bar */}
               <div className="w-full max-w-sm">
-                <InputForm />
+                <ChatInputForm
+                  input={input}
+                  onChange={handleInputChange}
+                  onSubmit={handleSubmit}
+                  isLoading={isLoading}
+                  autoFocus={!hasConversation}
+                />
               </div>
 
               {/* Quick Starter Pills */}
@@ -445,7 +460,13 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
         {/* Drawer Footer / Input Form — only shown when conversation has started */}
         {hasConversation && (
           <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
-            <InputForm />
+            <ChatInputForm
+              input={input}
+              onChange={handleInputChange}
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              autoFocus={false}
+            />
             <p className="text-[10px] text-center text-zinc-400 dark:text-zinc-500 mt-2">
               Answers are verified directly from official college records.
             </p>
