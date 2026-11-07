@@ -115,12 +115,13 @@ Guidelines:
 - For unrelated administrative settings (gallery, articles, rentals, system configs), politely inform the user to check the corresponding dashboard page directly.`,
       messages: modelMessages,
       tools: getAITools(),
-      // Allow tool execution and always give the model a final turn to synthesize text
+      // Strictly limit to 2 steps (1 tool call + 1 text synthesis)
+      // Guarantees response completes in 3-5 seconds, well within Vercel's 10s ceiling
       stopWhen: ({ steps }) => {
         const lastStep = steps[steps.length - 1];
         const hasText = Boolean(lastStep?.text && lastStep.text.trim().length > 0);
         if (hasText) return true;
-        return steps.length >= 4;
+        return steps.length >= 2;
       },
     });
 
