@@ -47,21 +47,41 @@ const AttendanceTrackingPage = async () => {
             maxWidth: 60,
             minWidth: 60,
           },
-          { header: "Student ID", accessorKey: "_id" },
+          {
+            header: "ID",
+            accessorKey: "_id",
+            width: 70,
+            minWidth: 70,
+            maxWidth: 90,
+          },
           { header: "Name", accessorKey: "name" },
           {
             header: "Total",
             accessorKey: "totalClass",
             valueKey: "attendanceRecords",
             type: ["length"],
+            clickable: true,
+            viewType: "allRecords",
           },
           {
             header: "Present",
+            id: "present",
             accessorKey: "present",
             type: ["filteredLength"],
             valueKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
+          },
+          {
+            header: "Absent",
+            id: "absent",
+            accessorKey: "present",
+            type: ["filteredLength"],
+            valueKey: "attendanceRecords",
+            filterKey: "present",
+            filterValue: false,
+            clickable: true,
           },
           {
             header: "Percentage",
@@ -70,6 +90,7 @@ const AttendanceTrackingPage = async () => {
             totalKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
           },
         ],
         filterConfig: [
@@ -97,6 +118,7 @@ const AttendanceTrackingPage = async () => {
         apiFilters: {
           category: "ALL",
         },
+        limit: 0,
       },
       {
         label: "GROUP",
@@ -114,21 +136,41 @@ const AttendanceTrackingPage = async () => {
             maxWidth: 60,
             minWidth: 60,
           },
-          { header: "Student ID", accessorKey: "_id" },
+          {
+            header: "ID",
+            accessorKey: "_id",
+            width: 70,
+            minWidth: 70,
+            maxWidth: 90,
+          },
           { header: "Name", accessorKey: "name" },
           {
-            header: "Total Class",
+            header: "Total",
             accessorKey: "totalClass",
             valueKey: "attendanceRecords",
             type: ["length"],
+            clickable: true,
+            viewType: "allRecords",
           },
           {
             header: "Present",
+            id: "present",
             accessorKey: "present",
             type: ["filteredLength"],
             valueKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
+          },
+          {
+            header: "Absent",
+            id: "absent",
+            accessorKey: "present",
+            type: ["filteredLength"],
+            valueKey: "attendanceRecords",
+            filterKey: "present",
+            filterValue: false,
+            clickable: true,
           },
           {
             header: "Percentage",
@@ -137,6 +179,7 @@ const AttendanceTrackingPage = async () => {
             totalKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
           },
         ],
         filterConfig: [
@@ -163,6 +206,7 @@ const AttendanceTrackingPage = async () => {
         apiFilters: {
           category: "GROUP",
         },
+        limit: 0,
       },
       {
         label: "HISTORY",
@@ -195,6 +239,7 @@ const AttendanceTrackingPage = async () => {
             valueKey: "absentees",
             type: ["length"],
             clickable: true,
+            viewType: "classWiseStudents",
           },
           {
             header: "",
@@ -202,6 +247,7 @@ const AttendanceTrackingPage = async () => {
             type: ["literaryWhatsAppAction"],
             groupsData: groups,
             width: 50,
+            hideHeaderIcon: true,
           },
         ],
         filterConfig: [
@@ -231,6 +277,7 @@ const AttendanceTrackingPage = async () => {
           projection: "_id,date,attendanceData,category,classId",
         },
         defaultSorting: [{ id: "date", desc: true }],
+        limit: 0,
       },
     ];
 

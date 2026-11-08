@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Loader2 } from "lucide-react";
+import { MessageCircle, Loader2, X } from "lucide-react";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "./ui/dialog";
 import axios from "axios";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -183,39 +182,65 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
 
       {open && (
         <Dialog open={open} onOpenChange={(val) => { if (!val) setOpen(false); }}>
-          <DialogContent onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>Select Teacher to Send Consolidated WhatsApp</DialogTitle>
+          <DialogContent
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+          >
+            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <div className="flex-1 text-left space-y-0.5">
+                <DialogTitle className="text-base md:text-lg font-bold m-0 text-foreground">
+                  Select Teacher to Send Absentees List
+                </DialogTitle>
+                <DialogDescription className="m-0 text-xs text-muted-foreground">
+                  Choose a teacher to share absentees via WhatsApp
+                </DialogDescription>
+              </div>
+              <DialogClose
+                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer"
+                onClick={() => setOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </DialogClose>
             </DialogHeader>
-            <div className="py-2 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 space-y-2 bg-muted/5 overflow-y-auto max-h-[60vh]">
               {loading ? (
-                <div className="flex items-center justify-center p-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
-                  <span className="ml-2 text-sm text-gray-500">Loading teachers...</span>
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading teachers...</span>
+                </div>
+              ) : teachers.length === 0 ? (
+                <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
+                  No teachers found
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {teachers.map((teacher) => (
-                    <Button
+                    <div
                       key={teacher._id}
-                      variant="outline"
-                      className="justify-start h-auto py-2 px-3 flex items-center"
+                      className="flex justify-between items-center py-2.5 px-3.5 border bg-card hover:bg-muted/40 rounded-xl transition-all shadow-xs gap-3 cursor-pointer"
                       onClick={() => handleSend(teacher)}
                     >
-                      <div className="flex flex-col items-start w-full text-left">
-                        <span className="font-medium text-sm">{teacher.name}</span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="font-semibold text-sm text-foreground">
+                          {teacher.name}
+                        </span>
                         {teacher.contactNumber && (
-                          <span className="text-xs text-muted-foreground">{teacher.contactNumber}</span>
+                          <span className="text-xs text-muted-foreground mt-0.5">
+                            {teacher.contactNumber}
+                          </span>
                         )}
                       </div>
-                    </Button>
+                      <div className="p-2 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <MessageCircle className="w-4 h-4" />
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

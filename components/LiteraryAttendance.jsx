@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDate, formatDateForDisplay } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, getISTDate, cn } from "@/lib/utils";
 import Header from "./Header";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -13,7 +13,8 @@ import {
   TableRow,
 } from "./ui/table";
 import { Button } from "./ui/button";
-import { AlertTriangle, CheckCircle2, ChevronsUpDown, Plus, X, TrendingUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronsUpDown, Plus, X, TrendingUp, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 import LiteraryWhatsAppAction from "./LiteraryWhatsAppAction";
 import LiteraryWhatsAppBulkAction from "./LiteraryWhatsAppBulkAction";
 import ClassPerformanceModal from "./ClassPerformanceModal";
@@ -32,7 +33,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "./ui/popover";
-import { cn } from "@/lib/utils";
 
 const days = [
   "Sunday",
@@ -288,9 +288,22 @@ const LiteraryAttendance = ({
   const [performanceSlot, setPerformanceSlot] = useState(null);
   const [performanceAttendanceRecord, setPerformanceAttendanceRecord] = useState(null);
 
-  const today = useMemo(() => days[new Date().getDay()], [days]);
-  const date = useMemo(() => formatDateForDisplay(new Date()), []);
-  const formattedDate = useMemo(() => formatDate(new Date()), []);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [selectedDateState, setSelectedDateState] = useState(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const urlDate = sp.get("date");
+      if (urlDate) {
+        const parsed = new Date(urlDate);
+        if (!isNaN(parsed.getTime())) return parsed;
+      }
+    }
+    return getISTDate();
+  });
+
+  const today = useMemo(() => days[selectedDateState.getDay()], [days, selectedDateState]);
+  const date = useMemo(() => formatDateForDisplay(selectedDateState), [selectedDateState]);
+  const formattedDate = useMemo(() => formatDate(selectedDateState), [selectedDateState]);
 
   useEffect(() => {
     router.refresh();
@@ -375,6 +388,18 @@ const LiteraryAttendance = ({
     [attendanceData, activeTab, formattedDate, apiCategory]
   );
 
+  const hasMarkedAttendanceGeneral = useMemo(() => {
+    return attendanceData.some(
+      (att) => att.date === formattedDate && att.category === apiCategory
+    );
+  }, [attendanceData, formattedDate, apiCategory]);
+
+  const hasMarkedAttendanceGroup = useMemo(() => {
+    return attendanceData.some(
+      (att) => att.date === formattedDate && att.category === "GROUP"
+    );
+  }, [attendanceData, formattedDate]);
+
   // Reset to "all" tab whenever session type is not Literary
   useEffect(() => {
     if (selectedCategory !== "Literary") {
@@ -390,17 +415,82 @@ const LiteraryAttendance = ({
         title="LITERARY ATTENDANCE"
         subTitle="Manage Literary Attendance"
       />
-      <div className="flex items-center gap-3 mb-4">
-        <div suppressHydrationWarning className="py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
-          {date}
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+        {/* Day selector */}
+        <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0 bg-background max-w-fit">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r hover:bg-accent"
+            onClick={() => {
+              const newDate = new Date(selectedDateState);
+              newDate.setDate(newDate.getDate() - 1);
+              setSelectedDateState(newDate);
+            }}
+            title="Previous Day"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="py-1.5 px-3 md:px-5 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
+            {date}
+          </div>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent text-muted-foreground hover:text-foreground"
+                title="Select date from calendar"
+              >
+                <CalendarDays className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDateState}
+                onSelect={(newDate) => {
+                  if (newDate) {
+                    const todayIST = getISTDate();
+                    if (newDate <= todayIST) {
+                      setSelectedDateState(newDate);
+                      setDatePickerOpen(false);
+                    }
+                  }
+                }}
+                disabled={(d) => {
+                  const todayIST = getISTDate();
+                  todayIST.setHours(23, 59, 59, 999);
+                  return d > todayIST;
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent"
+            onClick={() => {
+              const newDate = new Date(selectedDateState);
+              newDate.setDate(newDate.getDate() + 1);
+              if (newDate <= getISTDate()) {
+                setSelectedDateState(newDate);
+              }
+            }}
+            disabled={formatDate(selectedDateState) === formatDate(getISTDate())}
+            title="Next Day"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* ── Session Type selector ── */}
         <div className="flex items-center gap-2 md:gap-3">
-          <span className="hidden md:inline text-sm font-medium text-muted-foreground whitespace-nowrap">
+          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
             Session Type
           </span>
-          <div className="w-40 md:w-52">
+          <div className="w-44 md:w-52">
             <CategoryCombobox
               value={selectedCategory}
               onChange={setSelectedCategory}
@@ -429,7 +519,9 @@ const LiteraryAttendance = ({
                   <TableHead className="px-4">Class</TableHead>
                   <TableHead className="text-center w-24 px-4">Absent</TableHead>
                   <TableHead className="w-16 text-center px-4">
-                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === apiCategory)} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} sessionLabel={selectedCategory} />
+                    {hasMarkedAttendanceGeneral && (
+                      <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === apiCategory)} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} sessionLabel={selectedCategory} />
+                    )}
                   </TableHead>
                   <TableHead className="w-16 px-4"></TableHead>
                   <TableHead className="w-full"></TableHead>
@@ -516,7 +608,9 @@ const LiteraryAttendance = ({
                   <TableHead>Group</TableHead>
                   <TableHead className="text-center w-24">Absent</TableHead>
                   <TableHead className="w-12 text-center px-1">
-                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === "GROUP")} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} sessionLabel={selectedCategory} />
+                    {hasMarkedAttendanceGroup && (
+                      <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === "GROUP")} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} sessionLabel={selectedCategory} />
+                    )}
                   </TableHead>
                   <TableHead className="w-12"></TableHead>
                   <TableHead className="w-full"></TableHead>

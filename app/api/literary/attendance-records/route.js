@@ -9,8 +9,11 @@ export async function GET(req, res) {
 
     // Parse URL to get search params
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const page = parseInt(url.searchParams.get("page") || "0", 10) || 0;
+    const limitParam = url.searchParams.get("limit");
+    const parsedLimit = limitParam !== null ? parseInt(limitParam, 10) : NaN;
+    const isPaginated = !isNaN(parsedLimit) && parsedLimit > 0;
+    const limit = isPaginated ? parsedLimit : Infinity;
 
     // Build filter object from query parameters
     const filterParams = {};
@@ -174,8 +177,7 @@ export async function GET(req, res) {
       },
 
       // Apply pagination
-      { $skip: page * limit },
-      ...(limit !== Infinity ? [{ $limit: limit }] : []),
+      ...(isPaginated ? [{ $skip: page * limit }, { $limit: limit }] : []),
     ];
 
     // Execute the aggregation pipeline
@@ -202,6 +204,10 @@ export async function GET(req, res) {
         groupName: attendance?.groupId?.name,
         classId: attendance?.classId?._id,
         groupId: attendance?.groupId?._id,
+        subjectName:
+          attendance?.category === "GROUP"
+            ? attendance?.groupId?.name || "Group"
+            : attendance?.classId?.name || "General",
       })),
     }));
 
@@ -295,10 +301,9 @@ export async function GET(req, res) {
         attendanceRecords: formattedStudentAttendances,
         pagination: {
           page,
-          limit,
+          limit: isPaginated ? limit : total,
           total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+          totalPages: isPaginated ? Math.max(1, Math.ceil(total / limit)) : 1,
         },
         message: "Student attendance records fetched successfully",
       },

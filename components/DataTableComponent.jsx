@@ -763,7 +763,7 @@ const DataTableComponent = ({
     }
 
     // Sort detail records by Date and Period Number ascending order
-    if (Array.isArray(records) && col.viewType !== "subjectSummary" && col.header !== "Absentees") {
+    if (Array.isArray(records) && col.viewType !== "subjectSummary" && col.viewType !== "classWiseStudents" && col.header !== "Absentees") {
       records = records.slice().sort((a, b) => {
         const timeA = a.date ? new Date(a.date).getTime() : 0;
         const timeB = b.date ? new Date(b.date).getTime() : 0;
@@ -789,11 +789,11 @@ const DataTableComponent = ({
     setDetailView({
       student: row,
       col: col,
-      title: col.header === "Absentees"
-        ? `Absent Students for ${formatDateForDisplay(row.date)}`
+      title: col.viewType === "classWiseStudents" || col.header === "Absentees"
+        ? `Absent Students (${records.length})`
         : col.viewType === "subjectSummary"
         ? `Subject-wise Attendance for ${row.name || "Class"}`
-        : `${headerText} for ${row.name || row.teamName || "Selected Item"}`,
+        : `${headerText} for ${row.name || row.teamName || row.dateForDisplay || (row.date ? formatDateForDisplay(row.date) : "") || "Selected Item"}`,
       colHeader: col.viewType === "subjectSummary" ? "Subject-wise Attendance" : headerText,
       viewType: col.viewType || (col.header === "Absentees" ? "studentList" : "recordList")
     });
@@ -1830,17 +1830,19 @@ const DataTableComponent = ({
               ? "max-w-md sm:max-w-md"
               : detailView?.viewType === "subjectSummary"
                 ? "max-w-3xl"
-                : (detailView?.colHeader === "Present" || detailView?.colHeader === "Absent" || detailView?.colHeader === "Percentage" || (subjectDrilldown && subjectDrilldown.filterType !== "total"))
-                  ? "max-w-md sm:max-w-md"
-                  : "max-w-lg sm:max-w-lg"
+                : detailView?.viewType === "classWiseStudents"
+                  ? "max-w-lg sm:max-w-xl"
+                  : (detailView?.colHeader === "Present" || detailView?.colHeader === "Absent" || detailView?.colHeader === "Percentage" || (subjectDrilldown && subjectDrilldown.filterType !== "total"))
+                    ? "max-w-md sm:max-w-md"
+                    : "max-w-lg sm:max-w-lg"
           )}
         >
-          <DialogHeader className={`flex flex-col gap-0 mx-0 px-4 sm:px-5 pt-4 pb-3 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-50 dark:bg-green-950/20" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent") ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
+          <DialogHeader className={`flex flex-col gap-0 mx-0 px-4 sm:px-5 pt-4 pb-3 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-50 dark:bg-green-950/20" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent" || detailView?.viewType === "classWiseStudents") ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
             {/* Top row: icon + title/meta + print + close */}
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer shrink-0 self-center ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent") ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
+                className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer shrink-0 self-center ${(subjectDrilldown?.filterType === "present" || detailView?.colHeader === "Present") ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : (subjectDrilldown?.filterType === "absent" || detailView?.colHeader === "Absent" || detailView?.viewType === "classWiseStudents") ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
                 onClick={handleDownload}
                 title="Download Image"
                 data-html2canvas-ignore="true"
@@ -1877,6 +1879,13 @@ const DataTableComponent = ({
                         ({subjectDrilldown.records.length})
                       </span>
                     </span>
+                  ) : detailView?.viewType === "classWiseStudents" ? (
+                    <>
+                      {`Absent Students`}
+                      <span className="ml-1.5 text-base font-semibold text-muted-foreground">
+                        ({detailedRecords.length})
+                      </span>
+                    </>
                   ) : detailView?.viewType === "subjectSummary" ? (
                     "Subject-wise Attendance"
                   ) : (
@@ -1913,7 +1922,8 @@ const DataTableComponent = ({
                   ) : (
                     <>
                       <DialogDescription className="font-medium text-foreground m-0 text-sm leading-tight truncate">
-                        {detailView?.student?.name}
+                        {detailView?.student?.name || (detailView?.student?.date ? (detailView?.student?.dateForDisplay || formatDateForDisplay(detailView.student.date)) : "")}
+                        {detailView?.student?.category && ` • ${detailView.student.category === "ALL" ? "General" : "Group"}`}
                         {resource === "studentAttendances" &&
                           detailView?.viewType !== "allRecords" &&
                           detailView?.viewType !== "subjectSummary" &&
@@ -2607,6 +2617,64 @@ const DataTableComponent = ({
                   </div>
                 )}
               </div>
+            ) : detailView?.viewType === "classWiseStudents" ? (
+              <div className="space-y-4 px-1 py-1">
+                {(() => {
+                  const grouped = {};
+                  (detailedRecords || []).forEach((st) => {
+                    const cName = st.className || st.groupName || "Other";
+                    if (!grouped[cName]) grouped[cName] = [];
+                    grouped[cName].push(st);
+                  });
+                  const entries = Object.entries(grouped).sort(([a], [b]) =>
+                    sortClasses(a, b, (x) => x)
+                  );
+                  if (entries.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-background">
+                        <CheckCircle2 className="h-10 w-10 text-green-500 mb-2 opacity-80" />
+                        <p className="text-base font-semibold text-foreground">Full Attendance</p>
+                        <p className="text-sm">No students were absent on this day.</p>
+                      </div>
+                    );
+                  }
+                  return entries.map(([className, students]) => {
+                    const sortedStudents = [...students].sort((s1, s2) => {
+                      const idComp = String(s1.studentId || "").localeCompare(String(s2.studentId || ""), undefined, { numeric: true });
+                      if (idComp !== 0) return idComp;
+                      return (s1.studentName || s1.name || "").localeCompare(s2.studentName || s2.name || "");
+                    });
+                    return (
+                      <div key={className} className="border rounded-xl overflow-hidden bg-card shadow-xs">
+                        <div className="flex items-center justify-between px-4 py-2.5 bg-muted/60 border-b">
+                          <span className="font-bold text-sm text-foreground">{className}</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            {sortedStudents.length} Absent
+                          </span>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/20">
+                              <TableHead className="w-12 text-center font-bold text-xs py-2 pr-1">Sl.No.</TableHead>
+                              <TableHead className="w-16 font-bold text-xs py-2 px-1">ID</TableHead>
+                              <TableHead className="font-bold text-xs py-2 pl-1">Student Name</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sortedStudents.map((st, idx) => (
+                              <TableRow key={st.studentId || idx} className="hover:bg-muted/30">
+                                <TableCell className="text-center text-xs py-2 font-medium text-muted-foreground pr-1">{idx + 1}</TableCell>
+                                <TableCell className="font-mono text-xs py-2 font-medium px-1 whitespace-nowrap">{st.studentId || "—"}</TableCell>
+                                <TableCell className="text-xs py-2 font-semibold text-foreground pl-1">{st.studentName || st.name || "—"}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
             ) : (
               <div className="border rounded-md sm:rounded-lg shadow-sm bg-background overflow-x-auto">
                 <Table>
@@ -2626,7 +2694,7 @@ const DataTableComponent = ({
                         </>
                       ) : detailView?.viewType === "studentList" ? (
                         <>
-                          <TableHead className="w-[120px] font-bold">Student ID</TableHead>
+                          <TableHead className="w-20 font-bold">ID</TableHead>
                           <TableHead className="font-bold">Name</TableHead>
                           <TableHead className="font-bold">Class</TableHead>
                         </>
@@ -2645,9 +2713,9 @@ const DataTableComponent = ({
                             "px-2 sm:px-4 font-bold whitespace-nowrap",
                             resource === "studentMasjidAttendances" ? "min-w-[100px] sm:min-w-[130px]" : "min-w-[130px] sm:min-w-[180px]"
                           )}>
-                            {resource === "studentMasjidAttendances" ? "Prayer / Session" : "Subject"}
+                            {resource === "studentMasjidAttendances" ? "Prayer / Session" : resource === "attendanceRecords" ? "Class / Group" : "Subject"}
                           </TableHead>
-                          {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances") &&
+                          {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances" || resource === "attendanceRecords") &&
                            detailView?.colHeader !== "Present" &&
                            detailView?.colHeader !== "Absent" &&
                            detailView?.colHeader !== "Percentage" && (
@@ -2860,7 +2928,7 @@ const DataTableComponent = ({
                                   )}
                                 </div>
                               </TableCell>
-                              {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances") &&
+                              {(resource === "studentAttendances" || resource === "teacherAttendances" || resource === "classAttendances" || resource === "attendanceRecords") &&
                                detailView?.colHeader !== "Present" &&
                                detailView?.colHeader !== "Absent" &&
                                detailView?.colHeader !== "Percentage" && (

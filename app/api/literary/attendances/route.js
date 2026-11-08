@@ -3,7 +3,7 @@ import connectToDB from "@/lib/db";
 import LiteraryAttendance from "@/models/LiteraryAttendance";
 import { apiResponse } from "@/lib/apiResponse";
 import StudentLiteraryAttendance from "@/models/StudentLiteraryAttendance";
-import { formatDateForDisplay } from "@/lib/utils";
+import { formatDateForDisplay, sortClasses } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +13,11 @@ export async function GET(req, res) {
     await connectToDB();
 
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const page = parseInt(url.searchParams.get("page") || "0", 10) || 0;
+    const limitParam = url.searchParams.get("limit");
+    const parsedLimit = limitParam !== null ? parseInt(limitParam, 10) : NaN;
+    const isPaginated = !isNaN(parsedLimit) && parsedLimit > 0;
+    const limit = isPaginated ? parsedLimit : Infinity;
 
     const trackAbsentees = url.searchParams.get("trackAbsentees") === "true";
     const trackHistory = url.searchParams.get("trackHistory") === "true";
@@ -212,14 +215,39 @@ export async function GET(req, res) {
       });
     }
 
-    for (const attendance of attendanceHistory) {
-      const absenteesData = absentees.filter(
-        (student) =>
-          student.lastAbsenceDate === attendance.date &&
-          student.category === attendance.category
+    for (const historyItem of attendanceHistory) {
+      const dayAbsentees = [];
+      const seenStudents = new Set();
+
+      const matchingAttendances = formattedAttendances.filter(
+        (att) => att.date === historyItem.date && att.category === historyItem.category
       );
 
-      attendance.absentees = absenteesData;
+      matchingAttendances.forEach((att) => {
+        (att.attendanceData || []).forEach((student) => {
+          if (!student.present && !seenStudents.has(student.studentId)) {
+            seenStudents.add(student.studentId);
+            dayAbsentees.push({
+              studentId: student.studentId,
+              studentName: student.studentName,
+              className: student.className || att.classDetails?.name || att.classId?.name || (att.groupDetails?.name || att.groupId?.name ? `${att.groupDetails?.name || att.groupId?.name}` : "—"),
+              groupName: att.groupDetails?.name || att.groupId?.name,
+              category: att.category,
+              date: historyItem.date,
+            });
+          }
+        });
+      });
+
+      dayAbsentees.sort((a, b) => {
+        const classComp = sortClasses(a, b, (item) => item.className || "");
+        if (classComp !== 0) return classComp;
+        const idComp = String(a.studentId || "").localeCompare(String(b.studentId || ""), undefined, { numeric: true });
+        if (idComp !== 0) return idComp;
+        return (a.studentName || "").localeCompare(b.studentName || "");
+      });
+
+      historyItem.absentees = dayAbsentees;
     }
 
     const total = await LiteraryAttendance.countDocuments(query);
@@ -231,10 +259,9 @@ export async function GET(req, res) {
         history: attendanceHistory,
         pagination: {
           page,
-          limit,
+          limit: isPaginated ? limit : total,
           total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+          totalPages: isPaginated ? Math.max(1, Math.ceil(total / limit)) : 1,
         },
         message: "Literary attendances fetched successfully!",
       },

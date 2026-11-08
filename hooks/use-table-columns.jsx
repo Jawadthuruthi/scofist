@@ -592,13 +592,17 @@ const useTableColumns = (columnConfig, onCellClick) => {
     }
 
     if (col.type?.includes("literaryWhatsAppAction")) {
-      columnDefinition.header = ({ table }) => {
-        return (
-          <div className="flex justify-center items-center h-full">
-            <LiteraryWhatsAppBulkAction table={table} groups={col.groupsData} />
-          </div>
-        );
-      };
+      if (!col.hideHeaderIcon && !col.hideBulkAction) {
+        columnDefinition.header = ({ table }) => {
+          return (
+            <div className="flex justify-center items-center h-full">
+              <LiteraryWhatsAppBulkAction table={table} groups={col.groupsData} />
+            </div>
+          );
+        };
+      } else {
+        columnDefinition.header = col.header || "";
+      }
       columnDefinition.cell = ({ row }) => {
         return <LiteraryWhatsAppAction rowData={row.original} groups={col.groupsData} />;
       };
