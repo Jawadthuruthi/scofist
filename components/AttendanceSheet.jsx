@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { sortClasses } from "@/lib/utils";
 import axios from "axios";
 import { Loader, Check, X, Filter, Download, FileSpreadsheet, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -105,14 +106,21 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
         const fetchMetadata = async () => {
             try {
                 const [classesRes, subjectsRes, batchesRes] = await Promise.all([
-                    axios.get("/api/classes", { headers: getHeaders() }),
+                    axios.get("/api/classes?status=Active", { headers: getHeaders() }),
                     axios.get("/api/subjects", { 
                         headers: getHeaders(),
                         params: { projection: "_id,name" }
                     }),
                     axios.get("/api/batches", { headers: getHeaders() })
                 ]);
-                setClasses(classesRes.data.classes || []);
+                const fetchedClasses = (classesRes.data.classes || [])
+                    .filter((c) => c?.status !== "Closed")
+                    .sort((a, b) => {
+                    const classCompare = sortClasses(a, b);
+                    if (classCompare !== 0) return classCompare;
+                    return String(a.name || "").localeCompare(String(b.name || ""));
+                });
+                setClasses(fetchedClasses);
                 setAllSubjects(subjectsRes.data.subjects || []);
                 const fetchedBatches = batchesRes.data.batches || [];
                 setBatches(fetchedBatches.sort((a, b) => {

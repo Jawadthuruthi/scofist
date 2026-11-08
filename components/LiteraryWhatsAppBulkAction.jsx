@@ -26,7 +26,7 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
         } else if (b.dateOfBirth) {
           return 1;
         }
-        
+
         const idA = a._id ? a._id.toString() : "";
         const idB = b._id ? b._id.toString() : "";
         return idA.localeCompare(idB, undefined, { numeric: true });
@@ -126,7 +126,7 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
 
     if (Object.keys(groupedGeneral).length > 0) {
       message += `*--- General ---*\n\n`;
-      
+
       const sortedClasses = Object.entries(groupedGeneral).sort(([classNameA], [classNameB]) => {
         const indexA = classOrderMap.has(classNameA) ? classOrderMap.get(classNameA) : 99999;
         const indexB = classOrderMap.has(classNameB) ? classOrderMap.get(classNameB) : 99999;
@@ -134,7 +134,7 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
       });
 
       for (const [className, students] of sortedClasses) {
-        message += `*Class: ${className}*\n`;
+        message += `*${className}*\n`;
         // Deduplicate students by ID just in case
         const uniqueStudents = Array.from(new Map(students.map(s => [s.studentId, s])).values());
         uniqueStudents.forEach((s, idx) => {
@@ -146,7 +146,7 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
 
     if (Object.keys(groupedGroups).length > 0) {
       message += `*--- Group ---*\n\n`;
-      
+
       const sortedGroups = Object.entries(groupedGroups).sort(([groupNameA], [groupNameB]) => {
         const indexA = groupOrderMap.has(groupNameA) ? groupOrderMap.get(groupNameA) : 99999;
         const indexB = groupOrderMap.has(groupNameB) ? groupOrderMap.get(groupNameB) : 99999;
@@ -154,7 +154,7 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
       });
 
       for (const [groupName, students] of sortedGroups) {
-        message += `*Team: ${groupName}*\n`;
+        message += `*${groupName}*\n`;
         const uniqueStudents = Array.from(new Map(students.map(s => [s.studentId, s])).values());
         uniqueStudents.forEach((s, idx) => {
           message += `${idx + 1}. ${s.studentName} (${s.className || "Unknown Class"})\n`;
@@ -171,16 +171,16 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
 
   return (
     <>
-      <Button 
-        variant="ghost" 
-        size="icon" 
+      <Button
+        variant="ghost"
+        size="icon"
         className="text-green-500 hover:text-green-600 hover:bg-green-50 h-8 w-8 ml-auto"
         onClick={handleOpen}
         title="Send All Absentees to WhatsApp"
       >
         <MessageCircle className="w-4 h-4" />
       </Button>
-      
+
       {open && (
         <Dialog open={open} onOpenChange={(val) => { if (!val) setOpen(false); }}>
           <DialogContent onClick={(e) => e.stopPropagation()}>

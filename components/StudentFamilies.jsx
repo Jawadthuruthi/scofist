@@ -1,4 +1,5 @@
 "use client";
+import { sortClasses } from "@/lib/utils";
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -73,9 +74,18 @@ const StudentFamilies = ({ apiKey }) => {
       .then((data) => setBatches(data.batches || []))
       .catch((err) => console.error("Error fetching batches:", err));
 
-    fetch("/api/classes")
+    fetch("/api/classes?status=Active")
       .then((res) => res.json())
-      .then((data) => setClasses(data.classes || []))
+      .then((data) => {
+        const sorted = (data.classes || [])
+          .filter((c) => c?.status !== "Closed")
+          .sort((a, b) => {
+          const classCompare = sortClasses(a, b);
+          if (classCompare !== 0) return classCompare;
+          return String(a.name || "").localeCompare(String(b.name || ""));
+        });
+        setClasses(sorted);
+      })
       .catch((err) => console.error("Error fetching classes:", err));
   }, []);
 

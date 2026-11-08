@@ -2,7 +2,7 @@ import MasjidDashboard from "@/components/masjid-attendance/MasjidDashboard";
 import { headers } from "next/headers";
 import connectDB from "@/lib/db";
 import Class from "@/models/Class";
-import { parseUser } from "@/lib/utils";
+import { parseUser, sortClasses } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +22,12 @@ const GeneralAttendancePage = async ({ searchParams }) => {
         .populate("batchId", "name")
         .lean();
 
-    // Sort by class ID order using localeCompare with numeric: true
-    classes.sort((a, b) => String(a._id).localeCompare(String(b._id), undefined, { numeric: true }));
+    // Sort by class order matching attendance-tracking
+    classes.sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+    });
 
     const serializedClasses = classes.map((cls) => ({
         _id: cls._id.toString(),

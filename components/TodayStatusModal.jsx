@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, Loader2, RefreshCw, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { sortClasses } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -49,7 +50,11 @@ export default function TodayStatusModal({ type = "student", students = [], clas
         if (!classes || classes.length === 0) return [];
         return classes
             .filter(c => c.status !== "Closed") // Only active classes
-            .sort((a, b) => a.value.localeCompare(b.value));
+            .sort((a, b) => {
+                const classCompare = sortClasses(a, b, (x) => x.originalName || x.label || x.name || "");
+                if (classCompare !== 0) return classCompare;
+                return String(a.label || a.name || "").localeCompare(String(b.label || b.name || ""));
+            });
     }, [classes]);
 
     const filteredStudents = useMemo(() => {

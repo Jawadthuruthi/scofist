@@ -1,6 +1,6 @@
 import PerformanceClient from "./PerformanceClient";
 import ErrorPage from "@/components/ErrorPage";
-import { fetchData, formatOptions, parseUser, sortTeachers } from "@/lib/utils";
+import { fetchData, formatOptions, parseUser, sortTeachers, sortClasses } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
 export default async function PerformancePage() {
@@ -20,8 +20,15 @@ export default async function PerformancePage() {
     // Fetch classes for dropdown
     let classes = [];
     try {
-      const classesData = await fetchData("classes", "projection=_id,name", 0);
-      classes = formatOptions(classesData);
+      const classesData = await fetchData("classes", "status=Active&projection=_id,name,status", 0);
+      const sortedClasses = (classesData || [])
+        .filter((c) => c?.status !== "Closed")
+        .sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
+      classes = formatOptions(sortedClasses);
     } catch (e) {
       console.error("Error fetching classes:", e);
     }

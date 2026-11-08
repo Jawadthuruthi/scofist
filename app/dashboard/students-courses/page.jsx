@@ -6,6 +6,7 @@ import Class from "@/models/Class.js";
 import Batch from "@/models/Batch.js";
 import Course from "@/models/Course.js";
 import User from "@/models/User.js";
+import { sortClasses } from "@/lib/utils";
 
 export default async function StudentCoursesPage() {
   try {
@@ -29,12 +30,14 @@ export default async function StudentCoursesPage() {
       throw error;
     }
 
-    const classesData = await Class.find({})
+    const classesData = await Class.find({ status: { $ne: "Closed" } })
       .select("_id name shortname status")
       .lean();
-    classesData.sort((a, b) =>
-      a._id.localeCompare(b._id, undefined, { numeric: true, sensitivity: "base" })
-    );
+    classesData.sort((a, b) => {
+      const classCompare = sortClasses(a, b);
+      if (classCompare !== 0) return classCompare;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
 
     const batchesData = await Batch.find({})
       .select("_id name startYear endYear")

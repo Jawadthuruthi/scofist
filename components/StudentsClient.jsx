@@ -435,7 +435,9 @@ const StudentDashboardView = ({ apiKey, batches = [], classes = [] }) => {
 
   const sortedClasses = useMemo(() => {
     if (!classes?.length) return [];
-    return [...classes].sort((a, b) => sortClasses(a, b));
+    return [...classes]
+      .filter((c) => c?.status !== "Closed")
+      .sort((a, b) => sortClasses(a, b));
   }, [classes]);
 
   if (isLoading) {
@@ -589,6 +591,15 @@ const StudentDashboardView = ({ apiKey, batches = [], classes = [] }) => {
 };
 
 export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [], filterTitle, lastStudentId }) {
+  const sortedClasses = useMemo(() => {
+    return [...(classes || [])]
+      .filter((c) => c?.status !== "Closed")
+      .sort((a, b) => {
+      const classCompare = sortClasses(a, b);
+      if (classCompare !== 0) return classCompare;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+  }, [classes]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [comparisonStudent, setComparisonStudent] = useState(null);
@@ -613,7 +624,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
 
   // Use shared column configuration
   const columnsConfig = getStudentColumns({
-    classes,
+    classes: sortedClasses,
     pageTitle,
     onNameClick: (student) => {
       setSelectedStudent(student);
@@ -637,7 +648,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
     populate: "funds",
   }), []);
 
-  const formFields = useMemo(() => getStudentFormFields(batches, classes, lastStudentId), [batches, classes, lastStudentId]);
+  const formFields = useMemo(() => getStudentFormFields(batches, sortedClasses, lastStudentId), [batches, sortedClasses, lastStudentId]);
 
   const filterConfig = pageTitle === "ADMISSION REGISTER" ? [
     { id: "_id", label: "ID" },
@@ -652,7 +663,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
       id: "classId",
       label: "Class",
       inputType: "select",
-      options: formatOptions(classes),
+      options: formatOptions(sortedClasses),
     },
     {
       id: "status",
@@ -680,7 +691,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
       id: "classId",
       label: "Class",
       inputType: "select",
-      options: formatOptions(classes),
+      options: formatOptions(sortedClasses),
     },
     {
       id: "batchId",
@@ -744,7 +755,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         subTitle="Organize and Oversee Students"
       />
       {activeRole === "Student" ? (
-        <StudentDashboardView apiKey={apiKey} batches={batches} classes={classes} />
+        <StudentDashboardView apiKey={apiKey} batches={batches} classes={sortedClasses} />
       ) : (
         <DataTableComponent
           key={refreshKey}
@@ -800,7 +811,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         student={selectedStudent}
         open={isProfileOpen}
         onClose={setIsProfileOpen}
-        classes={classes}
+        classes={sortedClasses}
         batches={batches}
         apiKey={apiKey}
       />

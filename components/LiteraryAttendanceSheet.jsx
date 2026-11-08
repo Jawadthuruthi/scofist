@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { cn, sortClasses } from "@/lib/utils";
 import {
     Select,
     SelectContent,
@@ -81,10 +81,17 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
         const fetchFiltersData = async () => {
             try {
                 const [classRes, groupRes] = await Promise.all([
-                    axios.get("/api/classes", { headers: getHeaders() }),
+                    axios.get("/api/classes?status=Active", { headers: getHeaders() }),
                     axios.get("/api/literary/groups", { headers: getHeaders() })
                 ]);
-                setClasses(classRes.data.classes || []);
+                const fetchedClasses = (classRes.data.classes || [])
+                    .filter((c) => c?.status !== "Closed")
+                    .sort((a, b) => {
+                    const classCompare = sortClasses(a, b);
+                    if (classCompare !== 0) return classCompare;
+                    return String(a.name || "").localeCompare(String(b.name || ""));
+                });
+                setClasses(fetchedClasses);
                 setGroups(groupRes.data.groups || []);
             } catch (error) {
                 toast.error("Failed to fetch classes or groups");

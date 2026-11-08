@@ -73,13 +73,13 @@ export default async function IndividualPointsPage() {
 
     // Fetch related data for form options
     const [classes, teams, divisions, results] = await Promise.all([
-      fetchData("classes", `${yearParam}projection=_id,name`, 0),
+      fetchData("classes", `${yearParam}status=Active&projection=_id,name,status`, 0),
       fetchData("teams", `${yearParam}projection=_id,name`, 0),
       fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
       fetchData("results", `${yearParam}projection=_id&isResultDeclared=true`, 0),
     ]);
 
-    const sortedClasses = classes ? [...classes].sort(sortClasses) : [];
+    const sortedClasses = classes ? [...classes].filter((c) => c?.status !== "Closed").sort(sortClasses) : [];
 
     const filterConfig = [
       { id: "name", label: "Name" },

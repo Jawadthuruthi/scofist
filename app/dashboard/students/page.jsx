@@ -20,7 +20,7 @@ export default async function BatchesPage() {
     }
 
     const batchesData = await Batch.find({}).select("_id name startYear endYear status").sort({ startYear: -1, endYear: -1 }).lean({ virtuals: true });
-    const classesData = await Class.find({}).select("_id name shortname status batchId").lean();
+    const classesData = await Class.find({ status: { $ne: "Closed" } }).select("_id name shortname status batchId").lean();
 
     // Fetch the last student ID
     const lastStudent = await User.findOne({ roles: "Student" })
@@ -30,7 +30,11 @@ export default async function BatchesPage() {
 
     const lastStudentId = lastStudent?._id || "None";
 
-    classesData.sort((a, b) => a._id.localeCompare(b._id, undefined, { numeric: true, sensitivity: 'base' }));
+    classesData.sort((a, b) => {
+      const classCompare = sortClasses(a, b);
+      if (classCompare !== 0) return classCompare;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
 
     const batches = JSON.parse(JSON.stringify(batchesData)).map(b => ({ ...b, academicYear: b.academicYear || (b.startYear && b.endYear ? `${b.startYear}-${(b.endYear % 100).toString().padStart(2, "0")}` : "") }));
     const classes = JSON.parse(JSON.stringify(classesData));

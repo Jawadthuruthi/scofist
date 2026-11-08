@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import Class from "@/models/Class";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
+import { sortClasses } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -53,19 +54,19 @@ export async function GET(req, res) {
       query.teacherId = filterParams.teacherId;
     }
     if (filterParams.status) {
-      query.status = filterParams.status;
+      if (filterParams.status === "Active") {
+        query.status = { $ne: "Closed" };
+      } else {
+        query.status = filterParams.status;
+      }
     }
 
-    // Execute query with pagination
+    // Execute query
     const classes = await Class.find(query, projections)
       .populate("batchId", "name")
       .populate("teacherId", "name")
       .populate("coreSubjects", "name")
       .populate("majorSubjects", "name")
-      .skip(limit === Infinity ? 0 : (page * limit))
-      .limit(limit === Infinity ? 0 : limit)
-      .sort({ _id: 1 })
-      .collation({ locale: "en_US", numericOrdering: true })
       .lean();
 
     // Get total count for pagination info
@@ -92,11 +93,21 @@ export async function GET(req, res) {
       ],
     }));
 
-    // Classes are already sorted by _id in the MongoDB query.
+    // Sort classes in the exact order of /dashboard/attendance-tracking class section
+    formattedClasses.sort((a, b) => {
+      const classCompare = sortClasses(a, b, (item) => item?.originalName || item?.name || "");
+      if (classCompare !== 0) return classCompare;
+      return String(a?.name || "").localeCompare(String(b?.name || ""));
+    });
+
+    const paginatedClasses =
+      limit === Infinity
+        ? formattedClasses
+        : formattedClasses.slice(page * limit, (page + 1) * limit);
 
     return NextResponse.json(
       {
-        classes: formattedClasses,
+        classes: paginatedClasses,
         pagination: {
           page,
           limit,

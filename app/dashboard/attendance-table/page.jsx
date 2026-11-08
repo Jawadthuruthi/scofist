@@ -6,8 +6,8 @@ import ErrorPage from "@/components/ErrorPage";
 
 async function getClasses() {
   try {
-    const classes = await fetchData("classes");
-    return classes;
+    const classes = await fetchData("classes", "status=Active&projection=_id,name,status");
+    return (classes || []).filter((c) => c?.status !== "Closed");
   } catch (error) {
     console.error("Error fetching classes:", error);
     return [];

@@ -1,7 +1,7 @@
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import TimeTablesManagements from "@/components/TimeTablesManagements";
-import { fetchData, sortTeachers } from "@/lib/utils";
+import { fetchData, sortTeachers, sortClasses } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
@@ -16,7 +16,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "classes",
-    searchParams: "projection=_id,name,shortname,coreSubjects,majorSubjects",
+    searchParams: "status=Active&projection=_id,name,shortname,coreSubjects,majorSubjects,status",
   },
 ];
 
@@ -32,6 +32,16 @@ const TimeTablePage = async () => {
 
     if (teachers && teachers.length > 0) {
       teachers = sortTeachers(teachers);
+    }
+
+    if (classes && classes.length > 0) {
+      classes = [...classes]
+        .filter((c) => c?.status !== "Closed")
+        .sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
     }
 
     return (

@@ -64,7 +64,7 @@ export async function GET(req) {
     const bufferedEnd = new Date(queryEndDate.getTime() + 24 * 3600 * 1000);
 
     // 2. Build Query for Active Classes
-    const classQuery = { status: { $ne: "Inactive" } };
+    const classQuery = { status: { $ne: "Closed" } };
 
     if (filterParams.classId) {
       const classIds = String(filterParams.classId).split(",").map((s) => s.trim());

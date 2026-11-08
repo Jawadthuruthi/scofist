@@ -10,7 +10,7 @@ const API_ENDPOINTS = [
     },
     {
         pathname: "classes",
-        searchParams: "projection=_id,name,batchId,subjects",
+        searchParams: "status=Active&projection=_id,name,batchId,subjects,status",
     },
     {
         pathname: "updates",

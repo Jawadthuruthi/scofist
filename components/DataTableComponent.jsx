@@ -926,7 +926,7 @@ const DataTableComponent = ({
           if (classCompare !== 0) return classCompare;
           return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
         });
-      } else if (resource === "classAttendances") {
+      } else if (resource === "classAttendances" || resource === "classes") {
         baseData = [...baseData].sort((a, b) => {
           const classCompare = sortClasses(a, b, (item) => item?.originalName || item?.name || "");
           if (classCompare !== 0) return classCompare;

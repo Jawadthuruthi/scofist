@@ -46,7 +46,7 @@ export default function ClassesClient({ columnsConfig, formFields, filterConfig,
           filterConfig={filterConfig}
           limit={20}
           enableSearch={true}
-          defaultSorting={[{ id: "_id", desc: false }]}
+          defaultSorting={[]}
         />
 
         <ClassProfileDialog

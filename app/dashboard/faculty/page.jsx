@@ -10,7 +10,8 @@ export default async function FacultyPage() {
       "projection=_id,name,email,profilePic,contactNumber,dateOfBirth,address,place,teacherSpecificField.status&roles=Teacher&status=Active,Principal,Guest"
     );
 
-    const classes = await fetchData("classes");
+    const rawClasses = await fetchData("classes", "status=Active&projection=_id,name,teacherId,status");
+    const classes = (rawClasses || []).filter((c) => c?.status !== "Closed");
 
     // Sort teachers by date of birth (age seniority) - oldest first
     const sortedTeachers = sortTeachers(teachers);

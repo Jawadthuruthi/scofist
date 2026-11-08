@@ -10,6 +10,7 @@ import { getSparkStats } from "@/libservices/spark-services";
 const getApiEndpoints = (dateStr) => [
   {
     pathname: "classes",
+    searchParams: "status=Active&projection=_id,name,shortname,batchId,teacherId,section,status,coreSubjects,majorSubjects",
   },
   {
     pathname: "batches",
@@ -57,7 +58,7 @@ export default async function DashboardPage({ searchParams }) {
     const dateParam = query?.date;
     const todayIST = getISTDateString();
     const dateStr = dateParam || todayIST;
-    
+
     const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
@@ -83,10 +84,10 @@ export default async function DashboardPage({ searchParams }) {
       const headersList = headers();
       const user = JSON.parse(headersList.get("x-user"));
       const userId = user._id || user.id;
-      
+
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       const [classes, batches, updatesData, debtsRaw] = await Promise.all([
-        fetchData("classes"),
+        fetchData("classes", "status=Active&projection=_id,name,shortname,batchId,status"),
         fetchData("batches"),
         fetchData("updates", "limit=10", 60, "updates"),
         fetch(`${baseUrl}/api/debtors?studentId=${userId}`)

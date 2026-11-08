@@ -4,6 +4,7 @@ import User from "@/models/User";
 import connectToDB from "@/lib/db";
 import BatchDetailsClient from "./BatchDetailsClient";
 import ErrorPage from "@/components/ErrorPage";
+import { sortClasses } from "@/lib/utils";
 
 async function getBatch(batchId) {
     await connectToDB();
@@ -67,7 +68,12 @@ export default async function BatchDetailsPage({ params }) {
         const batch = await getBatch(batchId);
 
         await connectToDB();
-        const classes = await Class.find().sort({ order: 1 }).lean();
+        const classes = await Class.find({ status: { $ne: "Closed" } }).lean();
+        classes.sort((a, b) => {
+            const classCompare = sortClasses(a, b);
+            if (classCompare !== 0) return classCompare;
+            return String(a.name || "").localeCompare(String(b.name || ""));
+        });
         const serializedClasses = classes.map(c => ({ ...c, _id: c._id.toString() }));
 
         const apiKey = process.env.API_KEY;

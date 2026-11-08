@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { sortClasses } from "@/lib/utils";
 
 const months = [
   { value: 1, label: "January" },
@@ -78,7 +79,13 @@ export default function AttendanceTable({ classes }) {
   };
 
   const sortedClasses = useMemo(() => {
-    return [...classes].sort((a, b) => a.name.localeCompare(b.name));
+    return [...(classes || [])]
+      .filter((c) => c?.status !== "Closed")
+      .sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
   }, [classes]);
 
   return (

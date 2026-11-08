@@ -1,7 +1,7 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, formatOptions } from "@/lib/utils";
+import { fetchData, formatOptions, sortClasses } from "@/lib/utils";
 
 import { cookies } from "next/headers";
 
@@ -38,10 +38,20 @@ export default async function NonRespondersPage() {
 
     // Fetch related data for form options
     const [classes, teams, divisions] = await Promise.all([
-      fetchData("classes", "projection=_id,name", 0),
+      fetchData("classes", "status=Active&projection=_id,name,status", 0),
       fetchData("teams", `${yearParam}projection=_id,name`, 0),
       fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
     ]);
+
+    const sortedClasses = classes
+      ? [...classes]
+          .filter((c) => c?.status !== "Closed")
+          .sort((a, b) => {
+          const classCompare = sortClasses(a, b);
+          if (classCompare !== 0) return classCompare;
+          return String(a.name || "").localeCompare(String(b.name || ""));
+        })
+      : [];
 
     const filterConfig = [
       { id: "name", label: "Name" },
@@ -49,7 +59,7 @@ export default async function NonRespondersPage() {
         id: "classId",
         label: "Class",
         inputType: "select",
-        options: formatOptions(classes),
+        options: formatOptions(sortedClasses),
       },
       {
         id: "teamId",

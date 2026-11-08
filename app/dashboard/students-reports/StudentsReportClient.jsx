@@ -59,8 +59,9 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
 
     const filteredClasses = useMemo(() => {
         if (!Array.isArray(classes)) return [];
-        if (!selectedBatch) return classes;
-        return classes.filter((c) => {
+        const activeClasses = classes.filter((c) => c?.status !== "Closed");
+        if (!selectedBatch) return activeClasses;
+        return activeClasses.filter((c) => {
             const bId = (c.batchId && typeof c.batchId === 'object') ? c.batchId._id : c.batchId;
             return String(bId) === String(selectedBatch);
         });
@@ -179,17 +180,17 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                 });
 
                 const [profileRes, debtsRes] = await Promise.all([profilePromise, debtsPromise]);
-                
+
                 let debts = [];
                 if (debtsRes.ok) {
                     const debtsData = await debtsRes.json();
                     debts = (debtsData.debts || [])
-                      .filter(d => (d.totalAmount - (d.payments || []).reduce((s, p) => s + p.amount, 0)) > 0)
-                      .map(d => ({
-                        category: d.category,
-                        year: d.year,
-                        balance: d.totalAmount - (d.payments || []).reduce((s, p) => s + p.amount, 0),
-                      }));
+                        .filter(d => (d.totalAmount - (d.payments || []).reduce((s, p) => s + p.amount, 0)) > 0)
+                        .map(d => ({
+                            category: d.category,
+                            year: d.year,
+                            balance: d.totalAmount - (d.payments || []).reduce((s, p) => s + p.amount, 0),
+                        }));
                 }
                 setDebtBalances(debts);
 
@@ -387,7 +388,7 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                                 onKeyDown={(e) => {
                                     if (e.key === "ArrowDown") {
                                         e.preventDefault();
-                                        setFocusedSuggestionIndex((prev) => 
+                                        setFocusedSuggestionIndex((prev) =>
                                             prev < suggestions.length - 1 ? prev + 1 : prev
                                         );
                                     } else if (e.key === "ArrowUp") {
@@ -439,14 +440,13 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                                         const cls = classes.find(c => c._id === (student.classId || student.studentSpecificField?.classId));
                                         const batchName = batch?.name || "No Batch";
                                         const className = cls?.name || "No Class";
-                                        
+
                                         return (
                                             <div
                                                 id={`report-suggestion-${index}`}
                                                 key={student._id}
-                                                className={`flex items-center gap-3 p-3 cursor-pointer border-b last:border-0 transition-colors ${
-                                                    focusedSuggestionIndex === index ? "bg-accent" : "hover:bg-accent"
-                                                }`}
+                                                className={`flex items-center gap-3 p-3 cursor-pointer border-b last:border-0 transition-colors ${focusedSuggestionIndex === index ? "bg-accent" : "hover:bg-accent"
+                                                    }`}
                                                 onMouseDown={(e) => {
                                                     e.preventDefault(); // Prevent blur
                                                     selectStudent(student);

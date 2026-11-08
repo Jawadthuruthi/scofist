@@ -24,14 +24,18 @@ export default async function LeaveHistoryPage() {
         let teacherClassIds = null; // array of class IDs for teacher, null for admin
 
         if (isTeacher && user?._id) {
-            // Fetch ALL classes assigned to this teacher (a teacher can be assigned to multiple classes)
-            const teacherClasses = await Class.find({ teacherId: user._id }).select("_id name").lean();
+            // Fetch ALL active classes assigned to this teacher (a teacher can be assigned to multiple classes)
+            const teacherClasses = await Class.find({ teacherId: user._id, status: { $ne: "Closed" } }).select("_id name").lean();
             classesData = teacherClasses;
             teacherClassIds = teacherClasses.map(c => String(c._id));
         } else {
-            classesData = await Class.find({}).select("_id name").lean();
-            classesData.sort((a, b) => sortClasses(a, b));
+            classesData = await Class.find({ status: { $ne: "Closed" } }).select("_id name").lean();
         }
+        classesData.sort((a, b) => {
+            const classCompare = sortClasses(a, b);
+            if (classCompare !== 0) return classCompare;
+            return String(a.name || "").localeCompare(String(b.name || ""));
+        });
 
         // If teacher, only fetch students in their assigned classes. Otherwise, fetch all active students.
         const studentQuery = { "studentSpecificField.status": "Active", roles: "Student" };

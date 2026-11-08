@@ -13,7 +13,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "classes",
-    searchParams: "projection=_id,name,batchId,coreSubjects,majorSubjects,status",
+    searchParams: "status=Active&projection=_id,name,batchId,coreSubjects,majorSubjects,status",
   },
   {
     pathname: "subjects",
@@ -42,7 +42,9 @@ const AttendanceTrackingPage = async () => {
       )
     );
 
-    const formattedClasses = [...classes].sort((a, b) => sortClasses(a, b)).map((c) => ({
+    const activeClasses = (classes || []).filter((c) => c?.status !== "Closed");
+
+    const formattedClasses = [...activeClasses].sort((a, b) => sortClasses(a, b)).map((c) => ({
       ...c,
       name: c.batchName ? `${c.name} (${c.batchName})` : c.name,
       originalName: c.name,
@@ -50,7 +52,7 @@ const AttendanceTrackingPage = async () => {
 
     // Map subjects to their classes (both core and major)
     const subjectClassMap = {};
-    classes.forEach(cls => {
+    activeClasses.forEach(cls => {
       const allSubjects = [...(cls.coreSubjects || []), ...(cls.majorSubjects || [])];
       allSubjects.forEach(subjectId => {
         // Handle both object (populated) and string (ID) cases

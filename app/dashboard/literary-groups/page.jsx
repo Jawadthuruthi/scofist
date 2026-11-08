@@ -1,12 +1,12 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, formatOptions, OPERATORS } from "@/lib/utils";
+import { fetchData, formatOptions, OPERATORS, sortClasses } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
     pathname: "classes",
-    searchParams: "projection=_id,name",
+    searchParams: "status=Active&projection=_id,name,status",
   },
   {
     pathname: "users",
@@ -109,7 +109,15 @@ export default async function GroupsPage() {
         label: "Select a class",
         type: "text",
         inputType: "select",
-        options: formatOptions(classes),
+        options: formatOptions(
+          [...(classes || [])]
+            .filter((c) => c?.status !== "Closed")
+            .sort((a, b) => {
+            const classCompare = sortClasses(a, b);
+            if (classCompare !== 0) return classCompare;
+            return String(a.name || "").localeCompare(String(b.name || ""));
+          })
+        ),
       },
       {
         name: "leaderId",

@@ -1,6 +1,6 @@
 import ErrorPage from "@/components/ErrorPage";
 import IdentityCards from "@/components/IdentityCards";
-import { fetchData, sortTeachers } from "@/lib/utils";
+import { fetchData, sortTeachers, sortClasses } from "@/lib/utils";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ const identityCardsPage = async () => {
     let [students, settings, classes, teachers] = await Promise.all([
       fetchData("users", "roles=Student&status=Active"),
       fetchData("settings"),
-      fetchData("classes"),
+      fetchData("classes", "status=Active&projection=_id,name,status"),
       fetchData("users", "roles=Teacher"),
     ]);
 
@@ -24,6 +24,16 @@ const identityCardsPage = async () => {
         const idA = a.studentSpecificField?.admissionNumber || a.admissionNumber || a._id;
         const idB = b.studentSpecificField?.admissionNumber || b.admissionNumber || b._id;
         return String(idA).localeCompare(String(idB), undefined, { numeric: true });
+      });
+    }
+
+    if (classes && classes.length > 0) {
+      classes = [...classes]
+        .filter((c) => c?.status !== "Closed")
+        .sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
       });
     }
 

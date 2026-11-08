@@ -26,6 +26,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { sortClasses } from "@/lib/utils";
 
 const STORAGE_KEY = "leaveRegister_selectedClass";
 
@@ -48,7 +49,8 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     0,
     {
       ...(role === "Teacher" ? { teacherId: teacherId } : {}),
-      projection: "_id,name",
+      status: "Active",
+      projection: "_id,name,status",
     },
     {
       refetchOnWindowFocus: false,
@@ -85,7 +87,14 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
   );
 
   const classes = useMemo(() => {
-    return fetchClassQuery.data?.classes || [];
+    const rawClasses = fetchClassQuery.data?.classes || [];
+    return [...rawClasses]
+      .filter((c) => c?.status !== "Closed")
+      .sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
   }, [fetchClassQuery.data]);
 
   const students = useMemo(() => {
@@ -214,8 +223,15 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (isInitialized && role === "Teacher" && classes.length === 1 && !selectedClass) {
-      setSelectedClass(classes[0]._id);
+    if (isInitialized && classes.length > 0) {
+      if (selectedClass) {
+        const exists = classes.some((c) => c._id === selectedClass);
+        if (!exists) {
+          setSelectedClass(classes[0]._id);
+        }
+      } else if (role === "Teacher" && classes.length === 1) {
+        setSelectedClass(classes[0]._id);
+      }
     }
   }, [classes, role, selectedClass, isInitialized]);
 

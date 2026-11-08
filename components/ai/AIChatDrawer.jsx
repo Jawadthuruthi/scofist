@@ -12,8 +12,14 @@ import {
   Loader2,
   RotateCcw,
   AlertCircle,
+  Copy,
+  Check,
+  Share2,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 const FRIENDLY_TOOL_NAMES = {
   lookupDirectory: "Directory",
@@ -76,6 +82,101 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
   const scrollContainerRef = useRef(null);
   const inputRef = useRef(null);
   const prevOpenRef = useRef(isOpen);
+  const drawerPanelRef = useRef(null);
+
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+  const [copiedId, setCopiedId] = useState(null);
+
+  // Download Image hook for saving chat snapshot
+  const { handleDownload } = useDownloadPopup(
+    drawerPanelRef,
+    `Scofist_AI_Assistant_Chat_${new Date().toISOString().slice(0, 10)}.jpeg`
+  );
+
+  const handleDownloadChatImage = async () => {
+    if (!messages || messages.length === 0) {
+      toast.info("No conversation to download yet");
+      return;
+    }
+    toast.loading("Generating chat image...", { id: "chat-download" });
+    try {
+      await handleDownload();
+      toast.success("Image downloaded successfully", { id: "chat-download" });
+    } catch (err) {
+      console.error("Failed downloading chat image:", err);
+      toast.error("Failed to download image", { id: "chat-download" });
+    }
+  };
+
+  const handleStartEdit = (messageId, currentText) => {
+    if (isLoading) return;
+    setEditingMessageId(messageId);
+    setEditingText(currentText);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingText("");
+  };
+
+  const handleSaveEdit = (messageId, newText) => {
+    const trimmed = newText?.trim();
+    if (!trimmed || isLoading) return;
+    setEditingMessageId(null);
+    setEditingText("");
+    sendMessage(
+      { text: trimmed, messageId },
+      { body: { clientTime: new Date().toISOString() } }
+    );
+  };
+
+  const handleCopyAnswer = async (messageId, textToCopy) => {
+    if (!textToCopy) return;
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedId(messageId);
+      toast.success("Answer copied to clipboard");
+      setTimeout(() => {
+        setCopiedId((curr) => (curr === messageId ? null : curr));
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      toast.error("Failed to copy answer");
+    }
+  };
+
+  const handleShareAnswer = async (textToShare) => {
+    if (!textToShare) return;
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: "Scofist Assistant",
+          text: textToShare,
+        });
+        toast.success("Shared successfully");
+        return;
+      } catch (err) {
+        if (err.name === "AbortError") {
+          return;
+        }
+        console.warn("navigator.share failed, opening WhatsApp fallback", err);
+      }
+    }
+
+    try {
+      const encoded = encodeURIComponent(textToShare);
+      window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank");
+    } catch (err) {
+      try {
+        await navigator.clipboard.writeText(textToShare);
+        toast.success("Answer copied to clipboard for sharing");
+      } catch (_) {
+        toast.error("Unable to share answer");
+      }
+    }
+  };
 
   // Safely manage focus: only auto-focus on desktop when explicitly opened
   useEffect(() => {
@@ -106,6 +207,9 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
   const handleResetChat = () => {
     setMessages([]);
     setInput("");
+    setEditingMessageId(null);
+    setEditingText("");
+    setCopiedId(null);
   };
 
   const handleCloseAssistant = () => {
@@ -113,12 +217,18 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
     else setInternalOpen(false);
     setMessages([]);
     setInput("");
+    setEditingMessageId(null);
+    setEditingText("");
+    setCopiedId(null);
   };
 
   useEffect(() => {
     if (prevOpenRef.current === true && isOpen === false) {
       setMessages([]);
       setInput("");
+      setEditingMessageId(null);
+      setEditingText("");
+      setCopiedId(null);
     }
     prevOpenRef.current = isOpen;
   }, [isOpen, setMessages]);
@@ -219,17 +329,25 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
 
       {/* Slide-over Drawer Panel — sits below topbar (top-14), stops above bottom bar on mobile */}
       <div
+        ref={drawerPanelRef}
+        data-html2canvas-popup="true"
         aria-hidden={!isOpen}
         className={`fixed top-14 bottom-16 lg:bottom-0 right-0 z-40 w-full sm:w-[480px] lg:w-[520px] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
           }`}
       >
         {/* Drawer Header — sticky so it never scrolls with messages */}
-        <div className="sticky top-0 z-10 px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
+        <div className="dialog-header sticky top-0 z-10 px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-lg bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={handleDownloadChatImage}
+              title="Download Image"
+              data-html2canvas-ignore="true"
+              className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 transition-colors focus:outline-none cursor-pointer"
+            >
               <Bot className="h-5 w-5" />
-            </div>
-            <div>
+            </button>
+            <div className="flex-1 text-left space-y-0.5">
               <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                 Scofist Assistant
               </h3>
@@ -239,7 +357,7 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" data-html2canvas-ignore="true">
             {hasConversation && (
               <Button
                 variant="ghost"
@@ -284,7 +402,7 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
               </div>
 
               {/* Centred search bar */}
-              <div className="w-full max-w-sm">
+              <div className="w-full max-w-sm" data-html2canvas-ignore="true">
                 <ChatInputForm
                   inputRef={inputRef}
                   input={input}
@@ -298,11 +416,12 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
             </div>
           ) : (
             /* ── Conversation messages ── */
-            messages.map((m) => {
+            messages.map((m, idx) => {
               const isUser = m.role === "user";
+              const isEditing = editingMessageId === m.id;
               return (
                 <div
-                  key={m.id}
+                  key={m.id || idx}
                   className={`flex gap-3 text-xs leading-relaxed ${isUser ? "justify-end" : "justify-start"
                     }`}
                 >
@@ -313,10 +432,10 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
                   )}
 
                   <div
-                    className={`rounded-2xl px-4 py-3 max-w-[85%] ${isUser
-                      ? "bg-emerald-600 text-white rounded-tr-none shadow-sm font-normal"
-                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-200 dark:border-zinc-800 font-normal"
-                      }`}
+                    className={`rounded-2xl px-4 py-3 ${isUser
+                      ? "bg-emerald-600 text-white rounded-tr-none shadow-sm font-normal max-w-[88%]"
+                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-200 dark:border-zinc-800 font-normal max-w-[88%]"
+                      } ${isEditing ? "w-full max-w-[92%]" : ""}`}
                   >
                     {(() => {
                       const text =
@@ -356,9 +475,9 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
                         <div className="space-y-1.5">
                           {toolBadges.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mb-2">
-                              {toolBadges.map((badgeLabel, idx) => (
+                              {toolBadges.map((badgeLabel, bIdx) => (
                                 <span
-                                  key={idx}
+                                  key={bIdx}
                                   className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-900/40 text-[11px] font-medium"
                                 >
                                   <span className="text-emerald-500 font-bold">✓</span> Checked {badgeLabel}
@@ -368,10 +487,101 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
                           )}
 
                           {isUser ? (
-                            <div className="whitespace-pre-wrap">{text}</div>
+                            isEditing ? (
+                              <div className="space-y-2 w-full min-w-[220px] sm:min-w-[280px]">
+                                <textarea
+                                  value={editingText}
+                                  onChange={(e) => setEditingText(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handleSaveEdit(m.id, editingText);
+                                    } else if (e.key === "Escape") {
+                                      handleCancelEdit();
+                                    }
+                                  }}
+                                  autoFocus
+                                  rows={Math.min(6, Math.max(2, editingText.split("\n").length))}
+                                  className="w-full text-xs bg-emerald-700/80 text-white placeholder-emerald-200 border border-emerald-400/60 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-white resize-none"
+                                  placeholder="Edit your question..."
+                                  disabled={isLoading}
+                                />
+                                <div className="flex items-center justify-end gap-1.5" data-html2canvas-ignore="true">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleCancelEdit}
+                                    className="h-7 px-2.5 text-[11px] text-white hover:text-white hover:bg-emerald-700/80 rounded-lg"
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => handleSaveEdit(m.id, editingText)}
+                                    disabled={!editingText.trim() || isLoading}
+                                    className="h-7 px-3 text-[11px] bg-white text-emerald-700 hover:bg-emerald-50 font-medium rounded-lg shadow-sm"
+                                  >
+                                    {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save & Submit"}
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-start justify-between gap-2.5">
+                                <div className="whitespace-pre-wrap flex-1 leading-relaxed">{text}</div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(m.id, text)}
+                                  disabled={isLoading}
+                                  title="Edit question"
+                                  data-html2canvas-ignore="true"
+                                  className="p-1 rounded text-emerald-100 hover:text-white hover:bg-emerald-700/80 transition-colors shrink-0 disabled:opacity-40"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )
                           ) : hasText ? (
-                            <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed space-y-1.5 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>p]:mb-1 [&>h3]:text-xs [&>h3]:font-bold [&>h3]:mt-2 [&>table]:w-full [&>table]:border-collapse [&>table]:my-2 [&>table_th]:border [&>table_th]:border-zinc-300 dark:[&>table_th]:border-zinc-700 [&>table_th]:px-2 [&>table_th]:py-1 [&>table_td]:border [&>table_td]:border-zinc-200 dark:[&>table_td]:border-zinc-800 [&>table_td]:px-2 [&>table_td]:py-1">
-                              <ReactMarkdown>{text}</ReactMarkdown>
+                            <div className="space-y-2">
+                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed space-y-1.5 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>p]:mb-1 [&>h3]:text-xs [&>h3]:font-bold [&>h3]:mt-2 [&>table]:w-full [&>table]:border-collapse [&>table]:my-2 [&>table_th]:border [&>table_th]:border-zinc-300 dark:[&>table_th]:border-zinc-700 [&>table_th]:px-2 [&>table_th]:py-1 [&>table_td]:border [&>table_td]:border-zinc-200 dark:[&>table_td]:border-zinc-800 [&>table_td]:px-2 [&>table_td]:py-1">
+                                <ReactMarkdown>{text}</ReactMarkdown>
+                              </div>
+
+                              {/* Copy & Share actions row for assistant response */}
+                              <div
+                                data-html2canvas-ignore="true"
+                                className="flex items-center gap-1.5 pt-2 border-t border-zinc-200/60 dark:border-zinc-800/60 text-zinc-500 dark:text-zinc-400"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyAnswer(m.id, text)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none cursor-pointer"
+                                  title="Copy answer"
+                                >
+                                  {copiedId === m.id ? (
+                                    <>
+                                      <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="h-3.5 w-3.5" />
+                                      <span>Copy</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleShareAnswer(text)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none cursor-pointer"
+                                  title="Share answer"
+                                >
+                                  <Share2 className="h-3.5 w-3.5" />
+                                  <span>Share</span>
+                                </button>
+                              </div>
                             </div>
                           ) : isLoading ? (
                             <span className="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 italic">
@@ -434,7 +644,10 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
 
         {/* Drawer Footer / Input Form — only shown when conversation has started */}
         {hasConversation && (
-          <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
+          <div
+            data-html2canvas-ignore="true"
+            className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0"
+          >
             <ChatInputForm
               inputRef={inputRef}
               input={input}

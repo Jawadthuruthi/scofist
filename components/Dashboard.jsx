@@ -324,12 +324,12 @@ const ClassCard = memo(
             student.batchId?._id ||
             student.batchId;
           const targetBatchId = classData.batchId?._id || classData.batchId;
-          
+
           const studentStatus = student.studentSpecificField?.status || student.status;
 
           // If classId is available, it uniquely identifies the class.
           // If not, fallback to matching both className and batchId.
-          const isClassMatch = studentClassId 
+          const isClassMatch = studentClassId
             ? String(studentClassId) === String(classData._id)
             : (student.className === classData.name && String(studentBatchId) === String(targetBatchId));
 
@@ -380,7 +380,7 @@ const ClassCard = memo(
           role="region"
           aria-labelledby={`class-${classData._id}`}
         >
-          <CardHeader 
+          <CardHeader
             className="pb-2 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors duration-200 group/header"
             onClick={() => setActiveOpen(true)}
           >
@@ -421,7 +421,7 @@ const ClassCard = memo(
           </CardHeader>
           <CardContent className="pt-4">
             <div className="text-sm space-y-3">
-              <div 
+              <div
                 className="flex justify-between items-center hover:bg-muted/60 hover:text-primary cursor-pointer p-1.5 rounded-md transition-all group"
                 onClick={() => setActiveOpen(true)}
               >
@@ -434,7 +434,7 @@ const ClassCard = memo(
                 <span className="text-muted-foreground font-medium">Present:</span>
                 <span className="font-semibold">{presentStudents}</span>
               </div>
-              <div 
+              <div
                 className="flex justify-between items-center hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 cursor-pointer p-1.5 rounded-md transition-all group"
                 onClick={() => setLeaveOpen(true)}
               >
@@ -466,7 +466,7 @@ const ClassCard = memo(
         <Dialog open={activeOpen} onOpenChange={setActiveOpen}>
           <DialogContent ref={activePopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <button 
+              <button
                 type="button"
                 className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
                 onClick={handleActiveDownload}
@@ -483,10 +483,10 @@ const ClassCard = memo(
                   {classData.name} ({classStudentsList.length})
                 </DialogDescription>
               </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
-              <X className="h-5 w-5" />
-            </DialogClose>
-          </DialogHeader>
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </DialogHeader>
             <div className="text-sm border-0 p-4 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">
               {classStudentsList.length > 0 ? (
                 classStudentsList.map((student, index) => (
@@ -510,7 +510,7 @@ const ClassCard = memo(
         <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
           <DialogContent ref={leavePopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <button 
+              <button
                 type="button"
                 className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none cursor-pointer"
                 onClick={handleLeaveDownload}
@@ -524,13 +524,13 @@ const ClassCard = memo(
                   On Leave Students - {classData.name}
                 </DialogTitle>
                 <DialogDescription className="m-0">
-                Students on leave today in {classData.name} ({sortedLeaveStudents.length} students)
-              </DialogDescription>
+                  Students on leave today in {classData.name} ({sortedLeaveStudents.length} students)
+                </DialogDescription>
               </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
-              <X className="h-5 w-5" />
-            </DialogClose>
-          </DialogHeader>
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </DialogHeader>
             <div className="text-sm border-0 px-4 py-1 max-h-80 overflow-y-auto bg-muted/5 flex-1">
               {sortedLeaveStudents.length > 0 ? (
                 sortedLeaveStudents.map((std, index) => {
@@ -1104,7 +1104,7 @@ const StatsOverview = memo(({
       <Dialog open={facultyDialogOpen} onOpenChange={setFacultyDialogOpen}>
         <DialogContent ref={facultyPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-            <button 
+            <button
               type="button"
               className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
               onClick={handleFacultyDownload}
@@ -1118,8 +1118,8 @@ const StatsOverview = memo(({
                 Faculty Profiles
               </DialogTitle>
               <DialogDescription className="m-0">
-              View active teaching staff
-            </DialogDescription>
+                View active teaching staff
+              </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
@@ -1147,7 +1147,7 @@ const StatsOverview = memo(({
       <Dialog open={activeStudentsDialogOpen} onOpenChange={setActiveStudentsDialogOpen}>
         <DialogContent ref={activeStudentsPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-            <button 
+            <button
               type="button"
               className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
               onClick={handleActiveStudentsDownload}
@@ -1161,8 +1161,8 @@ const StatsOverview = memo(({
                 Active Students By Class
               </DialogTitle>
               <DialogDescription className="m-0">
-              Distribution of active students.
-            </DialogDescription>
+                Distribution of active students.
+              </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
@@ -1191,7 +1191,7 @@ const StatsOverview = memo(({
       <Dialog open={graduatedStudentsDialogOpen} onOpenChange={setGraduatedStudentsDialogOpen}>
         <DialogContent ref={graduatedStudentsPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-            <button 
+            <button
               type="button"
               className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
               onClick={handleGraduatedStudentsDownload}
@@ -1206,8 +1206,8 @@ const StatsOverview = memo(({
                 <span className="hidden sm:inline">Graduated Students By Batch</span>
               </DialogTitle>
               <DialogDescription className="m-0">
-              Distribution of graduated students.
-            </DialogDescription>
+                Distribution of graduated students.
+              </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
@@ -1233,7 +1233,7 @@ const StatsOverview = memo(({
       <Dialog open={totalStudentsDialogOpen} onOpenChange={setTotalStudentsDialogOpen}>
         <DialogContent ref={totalStudentsPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-            <button 
+            <button
               type="button"
               className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
               onClick={handleTotalStudentsDownload}
@@ -1247,8 +1247,8 @@ const StatsOverview = memo(({
                 Total Students
               </DialogTitle>
               <DialogDescription className="m-0">
-              Student status distribution.
-            </DialogDescription>
+                Student status distribution.
+              </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
@@ -1286,7 +1286,7 @@ const StatsOverview = memo(({
       <Dialog open={onLeaveDialogOpen} onOpenChange={setOnLeaveDialogOpen}>
         <DialogContent ref={onLeavePopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-            <button 
+            <button
               type="button"
               className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
               onClick={handleOnLeaveDownload}
@@ -1300,8 +1300,8 @@ const StatsOverview = memo(({
                 Students On Leave
               </DialogTitle>
               <DialogDescription className="m-0">
-              Students currently on active leave
-            </DialogDescription>
+                Students currently on active leave
+              </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
@@ -1363,7 +1363,7 @@ const StatsOverview = memo(({
       <Dialog open={classesDialogOpen} onOpenChange={setClassesDialogOpen}>
         <DialogContent ref={classesPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-            <button 
+            <button
               type="button"
               className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
               onClick={handleClassesDownload}
@@ -1377,8 +1377,8 @@ const StatsOverview = memo(({
                 Classes Overview
               </DialogTitle>
               <DialogDescription className="m-0">
-              informations about active classes
-            </DialogDescription>
+                informations about active classes
+              </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
@@ -1467,22 +1467,20 @@ const StatsOverview = memo(({
                 <button
                   type="button"
                   onClick={() => setCoursesFilter("all")}
-                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                    coursesFilter === "all"
+                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${coursesFilter === "all"
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   All ({allCourses.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setCoursesFilter("islamic")}
-                  className={`px-3 py-1.5 rounded-md font-medium transition-all flex items-center gap-1 ${
-                    coursesFilter === "islamic"
+                  className={`px-3 py-1.5 rounded-md font-medium transition-all flex items-center gap-1 ${coursesFilter === "islamic"
                       ? "bg-background text-emerald-700 dark:text-emerald-300 shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   <BookMarked size={12} className="h-3 w-3 shrink-0" />
                   Islamic ({totalIslamic})
@@ -1490,11 +1488,10 @@ const StatsOverview = memo(({
                 <button
                   type="button"
                   onClick={() => setCoursesFilter("academic")}
-                  className={`px-3 py-1.5 rounded-md font-medium transition-all flex items-center gap-1 ${
-                    coursesFilter === "academic"
+                  className={`px-3 py-1.5 rounded-md font-medium transition-all flex items-center gap-1 ${coursesFilter === "academic"
                       ? "bg-background text-blue-700 dark:text-blue-300 shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   <GraduationCap size={12} className="h-3 w-3 shrink-0" />
                   Academic ({totalAcademic})
@@ -1611,11 +1608,10 @@ const StatsOverview = memo(({
                         <TableCell className="text-center py-3">
                           <Badge
                             variant={course.studentCount > 0 ? "secondary" : "outline"}
-                            className={`text-xs font-bold gap-1 px-2.5 py-0.5 ${
-                              course.studentCount > 0
+                            className={`text-xs font-bold gap-1 px-2.5 py-0.5 ${course.studentCount > 0
                                 ? "bg-primary/10 text-primary border-primary/20"
                                 : "text-muted-foreground"
-                            }`}
+                              }`}
                           >
                             <Users size={12} className="h-3 w-3 shrink-0" />
                             {course.studentCount}
@@ -1674,11 +1670,10 @@ const StatsOverview = memo(({
                     <div className="flex items-center justify-center">
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${
-                          selectedCourseForModal?.type === "Islamic"
+                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${selectedCourseForModal?.type === "Islamic"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                             : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                        }`}
+                          }`}
                       >
                         {selectedCourseForModal?.type === "Islamic" ? (
                           <BookMarked size={10} className="h-2.5 w-2.5 shrink-0" />
@@ -1860,11 +1855,10 @@ const StatsOverview = memo(({
                     <div className="flex items-center justify-center">
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${
-                          selectedCourseForModal?.type === "Islamic"
+                        className={`text-[10px] font-medium gap-1 px-2.5 py-0.5 ${selectedCourseForModal?.type === "Islamic"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                             : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                        }`}
+                          }`}
                       >
                         {selectedCourseForModal?.type === "Islamic" ? (
                           <BookMarked size={10} className="h-2.5 w-2.5 shrink-0" />
@@ -1970,9 +1964,8 @@ const StatsOverview = memo(({
                               <TableCell className="text-xs text-right py-2.5 pr-4">
                                 {st.status && st.status !== "—" ? (
                                   <span
-                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${
-                                      STATUS_COLORS[st.status] || "bg-muted text-foreground border-border"
-                                    }`}
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${STATUS_COLORS[st.status] || "bg-muted text-foreground border-border"
+                                      }`}
                                   >
                                     {st.status}
                                   </span>
@@ -2163,12 +2156,12 @@ StatsOverview.displayName = "StatsOverview";
 const BatchStudentsTable = memo(({ batches = [], students = [], showStatusColumns = false }) => {
   const tableData = useMemo(() => {
     if (!batches?.length || !students?.length) return [];
-    
+
     return batches
       .map((batch) => {
         const batchStudents = students.filter((student) => student.batchId === batch._id);
         const count = batchStudents.length;
-        
+
         if (showStatusColumns) {
           const active = batchStudents.filter((s) => s.status === "Active").length;
           const graduated = batchStudents.filter((s) => s.status === "Graduated").length;
@@ -2176,7 +2169,7 @@ const BatchStudentsTable = memo(({ batches = [], students = [], showStatusColumn
           const droppedOut = batchStudents.filter((s) => s.status?.toLowerCase().includes("drop")).length;
           return { name: batch.name, academicYear: batch.academicYear, count, active, graduated, droppedOut };
         }
-        
+
         return { name: batch.name, academicYear: batch.academicYear, count };
       })
       .filter((item) => item.count > 0);
@@ -2346,7 +2339,7 @@ BatchChart.displayName = "BatchChart";
 const ClassStudentsTable = memo(({ classes = [], batches = [], students = [] }) => {
   const tableData = useMemo(() => {
     if (!classes?.length || !students?.length) return [];
-    
+
     return classes
       .map((cls) => {
         const classStudents = students.filter((student) => {
@@ -2361,16 +2354,16 @@ const ClassStudentsTable = memo(({ classes = [], batches = [], students = [] }) 
             student.batchId?._id ||
             student.batchId;
           const targetBatchId = cls.batchId?._id || cls.batchId;
-          
-          return studentClassId 
+
+          return studentClassId
             ? String(studentClassId) === String(cls._id)
             : (student.className === cls.name && String(studentBatchId) === String(targetBatchId));
         });
-        
+
         const count = classStudents.length;
         const classBatch = batches?.find((b) => String(b._id) === String(cls.batchId?._id || cls.batchId));
         const batchName = classBatch ? classBatch.name : "";
-        
+
         return { name: cls.name, batchName, count };
       })
       .filter((item) => item.count > 0);
@@ -2452,16 +2445,16 @@ const ClassChart = memo(({ classes = [], batches = [], students = [], isLoading 
             student.batchId?._id ||
             student.batchId;
           const targetBatchId = cls.batchId?._id || cls.batchId;
-          
-          return studentClassId 
+
+          return studentClassId
             ? String(studentClassId) === String(cls._id)
             : (student.className === cls.name && String(studentBatchId) === String(targetBatchId));
         });
-        
+
         const classBatch = batches?.find((b) => String(b._id) === String(cls.batchId?._id || cls.batchId));
         const batchName = classBatch ? classBatch.name : "";
         const fullName = `${cls.name} ${batchName ? `(${batchName})` : ''}`;
-        
+
         return {
           name: cls.shortname || cls.name,
           fullName,
@@ -2657,7 +2650,7 @@ export default function Dashboard({
   const isClient = useIsClient();
 
 
-  
+
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [todayISTStr, setTodayISTStr] = useState(() => getISTDateString());
 
@@ -2697,7 +2690,7 @@ export default function Dashboard({
 
   const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
   const { useFetchItems: useFetchTeachersLeaveRecord } = useCrud("teachers-leave-record", apiKey);
-  
+
   const fetchStudentsQuery = useFetchStudents(
     0,
     0,
@@ -2707,7 +2700,7 @@ export default function Dashboard({
       refetchOnWindowFocus: false,
     }
   );
-  
+
   const teachersLeaveRecordQuery = useFetchTeachersLeaveRecord(0, 0, { date: dateYYYYMMDD });
   const liveTeachersLeaveRecord = useMemo(() => {
     return teachersLeaveRecordQuery.data?.teachersLeaveRecord || teachersLeaveRecord;
@@ -2725,7 +2718,13 @@ export default function Dashboard({
   const isLoadingCharts = isLoadingStudents;
 
   const sortedClasses = useMemo(() => {
-    return [...classes].sort((a, b) => sortClasses(a, b));
+    return [...(classes || [])]
+      .filter((cls) => cls?.status !== "Closed")
+      .sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
   }, [classes]);
 
   // Memoized dashboard data
@@ -2746,11 +2745,11 @@ export default function Dashboard({
         const isClassActive = cls.status === "Active" || !cls.status;
         return isBatchActive && isClassActive;
       })
-      .sort((a, b) =>
-        String(a._id || "").localeCompare(String(b._id || ""), undefined, {
-          numeric: true,
-        })
-      );
+      .sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
 
     // Build classId -> section map for Senior/Junior Da-awa breakdowns
     const classIdToSection = {};
@@ -2815,35 +2814,32 @@ export default function Dashboard({
         seniorLeaveStudents,
         juniorLeaveStudents,
       },
-        onLeaveStudentsList: onLeaveStudentsAll
-          .map(student => {
-            const studentLeaves = leaveRecords.filter(
-              (record) => String(record.studentId?._id || record.studentId) === String(student._id)
-            );
-            const activeLeave = studentLeaves.find(record => !record.arrivedDate);
-            const studentClassId = student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId || student.classId?._id || student.classId || "";
-            return {
-              id: student._id,
-              name: student.studentName || student.name || student.username || "Unknown",
-              className: student.className || "N/A",
-              classId: studentClassId,
-              admissionNumber: student.studentSpecificField?.admissionNumber || student.admissionNumber || "",
-              leaveReason: activeLeave?.reason || activeLeave?.leaveReason || "",
-            };
-          })
-          .sort((a, b) => {
-            const classIdA = String(a.classId || "");
-            const classIdB = String(b.classId || "");
-            let classCompare = classIdA.localeCompare(classIdB, undefined, { numeric: true });
-            
-            if (classCompare !== 0) {
-              return classCompare;
-            }
-            
-            const idA = a.admissionNumber || a.id || "";
-            const idB = b.admissionNumber || b.id || "";
-            return String(idA).localeCompare(String(idB), undefined, { numeric: true });
-          }),
+      onLeaveStudentsList: onLeaveStudentsAll
+        .map(student => {
+          const studentLeaves = leaveRecords.filter(
+            (record) => String(record.studentId?._id || record.studentId) === String(student._id)
+          );
+          const activeLeave = studentLeaves.find(record => !record.arrivedDate);
+          const studentClassId = student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId || student.classId?._id || student.classId || "";
+          return {
+            id: student._id,
+            name: student.studentName || student.name || student.username || "Unknown",
+            className: student.className || "N/A",
+            classId: studentClassId,
+            admissionNumber: student.studentSpecificField?.admissionNumber || student.admissionNumber || "",
+            leaveReason: activeLeave?.reason || activeLeave?.leaveReason || "",
+          };
+        })
+        .sort((a, b) => {
+          const classCompare = sortClasses(a, b, (x) => x.className || "");
+          if (classCompare !== 0) {
+            return classCompare;
+          }
+
+          const idA = a.admissionNumber || a.id || "";
+          const idB = b.admissionNumber || b.id || "";
+          return String(idA).localeCompare(String(idB), undefined, { numeric: true });
+        }),
     };
   }, [
     students,
@@ -3114,7 +3110,7 @@ export default function Dashboard({
                     )}
                   </CardDescription>
                 </div>
-                
+
                 {/* Navigation buttons for College Admin */}
                 {activeRole === "College Admin" && (
                   <div className="flex items-center gap-1.5 shrink-0 self-start md:self-auto">

@@ -1,7 +1,7 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, formatOptions, parseUser } from "@/lib/utils";
+import { fetchData, formatOptions, parseUser, sortClasses } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
 const columnsConfig = [
@@ -89,6 +89,16 @@ export default async function ParticipantsPage() {
     // Sort students in ascending admission number order (_id)
     if (users && users.length > 0) {
       users.sort((a, b) => String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' }));
+    }
+
+    if (classes && classes.length > 0) {
+      classes = [...classes]
+        .filter((c) => c?.status !== "Closed")
+        .sort((a, b) => {
+        const classCompare = sortClasses(a, b);
+        if (classCompare !== 0) return classCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
     }
 
     const formFields = [

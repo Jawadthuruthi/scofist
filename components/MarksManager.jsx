@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User, Check, ChevronsUpDown, Search, FileSpreadsheet, Lock, Unlock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { sortClasses } from "@/lib/utils";
 import Cookies from "js-cookie";
 import { useReactToPrint } from "react-to-print";
 import { ComboBox } from "@/components/ui/combobox";
@@ -370,12 +371,19 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
         if (!apiKey) return;
         const reqHeaders = { "api-key": apiKey };
         Promise.all([
-            fetch("/api/classes", { headers: reqHeaders }).then(r => r.json()),
+            fetch("/api/classes?status=Active", { headers: reqHeaders }).then(r => r.json()),
             fetch("/api/batches", { headers: reqHeaders }).then(r => r.json()),
             fetch("/api/settings", { headers: reqHeaders }).then(r => r.json()).catch(() => ({})),
             fetch("/api/marks", { cache: "no-store", headers: reqHeaders }).then(r => r.json()).catch(() => ({ data: [] })),
         ]).then(([classesData, batchesData, settingsData, marksData]) => {
-            setClasses(classesData.classes || []);
+            const fetchedClasses = (classesData.classes || [])
+                .filter((c) => c?.status !== "Closed")
+                .sort((a, b) => {
+                const classCompare = sortClasses(a, b);
+                if (classCompare !== 0) return classCompare;
+                return String(a.name || "").localeCompare(String(b.name || ""));
+            });
+            setClasses(fetchedClasses);
             setBatches(
                 (batchesData.batches || []).sort((a, b) => {
                     const aYear = a.endYear || a.startYear || 0;

@@ -1,4 +1,4 @@
-import { fetchData, parseUser, sortTeachers } from "@/lib/utils";
+import { fetchData, parseUser, sortTeachers, sortClasses } from "@/lib/utils";
 import { headers } from "next/headers";
 import ErrorPage from "@/components/ErrorPage";
 import HifzDoura from "@/components/HifzDoura";
@@ -15,10 +15,18 @@ const HifzDouraPage = async () => {
       fetchData("users", "roles=Teacher&projection=_id,name,dateOfBirth", 0),
     ]);
 
+    const sortedClasses = Array.isArray(classes)
+      ? [...classes].sort((a, b) => {
+          const classCompare = sortClasses(a, b);
+          if (classCompare !== 0) return classCompare;
+          return String(a.name || "").localeCompare(String(b.name || ""));
+        })
+      : [];
+
     return (
       <HifzDoura
         apiKey={apiKey}
-        classes={Array.isArray(classes) ? classes : []}
+        classes={sortedClasses}
         teachers={Array.isArray(teachers) ? sortTeachers(teachers) : []}
         currentUser={user}
       />

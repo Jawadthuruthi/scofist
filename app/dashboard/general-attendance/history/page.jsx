@@ -2,7 +2,7 @@ import ErrorPage from "@/components/ErrorPage";
 import { cookies } from "next/headers";
 import Header from "@/components/Header";
 import AdvancedDataTableComponent from "@/components/AdvancedDataTableComponent";
-import { fetchData, formatOptions, formatDateForDisplay } from "@/lib/utils";
+import { fetchData, formatOptions, formatDateForDisplay, sortClasses } from "@/lib/utils";
 
 const API_ENDPOINTS = [
     {
@@ -11,7 +11,7 @@ const API_ENDPOINTS = [
     },
     {
         pathname: "classes",
-        searchParams: "projection=_id,name,batchId",
+        searchParams: "status=Active&projection=_id,name,batchId,status",
     },
     {
         pathname: "users",
@@ -35,10 +35,17 @@ const GeneralAttendanceHistoryPage = async ({ searchParams }) => {
             )
         );
 
-        const formattedClasses = (classes || []).map((c) => ({
-            ...c,
-            name: c.name,
-        }));
+        const formattedClasses = [...(classes || [])]
+            .filter((c) => c?.status !== "Closed")
+            .sort((a, b) => {
+                const classCompare = sortClasses(a, b);
+                if (classCompare !== 0) return classCompare;
+                return String(a.name || "").localeCompare(String(b.name || ""));
+            })
+            .map((c) => ({
+                ...c,
+                name: c.name,
+            }));
 
         const currentFilters = await searchParams;
         const dateFilter = currentFilters?.date || "";

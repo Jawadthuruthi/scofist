@@ -1,4 +1,5 @@
 "use client";
+import { sortClasses } from "@/lib/utils";
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -30,10 +31,17 @@ export default function StudentsCertificate({ apiKey, userId }) {
             try {
                 const [batchesRes, classesRes] = await Promise.all([
                     axios.get("/api/batches", { headers: { "api-key": apiKey } }),
-                    axios.get("/api/classes", { headers: { "api-key": apiKey } })
+                    axios.get("/api/classes?status=Active", { headers: { "api-key": apiKey } })
                 ]);
                 setBatches(batchesRes.data.batches || []);
-                setClasses(classesRes.data.classes || []);
+                const fetchedClasses = (classesRes.data.classes || [])
+                    .filter((c) => c?.status !== "Closed")
+                    .sort((a, b) => {
+                    const classCompare = sortClasses(a, b);
+                    if (classCompare !== 0) return classCompare;
+                    return String(a.name || "").localeCompare(String(b.name || ""));
+                });
+                setClasses(fetchedClasses);
             } catch (error) {
                 console.error(error);
             }

@@ -26,7 +26,7 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
         } else if (b.dateOfBirth) {
           return 1;
         }
-        
+
         const idA = a._id ? a._id.toString() : "";
         const idB = b._id ? b._id.toString() : "";
         return idA.localeCompare(idB, undefined, { numeric: true });
@@ -48,31 +48,31 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
     }
 
     const { absentees, category, date, dateForDisplay, sessionLabel } = rowData;
-    
+
     if (!absentees || absentees.length === 0) {
       toast.error("No absentees found for this date.");
       return;
     }
-    
+
     const formattedDate = dateForDisplay || new Date(date).toLocaleDateString();
-    
+
     const displayCategory = sessionLabel || (category === "ALL" || category === "GROUP" ? "Literary" : category.charAt(0).toUpperCase() + category.slice(1).toLowerCase());
     let message = `*${displayCategory} Absentees*\n${formattedDate}\n\n`;
-    
+
     if (category === "GROUP") {
       // Group attendance -> group by Team (groupId)
       const grouped = absentees.reduce((acc, student) => {
-         const groupId = student.groupId;
-         const group = groups.find((g) => g._id === groupId);
-         const groupName = group ? group.name : (groupId || "Unknown Team");
-         
-         if (!acc[groupName]) acc[groupName] = [];
-         acc[groupName].push(student);
-         return acc;
+        const groupId = student.groupId;
+        const group = groups.find((g) => g._id === groupId);
+        const groupName = group ? group.name : (groupId || "Unknown Team");
+
+        if (!acc[groupName]) acc[groupName] = [];
+        acc[groupName].push(student);
+        return acc;
       }, {});
-      
+
       for (const [groupName, students] of Object.entries(grouped)) {
-        message += `*Team: ${groupName}*\n`;
+        message += `*${groupName}*\n`;
         students.forEach((s, idx) => {
           message += `${idx + 1}. ${s.studentName} (${s.className || "Unknown Class"})\n`;
         });
@@ -81,21 +81,21 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
     } else {
       // General attendance -> group by class
       const grouped = absentees.reduce((acc, student) => {
-         const className = student.className || "Unknown Class";
-         if (!acc[className]) acc[className] = [];
-         acc[className].push(student);
-         return acc;
+        const className = student.className || "Unknown Class";
+        if (!acc[className]) acc[className] = [];
+        acc[className].push(student);
+        return acc;
       }, {});
-      
+
       for (const [className, students] of Object.entries(grouped)) {
-        message += `*Class: ${className}*\n`;
+        message += `*${className}*\n`;
         students.forEach((s, idx) => {
           message += `${idx + 1}. ${s.studentName} (${s.studentId || "Unknown ID"})\n`;
         });
         message += `\n`;
       }
     }
-    
+
     const formattedNumber = teacher.contactNumber.replace(/\D/g, '');
     const url = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
@@ -104,16 +104,16 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
 
   return (
     <>
-      <Button 
-        variant="ghost" 
-        size="icon" 
+      <Button
+        variant="ghost"
+        size="icon"
         className="text-green-500 hover:text-green-600 hover:bg-green-50 h-8 w-8"
         onClick={handleOpen}
         title="Send to WhatsApp"
       >
         <MessageCircle className="w-4 h-4" />
       </Button>
-      
+
       {open && (
         <Dialog open={open} onOpenChange={(val) => { if (!val) setOpen(false); }}>
           <DialogContent onClick={(e) => e.stopPropagation()}>

@@ -20,7 +20,7 @@ export default async function AdmissionRegisterPage() {
         }
 
         const batchesData = await Batch.find({}).select("_id name startYear endYear").sort({ startYear: -1, endYear: -1 }).lean();
-        const classesData = await Class.find({}).select("_id name status").lean();
+        const classesData = await Class.find({ status: { $ne: "Closed" } }).select("_id name status").lean();
 
         // Fetch the last student ID
         const lastStudent = await User.findOne({ roles: "Student" })
@@ -30,7 +30,11 @@ export default async function AdmissionRegisterPage() {
         
         const lastStudentId = lastStudent?._id || "None";
 
-        classesData.sort((a, b) => a._id.localeCompare(b._id, undefined, { numeric: true, sensitivity: 'base' }));
+        classesData.sort((a, b) => {
+            const classCompare = sortClasses(a, b);
+            if (classCompare !== 0) return classCompare;
+            return String(a.name || "").localeCompare(String(b.name || ""));
+        });
 
         const batches = JSON.parse(JSON.stringify(batchesData));
         const classes = JSON.parse(JSON.stringify(classesData));

@@ -277,7 +277,7 @@ export default function AttendanceTableReport({ classes }) {
                                 <SelectValue placeholder="Select Class" />
                             </SelectTrigger>
                             <SelectContent>
-                                {classes?.filter(cls => cls.status === "Active").sort((a, b) => sortClasses(a, b)).map((cls) => (
+                                {classes?.filter(cls => cls?.status !== "Closed").sort((a, b) => sortClasses(a, b)).map((cls) => (
                                     <SelectItem key={cls.id || cls._id} value={cls.id || cls._id}>
                                         {cls.name}
                                     </SelectItem>

@@ -308,12 +308,11 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
                 if (absentees.length > 0) {
                     hasAbsentees = true;
                     totalAbsenteesCount += absentees.length;
-                    let sectionMsg = `*${cls.name}*\n`;
-                    absentees.forEach((r, idx) => {
+                    const studentList = absentees.map((r, idx) => {
                         const leaveText = r.status === "LEAVE" ? " (Leave)" : "";
-                        sectionMsg += `${idx + 1}. ${r.studentId?.name || "Unknown Student"}${leaveText}\n`;
+                        return `${idx + 1}. ${r.studentId?.name || "Unknown Student"}${leaveText}`;
                     });
-                    classSections.push(sectionMsg);
+                    classSections.push(`*${cls.name}*\n${studentList.join("\n")}`);
                 }
             }
         });
@@ -499,7 +498,7 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
             <Dialog open={absenteesDialogOpen} onOpenChange={setAbsenteesDialogOpen}>
                 <DialogContent ref={absenteesPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
                     <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-                        <button 
+                        <button
                             type="button"
                             className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none cursor-pointer"
                             onClick={handleAbsenteesDownload}
@@ -564,7 +563,7 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, di
             <Dialog open={presenteesDialogOpen} onOpenChange={setPresenteesDialogOpen}>
                 <DialogContent ref={presenteesPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
                     <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-                        <button 
+                        <button
                             type="button"
                             className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors focus:outline-none cursor-pointer"
                             onClick={handlePresenteesDownload}
@@ -673,7 +672,7 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
                     parsed.forEach((c) => { if (!merged.includes(c)) merged.push(c); });
                     base = merged;
                 }
-            } catch (_) {}
+            } catch (_) { }
         }
         if (sessionFromUrl && !base.some((c) => c.toLowerCase() === sessionFromUrl.toLowerCase())) {
             base = [...base, sessionFromUrl];
@@ -710,7 +709,7 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
     useEffect(() => {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
-        } catch (_) {}
+        } catch (_) { }
     }, [categories]);
 
     // Sync from server on mount and window focus
@@ -718,9 +717,9 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
         const fetchCategories = async () => {
             try {
                 const headers = apiKey ? { "api-key": apiKey } : {};
-                const res = await fetch("/api/masjid/attendance/categories", { 
-                    headers, 
-                    cache: "no-store" 
+                const res = await fetch("/api/masjid/attendance/categories", {
+                    headers,
+                    cache: "no-store"
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -732,8 +731,8 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
                                 if (stored) {
                                     localCats = JSON.parse(stored);
                                 }
-                            } catch (_) {}
-                            
+                            } catch (_) { }
+
                             const merged = Array.from(new Set([...prev, ...localCats, ...data.categories]));
                             if (merged.length > data.categories.length) {
                                 updateServerCategories(merged);
@@ -749,9 +748,9 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
         };
 
         fetchCategories();
-        
+
         window.addEventListener("focus", fetchCategories);
-        
+
         return () => {
             window.removeEventListener("focus", fetchCategories);
         };
@@ -826,7 +825,7 @@ const MasjidDashboard = ({ classes, apiKey, initialSession }) => {
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        
+
                         <div className="relative flex-1 flex items-center justify-center gap-2 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer group h-8 min-w-0">
                             <CalendarIcon className="h-4 w-4 text-muted-foreground group-hover:text-foreground shrink-0" />
                             <span className="text-xs sm:text-sm font-medium select-none whitespace-nowrap truncate">
