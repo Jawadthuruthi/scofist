@@ -134,7 +134,7 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
                 </Button>
               </div>
               
-              <div className={`text-[10px] md:text-xs px-4 py-2 rounded-xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+              <div className={`text-[10px] md:text-xs px-4 py-2 rounded-xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-700'}`}>
                 <Info className="w-3 h-3 md:w-4 md:h-4" />
                 <span>Overall Declared: <strong className={`text-base px-2 py-0.5 rounded-md ml-1 ${isWhiteTheme ? 'bg-zinc-200 text-zinc-900' : 'bg-zinc-800 text-white'}`}>{totalResults}</strong></span>
               </div>
@@ -243,7 +243,7 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
 
             {!loading && !error && appliedLimit === null && (
               <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6">
-                <div className={`p-6 rounded-full border-2 border-dashed animate-pulse ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-800 bg-zinc-900/50'}`}>
+                <div className={`p-6 rounded-full border-2 border-dashed animate-pulse ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-700 bg-zinc-900/50'}`}>
                   <BarChart3 className={`w-12 h-12 ${isWhiteTheme ? 'text-zinc-300' : 'text-zinc-700'}`} />
                 </div>
                 <div className="text-center space-y-2">

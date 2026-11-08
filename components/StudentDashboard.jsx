@@ -651,7 +651,7 @@ function AwardPoster({ award, currentUser, festSettings }) {
     <div className="flex flex-col items-center gap-4">
       <div 
         ref={posterRef}
-        className="group relative flex flex-col items-center p-5 sm:p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 w-full max-w-sm min-w-0"
+        className="group relative flex flex-col items-center p-5 sm:p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white dark:bg-zinc-900 border-zinc-200 dark:border-border w-full max-w-sm min-w-0"
       >
         {/* Background Decorative Elements */}
         <div className={`absolute top-0 left-0 w-full h-32 bg-gradient-to-b ${bgGradient} opacity-10`} />
@@ -742,7 +742,7 @@ function AwardPoster({ award, currentUser, festSettings }) {
         {/* Shimmer effect */}
         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
         
-        <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 w-full flex justify-center opacity-40">
+        <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-border w-full flex justify-center opacity-40">
            <span className="text-[10px] font-black tracking-[0.4em] uppercase text-zinc-400">Congratulations...</span>
         </div>
       </div>
@@ -1951,7 +1951,7 @@ export default function StudentDashboard({
               className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden w-full min-w-0 ${
                 isActive 
                   ? `${s.activeBorder} ${s.activeBg}` 
-                  : "border-transparent bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-800"
+                  : "border-transparent bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700"
               }`}
               onClick={() => handleTabChange(item.id)}
             >
@@ -3408,7 +3408,7 @@ export default function StudentDashboard({
             ) : articles && articles.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {articles.map((article, idx) => (
-                  <div key={article._id || idx} className="group overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white dark:bg-slate-900 rounded-2xl cursor-default h-full">
+                  <div key={article._id || idx} className="group overflow-hidden border border-gray-100 dark:border-border shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white dark:bg-slate-900 rounded-2xl cursor-default h-full">
                     {article.image?.url ? (
                       <div className="relative aspect-[16/10] overflow-hidden">
                         <img
@@ -3438,7 +3438,7 @@ export default function StudentDashboard({
                       <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 mb-4">
                         {article.content}
                       </p>
-                      <div className="pt-4 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between">
+                      <div className="pt-4 border-t border-gray-50 dark:border-border flex items-center justify-between">
                         <span className="text-xs font-semibold text-purple-600 dark:text-purple-400"></span>
                         <button
                           onClick={(e) => {

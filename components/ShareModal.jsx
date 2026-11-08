@@ -262,8 +262,8 @@ export default function ShareModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[94vw] sm:max-w-md p-5 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl bg-white dark:bg-slate-900">
-        <DialogHeader className="text-left pb-3 border-b border-gray-100 dark:border-gray-800">
+      <DialogContent className="w-[94vw] sm:max-w-md p-5 sm:p-6 rounded-2xl border border-gray-100 dark:border-border shadow-2xl bg-white dark:bg-slate-900">
+        <DialogHeader className="text-left pb-3 border-b border-gray-100 dark:border-border">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Share2 className="w-4 h-4" />
@@ -280,7 +280,7 @@ export default function ShareModal({
         </DialogHeader>
 
         {/* Content Snippet Preview */}
-        <div className="p-3 rounded-xl bg-gray-50/80 dark:bg-slate-800/50 border border-gray-100 dark:border-gray-800/80 text-left">
+        <div className="p-3 rounded-xl bg-gray-50/80 dark:bg-slate-800/50 border border-gray-100 dark:border-border text-left">
           <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 leading-snug">
             {title}
           </h4>
@@ -322,7 +322,7 @@ export default function ShareModal({
         </div>
 
         {/* Copy Link Section */}
-        <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-border">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-0.5">
             Page Link
           </p>

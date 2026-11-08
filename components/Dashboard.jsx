@@ -3114,7 +3114,7 @@ export default function Dashboard({
                 {/* Navigation buttons for College Admin */}
                 {activeRole === "College Admin" && (
                   <div className="flex items-center gap-1.5 shrink-0 self-start md:self-auto">
-                    <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-0 border border-border dark:border-zinc-700 rounded-lg overflow-hidden">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -3138,7 +3138,7 @@ export default function Dashboard({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="rounded-none hover:bg-muted border-l border-border h-9 w-9 text-muted-foreground hover:text-foreground"
+                            className="rounded-none hover:bg-muted border-l border-border dark:border-zinc-700 h-9 w-9 text-muted-foreground hover:text-foreground"
                             title="Select date from calendar"
                           >
                             <CalendarDays className="h-4 w-4" />
@@ -3172,7 +3172,7 @@ export default function Dashboard({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="rounded-none hover:bg-muted border-l border-border h-9 w-9"
+                        className="rounded-none hover:bg-muted border-l border-border dark:border-zinc-700 h-9 w-9"
                         disabled={dateYYYYMMDD >= todayISTStr}
                         title={dateYYYYMMDD >= todayISTStr ? "Cannot navigate to future dates" : "Next Day"}
                         onClick={() => {

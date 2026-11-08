@@ -125,8 +125,8 @@ export default function GeneralDisplayViewer({ isOpen, onClose, apiKey, onNaviga
                      {festivalSettings.name}
                    </h1>
                 ) : (
-                  <div className="p-12 rounded-full border-4 border-dashed border-zinc-800 animate-spin-slow">
-                    <Monitor className="w-24 h-24 text-zinc-800" />
+                  <div className="p-12 rounded-full border-4 border-dashed border-zinc-700 animate-spin-slow">
+                    <Monitor className="w-24 h-24 text-zinc-700" />
                   </div>
                 )}
               </div>

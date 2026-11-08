@@ -271,14 +271,14 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     placeholder="Program Name/Code..."
-                                    className={`w-full bg-transparent border-b-2 text-left text-xl font-black focus:outline-none py-1 transition-all opacity-40 focus:opacity-100 placeholder:uppercase ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-800 focus:border-white text-white placeholder:text-zinc-700'}`}
+                                    className={`w-full bg-transparent border-b-2 text-left text-xl font-black focus:outline-none py-1 transition-all opacity-40 focus:opacity-100 placeholder:uppercase ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-700 focus:border-white text-white placeholder:text-zinc-700'}`}
                                 />
                                 <div className="absolute right-0 bottom-1.5 opacity-30">
                                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                                 </div>
                             </div>
                             {/* Time Input next to Search */}
-                            <div className={`flex items-center gap-2 p-1 px-3 rounded-lg border transition-all ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-800 bg-zinc-900/50'}`}>
+                            <div className={`flex items-center gap-2 p-1 px-3 rounded-lg border transition-all ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-700 bg-zinc-900/50'}`}>
                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>Time</span>
                                 <input
                                     type="number"
@@ -318,11 +318,11 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
                                     }}
                                     onKeyDown={handleKeyDown}
                                     placeholder="LETTER..."
-                                    className={`w-full bg-transparent border-b-2 text-center text-xl font-black focus:outline-none py-1 transition-all placeholder:uppercase ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-800 focus:border-white text-white placeholder:text-zinc-700'}`}
+                                    className={`w-full bg-transparent border-b-2 text-center text-xl font-black focus:outline-none py-1 transition-all placeholder:uppercase ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-700 focus:border-white text-white placeholder:text-zinc-700'}`}
                                 />
                             </div>
                             {/* Time Input next to Letter */}
-                            <div className={`flex items-center gap-2 p-1 px-3 rounded-lg border transition-all ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-800 bg-zinc-900/50'}`}>
+                            <div className={`flex items-center gap-2 p-1 px-3 rounded-lg border transition-all ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-700 bg-zinc-900/50'}`}>
                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>Time</span>
                                 <input
                                     ref={timeInputRef}

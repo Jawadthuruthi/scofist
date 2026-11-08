@@ -150,7 +150,7 @@ export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKe
               >
                 {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
               </button>
-              <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border font-bold text-sm tracking-widest uppercase ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+              <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border font-bold text-sm tracking-widest uppercase ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-700'}`}>
                 Results Slideshow 
               </div>
             </div>
@@ -253,7 +253,7 @@ export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKe
                          <Trophy className={`absolute -top-4 -right-4 w-12 h-12 ${theme.text} opacity-20 group-hover/card:opacity-100 transition-opacity duration-500 z-10 transform -rotate-12`} />
 
                          {/* Profile Picture */}
-                         <div className={`${imgSize} rounded-full overflow-hidden shadow-inner transition-colors duration-300 relative z-10 ${isWhiteTheme ? 'border-zinc-100 bg-zinc-50 group-hover/card:border-yellow-500/20' : 'border-zinc-800 bg-zinc-800 group-hover/card:border-white/20'}`}>
+                         <div className={`${imgSize} rounded-full overflow-hidden shadow-inner transition-colors duration-300 relative z-10 ${isWhiteTheme ? 'border-zinc-100 bg-zinc-50 group-hover/card:border-yellow-500/20' : 'border-zinc-700 bg-zinc-800 group-hover/card:border-white/20'}`}>
                            {p.profilePic ? (
                              <img src={p.profilePic} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110" />
                            ) : (
@@ -326,7 +326,7 @@ export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKe
 
             {/* Footer Progress & Info */}
             <div className="absolute bottom-8 w-full px-12 flex justify-center items-center pointer-events-none z-50">
-              <div className={`font-mono text-xs md:text-sm font-bold tracking-widest px-6 py-3 rounded-full border shadow-2xl backdrop-blur-md pointer-events-auto flex items-center gap-3 transition-all ${isWhiteTheme ? 'bg-white/80 text-zinc-600 border-zinc-200' : 'bg-zinc-900/80 text-zinc-400 border-zinc-800'}`}>
+              <div className={`font-mono text-xs md:text-sm font-bold tracking-widest px-6 py-3 rounded-full border shadow-2xl backdrop-blur-md pointer-events-auto flex items-center gap-3 transition-all ${isWhiteTheme ? 'bg-white/80 text-zinc-600 border-zinc-200' : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'}`}>
                 {isPlaying && <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse hidden md:inline-block"></span>}
                 DISPLAYING {currentIndex + 1} OF {programs.length} RESULTS
               </div>

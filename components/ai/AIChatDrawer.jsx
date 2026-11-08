@@ -332,11 +332,11 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
         ref={drawerPanelRef}
         data-html2canvas-popup="true"
         aria-hidden={!isOpen}
-        className={`fixed top-14 bottom-16 lg:bottom-0 right-0 z-40 w-full sm:w-[480px] lg:w-[520px] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+        className={`fixed top-14 bottom-16 lg:bottom-0 right-0 z-40 w-full sm:w-[480px] lg:w-[520px] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-border shadow-2xl flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
           }`}
       >
         {/* Drawer Header — sticky so it never scrolls with messages */}
-        <div className="dialog-header sticky top-0 z-10 px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
+        <div className="dialog-header sticky top-0 z-10 px-5 py-4 border-b border-zinc-200 dark:border-border flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -434,7 +434,7 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
                   <div
                     className={`rounded-2xl px-4 py-3 ${isUser
                       ? "bg-emerald-600 text-white rounded-tr-none shadow-sm font-normal max-w-[88%]"
-                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-200 dark:border-zinc-800 font-normal max-w-[88%]"
+                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-200 dark:border-border font-normal max-w-[88%]"
                       } ${isEditing ? "w-full max-w-[92%]" : ""}`}
                   >
                     {(() => {
@@ -544,14 +544,14 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
                             )
                           ) : hasText ? (
                             <div className="space-y-2">
-                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed space-y-1.5 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>p]:mb-1 [&>h3]:text-xs [&>h3]:font-bold [&>h3]:mt-2 [&>table]:w-full [&>table]:border-collapse [&>table]:my-2 [&>table_th]:border [&>table_th]:border-zinc-300 dark:[&>table_th]:border-zinc-700 [&>table_th]:px-2 [&>table_th]:py-1 [&>table_td]:border [&>table_td]:border-zinc-200 dark:[&>table_td]:border-zinc-800 [&>table_td]:px-2 [&>table_td]:py-1">
+                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed space-y-1.5 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>p]:mb-1 [&>h3]:text-xs [&>h3]:font-bold [&>h3]:mt-2 [&>table]:w-full [&>table]:border-collapse [&>table]:my-2 [&>table_th]:border [&>table_th]:border-zinc-300 dark:[&>table_th]:border-zinc-700 [&>table_th]:px-2 [&>table_th]:py-1 [&>table_td]:border [&>table_td]:border-zinc-200 dark:[&>table_td]:border-zinc-700 [&>table_td]:px-2 [&>table_td]:py-1">
                                 <ReactMarkdown>{text}</ReactMarkdown>
                               </div>
 
                               {/* Copy & Share actions row for assistant response */}
                               <div
                                 data-html2canvas-ignore="true"
-                                className="flex items-center gap-1.5 pt-2 border-t border-zinc-200/60 dark:border-zinc-800/60 text-zinc-500 dark:text-zinc-400"
+                                className="flex items-center gap-1.5 pt-2 border-t border-zinc-200/60 dark:border-border/60 text-zinc-500 dark:text-zinc-400"
                               >
                                 <button
                                   type="button"
@@ -613,7 +613,7 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
               <div className="h-7 w-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
                 <Bot className="h-4 w-4" />
               </div>
-              <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 px-3.5 py-2.5 rounded-2xl rounded-tl-none border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 px-3.5 py-2.5 rounded-2xl rounded-tl-none border border-zinc-200 dark:border-border">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
                 <span>Finding details for you...</span>
               </div>
@@ -646,7 +646,7 @@ export default function AIChatDrawer({ open, onOpenChange, hideFloatingButton = 
         {hasConversation && (
           <div
             data-html2canvas-ignore="true"
-            className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0"
+            className="p-4 border-t border-zinc-200 dark:border-border bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0"
           >
             <ChatInputForm
               inputRef={inputRef}

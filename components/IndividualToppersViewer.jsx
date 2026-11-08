@@ -117,7 +117,7 @@ export default function IndividualToppersViewer({ isOpen, onClose, onNavigate, a
               >
                 {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
               </button>
-              <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border font-bold text-sm tracking-widest uppercase ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+              <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border font-bold text-sm tracking-widest uppercase ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-700'}`}>
                 Toppers Slideshow 
               </div>
             </div>
@@ -126,7 +126,7 @@ export default function IndividualToppersViewer({ isOpen, onClose, onNavigate, a
 
         {loading && (
           <div className={`flex flex-col items-center justify-center space-y-4 h-full ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
-            <div className={`w-16 h-16 border-4 rounded-full animate-spin shadow-[0_0_30px_rgba(245,158,11,0.3)] ${isWhiteTheme ? 'border-zinc-200 border-t-amber-500' : 'border-zinc-800 border-t-amber-500'}`}></div>
+            <div className={`w-16 h-16 border-4 rounded-full animate-spin shadow-[0_0_30px_rgba(245,158,11,0.3)] ${isWhiteTheme ? 'border-zinc-200 border-t-amber-500' : 'border-zinc-700 border-t-amber-500'}`}></div>
             <p className="text-xl font-medium tracking-widest uppercase opacity-60 animate-pulse">Calculating Top Metrics...</p>
           </div>
         )}

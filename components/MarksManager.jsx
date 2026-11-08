@@ -1609,7 +1609,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                         });
 
                                         return (
-                                            <div className="border-2 border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-8 w-full max-w-3xl shadow-lg bg-white dark:bg-slate-950 relative print-poster">
+                                            <div className="border-2 border-slate-200 dark:border-border rounded-xl p-4 sm:p-8 w-full max-w-3xl shadow-lg bg-white dark:bg-slate-950 relative print-poster">
                                                 <div className="text-center mb-6 border-b pb-4">
                                                     <div className="flex items-center justify-center gap-3 mb-2">
                                                         {institutionData?.logo?.url && (
@@ -1630,7 +1630,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-3 sm:gap-6 mb-6 bg-slate-50 dark:bg-slate-900 p-3 sm:p-6 rounded-lg border">
-                                                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-muted border-4 border-white dark:border-slate-800 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                                                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-muted border-4 border-white dark:border-border shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                                                         {(() => {
                                                             const photoUrl = stat.profilePic?.url;
                                                             if (photoUrl) return <img src={photoUrl} alt="Student" className="w-full h-full object-cover" />;
@@ -1745,7 +1745,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                                         </table>
                                                     )}
                                                  </div>
-                                                <div className="flex flex-wrap justify-between items-center border-t-2 border-slate-200 dark:border-slate-800 pt-4 gap-3 text-sm sm:text-base">
+                                                <div className="flex flex-wrap justify-between items-center border-t-2 border-slate-200 dark:border-border pt-4 gap-3 text-sm sm:text-base">
                                                     <div>Total: <strong className="text-lg sm:text-2xl">{stat.total}</strong></div>
                                                     <div>Percentage: <strong className="text-lg sm:text-2xl">{stat.percentage}%</strong></div>
                                                     <div className="flex items-center gap-2">

@@ -249,7 +249,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
               </div>
               
               {/* Total Results Context */}
-              <div className={`text-[10px] md:text-xs px-4 py-2 rounded-xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+              <div className={`text-[10px] md:text-xs px-4 py-2 rounded-xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-700'}`}>
                 <Info className="w-3 h-3 md:w-4 md:h-4" />
                 <span>Overall Declared: <strong className={`text-base px-2 py-0.5 rounded-md ml-1 ${isWhiteTheme ? 'bg-zinc-200 text-zinc-900' : 'bg-zinc-800 text-white'}`}>{totalResults}</strong></span>
               </div>
@@ -279,7 +279,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
             <div className="relative z-30 flex-1 w-full flex flex-col justify-end pt-8 pb-8 px-2 md:px-16 overflow-y-auto overflow-x-auto no-scrollbar scroll-smooth">
               {loading ? 
                 <div className="flex-1 flex flex-col items-center justify-center space-y-6 h-full min-h-[50vh]">
-                  <div className="w-16 h-16 border-[6px] border-zinc-800 border-t-white rounded-full animate-spin shadow-[0_0_30px_rgba(255,255,255,0.1)]"></div>
+                  <div className="w-16 h-16 border-[6px] border-zinc-700 border-t-white rounded-full animate-spin shadow-[0_0_30px_rgba(255,255,255,0.1)]"></div>
                   <p className="text-zinc-500 font-bold tracking-[0.3em] uppercase animate-pulse">Computing Standings...</p>
                 </div>
               : teams.length === 0 ? 

@@ -845,7 +845,7 @@ const ImageUploader = ({
 
       {/* Premium Image Cropper Modal */}
       <Dialog open={isCropOpen} onOpenChange={setIsCropOpen}>
-        <DialogContent ref={popupRef} data-html2canvas-popup="true" className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl max-h-[90dvh] flex flex-col [&>button.absolute]:hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl">
+        <DialogContent ref={popupRef} data-html2canvas-popup="true" className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl max-h-[90dvh] flex flex-col [&>button.absolute]:hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-border shadow-2xl">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 sticky top-0 z-20 shrink-0">
             <button 
               type="button"
@@ -877,7 +877,7 @@ const ImageUploader = ({
 
           <div className="p-5 overflow-y-auto flex-1 min-h-0 !shrink">
           {/* Premium Bounding Box Cropper container */}
-          <div className="flex flex-col items-center justify-center p-2 bg-zinc-50/50 dark:bg-zinc-950/50 rounded-lg border border-zinc-100 dark:border-zinc-800/80 mb-4 relative overflow-hidden">
+          <div className="flex flex-col items-center justify-center p-2 bg-zinc-50/50 dark:bg-zinc-950/50 rounded-lg border border-zinc-100 dark:border-border mb-4 relative overflow-hidden">
             {cropImageSrc ? (
               <div className="relative max-w-full max-h-[350px] overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200 dark:border-zinc-700 select-none">
                 <div className="relative inline-block overflow-hidden" style={{ width: renderedDims.width || 'auto', height: renderedDims.height || 'auto' }}>
@@ -966,7 +966,7 @@ const ImageUploader = ({
 
           {/* Controls Panel Removed */}
 
-          <DialogFooter className="flex flex-row justify-end flex-wrap gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800/80">
+          <DialogFooter className="flex flex-row justify-end flex-wrap gap-2 pt-4 border-t border-zinc-100 dark:border-border">
             <Button
               type="button"
               variant="outline"
@@ -987,7 +987,7 @@ const ImageUploader = ({
               type="button"
               variant="outline"
               onClick={handleRotate}
-              className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center gap-1"
+              className="border-zinc-200 dark:border-border hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center gap-1"
             >
               <RotateCw className="h-4 w-4" />
               Rotate

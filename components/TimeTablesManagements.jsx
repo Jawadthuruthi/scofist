@@ -154,8 +154,8 @@ const AbsenteesDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
-        <DialogHeader className="flex flex-row items-center gap-3 px-4 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
+      <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border dark:border-zinc-700">
+        <DialogHeader className="flex flex-row items-center gap-3 px-4 py-4 border-b dark:border-zinc-700 space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
           <button
             className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none"
             onClick={handleDownload}
@@ -182,18 +182,18 @@ const AbsenteesDialog = ({
             </DialogDescription>
           </div>
           <div className="flex items-center self-stretch" data-html2canvas-ignore="true">
-            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
+            <DialogClose className="p-1.5 rounded-lg border dark:border-zinc-700 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
               <X className="h-5 w-5" />
             </DialogClose>
           </div>
         </DialogHeader>
         {absenteesList.length > 0 ? (
           <div className="text-sm border-0 px-4 pb-4 pt-2 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">
-            <div className="border rounded-md overflow-hidden bg-background">
-              <Table>
-                <TableHeader className="bg-red-50 dark:bg-red-950/20">
-                  <TableRow>
-                    <TableHead className="h-9 py-1">ID</TableHead>
+            <div className="border border-border dark:border-zinc-700 rounded-md overflow-hidden bg-background">
+              <Table className="w-full border-collapse">
+                <TableHeader className="bg-red-50 dark:bg-red-950/20 border-b dark:border-zinc-700">
+                  <TableRow className="border-b dark:border-zinc-700">
+                    <TableHead className="h-9 py-1 border-r dark:border-zinc-700">ID</TableHead>
                     <TableHead className="h-9 py-1">Student Name</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -201,8 +201,8 @@ const AbsenteesDialog = ({
                   {absenteesList.map((student) => {
                     const leaveReason = getLeaveReason(student);
                     return (
-                      <TableRow key={student.studentId}>
-                        <TableCell className="py-2 font-medium">{student.studentId || "Unknown"}</TableCell>
+                      <TableRow key={student.studentId} className="border-b dark:border-zinc-700">
+                        <TableCell className="py-2 font-medium border-r dark:border-zinc-700">{student.studentId || "Unknown"}</TableCell>
                         <TableCell className="py-2 font-medium">
                           {student.studentName || "-"}
                           {leaveReason && (
@@ -260,7 +260,7 @@ const TimetableSlot = ({
             : cellData?._fromHistory
               ? "bg-orange-50/50 border-dashed print:bg-inherit"
               : ""
-        } border text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
+        } border border-border dark:border-zinc-700 text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
       onClick={() => {
         onCellClick(periodNumber, day);
         if (isAttendanceMarked && hasData && category !== "class") {
@@ -334,10 +334,10 @@ const SaveProgressDialog = ({ open, onOpenChange, progress, total, completed }) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
+      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border dark:border-zinc-700 shadow-2xl flex flex-col">
         <DialogHeader
           className={cn(
-            "flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 transition-colors",
+            "flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b dark:border-zinc-700 space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 transition-colors",
             completed
               ? "bg-emerald-500/10 dark:bg-emerald-500/20"
               : "bg-muted/50 dark:bg-muted/20"
@@ -1461,21 +1461,21 @@ const TimeTablesManagements = ({
       ) : selectedClass || selectedTeacher || date ? (
         <div
           ref={timeTableRef}
-          className="overflow-x-auto border border-collapse rounded-md  "
+          className="overflow-x-auto border border-border dark:border-zinc-700 rounded-md"
         >
           <div className="hidden w-full print:block">
             <h3 className="text-center text-lg font-semibold my-4">
               Time Table - {getCurrentViewTitle}
             </h3>
           </div>
-          <Table className="w-full">
+          <Table className="w-full border-collapse">
             <TableHeader>
               <TableRow>
-                <TableHead className="border bg-accent sticky left-0 z-10"></TableHead>
+                <TableHead className="border border-border dark:border-zinc-700 bg-accent sticky left-0 z-20"></TableHead>
                 {periods.map((period) => (
                   <TableHead
                     key={period?._id}
-                    className="text-center border-t font-bold whitespace-nowrap"
+                    className="text-center border border-border dark:border-zinc-700 font-bold whitespace-nowrap"
                   >
                     <div className="flex flex-col items-center text-xxs">
                       <span>{getPeriodTime(period.periodNumber)}</span>
@@ -1491,7 +1491,7 @@ const TimeTablesManagements = ({
               {category !== "date"
                 ? DAYS.map((day) => (
                   <TableRow key={day} className="hover:bg-accent/50">
-                    <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                    <TableCell className="border border-border dark:border-zinc-700 font-medium bg-accent sticky left-0 z-10">
                       <div className="flex items-center gap-2">
                         {day.slice(0, 3)}
                       </div>
@@ -1552,7 +1552,7 @@ const TimeTablesManagements = ({
                     key={classItem?._id}
                     className="hover:bg-accent/50"
                   >
-                    <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                    <TableCell className="border border-border dark:border-zinc-700 font-medium bg-accent sticky left-0 z-10">
                       <div className="flex items-center whitespace-nowrap gap-2">
                         {classItem.shortname || classItem.name}
                       </div>
@@ -1681,8 +1681,8 @@ const TimeTablesManagements = ({
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
-          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border dark:border-zinc-700 shadow-2xl flex flex-col">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b dark:border-zinc-700 space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
             <div className="p-2 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 shrink-0">
               <Calendar className="h-5 w-5" />
             </div>

@@ -176,18 +176,18 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-xl max-h-[85vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
-                <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+            <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-xl max-h-[85vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border dark:border-zinc-700">
+                <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b dark:border-zinc-700 space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
                     <DialogTitle className="flex-1 text-xl font-bold m-0 text-left">Status</DialogTitle>
                     
                     <div className="flex items-center justify-end gap-2">
-                        <div className="flex items-center gap-1 bg-neutral-100 rounded-md p-0.5 border border-neutral-200">
+                        <div className="flex items-center gap-1 bg-muted rounded-md p-0.5 border border-border dark:border-zinc-700">
                             <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={handlePrevDay}
                                 title="Previous Day"
-                                className="h-7 w-7 rounded-sm hover:bg-white text-muted-foreground hover:text-black"
+                                className="h-7 w-7 rounded-sm hover:bg-background text-muted-foreground hover:text-foreground"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                             </Button>
@@ -206,7 +206,7 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                                 variant="ghost"
                                 onClick={handleNextDay}
                                 title="Next Day"
-                                className="h-7 w-7 rounded-sm hover:bg-white text-muted-foreground hover:text-black"
+                                className="h-7 w-7 rounded-sm hover:bg-background text-muted-foreground hover:text-foreground"
                             >
                                 <ChevronRight className="h-4 w-4" />
                             </Button>
@@ -218,11 +218,11 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                             onClick={fetchTodayRecords} 
                             disabled={loading || !selectedPerson}
                             title="Refresh Status"
-                            className="h-8 w-8 text-muted-foreground hover:text-black transition-colors rounded-full bg-neutral-100/50 hover:bg-neutral-100 shrink-0"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors rounded-full bg-muted/50 hover:bg-muted shrink-0"
                         >
                             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                         </Button>
-                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border dark:border-zinc-700 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
                             <X className="h-5 w-5" />
                         </DialogClose>
                     </div>
@@ -298,7 +298,7 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                         </div>
                     )}
 
-                    <div className="mt-4 border rounded-md max-h-[350px] overflow-auto relative">
+                    <div className="mt-4 border border-border dark:border-zinc-700 rounded-md max-h-[350px] overflow-auto relative">
                         {loading ? (
                             <div className="flex h-[200px] items-center justify-center">
                                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -312,18 +312,18 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                                 No records found for today.
                             </div>
                         ) : (
-                            <Table>
-                                <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
-                                    <TableRow>
-                                        <TableHead className="w-12 text-center">Period</TableHead>
-                                        <TableHead>{type === "student" ? "Subject / Teacher" : "Subject / Class"}</TableHead>
+                            <Table className="w-full border-collapse">
+                                <TableHeader className="sticky top-0 bg-background/95 dark:bg-zinc-900/95 backdrop-blur-sm z-10 shadow-sm border-b dark:border-zinc-700">
+                                    <TableRow className="border-b dark:border-zinc-700">
+                                        <TableHead className="w-12 text-center border-r dark:border-zinc-700">Period</TableHead>
+                                        <TableHead className="border-r dark:border-zinc-700">{type === "student" ? "Subject / Teacher" : "Subject / Class"}</TableHead>
                                         <TableHead className="text-center">Status</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {records.map((rec, i) => (
-                                        <TableRow key={i}>
-                                            <TableCell className="text-center">
+                                        <TableRow key={i} className="border-b dark:border-zinc-700">
+                                            <TableCell className="text-center border-r dark:border-zinc-700">
                                                 <div className="flex flex-col gap-0.5 items-center justify-center">
                                                     <span className="font-semibold text-sm">{rec.periodNumber || i + 1}</span>
                                                     {rec.periodTime && (
@@ -333,7 +333,7 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="border-r dark:border-zinc-700">
                                                 <div className="flex flex-col gap-0.5">
                                                     <span className="font-medium text-sm leading-tight">{rec.subjectName}</span>
                                                     <span className="text-[10px] text-muted-foreground leading-tight italic">

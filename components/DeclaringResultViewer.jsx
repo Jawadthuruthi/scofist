@@ -283,7 +283,7 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
                             onClick={(e) => e.stopPropagation()}
                             onMouseDown={(e) => e.stopPropagation()}
                             placeholder="Result No..."
-                            className={`w-full bg-transparent border-b-2 text-left text-xl font-black focus:outline-none py-1 transition-all opacity-40 focus:opacity-100 cursor-text ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-800 focus:border-white text-white placeholder:text-zinc-700'}`}
+                            className={`w-full bg-transparent border-b-2 text-left text-xl font-black focus:outline-none py-1 transition-all opacity-40 focus:opacity-100 cursor-text ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-700 focus:border-white text-white placeholder:text-zinc-700'}`}
                         />
                         <div className="absolute right-0 bottom-1.5 opacity-30 group-hover:opacity-60 transition-opacity">
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
@@ -378,7 +378,7 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
                         {resultData.participants
                             .filter(p => ! [1, 2, 3].includes(parseRank(p.rank)) && (Number(p.points) || 0) > 0)
                             .map((p, idx) => (
-                                <div key={p._id || idx} className={`p-4 md:p-6 rounded-[1.5rem] border-2 flex items-center gap-6 transition-all hover:scale-105 ${isWhiteTheme ? 'bg-white border-zinc-200' : 'bg-zinc-900/40 border-zinc-800 shadow-[0_0_50px_rgba(0,0,0,0.3)]'}`}>
+                                <div key={p._id || idx} className={`p-4 md:p-6 rounded-[1.5rem] border-2 flex items-center gap-6 transition-all hover:scale-105 ${isWhiteTheme ? 'bg-white border-zinc-200' : 'bg-zinc-900/40 border-zinc-700 shadow-[0_0_50px_rgba(0,0,0,0.3)]'}`}>
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="w-16 h-16 md:w-28 md:h-28 rounded-full overflow-hidden flex-shrink-0 border-2 border-zinc-500/50 shadow-xl">
                                             {p.participantDetails?.profilePic ? (

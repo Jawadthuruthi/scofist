@@ -13,7 +13,7 @@ export default function UpdateCard({ update }) {
   return (
     <>
       <Link href={`/updates/${update._id}`}>
-        <Card className="group overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white dark:bg-slate-900 rounded-2xl cursor-pointer h-full">
+        <Card className="group overflow-hidden border border-gray-100 dark:border-border shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white dark:bg-slate-900 rounded-2xl cursor-pointer h-full">
           {update.image?.url ? (
             <div className="relative aspect-[16/10] overflow-hidden">
               <Image
@@ -42,7 +42,7 @@ export default function UpdateCard({ update }) {
               {update.news}
             </p>
 
-            <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
+            <div className="pt-4 border-t border-gray-50 dark:border-border flex items-center justify-between">
               <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1 group-hover:gap-2 transition-all">
                 Read More <ChevronRight className="w-3 h-3" />
               </span>

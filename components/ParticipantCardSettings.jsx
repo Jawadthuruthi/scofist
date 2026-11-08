@@ -495,13 +495,13 @@ export default function ParticipantCardSettings({ festivalSettings, apiKey, team
         
         <div className="flex flex-col md:flex-row h-full min-h-0 bg-gray-50 dark:bg-neutral-900">
           {/* Form Side */}
-          <div className="flex-1 p-5 bg-white dark:bg-neutral-950 border-r border-gray-100 dark:border-neutral-800">
+          <div className="flex-1 p-5 bg-white dark:bg-neutral-950 border-r border-gray-100 dark:border-border">
             <div className="space-y-4">
               
               {/* Element Configuration Panel (Merged) */}
-              <div className="bg-gray-50 dark:bg-neutral-900 rounded-xl border border-gray-100 dark:border-neutral-800 overflow-hidden">
+              <div className="bg-gray-50 dark:bg-neutral-900 rounded-xl border border-gray-100 dark:border-border overflow-hidden">
                 {/* Element Selector */}
-                <div className="p-4 border-b border-gray-100 dark:border-neutral-800 bg-gray-100/50 dark:bg-neutral-800/50">
+                <div className="p-4 border-b border-gray-100 dark:border-border bg-gray-100/50 dark:bg-neutral-800/50">
                   <Label className="text-sm font-semibold mb-2 block text-gray-700 dark:text-gray-300">Select Element to Edit</Label>
                   <Select value={activeElement} onValueChange={setActiveElement}>
                     <SelectTrigger className="w-full bg-white border-gray-200 dark:bg-neutral-950 dark:border-neutral-700">
@@ -605,7 +605,7 @@ export default function ParticipantCardSettings({ festivalSettings, apiKey, team
                               value={activeLayout.fontFamily} 
                               onValueChange={(val) => handleUpdateElement('fontFamily', val)}
                             >
-                              <SelectTrigger className="h-8 bg-white dark:bg-neutral-950 border-gray-200 dark:border-neutral-800">
+                              <SelectTrigger className="h-8 bg-white dark:bg-neutral-950 border-gray-200 dark:border-border">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -622,7 +622,7 @@ export default function ParticipantCardSettings({ festivalSettings, apiKey, team
                               value={activeLayout.fontWeight} 
                               onValueChange={(val) => handleUpdateElement('fontWeight', val)}
                             >
-                              <SelectTrigger className="h-8 bg-white dark:bg-neutral-950 border-gray-200 dark:border-neutral-800">
+                              <SelectTrigger className="h-8 bg-white dark:bg-neutral-950 border-gray-200 dark:border-border">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -714,10 +714,10 @@ export default function ParticipantCardSettings({ festivalSettings, apiKey, team
           </div>
           
           {/* Preview Side */}
-          <div className="w-full md:w-[300px] lg:w-[340px] p-5 shrink-0 flex flex-col overflow-y-auto border-t md:border-t-0 md:border-l border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-950 md:sticky md:top-0">
+          <div className="w-full md:w-[300px] lg:w-[340px] p-5 shrink-0 flex flex-col overflow-y-auto border-t md:border-t-0 md:border-l border-gray-100 dark:border-border bg-white dark:bg-neutral-950 md:sticky md:top-0">
             
-            <div className="bg-gray-50 dark:bg-neutral-900 rounded-xl border border-gray-100 dark:border-neutral-800 w-full flex flex-col overflow-hidden">
-              <div className="p-4 border-b border-gray-100 dark:border-neutral-800 bg-gray-100/50 dark:bg-neutral-800/50">
+            <div className="bg-gray-50 dark:bg-neutral-900 rounded-xl border border-gray-100 dark:border-border w-full flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-gray-100 dark:border-border bg-gray-100/50 dark:bg-neutral-800/50">
                 <Label className="text-sm font-semibold flex items-center gap-2 mb-2 text-gray-700 dark:text-gray-300">
                   <ImageIcon className="w-4 h-4 text-blue-500" />
                   Background Image

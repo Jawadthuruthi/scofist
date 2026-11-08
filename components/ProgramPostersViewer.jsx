@@ -85,7 +85,7 @@ export default function ProgramPostersViewer({ isOpen, onClose, onNavigate, apiK
               >
                 {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
               </button>
-              <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border font-bold text-sm tracking-widest uppercase ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+              <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border font-bold text-sm tracking-widest uppercase ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-700'}`}>
                 Auto Slideshow 
               </div>
             </div>
@@ -154,7 +154,7 @@ export default function ProgramPostersViewer({ isOpen, onClose, onNavigate, apiK
                 {/* Participants Grid */}
                 <div className="w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8 mb-24 pb-12">
                    {programs[currentIndex].participants.map((p, idx) => (
-                     <div key={p._id || idx} className={`group/card relative flex flex-col items-center rounded-[2rem] p-6 border transition-all duration-300 hover:-translate-y-3 hover:shadow-[0_20px_40px_-15px_rgba(234,179,8,0.15)] overflow-visible animate-in fade-in zoom-in-90 fill-mode-both ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/40 border-zinc-800/60 hover:border-yellow-500/30'}`} style={{ animationDelay: `${idx * 50}ms`, animationDuration: '600ms' }}>
+                     <div key={p._id || idx} className={`group/card relative flex flex-col items-center rounded-[2rem] p-6 border transition-all duration-300 hover:-translate-y-3 hover:shadow-[0_20px_40px_-15px_rgba(234,179,8,0.15)] overflow-visible animate-in fade-in zoom-in-90 fill-mode-both ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/40 border-zinc-700 hover:border-yellow-500/30'}`} style={{ animationDelay: `${idx * 50}ms`, animationDuration: '600ms' }}>
                         
                         {/* Chest Number Badge */}
                         <div className={`absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-black text-lg rounded-full flex items-center justify-center shadow-xl transform group-hover/card:scale-110 transition-transform duration-300 z-10 border-4 ${isWhiteTheme ? 'border-zinc-50' : 'border-zinc-950'}`}>
@@ -162,7 +162,7 @@ export default function ProgramPostersViewer({ isOpen, onClose, onNavigate, apiK
                         </div>
  
                         {/* Profile Picture */}
-                        <div className={`w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 mb-5 shadow-inner transition-colors duration-300 relative ${isWhiteTheme ? 'border-zinc-100 bg-zinc-50 group-hover/card:border-yellow-500/20' : 'border-zinc-800/80 bg-zinc-800 group-hover/card:border-yellow-500/50'}`}>
+                        <div className={`w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 mb-5 shadow-inner transition-colors duration-300 relative ${isWhiteTheme ? 'border-zinc-100 bg-zinc-50 group-hover/card:border-yellow-500/20' : 'border-zinc-700 bg-zinc-800 group-hover/card:border-yellow-500/50'}`}>
                           {p.profilePic ? (
                             <img src={p.profilePic} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110" />
                           ) : (
@@ -203,7 +203,7 @@ export default function ProgramPostersViewer({ isOpen, onClose, onNavigate, apiK
               <div className={`font-mono text-sm font-bold tracking-[0.2em] uppercase ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>
                 {programs[currentIndex].participants.length} Participants
               </div>
-              <div className={`font-mono text-xs md:text-sm font-bold tracking-widest px-4 py-2 rounded-full border shadow-lg backdrop-blur-md pointer-events-auto flex items-center gap-2 transition-all ${isWhiteTheme ? 'bg-white/80 text-zinc-600 border-zinc-200' : 'bg-zinc-900/80 text-zinc-400 border-zinc-800'}`}>
+              <div className={`font-mono text-xs md:text-sm font-bold tracking-widest px-4 py-2 rounded-full border shadow-lg backdrop-blur-md pointer-events-auto flex items-center gap-2 transition-all ${isWhiteTheme ? 'bg-white/80 text-zinc-600 border-zinc-200' : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'}`}>
                 {isPlaying && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse hidden md:inline-block"></span>}
                 PROGRAM {currentIndex + 1} OF {programs.length}
               </div>

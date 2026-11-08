@@ -27,7 +27,7 @@ export default function DashboardNavigation({ currentView, onNavigate, isWhiteTh
   ];
 
   return (
-    <div className={`flex items-center gap-1 md:gap-2 px-3 py-2 rounded-full backdrop-blur-md border shadow-xl transition-all duration-500 ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/80 border-zinc-800'}`}>
+    <div className={`flex items-center gap-1 md:gap-2 px-3 py-2 rounded-full backdrop-blur-md border shadow-xl transition-all duration-500 ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/80 border-zinc-700'}`}>
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentView === item.id;
@@ -52,7 +52,7 @@ export default function DashboardNavigation({ currentView, onNavigate, isWhiteTh
             
             {/* Tooltip on hover (desktop) */}
             <span className={`absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[200] border shadow-2xl
-              ${isWhiteTheme ? 'bg-white border-zinc-100 text-zinc-900' : 'bg-zinc-900 border-zinc-800 text-white'}`}>
+              ${isWhiteTheme ? 'bg-white border-zinc-100 text-zinc-900' : 'bg-zinc-900 border-zinc-700 text-white'}`}>
               {item.label}
             </span>
 
