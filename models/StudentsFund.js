@@ -1,4 +1,6 @@
 import { Schema, model, models } from "mongoose";
+import "@/models/User";
+import "@/models/Batch";
 
 
 const studentsFundSchema = new Schema(

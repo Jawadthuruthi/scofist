@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import StudentsFund from "@/models/StudentsFund";
+import User from "@/models/User";
+import Batch from "@/models/Batch";
+import Class from "@/models/Class";
 import { apiResponse } from "@/lib/apiResponse";
 
 export async function GET(req, res) {

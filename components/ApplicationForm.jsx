@@ -244,12 +244,12 @@ export default function ApplicationForm({ trigger }) {
     }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className={cn(
-        "[&>button.absolute]:hidden p-0 gap-0",
+        "[&>button.absolute]:hidden p-0 gap-0 flex flex-col max-h-[85vh] sm:max-h-[90vh]",
         submitted ? "max-w-md" : "max-w-4xl"
       )}>
         {submitted ? (
           <>
-            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
               <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
               </div>
@@ -273,7 +273,7 @@ export default function ApplicationForm({ trigger }) {
           </>
         ) : (
           <>
-            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
               <div className="p-2 rounded-lg bg-primary/10">
                 <ClipboardList className="h-5 w-5 text-primary" />
               </div>
@@ -285,541 +285,541 @@ export default function ApplicationForm({ trigger }) {
               </DialogClose>
             </DialogHeader>
 
-            <div className="p-6">
-            <Form {...form}>
-              <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Personal Details */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Personal Details</h3>
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+              <Form {...form}>
+                <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Personal Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Personal Details</h3>
 
-              {/* Photo Upload */}
-              <div className="space-y-2">
-                <FormLabel>Profile Picture</FormLabel>
-                <div>
-                  <ImageUploader 
-                    value={profilePic}
-                    onChange={(val) => setProfilePic(val)}
-                    aspectRatio="1:1"
-                    minWidth={200}
-                    minHeight={200}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="FULL NAME AS PER AADHAR CARD" 
-                          {...field} 
-                          className="uppercase"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                    {/* Photo Upload */}
+                    <div className="space-y-2">
+                      <FormLabel>Profile Picture</FormLabel>
+                      <div>
+                        <ImageUploader
+                          value={profilePic}
+                          onChange={(val) => setProfilePic(val)}
+                          aspectRatio="1:1"
+                          minWidth={200}
+                          minHeight={200}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="dateOfBirth"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth <span className="text-red-500">*</span></FormLabel>
-                      <div className="flex gap-2">
-                        <FormControl>
-                          <Input
-                            placeholder="DD/MM/YYYY"
-                            value={dobInput !== "" ? dobInput : (field.value ? format(field.value, "dd/MM/yyyy") : "")}
-                            onChange={(e) => handleDobInputChange(e, field.onChange)}
-                            maxLength={10}
-                            className="flex-1"
-                          />
-                        </FormControl>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "px-3 font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="end">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(date) => {
-                                field.onChange(date);
-                                if (date) {
-                                  setDobInput(format(date, "dd/MM/yyyy"));
-                                }
-                              }}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
                       </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                    </div>
 
-              {/* Email & Aadhar */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="example@email.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="aadharNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Aadhar Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="12- DIGIT AADHAR NUMBER"
-                          maxLength={12}
-                          {...field}
-                          className="uppercase"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="bloodGroup"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Blood Group</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Blood Group" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(
-                            (bg) => (
-                              <SelectItem key={bg} value={bg}>
-                                {bg}
-                              </SelectItem>
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Address Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="address.houseName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>House Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="HOUSE NAME" 
-                            {...field} 
-                            className="uppercase"
-                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="address.place"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Place <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="PLACE" 
-                            {...field} 
-                            className="uppercase"
-                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="address.postOffice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Post Office</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="POST OFFICE" 
-                            {...field} 
-                            className="uppercase"
-                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="address.district"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          District <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="DISTRICT" 
-                            {...field} 
-                            className="uppercase"
-                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="address.state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          State <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="STATE"
-                            {...field}
-                            className="uppercase"
-                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="address.pin"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>PIN Code</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="6 DIGIT PIN CODE"
-                            {...field}
-                            maxLength={6}
-                            className="uppercase"
-                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Guardian Details */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Guardian Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="guardianName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Guardian Name <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="GUARDIAN NAME"
-                          {...field} 
-                          className="uppercase"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="relationship"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Relationship <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="RELATIONSHIP" 
-                          {...field} 
-                          className="uppercase"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="guardianContactNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Number <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="tel" 
-                          placeholder="CONTACT NUMBER"
-                          {...field} 
-                          className="uppercase"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="guardianAlternativeNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Alt. Contact Number</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="tel" 
-                          placeholder="ALT. CONTACT NUMBER"
-                          {...field} 
-                          className="uppercase"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Academic Details */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Academic Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="admissionClass"
-                  render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Admission Needed For</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        options={availableClasses.map((c) => ({ value: c, label: c }))}
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        placeholder="Select or type class"
-                        variant="default"
-                        animation={0}
-                        maxCount={1}
-                        multiSelect={false}
-                        freeSolo={true}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                  )}
-                />
-
-                {admissionClass === "+1" && (
-                  <FormField
-                    control={form.control}
-                    name="academicStream"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preferred Stream</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Stream" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Science">Science</SelectItem>
-                            <SelectItem value="Commerce">Commerce</SelectItem>
-                            <SelectItem value="Humanities">
-                              Humanities
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {admissionClass === "+1" && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="sslcRegistrationNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>SSLC Reg. Number</FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              className="uppercase"
-                              onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="sslcGraduationYear"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>SSLC Year</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name <span className="text-red-500">*</span></FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Year" />
-                              </SelectTrigger>
+                              <Input
+                                placeholder="FULL NAME AS PER AADHAR CARD"
+                                {...field}
+                                className="uppercase"
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
                             </FormControl>
-                            <SelectContent>
-                              {Array.from(
-                                { length: 5 },
-                                (_, i) => new Date().getFullYear() - i
-                              ).map((y) => (
-                                <SelectItem key={y} value={String(y)}>
-                                  {y}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="dateOfBirth"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Date of Birth <span className="text-red-500">*</span></FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input
+                                  placeholder="DD/MM/YYYY"
+                                  value={dobInput !== "" ? dobInput : (field.value ? format(field.value, "dd/MM/yyyy") : "")}
+                                  onChange={(e) => handleDobInputChange(e, field.onChange)}
+                                  maxLength={10}
+                                  className="flex-1"
+                                />
+                              </FormControl>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                      "px-3 font-normal",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <CalendarIcon className="h-4 w-4" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={(date) => {
+                                      field.onChange(date);
+                                      if (date) {
+                                        setDobInput(format(date, "dd/MM/yyyy"));
+                                      }
+                                    }}
+                                    disabled={(date) =>
+                                      date > new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Email & Aadhar */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="example@email.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="aadharNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Aadhar Number</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="12- DIGIT AADHAR NUMBER"
+                                maxLength={12}
+                                {...field}
+                                className="uppercase"
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="bloodGroup"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Blood Group</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Blood Group" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(
+                                  (bg) => (
+                                    <SelectItem key={bg} value={bg}>
+                                      {bg}
+                                    </SelectItem>
+                                  )
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Address Details</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="address.houseName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>House Name</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="HOUSE NAME"
+                                  {...field}
+                                  className="uppercase"
+                                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address.place"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Place <span className="text-red-500">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="PLACE"
+                                  {...field}
+                                  className="uppercase"
+                                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address.postOffice"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Post Office</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="POST OFFICE"
+                                  {...field}
+                                  className="uppercase"
+                                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address.district"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                District <span className="text-red-500">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="DISTRICT"
+                                  {...field}
+                                  className="uppercase"
+                                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address.state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                State <span className="text-red-500">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="STATE"
+                                  {...field}
+                                  className="uppercase"
+                                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address.pin"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>PIN Code</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="6 DIGIT PIN CODE"
+                                  {...field}
+                                  maxLength={6}
+                                  className="uppercase"
+                                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Guardian Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Guardian Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="guardianName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Guardian Name <span className="text-red-500">*</span></FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="GUARDIAN NAME"
+                                {...field}
+                                className="uppercase"
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="relationship"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Relationship <span className="text-red-500">*</span></FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="RELATIONSHIP"
+                                {...field}
+                                className="uppercase"
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="guardianContactNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contact Number <span className="text-red-500">*</span></FormLabel>
+                            <FormControl>
+                              <Input
+                                type="tel"
+                                placeholder="CONTACT NUMBER"
+                                {...field}
+                                className="uppercase"
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="guardianAlternativeNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Alt. Contact Number</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="tel"
+                                placeholder="ALT. CONTACT NUMBER"
+                                {...field}
+                                className="uppercase"
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Academic Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Academic Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="admissionClass"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Admission Needed For</FormLabel>
+                            <FormControl>
+                              <MultiSelect
+                                options={availableClasses.map((c) => ({ value: c, label: c }))}
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder="Select or type class"
+                                variant="default"
+                                animation={0}
+                                maxCount={1}
+                                multiSelect={false}
+                                freeSolo={true}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {admissionClass === "+1" && (
+                        <FormField
+                          control={form.control}
+                          name="academicStream"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Preferred Stream</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Stream" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Science">Science</SelectItem>
+                                  <SelectItem value="Commerce">Commerce</SelectItem>
+                                  <SelectItem value="Humanities">
+                                    Humanities
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       )}
-                    />
-                  </>
-                )}
 
-                <FormField
-                  control={form.control}
-                  name="islamicEducationQualification"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Islamic Qualification</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g. 5th Standard" 
-                          {...field} 
-                          className="uppercase"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      {admissionClass === "+1" && (
+                        <>
+                          <FormField
+                            control={form.control}
+                            name="sslcRegistrationNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>SSLC Reg. Number</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="uppercase"
+                                    onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="sslcGraduationYear"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>SSLC Year</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select Year" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Array.from(
+                                      { length: 5 },
+                                      (_, i) => new Date().getFullYear() - i
+                                    ).map((y) => (
+                                      <SelectItem key={y} value={String(y)}>
+                                        {y}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
 
-                <FormField
-                  control={form.control}
-                  name="academicEducationQualification"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Academic Qualification</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g. 10th Standard" 
-                          {...field} 
-                          className="uppercase"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                      <FormField
+                        control={form.control}
+                        name="islamicEducationQualification"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Islamic Qualification</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g. 5th Standard"
+                                {...field}
+                                className="uppercase"
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="academicEducationQualification"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Academic Qualification</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g. 10th Standard"
+                                {...field}
+                                className="uppercase"
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={uploading}>
+                      {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Submit Application
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={uploading}>
-                {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Application
-              </Button>
-            </div>
-          </form>
-        </Form>
-        </div>
-        </>
+          </>
         )}
       </DialogContent>
     </Dialog>

@@ -108,6 +108,7 @@ const StudentsFund = ({
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
   const [showClearHistoryDialogue, setShowClearHistoryDialogue] =
     useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
   const [transactions, setTransactions] = useState([]);
@@ -556,6 +557,11 @@ const StudentsFund = ({
   };
 
   const handleClearHistory = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast.error("Please type DELETE to confirm");
+      return;
+    }
+
     try {
       console.log("Clearing history for:", {
         studentId: selectedStudents.length === 1 ? selectedStudents[0] : undefined,
@@ -574,12 +580,15 @@ const StudentsFund = ({
           batchId: effectiveBatchId,
         },
       });
-      console.log("History cleared successfully");
+      setTransactions([]);
+      toast.success("History cleared successfully");
       await fetchStudentFundQuery.refetch();
       setShowHistoryDialog(false);
       setShowClearHistoryDialogue(false);
+      setDeleteConfirmText("");
     } catch (error) {
       console.error("Failed to clear history:", error);
+      toast.error(error?.message || "Failed to clear history");
     }
   };
 
@@ -1498,17 +1507,29 @@ const StudentsFund = ({
                     )}
                   </div>
 
-                  <Dialog
-                    open={showHistoryDialog}
-                    onOpenChange={setShowHistoryDialog}
-                  >
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full">
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Full History
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent ref={transactionHistoryPopupRef} data-html2canvas-popup="true" className="sm:max-w-2xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                      onClick={() => {
+                        setDeleteConfirmText("");
+                        setShowClearHistoryDialogue(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear History
+                    </Button>
+                    <Dialog
+                      open={showHistoryDialog}
+                      onOpenChange={setShowHistoryDialog}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="flex-1">
+                          <FileText className="h-4 w-4 mr-2" />
+                          View Full History
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent ref={transactionHistoryPopupRef} data-html2canvas-popup="true" className="sm:max-w-2xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
                       <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
                         <button type="button" className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer" onClick={handleTransactionHistoryPopupDownload} title="Download Image" data-html2canvas-ignore="true">
                           <History className="h-5 w-5 text-primary" />
@@ -1598,6 +1619,7 @@ const StudentsFund = ({
                       </div>
                     </DialogContent>
                   </Dialog>
+                  </div>
 
                 </div>
               ) : (
@@ -1670,7 +1692,10 @@ const StudentsFund = ({
                           <Button
                             variant="outline"
                             className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
-                            onClick={() => setShowClearHistoryDialogue(true)}
+                            onClick={() => {
+                              setDeleteConfirmText("");
+                              setShowClearHistoryDialogue(true);
+                            }}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Clear
@@ -1798,7 +1823,10 @@ const StudentsFund = ({
       {/* Clear History Confirmation Dialog */}
       <Dialog
         open={showClearHistoryDialogue}
-        onOpenChange={setShowClearHistoryDialogue}
+        onOpenChange={(open) => {
+          setShowClearHistoryDialogue(open);
+          if (!open) setDeleteConfirmText("");
+        }}
       >
         <DialogContent ref={deletePopupRef} className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
@@ -1810,7 +1838,11 @@ const StudentsFund = ({
               <DialogDescription asChild>
                 <div className="m-0 text-sm text-muted-foreground">
                   Are you sure you want to clear the history
-                  for {selectedStudentData?.name}?
+                  {selectedStudentData
+                    ? ` for ${selectedStudentData.name}`
+                    : selectedBatchData?.name
+                    ? ` for ${selectedBatchData.name}`
+                    : ""}? All transaction records will be permanently removed. This action cannot be undone.
                 </div>
               </DialogDescription>
             </div>
@@ -1820,21 +1852,45 @@ const StudentsFund = ({
               </DialogClose>
             </div>
           </DialogHeader>
-          <div className="p-5 flex justify-between gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowClearHistoryDialogue(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              className="!bg-destructive !text-destructive-foreground flex-1"
-              onClick={handleClearHistory}
-              disabled={updateStudentFund.isPending}
-            >
-              Clear
-            </Button>
+          <div className="p-5 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="clear-history-confirm" className="text-sm font-medium text-foreground">
+                Type <strong>DELETE</strong> to confirm:
+              </Label>
+              <Input
+                id="clear-history-confirm"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && deleteConfirmText === "DELETE" && !updateStudentFund.isPending) {
+                    handleClearHistory();
+                  }
+                }}
+                placeholder="DELETE"
+                className="border-destructive/50 focus-visible:ring-destructive"
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-between gap-4 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowClearHistoryDialogue(false);
+                  setDeleteConfirmText("");
+                }}
+                className="flex-1"
+                disabled={updateStudentFund.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="!bg-destructive !text-destructive-foreground flex-1 hover:bg-destructive/90"
+                onClick={handleClearHistory}
+                disabled={deleteConfirmText !== "DELETE" || updateStudentFund.isPending}
+              >
+                {updateStudentFund.isPending ? "Clearing..." : "Clear"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
