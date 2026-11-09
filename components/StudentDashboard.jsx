@@ -20,12 +20,14 @@ import {
 } from "@/components/ui/select";
 import Header from "@/components/Header";
 import { ChevronDown, Check, Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, Newspaper, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle, Share2, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import UpdateCard from "@/components/UpdateCard";
 import ShareModal from "@/components/ShareModal";
 import ProfileEditModal from "./ProfileEditModal";
 import DocumentPreviewDialog from "./DocumentPreviewDialog";
+import StudentProfilePrintView from "@/components/StudentProfilePrintView";
+import { useReactToPrint } from "react-to-print";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import html2canvas from "html2canvas";
 import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate, copyToClipboard } from "@/lib/utils";
@@ -192,8 +194,8 @@ function DownloadsTabContent({ apiKey }) {
 
   // Derived unique options
   const paperCourses = React.useMemo(() => [...new Set(papers.map(p => p.course).filter(Boolean))].sort(), [papers]);
-  const paperYears = React.useMemo(() => [...new Set(papers.map(p => String(p.year)).filter(Boolean))].sort((a,b) => Number(a)-Number(b)), [papers]);
-  const paperSems = React.useMemo(() => [...new Set(papers.map(p => String(p.semester)).filter(Boolean))].sort((a,b) => Number(a)-Number(b)), [papers]);
+  const paperYears = React.useMemo(() => [...new Set(papers.map(p => String(p.year)).filter(Boolean))].sort((a, b) => Number(a) - Number(b)), [papers]);
+  const paperSems = React.useMemo(() => [...new Set(papers.map(p => String(p.semester)).filter(Boolean))].sort((a, b) => Number(a) - Number(b)), [papers]);
   const syllabusCourses = React.useMemo(() => [...new Set(syllabuses.map(s => s.course).filter(Boolean))].sort(), [syllabuses]);
   const syllabusYears = React.useMemo(() => [...new Set(syllabuses.map(s => String(s.year)).filter(Boolean))].sort(), [syllabuses]);
   const bookCourses = React.useMemo(() => [...new Set(books.map(b => b.course).filter(Boolean))].sort(), [books]);
@@ -366,11 +368,10 @@ function DownloadsTabContent({ apiKey }) {
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 shrink-0 ${
-                isActive
-                  ? tab.activeBg
-                  : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-              }`}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 shrink-0 ${isActive
+                ? tab.activeBg
+                : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                }`}
             >
               <Icon className={`h-4 w-4 shrink-0 ${isActive ? "" : tab.color}`} />
               <span className="sm:hidden">{tab.mobileLabel || tab.label}</span>
@@ -383,225 +384,225 @@ function DownloadsTabContent({ apiKey }) {
       {/* Question Papers */}
       {activeSubTab === "PAPERS" && (
         papersLoading ? <LoadingState /> :
-        !papers.length ? <EmptyState icon={FileText} color="text-teal-500" label="Question Papers" /> :
-        <div className="rounded-md border overflow-hidden overflow-x-auto">
-          <Table className="min-w-[500px]">
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">
-                  <HeaderFilter label="Course" value={paperFilterCourse} onChange={setPaperFilterCourse} options={paperCourses} color="teal" />
-                </TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">
-                  <HeaderFilter label="Year" value={paperFilterYear} onChange={setPaperFilterYear} options={paperYears} color="teal" />
-                </TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">
-                  <HeaderFilter label="Sem" value={paperFilterSem} onChange={setPaperFilterSem} options={paperSems} color="teal" />
-                </TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">Subject</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPapers.map((d, idx) => (
-                <TableRow
-                  key={d._id}
-                  onClick={() => previewPaper(d)}
-                  className="hover:bg-muted/50 transition-colors cursor-pointer"
-                >
-                  <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
-                  <TableCell className="py-2.5 text-sm pl-1 sm:pl-2">{d.course}</TableCell>
-                  <TableCell className="py-2.5 text-sm">{d.year}</TableCell>
-                  <TableCell className="py-2.5 text-sm">{d.semester}</TableCell>
-                  <TableCell className="py-2.5 text-sm font-semibold text-teal-700 dark:text-teal-300">{d.subject}</TableCell>
-                  <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
-                        title="Preview"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          previewPaper(d);
-                        }}
-                      >
-                        <Eye className="h-3.5 w-3.5 sm:mr-1" />
-                        <span className="hidden sm:inline">View</span>
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(d.fileUrl, `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_"), d._id);
-                        }}
-                        disabled={downloadingId === d._id}
-                      >
-                        {downloadingId === d._id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
-                        ) : (
-                          <Download className="h-3.5 w-3.5 sm:mr-1" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {downloadingId === d._id ? "Wait..." : "Download"}
-                        </span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+          !papers.length ? <EmptyState icon={FileText} color="text-teal-500" label="Question Papers" /> :
+            <div className="rounded-md border overflow-hidden overflow-x-auto">
+              <Table className="min-w-[500px]">
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">
+                      <HeaderFilter label="Course" value={paperFilterCourse} onChange={setPaperFilterCourse} options={paperCourses} color="teal" />
+                    </TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase">
+                      <HeaderFilter label="Year" value={paperFilterYear} onChange={setPaperFilterYear} options={paperYears} color="teal" />
+                    </TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase">
+                      <HeaderFilter label="Sem" value={paperFilterSem} onChange={setPaperFilterSem} options={paperSems} color="teal" />
+                    </TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase">Subject</TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPapers.map((d, idx) => (
+                    <TableRow
+                      key={d._id}
+                      onClick={() => previewPaper(d)}
+                      className="hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
+                      <TableCell className="py-2.5 text-sm pl-1 sm:pl-2">{d.course}</TableCell>
+                      <TableCell className="py-2.5 text-sm">{d.year}</TableCell>
+                      <TableCell className="py-2.5 text-sm">{d.semester}</TableCell>
+                      <TableCell className="py-2.5 text-sm font-semibold text-teal-700 dark:text-teal-300">{d.subject}</TableCell>
+                      <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                            title="Preview"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              previewPaper(d);
+                            }}
+                          >
+                            <Eye className="h-3.5 w-3.5 sm:mr-1" />
+                            <span className="hidden sm:inline">View</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(d.fileUrl, `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_"), d._id);
+                            }}
+                            disabled={downloadingId === d._id}
+                          >
+                            {downloadingId === d._id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
+                            ) : (
+                              <Download className="h-3.5 w-3.5 sm:mr-1" />
+                            )}
+                            <span className="hidden sm:inline">
+                              {downloadingId === d._id ? "Wait..." : "Download"}
+                            </span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
       )}
 
       {/* Syllabus */}
       {activeSubTab === "SYLLABUS" && (
         syllabusLoading ? <LoadingState /> :
-        !syllabuses.length ? <EmptyState icon={FileText} color="text-indigo-500" label="Syllabuses" /> :
-        <div className="rounded-md border overflow-hidden overflow-x-auto">
-          <Table className="min-w-[400px]">
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">
-                  <HeaderFilter label="Course" value={syllabusFilterCourse} onChange={setSyllabusFilterCourse} options={syllabusCourses} color="indigo" />
-                </TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">
-                  <HeaderFilter label="Year" value={syllabusFilterYear} onChange={setSyllabusFilterYear} options={syllabusYears} color="indigo" />
-                </TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSyllabuses.map((s, idx) => (
-                <TableRow
-                  key={s._id}
-                  onClick={() => previewSyllabus(s)}
-                  className="hover:bg-muted/50 transition-colors cursor-pointer"
-                >
-                  <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
-                  <TableCell className="py-2.5 text-sm pl-1 sm:pl-2">{s.course}</TableCell>
-                  <TableCell className="py-2.5 text-sm">{s.year}</TableCell>
-                  <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                        title="Preview"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          previewSyllabus(s);
-                        }}
-                      >
-                        <Eye className="h-3.5 w-3.5 sm:mr-1" />
-                        <span className="hidden sm:inline">View</span>
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(s.fileUrl, `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_"), s._id);
-                        }}
-                        disabled={downloadingId === s._id}
-                      >
-                        {downloadingId === s._id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
-                        ) : (
-                          <Download className="h-3.5 w-3.5 sm:mr-1" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {downloadingId === s._id ? "Wait..." : "Download"}
-                        </span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+          !syllabuses.length ? <EmptyState icon={FileText} color="text-indigo-500" label="Syllabuses" /> :
+            <div className="rounded-md border overflow-hidden overflow-x-auto">
+              <Table className="min-w-[400px]">
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">
+                      <HeaderFilter label="Course" value={syllabusFilterCourse} onChange={setSyllabusFilterCourse} options={syllabusCourses} color="indigo" />
+                    </TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase">
+                      <HeaderFilter label="Year" value={syllabusFilterYear} onChange={setSyllabusFilterYear} options={syllabusYears} color="indigo" />
+                    </TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSyllabuses.map((s, idx) => (
+                    <TableRow
+                      key={s._id}
+                      onClick={() => previewSyllabus(s)}
+                      className="hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
+                      <TableCell className="py-2.5 text-sm pl-1 sm:pl-2">{s.course}</TableCell>
+                      <TableCell className="py-2.5 text-sm">{s.year}</TableCell>
+                      <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                            title="Preview"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              previewSyllabus(s);
+                            }}
+                          >
+                            <Eye className="h-3.5 w-3.5 sm:mr-1" />
+                            <span className="hidden sm:inline">View</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(s.fileUrl, `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_"), s._id);
+                            }}
+                            disabled={downloadingId === s._id}
+                          >
+                            {downloadingId === s._id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
+                            ) : (
+                              <Download className="h-3.5 w-3.5 sm:mr-1" />
+                            )}
+                            <span className="hidden sm:inline">
+                              {downloadingId === s._id ? "Wait..." : "Download"}
+                            </span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
       )}
 
       {/* Books */}
       {activeSubTab === "BOOKS" && (
         booksLoading ? <LoadingState /> :
-        !books.length ? <EmptyState icon={BookOpen} color="text-amber-500" label="Books" /> :
-        <div className="rounded-md border overflow-hidden overflow-x-auto">
-          <Table className="min-w-[380px]">
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">Book Name</TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase">
-                  <HeaderFilter label="Course" value={bookFilterCourse} onChange={setBookFilterCourse} options={bookCourses} color="amber" />
-                </TableHead>
-                <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredBooks.map((b, idx) => (
-                <TableRow
-                  key={b._id}
-                  onClick={() => previewBook(b)}
-                  className="hover:bg-muted/50 transition-colors cursor-pointer"
-                >
-                  <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
-                  <TableCell className="py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-300 pl-1 sm:pl-2">{b.name}</TableCell>
-                  <TableCell className="py-2.5 text-sm">{b.course || "—"}</TableCell>
-                  <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                        title="Preview"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          previewBook(b);
-                        }}
-                      >
-                        <Eye className="h-3.5 w-3.5 sm:mr-1" />
-                        <span className="hidden sm:inline">View</span>
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(b.fileUrl, `${b.name}.pdf`.replace(/\s+/g, "_"), b._id);
-                        }}
-                        disabled={downloadingId === b._id}
-                      >
-                        {downloadingId === b._id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
-                        ) : (
-                          <Download className="h-3.5 w-3.5 sm:mr-1" />
-                        )}
-                        <span className="hidden sm:inline">
-                          {downloadingId === b._id ? "Wait..." : "Download"}
-                        </span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+          !books.length ? <EmptyState icon={BookOpen} color="text-amber-500" label="Books" /> :
+            <div className="rounded-md border overflow-hidden overflow-x-auto">
+              <Table className="min-w-[380px]">
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="py-3 text-xs font-bold uppercase w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">No</TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase pl-1 sm:pl-2">Book Name</TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase">
+                      <HeaderFilter label="Course" value={bookFilterCourse} onChange={setBookFilterCourse} options={bookCourses} color="amber" />
+                    </TableHead>
+                    <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredBooks.map((b, idx) => (
+                    <TableRow
+                      key={b._id}
+                      onClick={() => previewBook(b)}
+                      className="hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <TableCell className="py-2.5 text-sm text-muted-foreground w-8 sm:w-[50px] px-1 sm:px-2 pr-0 sm:pr-2">{idx + 1}</TableCell>
+                      <TableCell className="py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-300 pl-1 sm:pl-2">{b.name}</TableCell>
+                      <TableCell className="py-2.5 text-sm">{b.course || "—"}</TableCell>
+                      <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                            title="Preview"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              previewBook(b);
+                            }}
+                          >
+                            <Eye className="h-3.5 w-3.5 sm:mr-1" />
+                            <span className="hidden sm:inline">View</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(b.fileUrl, `${b.name}.pdf`.replace(/\s+/g, "_"), b._id);
+                            }}
+                            disabled={downloadingId === b._id}
+                          >
+                            {downloadingId === b._id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
+                            ) : (
+                              <Download className="h-3.5 w-3.5 sm:mr-1" />
+                            )}
+                            <span className="hidden sm:inline">
+                              {downloadingId === b._id ? "Wait..." : "Download"}
+                            </span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
       )}
     </div>
   );
 }
 
 function AwardPoster({ award, currentUser, festSettings }) {
-  const Icon = award.icon;
+  const Icon = award.icon || Trophy;
   const posterRef = React.useRef(null);
   const [isExporting, setIsExporting] = React.useState(false);
 
@@ -618,7 +619,7 @@ function AwardPoster({ award, currentUser, festSettings }) {
     indigo: "from-indigo-400 via-blue-500 to-indigo-600",
     rose: "from-rose-400 via-pink-500 to-rose-600",
   };
-  
+
   const bgGradient = colorMap[award.color] || "from-zinc-400 to-zinc-600";
 
   const downloadAsJpeg = async () => {
@@ -627,18 +628,18 @@ function AwardPoster({ award, currentUser, festSettings }) {
     try {
       // Small delay to ensure any hover states are cleared if needed
       await new Promise(r => setTimeout(r, 100));
-      
+
       const canvas = await html2canvas(posterRef.current, {
         scale: 3, // High quality
         useCORS: true,
         backgroundColor: null,
         logging: false,
       });
-      
+
       const image = canvas.toDataURL("image/jpeg", 0.9);
       const link = document.createElement("a");
       link.href = image;
-      link.download = `${award.type}_${award.period.replace(/\s+/g, "_")}.jpg`;
+      link.download = `${award.type || "award"}_${(award.period || "achievement").replace(/\s+/g, "_")}.jpg`;
       link.click();
     } catch (err) {
       console.error("Export error:", err);
@@ -649,108 +650,106 @@ function AwardPoster({ award, currentUser, festSettings }) {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div 
+      <div
         ref={posterRef}
         className="group relative flex flex-col items-center p-5 sm:p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white dark:bg-zinc-900 border-zinc-200 dark:border-border w-full max-w-sm min-w-0"
       >
         {/* Background Decorative Elements */}
         <div className={`absolute top-0 left-0 w-full h-32 bg-gradient-to-b ${bgGradient} opacity-10`} />
-        
+
         {/* Logos for Best Reader */}
         {award.type === "BEST READER" && (
-            <>
-                {orgLogo && (
-                    <div className="absolute top-6 left-6 w-10 h-10 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                        <img src={orgLogo} alt="Org" className="w-full h-full object-contain" />
-                    </div>
-                )}
-                {instLogo && (
-                    <div className="absolute top-6 right-6 w-10 h-10 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                        <img src={instLogo} alt="Inst" className="w-full h-full object-contain" />
-                    </div>
-                )}
-            </>
+          <>
+            {orgLogo && (
+              <div className="absolute top-6 left-6 w-10 h-10 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                <img src={orgLogo} alt="Org" className="w-full h-full object-contain" />
+              </div>
+            )}
+            {instLogo && (
+              <div className="absolute top-6 right-6 w-10 h-10 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                <img src={instLogo} alt="Inst" className="w-full h-full object-contain" />
+              </div>
+            )}
+          </>
         )}
 
         {/* Trophy/Icon at top right - Hidden if logos are present to avoid overlap */}
         {award.type !== "BEST READER" && Icon && (
-            <Icon className="absolute top-6 right-6 h-10 w-10 text-zinc-200 dark:text-zinc-800 opacity-50 group-hover:opacity-100 transition-opacity" />
+          <Icon className="absolute top-6 right-6 h-10 w-10 text-zinc-200 dark:text-zinc-800 opacity-50 group-hover:opacity-100 transition-opacity" />
         )}
-        
+
         {/* Profile Pic with rank border */}
         <div className="relative mb-8 z-10">
-            <div className={`w-36 h-36 rounded-full p-1.5 bg-gradient-to-br ${bgGradient} shadow-xl`}>
-                <div className="w-full h-full rounded-full border-[6px] border-white dark:border-zinc-900 overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                    {currentUser?.profilePic?.url ? (
-                        <img src={currentUser.profilePic.url} alt={currentUser.name} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-zinc-400">
-                            {currentUser?.name?.charAt(0) || "S"}
-                        </div>
-                    )}
+          <div className={`w-36 h-36 rounded-full p-1.5 bg-gradient-to-br ${bgGradient} shadow-xl`}>
+            <div className="w-full h-full rounded-full border-[6px] border-white dark:border-zinc-900 overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+              {currentUser?.profilePic?.url ? (
+                <img src={currentUser.profilePic.url} alt={currentUser.name} className="w-full h-full object-cover" crossOrigin="anonymous" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-zinc-400">
+                  {currentUser?.name?.charAt(0) || "S"}
                 </div>
+              )}
             </div>
-            {/* Badge */}
-            <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-6 py-1.5 rounded-full text-xs font-black tracking-[0.2em] text-white shadow-xl uppercase bg-gradient-to-r ${bgGradient} border-2 border-white dark:border-zinc-900`}>
-              {award.rankLabel || "Winner"}
-            </div>
+          </div>
+          {/* Badge */}
+          <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-6 py-1.5 rounded-full text-xs font-black tracking-[0.2em] text-white shadow-xl uppercase bg-gradient-to-r ${bgGradient} border-2 border-white dark:border-zinc-900`}>
+            {award.rankLabel || "Winner"}
+          </div>
         </div>
 
         <div className="text-center space-y-3 pb-4 w-full min-w-0 max-w-full">
-            {award.type && !["ATTENDANCE TOPPER", "BEST READER", "STAR OF THE MONTH"].includes(award.type) && (
-                <h4 className={`text-[10px] font-black tracking-[0.3em] uppercase opacity-70 ${
-                  award.color === 'amber' ? 'text-amber-600' :
-                  award.color === 'emerald' ? 'text-emerald-600' :
-                  award.color === 'gold' ? 'text-yellow-600' :
+          {award.type && !["ATTENDANCE TOPPER", "BEST READER", "STAR OF THE MONTH"].includes(award.type) && (
+            <h4 className={`text-[10px] font-black tracking-[0.3em] uppercase opacity-70 ${award.color === 'amber' ? 'text-amber-600' :
+              award.color === 'emerald' ? 'text-emerald-600' :
+                award.color === 'gold' ? 'text-yellow-600' :
                   award.color === 'silver' ? 'text-slate-500' :
-                  award.color === 'bronze' ? 'text-amber-700' :
-                  award.color === 'indigo' ? 'text-indigo-600' :
-                  'text-yellow-600'
-                }`}>
-                    {award.type}
-                </h4>
-            )}
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-zinc-900 dark:text-white whitespace-pre-line break-words max-w-full [overflow-wrap:anywhere]">
-                {award.title?.includes("of the Month") ? (
-                  <>
-                    {award.title.replace("of the Month", "").trim()}
-                    <span className="block text-xl opacity-80 mt-1">of the Month</span>
-                  </>
-                ) : (award.title || "Achievement")}
-            </h3>
-            {award.subtitle && (
-                <p className="text-sm sm:text-base font-bold text-zinc-500 dark:text-zinc-400 break-words max-w-full">{award.subtitle}</p>
-            )}
-            {award.extraInfo && (
-                <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 break-words max-w-full">{award.extraInfo}</p>
-            )}
-            <div className="pt-6 flex flex-col items-center">
-                <div className={`px-6 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm font-black tracking-widest uppercase ${
-                  award.color === 'amber' ? 'text-amber-700' :
-                  award.color === 'emerald' ? 'text-emerald-700' :
-                  award.color === 'gold' ? 'text-yellow-700' :
+                    award.color === 'bronze' ? 'text-amber-700' :
+                      award.color === 'indigo' ? 'text-indigo-600' :
+                        'text-yellow-600'
+              }`}>
+              {award.type}
+            </h4>
+          )}
+          <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-zinc-900 dark:text-white whitespace-pre-line break-words max-w-full [overflow-wrap:anywhere]">
+            {award.title?.includes("of the Month") ? (
+              <>
+                {award.title.replace("of the Month", "").trim()}
+                <span className="block text-xl opacity-80 mt-1">of the Month</span>
+              </>
+            ) : (award.title || "Achievement")}
+          </h3>
+          {award.subtitle && (
+            <p className="text-sm sm:text-base font-bold text-zinc-500 dark:text-zinc-400 break-words max-w-full">{award.subtitle}</p>
+          )}
+          {award.extraInfo && (
+            <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 break-words max-w-full">{award.extraInfo}</p>
+          )}
+          <div className="pt-6 flex flex-col items-center">
+            <div className={`px-6 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm font-black tracking-widest uppercase ${award.color === 'amber' ? 'text-amber-700' :
+              award.color === 'emerald' ? 'text-emerald-700' :
+                award.color === 'gold' ? 'text-yellow-700' :
                   award.color === 'silver' ? 'text-slate-600' :
-                  award.color === 'bronze' ? 'text-amber-800' :
-                  award.color === 'indigo' ? 'text-indigo-700' :
-                  'text-yellow-700'
-                }`}>
-                    {award.period}
-                </div>
+                    award.color === 'bronze' ? 'text-amber-800' :
+                      award.color === 'indigo' ? 'text-indigo-700' :
+                        'text-yellow-700'
+              }`}>
+              {award.period}
             </div>
+          </div>
         </div>
-        
+
         {/* Shimmer effect */}
         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-        
+
         <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-border w-full flex justify-center opacity-40">
-           <span className="text-[10px] font-black tracking-[0.4em] uppercase text-zinc-400">Congratulations...</span>
+          <span className="text-[10px] font-black tracking-[0.4em] uppercase text-zinc-400">Congratulations...</span>
         </div>
       </div>
-      
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={downloadAsJpeg} 
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={downloadAsJpeg}
         disabled={isExporting}
         className="rounded-full gap-2 text-xs font-bold tracking-widest uppercase hover:bg-zinc-100 dark:hover:bg-zinc-800"
       >
@@ -769,38 +768,37 @@ function AwardsTabContent({ currentUser, apiKey }) {
   React.useEffect(() => {
     const fetchAwards = async () => {
       setLoading(true);
-      
+
       try {
         // Fetch Settings first for branding
         let currentFestSettings = null;
         try {
-            const settingsRes = await fetch("/api/settings", { cache: "no-store", headers: { "api-key": apiKey } });
-            const settingsData = await settingsRes.json();
-            if (settingsData.success || settingsData.settings) {
-                currentFestSettings = settingsData.settings;
-            }
+          const settingsRes = await fetch("/api/settings", { cache: "no-store", headers: { "api-key": apiKey } });
+          const settingsData = await settingsRes.json();
+          if (settingsData.success || settingsData.settings) {
+            currentFestSettings = settingsData.settings;
+          }
         } catch (err) {
-            console.error("Settings fetch error:", err);
+          console.error("Settings fetch error:", err);
         }
 
         const res = await fetch(`/api/student-awards?studentId=${currentUser._id}&studentName=${encodeURIComponent(currentUser.name || "")}`, { cache: "no-store", headers: { "api-key": apiKey } });
         const data = await res.json();
-        
+
         if (data.success && data.awards) {
-           const { BookOpen, Calendar, Trophy, Award } = require("lucide-react");
-           const iconMap = { BookOpen, Calendar, Trophy, Award };
-           
-           const festName = currentFestSettings?.festival?.festivalInfo?.name || "STUDENTS FEST";
-           const festYear = currentFestSettings?.festival?.festivalInfo?.year || "";
-           
-           const processedAwards = data.awards.map(aw => {
-               const award = { ...aw, icon: iconMap[aw.iconName] || Trophy, date: new Date(aw.date) };
-               if (aw.isFestWinner) {
-                   award.type = `${festName} ${festYear}`.trim().toUpperCase();
-               }
-               return award;
-           });
-           setAwards(processedAwards);
+          const iconMap = { BookOpen, Calendar, Trophy, Award };
+
+          const festName = currentFestSettings?.festival?.festivalInfo?.name || "STUDENTS FEST";
+          const festYear = currentFestSettings?.festival?.festivalInfo?.year || "";
+
+          const processedAwards = data.awards.map(aw => {
+            const award = { ...aw, icon: iconMap[aw.iconName] || Trophy, date: new Date(aw.date) };
+            if (aw.isFestWinner) {
+              award.type = `${festName} ${festYear}`.trim().toUpperCase();
+            }
+            return award;
+          });
+          setAwards(processedAwards);
         }
         setFestSettings(currentFestSettings);
       } catch (e) {
@@ -815,41 +813,100 @@ function AwardsTabContent({ currentUser, apiKey }) {
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-yellow-500 mb-4" />
-        <p className="text-sm text-muted-foreground animate-pulse font-medium">Analyzing your achievements...</p>
-    </div>
-  );
-
-  if (!awards.length) return (
-    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-      <div className="p-6 rounded-3xl bg-yellow-50 dark:bg-yellow-900/10 mb-6 transform transition-transform hover:scale-110 duration-500">
-        <Trophy className="h-16 w-16 text-yellow-500/40" />
-      </div>
-      <h3 className="text-xl font-bold text-zinc-800 dark:text-zinc-200 mb-2">No Awards Yet</h3>
-      <p className="text-sm max-w-xs text-center opacity-70">Keep up the great work! Your achievements will shine here once you top the charts.</p>
+      <Loader2 className="h-8 w-8 animate-spin text-yellow-500 mb-4" />
+      <p className="text-sm text-muted-foreground animate-pulse font-medium">Analyzing your achievements...</p>
     </div>
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
-      {awards.map((award, idx) => (
-        <AwardPoster key={idx} award={award} currentUser={currentUser} festSettings={festSettings} />
-      ))}
+    <div className="flex flex-col gap-6 p-2 sm:p-4">
+      {!awards.length ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-2xl mx-auto">
+          <div className="p-6 rounded-3xl bg-yellow-50 dark:bg-yellow-900/15 mb-6 border border-yellow-200/50 dark:border-yellow-800/30 shadow-inner">
+            <Trophy className="h-16 w-16 text-yellow-500" />
+          </div>
+          <h3 className="text-2xl font-black text-foreground mb-2">No Awards Recorded Yet</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-8">
+            Your personal achievements and honors will automatically shine here once declared across academic and co-curricular programs.
+          </p>
+
+          {/* Available Honors Showcase */}
+          <div className="w-full text-left bg-muted/30 border rounded-2xl p-5 sm:p-6 shadow-sm">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+              <Award className="h-4 w-4 text-yellow-500" />
+              Honors You Can Earn
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="p-3 rounded-xl bg-background border flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 shrink-0">
+                  <Trophy className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground">Exam Mark Topper</p>
+                  <p className="text-xs text-muted-foreground">Top rank & highest total score in class & semester exams.</p>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-background border flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 shrink-0">
+                  <BookOpen className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground">Best Reader Award</p>
+                  <p className="text-xs text-muted-foreground">Borrow & review books from the campus library.</p>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-background border flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground">Attendance Topper</p>
+                  <p className="text-xs text-muted-foreground">Maintain top monthly attendance in class & assembly.</p>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-background border flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-600 shrink-0">
+                  <Trophy className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground">Star of the Month</p>
+                  <p className="text-xs text-muted-foreground">Exemplary conduct, performance, and prayer consistency.</p>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-background border flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-600 shrink-0">
+                  <Award className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground">Fest Competitions</p>
+                  <p className="text-xs text-muted-foreground">1st, 2nd, and 3rd rank in collegiate arts & literary events.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {awards.map((award, idx) => (
+            <AwardPoster key={idx} award={award} currentUser={currentUser} festSettings={festSettings} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // Normalize common category misspellings
 const normalizeCategoryName = (name) => {
-    if (!name) return name;
-    const upper = name.toUpperCase().trim();
-    const corrections = {
-        "TRAVELOUGUE": "TRAVELOGUE",
-        "TRAVELOUGE": "TRAVELOGUE",
-        "TRAVLOGUE": "TRAVELOGUE",
-        "TRAVELOG": "TRAVELOGUE",
-    };
-    return corrections[upper] ?? upper;
+  if (!name) return name;
+  const upper = name.toUpperCase().trim();
+  const corrections = {
+    "TRAVELOUGUE": "TRAVELOGUE",
+    "TRAVELOUGE": "TRAVELOGUE",
+    "TRAVLOGUE": "TRAVELOGUE",
+    "TRAVELOG": "TRAVELOGUE",
+  };
+  return corrections[upper] ?? upper;
 };
 
 export default function StudentDashboard({
@@ -860,18 +917,58 @@ export default function StudentDashboard({
   attendanceData: initialData,
   updates = [],
   hideHeader = false,
-  showKinship = false,
+  showKinship = true,
   debtBalances = [],
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlTab = searchParams?.get("tab");
   const queryClient = useQueryClient();
 
   const [currentUser, setCurrentUser] = useState(user);
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUser((prev) => ({ ...prev, ...user }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if ((!currentUser?.studentSpecificField || !currentUser?.dateOfBirth) && currentUser?._id && apiKey) {
+      fetch(`/api/users?_id=${currentUser._id}`, { headers: { "api-key": apiKey } })
+        .then((r) => r.json())
+        .then((d) => {
+          const fetched = d?.users?.[0] || d?.user;
+          if (fetched) setCurrentUser((prev) => ({ ...prev, ...fetched }));
+        })
+        .catch(console.error);
+    }
+  }, [currentUser?._id, apiKey]);
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isProfileSummaryOpen, setIsProfileSummaryOpen] = useState(false);
   const [sharedArticle, setSharedArticle] = useState(null);
   const detailsRef = useRef(null);
   const historyRef = useRef(null);
   const chartRef = useRef(null);
+  const profilePrintRef = useRef(null);
+
+  const handlePrintProfile = useReactToPrint({
+    contentRef: profilePrintRef,
+    documentTitle: `Student Profile - ${currentUser?.name || "Summary"}`,
+    pageStyle: `
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      }
+    `,
+  });
 
   const downloadCardAsJpeg = async (elementRef, filename) => {
     if (!elementRef.current) return;
@@ -896,11 +993,32 @@ export default function StudentDashboard({
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tabId);
+      window.history.replaceState({}, "", url.toString());
+    }
     // Add a slight delay to ensure the content is rendered before scrolling
     setTimeout(() => {
       detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   };
+
+  useEffect(() => {
+    if (urlTab) {
+      setActiveTab(urlTab.toUpperCase());
+    }
+  }, [urlTab]);
+
+  useEffect(() => {
+    const handleTabEvent = (e) => {
+      if (e?.detail) {
+        handleTabChange(e.detail.toUpperCase());
+      }
+    };
+    window.addEventListener("student-dashboard-tab-change", handleTabEvent);
+    return () => window.removeEventListener("student-dashboard-tab-change", handleTabEvent);
+  }, []);
 
   useEffect(() => {
     setCurrentUser(user);
@@ -921,7 +1039,7 @@ export default function StudentDashboard({
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [pendingFunds, setPendingFunds] = useState([]); // Array of fund objects
   const [fundsLoading, setFundsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("PROFILE");
+  const [activeTab, setActiveTab] = useState(urlTab ? urlTab.toUpperCase() : "PROFILE");
   const [articles, setArticles] = useState([]);
   const [articlesLoading, setArticlesLoading] = useState(false);
   const [articlesLoaded, setArticlesLoaded] = useState(false);
@@ -942,7 +1060,7 @@ export default function StudentDashboard({
   const [leavesList, setLeavesList] = useState([]);
   const [leavesLoading, setLeavesLoading] = useState(true);
   const isActiveStudent = currentUser?.studentSpecificField?.status === "Active";
-  const [librarySubTab, setLibrarySubTab] = useState(isActiveStudent ? "BOOKS" : "HISTORY");
+  const [librarySubTab, setLibrarySubTab] = useState("BOOKS");
   const [libraryBooks, setLibraryBooks] = useState([]);
   const [libraryBooksLoading, setLibraryBooksLoading] = useState(true);
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -998,8 +1116,8 @@ export default function StudentDashboard({
                     status === "Completed"
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                       : status === "Pending"
-                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                      : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                        : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
                   )}
                 >
                   {status}
@@ -1077,10 +1195,10 @@ export default function StudentDashboard({
         status === "Completed"
           ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
           : status === "Pending"
-          ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
-          : status === "Dropped"
-          ? "bg-red-500/20 text-red-300 border-red-400/30"
-          : "bg-blue-400/20 text-blue-200 border-blue-400/30";
+            ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
+            : status === "Dropped"
+              ? "bg-red-500/20 text-red-300 border-red-400/30"
+              : "bg-blue-400/20 text-blue-200 border-blue-400/30";
 
       return {
         ...c,
@@ -1121,7 +1239,7 @@ export default function StudentDashboard({
 
           let label = "Students Fund";
           let subLabel = "";
-          
+
           if (fund.fundType === 'Department') {
             label = `${fund.department} Fund`;
             // For Department funds, the "Role Holder" is the one who added/performed the transaction
@@ -1130,7 +1248,7 @@ export default function StudentDashboard({
           } else {
             const roles = fund.teacherId?.roles || [];
             subLabel = fund.teacherId?.name || "Class Teacher";
-            
+
             if (roles.includes("Teacher")) {
               label = "Students Fund";
             } else if (roles.length > 0) {
@@ -1140,7 +1258,7 @@ export default function StudentDashboard({
 
           const key = `Fund-${label}-${subLabel}`;
           const currentBatch = batches.find(b => b._id === fund.batchId)?.name || "Unknown Batch";
-          
+
           if (fundsMap.has(key)) {
             const entry = fundsMap.get(key);
             entry.value += fund.balance; // Use balance as-is (database stores debt as negative)
@@ -1190,9 +1308,9 @@ export default function StudentDashboard({
         // Process Coupon Fund
         const rawCoupons = couponResult.coupons || [];
         setCouponDetails(rawCoupons);
-        
+
         const couponPendingTotal = (couponResult.stats?.totalPending || 0);
-        
+
         if (couponPendingTotal > 0) {
           fundsList.push({
             label: "Coupon Fund",
@@ -1318,7 +1436,7 @@ export default function StudentDashboard({
   useEffect(() => {
     let isMounted = true;
     const fetchLibraryBooks = async (showLoading = true) => {
-      if (!apiKey || !isActiveStudent || activeTab !== "LIBRARY") return;
+      if (!apiKey || activeTab !== "LIBRARY") return;
       if (showLoading) setLibraryBooksLoading(true);
       try {
         const res = await fetch("/api/library/books", {
@@ -1344,13 +1462,7 @@ export default function StudentDashboard({
         isMounted = false;
       };
     }
-  }, [apiKey, isActiveStudent, activeTab]);
-
-  useEffect(() => {
-    if (!isActiveStudent && librarySubTab === "BOOKS") {
-      setLibrarySubTab("HISTORY");
-    }
-  }, [isActiveStudent, librarySubTab]);
+  }, [apiKey, activeTab]);
 
   const fetchPendingRequests = async () => {
     if (!apiKey || !currentUser?._id || activeTab !== "LIBRARY") return;
@@ -1728,1837 +1840,1973 @@ export default function StudentDashboard({
       <div className="space-y-6 w-full">
         <PrintHeader title="STUDENT PROFILE" apiKey={apiKey} displayOnScreen={false} />
 
-      {/* Premium Header */}
-      <div className="no-print relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 p-6 sm:p-8 text-white shadow-xl mb-6">
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col items-start gap-2 text-left w-full md:w-auto">
-            {/* Photo with Active Status underneath + Info with Edit/Approved underneath */}
-            <div className="flex flex-row items-start justify-start gap-2.5 sm:gap-3 w-full md:w-auto">
-              {/* Photo with Active Status directly underneath - FULL LEFT ALIGNED */}
-              <div className="flex flex-col items-start gap-1 shrink-0">
-                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-2xl border-2 sm:border-4 border-white/20 shadow-2xl ring-2 sm:ring-4 ring-blue-500/20 shrink-0">
-                  <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
-                  <AvatarFallback className="bg-white/10 text-xl sm:text-2xl font-bold backdrop-blur-md">
-                    {currentUser?.name?.[0]}
-                  </AvatarFallback>
-                </Avatar>
+        {/* Premium Header */}
+        <div className="no-print relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 p-6 sm:p-8 text-white shadow-xl mb-6">
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col items-start gap-2 text-left w-full md:w-auto">
+              {/* Photo with Active Status underneath + Info with Edit/Approved underneath */}
+              <div className="flex flex-row items-start justify-start gap-2.5 sm:gap-3 w-full md:w-auto">
+                {/* Photo with Active Status directly underneath - FULL LEFT ALIGNED */}
+                <div className="flex flex-col items-start gap-1 shrink-0">
+                  <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-2xl border-2 sm:border-4 border-white/20 shadow-2xl ring-2 sm:ring-4 ring-blue-500/20 shrink-0">
+                    <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
+                    <AvatarFallback className="bg-white/10 text-xl sm:text-2xl font-bold backdrop-blur-md">
+                      {currentUser?.name?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
 
-                {/* Status Badge directly under photo - FULL LEFT ALIGNED */}
-                {currentUser?.studentSpecificField?.status && (
-                  <div className={cn(
-                    "px-2 sm:px-2.5 py-0.5 rounded-lg border font-bold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider backdrop-blur-md shadow-sm flex items-center justify-start gap-1 sm:gap-1.5 whitespace-nowrap",
-                    currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
-                    currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
-                    currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
-                    "bg-slate-500/20 text-slate-400 border-slate-500/30"
-                  )}>
+                  {/* Status Badge directly under photo - FULL LEFT ALIGNED */}
+                  {currentUser?.studentSpecificField?.status && (
                     <div className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-1 ring-green-400/20" :
-                      currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-1 ring-red-400/20" :
-                      currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-1 ring-blue-400/20" :
-                      "bg-slate-400"
-                    )} />
-                    {currentUser.studentSpecificField.status}
+                      "px-2 sm:px-2.5 py-0.5 rounded-lg border font-bold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider backdrop-blur-md shadow-sm flex items-center justify-start gap-1 sm:gap-1.5 whitespace-nowrap",
+                      currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                        currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                          currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
+                            "bg-slate-500/20 text-slate-400 border-slate-500/30"
+                    )}>
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-1 ring-green-400/20" :
+                          currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-1 ring-red-400/20" :
+                            currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-1 ring-blue-400/20" :
+                              "bg-slate-400"
+                      )} />
+                      {currentUser.studentSpecificField.status}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Section next to Photo */}
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="flex flex-col items-start gap-0">
+                    <span className="text-blue-200 text-[11px] sm:text-xs font-medium tracking-wider uppercase leading-none mb-0.5 shrink-0">
+                      Welcome,
+                    </span>
+                    <h2 className="text-base sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight drop-shadow-md break-words leading-tight">
+                      {currentUser?.name}
+                    </h2>
                   </div>
-                )}
+
+                  {/* 970 and PLUS TWO | G-VIBE side by side in mobile view as well */}
+                  <div className="flex flex-row items-center gap-1.5 sm:gap-2 text-blue-100/90 text-xs sm:text-sm mt-1 whitespace-nowrap overflow-hidden">
+                    <span className="bg-white/10 px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur-sm border border-white/10 uppercase shrink-0">
+                      {currentUser?._id}
+                    </span>
+                    {currentUser?.studentSpecificField?.status === "Active" ? (
+                      <span className="flex items-center gap-1 text-[11px] sm:text-sm font-medium truncate">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
+                        <span className="truncate">{className || "No Class"} | {batchName || "No Batch"}</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[11px] sm:text-sm font-medium truncate">
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" />
+                        <span className="truncate">{batchName || "No Batch"}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Edit Profile, Approved directly under 970 and PLUS TWO | G-VIBE in desktop and mobile */}
+                  <div className="flex items-center gap-1.5 sm:gap-2 justify-start flex-wrap mt-1.5 sm:mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-1.5 h-6 sm:h-7 px-2 sm:px-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                      onClick={() => setIsEditModalOpen(true)}
+                    >
+                      <Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      <span>Edit Profile</span>
+                    </Button>
+
+                    {currentUser?.profileUpdateStatus === "Pending" && (
+                      <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-blue-500/20 text-blue-300 border-blue-500/30 animate-pulse whitespace-nowrap">
+                        <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
+                        <span>Requested</span>
+                      </div>
+                    )}
+                    {currentUser?.profileUpdateStatus === "Verified" && (
+                      <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-green-500/20 text-green-300 border-green-500/30 whitespace-nowrap">
+                        <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
+                        <span>Approved</span>
+                      </div>
+                    )}
+                    {currentUser?.profileUpdateStatus === "Rejected" && (
+                      <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-red-500/20 text-red-300 border-red-500/30 whitespace-nowrap">
+                        <XCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
+                        <span>Rejected</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Info Section next to Photo */}
-              <div className="min-w-0 flex-1 text-left">
-                <div className="flex flex-col items-start gap-0">
-                  <span className="text-blue-200 text-[11px] sm:text-xs font-medium tracking-wider uppercase leading-none mb-0.5 shrink-0">
-                    Welcome,
-                  </span>
-                  <h2 className="text-base sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight drop-shadow-md break-words leading-tight">
-                    {currentUser?.name}
-                  </h2>
-                </div>
-
-                {/* 970 and PLUS TWO | G-VIBE side by side in mobile view as well */}
-                <div className="flex flex-row items-center gap-1.5 sm:gap-2 text-blue-100/90 text-xs sm:text-sm mt-1 whitespace-nowrap overflow-hidden">
-                  <span className="bg-white/10 px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur-sm border border-white/10 uppercase shrink-0">
-                    {currentUser?._id}
-                  </span>
-                  {currentUser?.studentSpecificField?.status === "Active" ? (
-                    <span className="flex items-center gap-1 text-[11px] sm:text-sm font-medium truncate">
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
-                      <span className="truncate">{className || "No Class"} | {batchName || "No Batch"}</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-[11px] sm:text-sm font-medium truncate">
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" />
-                      <span className="truncate">{batchName || "No Batch"}</span>
-                    </span>
-                  )}
-                </div>
-
-                {/* Edit Profile, Approved directly under 970 and PLUS TWO | G-VIBE in desktop and mobile */}
-                <div className="flex items-center gap-1.5 sm:gap-2 justify-start flex-wrap mt-1.5 sm:mt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-1.5 h-6 sm:h-7 px-2 sm:px-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
-                    onClick={() => setIsEditModalOpen(true)}
-                  >
-                    <Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    <span>Edit Profile</span>
-                  </Button>
-
-                  {currentUser?.profileUpdateStatus === "Pending" && (
-                    <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-blue-500/20 text-blue-300 border-blue-500/30 animate-pulse whitespace-nowrap">
-                      <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
-                      <span>Requested</span>
+              {/* Mobile Courses Section: under name and photo in mobile view */}
+              {headerCourses && headerCourses.length > 0 && (
+                <div className="md:hidden flex flex-col gap-2 w-full mt-3 text-left">
+                  {headerCourses.map((c, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white/10 backdrop-blur-md border border-white/15 rounded-xl p-3 shadow-sm w-full"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-white text-sm tracking-tight truncate">
+                          {c.courseName}
+                        </span>
+                        <span className={cn(
+                          "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border leading-none shrink-0 inline-flex items-center gap-1",
+                          c.statusBadgeClass
+                        )}>
+                          <span className={cn(
+                            "w-1 h-1 rounded-full",
+                            c.status === "Completed" ? "bg-emerald-400" :
+                              c.status === "Dropped" ? "bg-red-400" :
+                                "bg-blue-400 animate-pulse"
+                          )} />
+                          {c.status}
+                        </span>
+                      </div>
+                      {c.subInfo && (
+                        <div className="text-xs text-blue-200/90 mt-1 font-medium leading-tight">
+                          {c.subInfo}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {currentUser?.profileUpdateStatus === "Verified" && (
-                    <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-green-500/20 text-green-300 border-green-500/30 whitespace-nowrap">
-                      <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
-                      <span>Approved</span>
-                    </div>
-                  )}
-                  {currentUser?.profileUpdateStatus === "Rejected" && (
-                    <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border font-bold text-[9px] sm:text-xs uppercase tracking-wider backdrop-blur-md bg-red-500/20 text-red-300 border-red-500/30 whitespace-nowrap">
-                      <XCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
-                      <span>Rejected</span>
-                    </div>
-                  )}
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Mobile Courses Section: under name and photo in mobile view */}
-            {headerCourses && headerCourses.length > 0 && (
-              <div className="md:hidden flex flex-col gap-2 w-full mt-3 text-left">
-                {headerCourses.map((c, idx) => (
-                  <div 
-                    key={idx} 
-                    className="bg-white/10 backdrop-blur-md border border-white/15 rounded-xl p-3 shadow-sm w-full"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-white text-sm tracking-tight truncate">
-                        {c.courseName}
-                      </span>
-                      <span className={cn(
-                        "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border leading-none shrink-0 inline-flex items-center gap-1",
-                        c.statusBadgeClass
-                      )}>
+            {/* Desktop Right Side: Courses */}
+            <div className="hidden md:flex flex-col items-end gap-2.5 min-w-[240px] max-w-sm shrink-0">
+              {/* Courses shown in the right side of blue color tag in desktop view */}
+              {headerCourses && headerCourses.length > 0 && (
+                <div className="flex flex-col gap-2 w-full mt-1">
+                  {headerCourses.map((c, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-xl px-3.5 py-2 transition-all shadow-sm text-left w-full"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-bold text-white text-xs sm:text-sm tracking-tight truncate">
+                          {c.courseName}
+                        </span>
                         <span className={cn(
-                          "w-1 h-1 rounded-full",
-                          c.status === "Completed" ? "bg-emerald-400" :
-                          c.status === "Dropped" ? "bg-red-400" :
-                          "bg-blue-400 animate-pulse"
-                        )} />
-                        {c.status}
-                      </span>
-                    </div>
-                    {c.subInfo && (
-                      <div className="text-xs text-blue-200/90 mt-1 font-medium leading-tight">
-                        {c.subInfo}
+                          "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border leading-none shrink-0 inline-flex items-center gap-1",
+                          c.statusBadgeClass
+                        )}>
+                          <span className={cn(
+                            "w-1 h-1 rounded-full",
+                            c.status === "Completed" ? "bg-emerald-400" :
+                              c.status === "Dropped" ? "bg-red-400" :
+                                "bg-blue-400 animate-pulse"
+                          )} />
+                          {c.status}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                      {c.subInfo && (
+                        <div className="text-[11px] text-blue-200/90 mt-0.5 font-medium leading-tight">
+                          {c.subInfo}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Desktop Right Side: Courses */}
-          <div className="hidden md:flex flex-col items-end gap-2.5 min-w-[240px] max-w-sm shrink-0">
-            {/* Courses shown in the right side of blue color tag in desktop view */}
-            {headerCourses && headerCourses.length > 0 && (
-              <div className="flex flex-col gap-2 w-full mt-1">
-                {headerCourses.map((c, idx) => (
-                  <div 
-                    key={idx} 
-                    className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-xl px-3.5 py-2 transition-all shadow-sm text-left w-full"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-bold text-white text-xs sm:text-sm tracking-tight truncate">
-                        {c.courseName}
-                      </span>
-                      <span className={cn(
-                        "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border leading-none shrink-0 inline-flex items-center gap-1",
-                        c.statusBadgeClass
-                      )}>
-                        <span className={cn(
-                          "w-1 h-1 rounded-full",
-                          c.status === "Completed" ? "bg-emerald-400" :
-                          c.status === "Dropped" ? "bg-red-400" :
-                          "bg-blue-400 animate-pulse"
-                        )} />
-                        {c.status}
-                      </span>
-                    </div>
-                    {c.subInfo && (
-                      <div className="text-[11px] text-blue-200/90 mt-0.5 font-medium leading-tight">
-                        {c.subInfo}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl"></div>
         </div>
-        
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl"></div>
-      </div>
 
-      {/* Navigation Cards Grid */}
-      <div className="no-print grid grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-        {[
-          { id: "PROFILE", label: "Profile", icon: User, color: "blue" },
-          { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
-          { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
-          { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
-          { id: "MARKS", label: "Marks", icon: FileText, color: "indigo" },
-          { id: "ALERTS", label: "Alerts", icon: Bell, color: "cyan" },
-          { id: "DOWNLOADS", label: "Downloads", icon: Download, color: "teal" },
-          { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
-          { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
-          { id: "AWARDS", label: "Awards", icon: Trophy, color: "yellow" },
-          { id: "ARTICLES", label: "Articles", icon: Newspaper, color: "purple" },
-          { id: "UPDATES", label: "Updates", icon: Megaphone, color: "pink" },
-        ].map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id || (item.id === "ALERTS" && activeTab === "NOTIFICATIONS");
-          
-          // Color mapping for all navigation items
-          const colorStyles = {
-            blue: { activeBorder: "border-blue-500", activeBg: "bg-blue-50/50 dark:bg-blue-900/10", iconActiveBg: "bg-blue-500", iconInactiveBg: "bg-blue-100 dark:bg-blue-900/20", iconInactiveText: "text-blue-600", labelActive: "text-blue-700 dark:text-blue-300", bottomBar: "bg-blue-500" },
-            emerald: { activeBorder: "border-emerald-500", activeBg: "bg-emerald-50/50 dark:bg-emerald-900/10", iconActiveBg: "bg-emerald-500", iconInactiveBg: "bg-emerald-100 dark:bg-emerald-900/20", iconInactiveText: "text-emerald-600", labelActive: "text-emerald-700 dark:text-emerald-300", bottomBar: "bg-emerald-500" },
-            amber: { activeBorder: "border-amber-500", activeBg: "bg-amber-50/50 dark:bg-amber-900/10", iconActiveBg: "bg-amber-500", iconInactiveBg: "bg-amber-100 dark:bg-amber-900/20", iconInactiveText: "text-amber-600", labelActive: "text-amber-700 dark:text-amber-300", bottomBar: "bg-amber-500" },
-            rose: { activeBorder: "border-rose-500", activeBg: "bg-rose-50/50 dark:bg-rose-900/10", iconActiveBg: "bg-rose-500", iconInactiveBg: "bg-rose-100 dark:bg-rose-900/20", iconInactiveText: "text-rose-600", labelActive: "text-rose-700 dark:text-rose-300", bottomBar: "bg-rose-500" },
-            indigo: { activeBorder: "border-indigo-500", activeBg: "bg-indigo-50/50 dark:bg-indigo-900/10", iconActiveBg: "bg-indigo-500", iconInactiveBg: "bg-indigo-100 dark:bg-indigo-900/20", iconInactiveText: "text-indigo-600", labelActive: "text-indigo-700 dark:text-indigo-300", bottomBar: "bg-indigo-500" },
-            orange: { activeBorder: "border-orange-500", activeBg: "bg-orange-50/50 dark:bg-orange-900/10", iconActiveBg: "bg-orange-500", iconInactiveBg: "bg-orange-100 dark:bg-orange-900/20", iconInactiveText: "text-orange-600", labelActive: "text-orange-700 dark:text-orange-300", bottomBar: "bg-orange-500" },
-            violet: { activeBorder: "border-violet-500", activeBg: "bg-violet-50/50 dark:bg-violet-900/10", iconActiveBg: "bg-violet-500", iconInactiveBg: "bg-violet-100 dark:bg-violet-900/20", iconInactiveText: "text-violet-600", labelActive: "text-violet-700 dark:text-violet-300", bottomBar: "bg-violet-500" },
-            cyan: { activeBorder: "border-cyan-500", activeBg: "bg-cyan-50/50 dark:bg-cyan-900/10", iconActiveBg: "bg-cyan-500", iconInactiveBg: "bg-cyan-100 dark:bg-cyan-900/20", iconInactiveText: "text-cyan-600", labelActive: "text-cyan-700 dark:text-cyan-300", bottomBar: "bg-cyan-500" },
-            teal: { activeBorder: "border-teal-500", activeBg: "bg-teal-50/50 dark:bg-teal-900/10", iconActiveBg: "bg-teal-500", iconInactiveBg: "bg-teal-100 dark:bg-teal-900/20", iconInactiveText: "text-teal-600", labelActive: "text-teal-700 dark:text-teal-300", bottomBar: "bg-teal-500" },
-            yellow: { activeBorder: "border-yellow-500", activeBg: "bg-yellow-50/50 dark:bg-yellow-900/10", iconActiveBg: "bg-yellow-500", iconInactiveBg: "bg-yellow-100 dark:bg-yellow-900/20", iconInactiveText: "text-yellow-600", labelActive: "text-yellow-700 dark:text-yellow-300", bottomBar: "bg-yellow-500" },
-            purple: { activeBorder: "border-purple-500", activeBg: "bg-purple-50/50 dark:bg-purple-900/10", iconActiveBg: "bg-purple-500", iconInactiveBg: "bg-purple-100 dark:bg-purple-900/20", iconInactiveText: "text-purple-600", labelActive: "text-purple-700 dark:text-purple-300", bottomBar: "bg-purple-500" },
+        {/* Navigation Cards Grid */}
+        <div className="no-print grid grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+          {[
+            { id: "PROFILE", label: "Profile", icon: User, color: "blue" },
+            { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
+            { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
+            { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
+            { id: "MARKS", label: "Marks", icon: FileText, color: "indigo" },
+            { id: "ALERTS", label: "Alerts", icon: Bell, color: "cyan" },
+            { id: "DOWNLOADS", label: "Downloads", icon: Download, color: "teal" },
+            { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
+            { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
+            { id: "AWARDS", label: "Awards", icon: Trophy, color: "yellow" },
+            { id: "ARTICLES", label: "Articles", icon: Newspaper, color: "purple" },
+            { id: "UPDATES", label: "Updates", icon: Megaphone, color: "pink" },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id || (item.id === "ALERTS" && activeTab === "NOTIFICATIONS");
 
-            pink: { activeBorder: "border-pink-500", activeBg: "bg-pink-50/50 dark:bg-pink-900/10", iconActiveBg: "bg-pink-500", iconInactiveBg: "bg-pink-100 dark:bg-pink-900/20", iconInactiveText: "text-pink-600", labelActive: "text-pink-700 dark:text-pink-300", bottomBar: "bg-pink-500" },
-          };
+            // Color mapping for all navigation items
+            const colorStyles = {
+              blue: { activeBorder: "border-blue-500", activeBg: "bg-blue-50/50 dark:bg-blue-900/10", iconActiveBg: "bg-blue-500", iconInactiveBg: "bg-blue-100 dark:bg-blue-900/20", iconInactiveText: "text-blue-600", labelActive: "text-blue-700 dark:text-blue-300", bottomBar: "bg-blue-500" },
+              emerald: { activeBorder: "border-emerald-500", activeBg: "bg-emerald-50/50 dark:bg-emerald-900/10", iconActiveBg: "bg-emerald-500", iconInactiveBg: "bg-emerald-100 dark:bg-emerald-900/20", iconInactiveText: "text-emerald-600", labelActive: "text-emerald-700 dark:text-emerald-300", bottomBar: "bg-emerald-500" },
+              amber: { activeBorder: "border-amber-500", activeBg: "bg-amber-50/50 dark:bg-amber-900/10", iconActiveBg: "bg-amber-500", iconInactiveBg: "bg-amber-100 dark:bg-amber-900/20", iconInactiveText: "text-amber-600", labelActive: "text-amber-700 dark:text-amber-300", bottomBar: "bg-amber-500" },
+              rose: { activeBorder: "border-rose-500", activeBg: "bg-rose-50/50 dark:bg-rose-900/10", iconActiveBg: "bg-rose-500", iconInactiveBg: "bg-rose-100 dark:bg-rose-900/20", iconInactiveText: "text-rose-600", labelActive: "text-rose-700 dark:text-rose-300", bottomBar: "bg-rose-500" },
+              indigo: { activeBorder: "border-indigo-500", activeBg: "bg-indigo-50/50 dark:bg-indigo-900/10", iconActiveBg: "bg-indigo-500", iconInactiveBg: "bg-indigo-100 dark:bg-indigo-900/20", iconInactiveText: "text-indigo-600", labelActive: "text-indigo-700 dark:text-indigo-300", bottomBar: "bg-indigo-500" },
+              orange: { activeBorder: "border-orange-500", activeBg: "bg-orange-50/50 dark:bg-orange-900/10", iconActiveBg: "bg-orange-500", iconInactiveBg: "bg-orange-100 dark:bg-orange-900/20", iconInactiveText: "text-orange-600", labelActive: "text-orange-700 dark:text-orange-300", bottomBar: "bg-orange-500" },
+              violet: { activeBorder: "border-violet-500", activeBg: "bg-violet-50/50 dark:bg-violet-900/10", iconActiveBg: "bg-violet-500", iconInactiveBg: "bg-violet-100 dark:bg-violet-900/20", iconInactiveText: "text-violet-600", labelActive: "text-violet-700 dark:text-violet-300", bottomBar: "bg-violet-500" },
+              cyan: { activeBorder: "border-cyan-500", activeBg: "bg-cyan-50/50 dark:bg-cyan-900/10", iconActiveBg: "bg-cyan-500", iconInactiveBg: "bg-cyan-100 dark:bg-cyan-900/20", iconInactiveText: "text-cyan-600", labelActive: "text-cyan-700 dark:text-cyan-300", bottomBar: "bg-cyan-500" },
+              teal: { activeBorder: "border-teal-500", activeBg: "bg-teal-50/50 dark:bg-teal-900/10", iconActiveBg: "bg-teal-500", iconInactiveBg: "bg-teal-100 dark:bg-teal-900/20", iconInactiveText: "text-teal-600", labelActive: "text-teal-700 dark:text-teal-300", bottomBar: "bg-teal-500" },
+              yellow: { activeBorder: "border-yellow-500", activeBg: "bg-yellow-50/50 dark:bg-yellow-900/10", iconActiveBg: "bg-yellow-500", iconInactiveBg: "bg-yellow-100 dark:bg-yellow-900/20", iconInactiveText: "text-yellow-600", labelActive: "text-yellow-700 dark:text-yellow-300", bottomBar: "bg-yellow-500" },
+              purple: { activeBorder: "border-purple-500", activeBg: "bg-purple-50/50 dark:bg-purple-900/10", iconActiveBg: "bg-purple-500", iconInactiveBg: "bg-purple-100 dark:bg-purple-900/20", iconInactiveText: "text-purple-600", labelActive: "text-purple-700 dark:text-purple-300", bottomBar: "bg-purple-500" },
 
-          const s = colorStyles[item.color];
+              pink: { activeBorder: "border-pink-500", activeBg: "bg-pink-50/50 dark:bg-pink-900/10", iconActiveBg: "bg-pink-500", iconInactiveBg: "bg-pink-100 dark:bg-pink-900/20", iconInactiveText: "text-pink-600", labelActive: "text-pink-700 dark:text-pink-300", bottomBar: "bg-pink-500" },
+            };
 
-          return (
-            <Card 
-              key={item.id}
-              className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden w-full min-w-0 ${
-                isActive 
-                  ? `${s.activeBorder} ${s.activeBg}` 
+            const s = colorStyles[item.color];
+
+            return (
+              <Card
+                key={item.id}
+                className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden w-full min-w-0 ${isActive
+                  ? `${s.activeBorder} ${s.activeBg}`
                   : "border-transparent bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700"
-              }`}
-              onClick={() => handleTabChange(item.id)}
-            >
-              <CardContent className="p-2 sm:p-3 md:p-4 flex flex-col items-center justify-center text-center gap-1.5 sm:gap-2 md:gap-3 w-full min-w-0">
-                <div className={`p-2 sm:p-2.5 md:p-3 rounded-xl transition-all duration-300 shrink-0 ${
-                  isActive 
-                    ? `${s.iconActiveBg} text-white shadow-lg scale-110` 
-                    : `${s.iconInactiveBg} ${s.iconInactiveText} group-hover:scale-110`
-                }`}>
-                  <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-                </div>
-                <span className={`text-[11px] sm:text-xs md:text-sm font-bold tracking-tight sm:tracking-wide text-center break-words w-full max-w-full leading-tight [overflow-wrap:anywhere] ${
-                  isActive ? s.labelActive : "text-slate-600 dark:text-slate-400"
-                }`}>
-                  {item.label}
-                </span>
-                {isActive && (
-                  <div className={`absolute bottom-0 left-0 w-full h-1 ${s.bottomBar}`}></div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="space-y-6" ref={detailsRef}>
-        {isLoading && !initialData ? (
-          <Card className="min-h-[400px] flex flex-col items-center justify-center p-12 bg-white/50 backdrop-blur-sm border-dashed">
-            <div className="relative">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-              <div className="absolute inset-0 blur-xl bg-blue-500/20 rounded-full animate-pulse"></div>
-            </div>
-            <p className="mt-6 text-base font-medium text-slate-600 animate-pulse tracking-wide font-normal not-italic">
-              Loading your personalized dashboard...
-            </p>
-          </Card>
-        ) : (
-          <>
-            {/* Current inline profile header for Print only */}
-            <Card className="hidden print:block bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900 shadow-none card-print-break mb-6">
-          <CardContent className="p-5 flex items-center gap-6">
-            <Avatar className="h-24 w-24 rounded-lg flex-shrink-0">
-              <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} />
-              <AvatarFallback>{currentUser?.name?.[0]}</AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 flex flex-col justify-center">
-              <h2 className="text-xl font-bold mb-0.5">{currentUser?.name}</h2>
-              
-              <div className="grid grid-cols-[60px_10px_1fr] items-center text-sm text-muted-foreground">
-                <span className="font-medium text-foreground text-sm">ID</span>
-                <span className="text-sm">:</span>
-                <span className="text-sm">{currentUser?._id}</span>
-                
-                {currentUser?.studentSpecificField?.status === "Active" && (
-                  <>
-                    <span className="font-medium text-foreground text-sm">Class</span>
-                    <span className="text-sm">:</span>
-                    <span className="text-sm">{className || "N/A"}</span>
-                  </>
-                )}
-                
-                <span className="font-medium text-foreground text-sm">Batch</span>
-                <span className="text-sm">:</span>
-                <span className="text-sm">{batchName || "N/A"}</span>
-                
-                <span className="font-medium text-foreground text-sm">Status</span>
-                <span className="text-sm">:</span>
-                <div className="flex">
-                  <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${getStatusClass(currentUser?.studentSpecificField?.status)}`}>
-                    {currentUser?.studentSpecificField?.status}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-      {activeTab === "PROFILE" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-          {/* Personal Information */}
-          <Card className="card-print-break h-full shadow-sm">
-          <CardHeader>
-            <CardTitle>Personal Info</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
-            <ProfileField
-              label="Date of Birth"
-              value={formatDateShort(currentUser?.dateOfBirth)}
-            />
-            <ProfileField
-              label="Blood Group"
-              value={currentUser?.studentSpecificField?.bloodGroup || currentUser?.bloodGroup}
-            />
-            <ProfileField
-              label="Aadhar No"
-              value={currentUser?.studentSpecificField?.aadharNo || currentUser?.aadharNo}
-            />
-            {currentUser?.address && (
-              <>
-                <div className="text-sm font-medium text-muted-foreground py-1">
-                  Address
-                </div>
-                <div className="text-sm px-1 py-1">:</div>
-                <div className="text-sm text-foreground py-1">
-                  {currentUser.address.houseName && (
-                    <div>{currentUser.address.houseName}</div>
-                  )}
-                  {(currentUser.address.place || currentUser.address.postOffice) && (
-                    <div>
-                      {[currentUser.address.place, currentUser.address.postOffice]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </div>
-                  )}
-                  {(currentUser.address.district ||
-                    currentUser.address.state ||
-                    currentUser.address.pin) && (
-                      <div>
-                        {[currentUser.address.district, currentUser.address.state]
-                          .filter(Boolean)
-                          .join(", ")}
-                        {currentUser.address.pin && ` - ${currentUser.address.pin}`}
-                      </div>
-                    )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-          {/* Academic Info */}
-          <Card className="card-print-break h-full shadow-sm">
-          <CardHeader>
-            <CardTitle>Academic Info</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
-            <ProfileField label="Batch" value={batchName} />
-            <ProfileField
-              label="Admission Class"
-              value={admissionClassName}
-            />
-            <ProfileField
-              label="Admission Date"
-              value={formatDateShort(
-                currentUser?.studentSpecificField?.admissionDate || currentUser?.admissionDate
-              )}
-            />
-            <ProfileField
-              label="Islamic Qualif."
-              value={currentUser?.studentSpecificField?.islamicQualification || currentUser?.islamicQualification}
-            />
-            <ProfileField
-              label="Islamic Course"
-              value={ongoingIslamicCoursesDisplay}
-            />
-            <ProfileField
-              label="Academic Qualif."
-              value={currentUser?.studentSpecificField?.academicQualification || currentUser?.academicQualification}
-            />
-            <ProfileField
-              label="Academic Course"
-              value={ongoingAcademicCoursesDisplay}
-            />
-            <ProfileField
-              label="Graduated Year"
-              value={currentUser?.studentSpecificField?.graduatedYear || currentUser?.graduatedYear}
-            />
-            {currentUser?.studentSpecificField?.status === "Dropped Out" && (
-              <>
-                <ProfileField
-                  label="Dropout Date"
-                  value={formatDateShort(currentUser?.studentSpecificField?.droppedOutDate)}
-                />
-                <ProfileField
-                  label="Dropout Class"
-                  value={classes?.find(c => c._id === currentUser?.studentSpecificField?.droppedOutClass)?.name || currentUser?.studentSpecificField?.droppedOutClass}
-                />
-                <ProfileField
-                  label="Dropout Reason"
-                  value={currentUser?.studentSpecificField?.droppedOutReason}
-                />
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-          {/* Contact Info */}
-          <Card className="card-print-break h-full shadow-sm">
-          <CardHeader>
-            <CardTitle>Contact Info</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
-            <ProfileField label="Email" value={currentUser?.email} />
-            <ProfileField label="Contact No" value={currentUser?.contactNumber} />
-            <ProfileField
-              label="Alt. Contact"
-              value={currentUser?.alternativeNumber}
-            />
-            <ProfileField
-              label="Guardian"
-              value={currentUser?.studentSpecificField?.guardianName || currentUser?.guardianName}
-            />
-            <ProfileField
-              label="G. Contact"
-              value={currentUser?.studentSpecificField?.guardianContactNumber || currentUser?.guardianContactNumber}
-            />
-            <ProfileField
-              label="G. Alt. Contact"
-              value={currentUser?.studentSpecificField?.guardianAlternativeNumber || currentUser?.guardianAlternativeNumber}
-            />
-          </CardContent>
-        </Card>
-
-        {showKinship && (currentUser?.studentSpecificField?.familyDetails?.length > 0 || currentUser?.familyOtherDetails) && (
-          <Card className="card-print-break shadow-sm col-span-full mt-2">
-            <CardHeader className="bg-muted/10 border-b py-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Kinship Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {currentUser?.studentSpecificField?.familyDetails?.length > 0 && (
-                <div className="overflow-x-auto w-full min-w-0">
-                  <Table className="min-w-[550px] w-full">
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="w-16 text-center">Sl.No</TableHead>
-                        <TableHead>Position</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="text-center">Age</TableHead>
-                        <TableHead>Education</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Mobile</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {currentUser.studentSpecificField.familyDetails.map((member, index) => (
-                        <TableRow key={index} className="hover:bg-muted/30 transition-colors">
-                          <TableCell className="text-center text-muted-foreground font-medium">{index + 1}</TableCell>
-                          <TableCell className="font-semibold">{member.position}</TableCell>
-                          <TableCell className="uppercase text-blue-600 font-medium">{member.name}</TableCell>
-                          <TableCell className="text-center">{member.age || "-"}</TableCell>
-                          <TableCell>{member.education || "-"}</TableCell>
-                          <TableCell>{member.status || "-"}</TableCell>
-                          <TableCell className="whitespace-nowrap font-mono text-xs">{member.mobileNumber || "-"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-              {currentUser?.familyOtherDetails && (
-                <div className="p-4 bg-muted/5 border-t">
-                  <h4 className="text-xs font-bold mb-2 flex items-center gap-2 text-muted-foreground uppercase tracking-widest">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    General Notes
-                  </h4>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
-                    {currentUser.familyOtherDetails}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-      )}
-
-      {activeTab === "FINANCE" && (
-        <div className="space-y-6">
-        <Card className="bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900 card-print-break shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
-              <Clock className="h-5 w-5" />
-              Pending Transactions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-6 pt-0">
-            <div className="max-h-[400px] overflow-auto rounded-md border min-h-[100px] w-full min-w-0">
-              {fundsLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-                  <span className="ml-2 text-sm text-muted-foreground">Loading financial records...</span>
-                </div>
-              ) : displayFunds && displayFunds.length > 0 ? (
-                <Table className="w-full">
-                  <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                    <TableRow>
-                      <TableHead className="w-10 sm:w-14 py-2 px-1.5 sm:px-3 text-center whitespace-nowrap text-xs sm:text-sm">#</TableHead>
-                      <TableHead className="py-2 px-2 sm:px-4 text-xs sm:text-sm">Fund Name</TableHead>
-                      <TableHead className="py-2 px-2 sm:px-4 text-right whitespace-nowrap w-24 sm:w-32 text-xs sm:text-sm">Balance</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {displayFunds.map((item, index) => (
-                      <TableRow key={index} className="group hover:bg-muted/30 transition-colors">
-                        <TableCell className="py-2 px-1.5 sm:px-3 text-center text-muted-foreground font-medium text-xs sm:text-sm">{index + 1}</TableCell>
-                        <TableCell className="py-2 px-2 sm:px-4">
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 break-words">{item.label}</span>
-                            {item.subLabel && <span className="text-[9px] sm:text-[10px] text-muted-foreground uppercase break-words">{item.subLabel}</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell 
-                          className={`py-2 px-2 sm:px-4 text-right font-bold text-xs sm:text-sm cursor-pointer hover:underline decoration-dotted whitespace-nowrap ${item.value < 0 ? 'text-red-600' : 'text-green-600'}`}
-                          onClick={() => {
-                            if (item.isCoupon) {
-                              setIsCouponModalOpen(true);
-                            } else if (item.isInteractive) {
-                              setSelectedStandardFund(item);
-                              setIsStandardModalOpen(true);
-                            }
-                          }}
-                        >
-                          {(item.value || 0).toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {/* Total Summary Row */}
-                    <TableRow className="bg-muted/40 font-bold border-t-2 border-muted hover:bg-muted/40">
-                      <TableCell colSpan={2} className="py-2.5 sm:py-3 px-2 sm:px-4 text-emerald-800 dark:text-emerald-300 uppercase tracking-wider text-[11px] sm:text-xs">
-                        Total Pending Balance
-                      </TableCell>
-                      <TableCell className={`py-2.5 sm:py-3 px-2 sm:px-4 text-right text-sm sm:text-base whitespace-nowrap ${totalPending < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {(totalPending || 0).toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-                   <Clock className="h-8 w-8 opacity-20" />
-                   <p className="text-sm font-normal not-italic">No pending transactions found.</p>
-                </div>
-              )}
-            </div>
-
-              {/* Standard Fund Details Modal */}
-              <Dialog open={isStandardModalOpen} onOpenChange={setIsStandardModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto [&>button.absolute]:hidden p-0 gap-0">
-                  <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-3 sm:px-5 py-3 sm:py-4 border-b space-y-0 bg-background sticky top-0 z-20">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <IndianRupee className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 text-left space-y-0.5">
-                      <DialogTitle className="text-xl font-bold m-0">
-                        {selectedStandardFund?.label} Details
-                      </DialogTitle>
-                      <DialogDescription className="m-0">
-                        Fund collection breakdown and transaction history
-                      </DialogDescription>
-                    </div>
-                    <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
-                      <X className="h-5 w-5" />
-                    </DialogClose>
-                  </DialogHeader>
-                  <div className="p-3 sm:p-5 space-y-5 sm:space-y-8 w-full min-w-0 overflow-hidden">
-                    {/* Collection Breakdown */}
-                    <div>
-                      <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Collection Breakdown
-                      </h3>
-                      <div className="w-full min-w-0 rounded-md border overflow-hidden">
-                        <Table className="w-full table-fixed">
-                          <TableHeader className="bg-muted/50">
-                            <TableRow>
-                              <TableHead className="py-2 px-2 sm:px-3 text-xs w-[60%]">Role Holder</TableHead>
-                              <TableHead className="py-2 px-2 sm:px-3 text-right text-xs w-[40%]">Balance</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(selectedStandardFund?.records || []).map((record, i) => (
-                              <TableRow key={i}>
-                                <TableCell className="py-2 px-2 sm:px-3 text-xs break-words">{record.holder}</TableCell>
-                                <TableCell className={`py-2 px-2 sm:px-3 text-right font-bold text-xs whitespace-nowrap ${(record.value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                  {(record.value || 0).toFixed(2)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-
-                    {/* Full Transaction History */}
-                    <div>
-                      <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Fund History
-                      </h3>
-                      <div className="rounded-md border w-full min-w-0 overflow-hidden">
-                        <Table className="w-full table-fixed">
-                          <TableHeader className="bg-muted/50">
-                            <TableRow>
-                              <TableHead className="py-2 px-1.5 sm:px-3 text-xs w-[32%] sm:w-[30%]">Date</TableHead>
-                              <TableHead className="py-2 px-1.5 sm:px-3 text-right text-xs w-[38%] sm:w-[40%]">Transactions</TableHead>
-                              <TableHead className="py-2 px-1.5 sm:px-3 text-right text-xs w-[30%] sm:w-[30%]">Balance</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {selectedStandardFund?.allTransactions && selectedStandardFund.allTransactions.length > 0 ? (
-                              [...selectedStandardFund.allTransactions]
-                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Newest first for display
-                                .map((t, idx) => (
-                                  <TableRow key={idx}>
-                                    <TableCell className="py-2 px-1.5 sm:px-3 text-xs leading-tight">
-                                      <div className="flex flex-col min-w-0">
-                                        <span className="font-medium whitespace-nowrap text-[11px] sm:text-xs">{formatDateShort(t.date)}</span>
-                                        <span className="text-muted-foreground text-[9px] sm:text-[10px] whitespace-nowrap">
-                                          {t.date && !isNaN(new Date(t.date).getTime()) ? new Date(t.date).toLocaleTimeString("en-US", {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                            hour12: true,
-                                          }) : ""}
-                                        </span>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className={`py-2 px-1.5 sm:px-3 text-xs text-right font-bold ${t.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
-                                      <div className="flex flex-col items-end gap-0.5 min-w-0">
-                                        <span className="text-[11px] sm:text-xs whitespace-nowrap">{t.type === 'Withdrawal' ? '-' : '+'}{(t.amount || 0).toFixed(2)}</span>
-                                        {t.note && (
-                                          <span className="text-[9px] sm:text-[10px] font-normal text-muted-foreground leading-tight text-right break-words line-clamp-2 max-w-full">
-                                            {t.note}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className={`py-2 px-1.5 sm:px-3 text-xs text-right font-bold whitespace-nowrap ${t.calculatedBalance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                      <span className="text-[11px] sm:text-xs">{t.calculatedBalance?.toFixed(2) || "0.00"}</span>
-                                    </TableCell>
-                                  </TableRow>
-                                ))
-                            ) : (
-                              <TableRow>
-                                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground text-xs font-normal not-italic">
-                                  No transaction history found for this fund.
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              {/* Coupon Details Modal */}
-              <Dialog open={isCouponModalOpen} onOpenChange={setIsCouponModalOpen}>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto [&>button.absolute]:hidden p-0 gap-0">
-                  <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background sticky top-0 z-20">
-                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                      <Wallet className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div className="flex-1 text-left space-y-0.5">
-                      <DialogTitle className="text-xl font-bold m-0">
-                        Coupon Fund Details
-                      </DialogTitle>
-                      <DialogDescription className="m-0">
-                        Coupon payment history and outstanding balances
-                      </DialogDescription>
-                    </div>
-                    <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
-                      <X className="h-5 w-5" />
-                    </DialogClose>
-                  </DialogHeader>
-                  <div className="p-4 overflow-x-auto w-full min-w-0">
-                    <Table className="min-w-[650px] w-full">
-                      <TableHeader className="bg-muted/50">
-                        <TableRow>
-                          <TableHead className="py-2 w-[60px]">Sl No</TableHead>
-                          <TableHead className="py-2">Year</TableHead>
-                          <TableHead className="py-2">Coupon No.</TableHead>
-                          <TableHead className="py-2 text-right">Fund</TableHead>
-                          <TableHead className="py-2 text-right">Total Paid</TableHead>
-                          <TableHead className="py-2 text-right">Balance</TableHead>
-                          <TableHead className="py-2">Payment History</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {couponDetails.map((coupon, index) => {
-                          const paid = (coupon.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-                          const balance = (coupon.couponAmount || 0) - paid;
-                          return (
-                            <TableRow key={coupon._id} className="align-top">
-                              <TableCell className="py-3 text-muted-foreground">{index + 1}</TableCell>
-                              <TableCell className="py-3 font-bold text-sm">
-                                {coupon.academicYear}
-                              </TableCell>
-                              <TableCell className="py-3 text-sm">
-                                {coupon.couponNumber || "N/A"}
-                              </TableCell>
-                              <TableCell className="py-3 text-right text-sm">₹{(coupon.couponAmount || 0).toFixed(2)}</TableCell>
-                              <TableCell className="py-3 text-right text-sm text-green-600">₹{(paid || 0).toFixed(2)}</TableCell>
-                              <TableCell className="py-3 text-right font-bold text-orange-600 text-sm">
-                                ₹{(balance || 0).toFixed(2)}
-                              </TableCell>
-                              <TableCell className="py-2">
-                                <div className="space-y-1">
-                                  {coupon.payments && coupon.payments.length > 0 ? (
-                                    coupon.payments.map((p, pIdx) => (
-                                      <div key={pIdx} className="flex items-center justify-between gap-4 text-[10px] bg-muted/30 px-2 py-1 rounded border border-muted/50">
-                                        <span className="text-muted-foreground">{formatDateShort(p.date)}</span>
-                                        <span className="font-bold text-green-700">₹{(p.amount || 0).toFixed(2)}</span>
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <span className="text-[10px] text-muted-foreground font-normal not-italic">No payments recorded</span>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                        {couponDetails.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
-                              No coupon records found.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-          </CardContent>
-        </Card>
-
-
-      </div>
-      )}
-
-      {activeTab === "LIBRARY" && (
-        <Card className="lg:col-span-2 print:col-span-2 card-print-break shadow-sm">
-          <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4 pb-2 border-b mb-4 relative">
-            <div className="flex items-center bg-muted rounded-lg p-1 w-full md:w-auto order-2 md:order-1">
-              {isActiveStudent && (
-                <Button
-                  variant={librarySubTab === "BOOKS" ? "secondary" : "ghost"}
-                  size="sm"
-                  className={`flex-1 md:flex-none md:w-28 h-8 rounded-md transition-all ${librarySubTab === "BOOKS" ? "bg-white shadow-sm font-bold" : ""}`}
-                  onClick={() => setLibrarySubTab("BOOKS")}
-                >
-                  <LayoutGrid className="h-4 w-4 mr-2" />
-                  Books
-                </Button>
-              )}
-              <Button
-                variant={librarySubTab === "HISTORY" ? "secondary" : "ghost"}
-                size="sm"
-                className={`flex-1 md:flex-none md:w-28 h-8 rounded-md transition-all ${librarySubTab === "HISTORY" ? "bg-white shadow-sm font-bold" : ""}`}
-                onClick={() => setLibrarySubTab("HISTORY")}
+                  }`}
+                onClick={() => handleTabChange(item.id)}
               >
-                <List className="h-4 w-4 mr-2" />
-                History
-              </Button>
-            </div>
-            <CardTitle className="flex items-center gap-2 text-center md:absolute md:left-1/2 md:-translate-x-1/2 order-1 md:order-2">
-              <BookOpen className="h-5 w-5 text-amber-500" />
-              Library Services
-            </CardTitle>
-            <div className="hidden md:block w-56 order-3" /> {/* Spacer to balance the left buttons */}
-          </CardHeader>
-          <CardContent className="pt-2">
-            {librarySubTab === "BOOKS" && isActiveStudent ? (
-              <div className="space-y-4">
-                {libraryBooksLoading ? (
-                  <div className="flex items-center justify-center py-20">
-                    <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+                <CardContent className="p-2 sm:p-3 md:p-4 flex flex-col items-center justify-center text-center gap-1.5 sm:gap-2 md:gap-3 w-full min-w-0">
+                  <div className={`p-2 sm:p-2.5 md:p-3 rounded-xl transition-all duration-300 shrink-0 ${isActive
+                    ? `${s.iconActiveBg} text-white shadow-lg scale-110`
+                    : `${s.iconInactiveBg} ${s.iconInactiveText} group-hover:scale-110`
+                    }`}>
+                    <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
-                ) : (
-                  <TableComponent
-                    data={libraryBooks}
-                    getRowId={(row) => row._id}
-                    tableHeight="calc(100vh - 450px)"
-                    hidePrintBtn={true}
-                    hideColumnManagement={true}
-                    enableGrid={true}
-                    defaultViewMode="grid"
-                    gridColsClass="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    hideViewToggle={true}
-                    inlineFilters={true}
-                    requireFilterToRenderData={true}
-                    columnsConfig={[
-                      { accessorKey: "id", header: "Book ID", sortingFn: "alphanumeric" },
-                      { accessorKey: "name", header: "Book Name" },
-                      { accessorKey: "author", header: "Author" },
-                      { 
-                        accessorKey: "category", 
-                        header: "Category",
-                        filterFn: (row, columnId, filterValue) => {
-                            if (!filterValue || filterValue.length === 0) return true;
-                            const rowValue = normalizeCategoryName(row.getValue(columnId));
-                            const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
-                            return filterArr.some(val => normalizeCategoryName(val) === rowValue);
-                        }
-                      },
-                      { 
-                        accessorKey: "language", 
-                        header: "Language",
-                        filterFn: (row, columnId, filterValue) => {
-                            if (!filterValue || filterValue.length === 0) return true;
-                            const rowValue = row.getValue(columnId);
-                            const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
-                            return filterArr.some(val => String(val).toLowerCase() === String(rowValue).toLowerCase());
-                        }
-                      },
-                      { accessorKey: "status", header: "Status" },
-                    ]}
-                    filterConfig={[
-                      {
-                        id: "category",
-                        label: "Category",
-                        inputType: "multiSelect",
-                        options: Array.from(new Set(libraryBooks.map(b => normalizeCategoryName(b.category)))).filter(Boolean).sort().map(c => ({ value: c, label: c }))
-                      },
-                      {
-                        id: "language",
-                        label: "Language",
-                        inputType: "multiSelect",
-                        options: Array.from(new Set(libraryBooks.map(b => typeof b.language === 'string' ? b.language.toUpperCase() : b.language))).filter(Boolean).sort().map(l => ({ value: l, label: l }))
-                      },
-                      {
-                        id: "status",
-                        label: "Status",
-                        inputType: "multiSelect",
-                        options: [
-                          { value: "Available", label: "Available" },
-                          { value: "Rented", label: "Rented" },
-                        ]
-                      }
-                    ]}
-                    renderGridItem={(row) => {
-                      const book = row.original;
-                      return (
-                        <Card className="h-full hover:shadow-md transition-shadow overflow-hidden border border-border/50">
-                          <CardContent className="p-4 flex gap-4 items-start">
-                            <div className="flex-shrink-0 flex flex-col items-center gap-1.5 w-[72px]">
-                              <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md flex items-center justify-center w-full aspect-square border border-border/50">
-                                <BookOpen className="h-6 w-6 text-muted-foreground" />
-                              </div>
-                              <div className="text-center w-full space-y-1">
-                                <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/80 py-0.5 rounded border truncate">ID: {book.id}</div>
-                                <div className={`text-[8px] px-1 py-0.5 mt-1.5 rounded-full font-bold uppercase tracking-wider inline-block w-full ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
-                                  {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
-                                </div>
-                                <div className="font-bold text-[11px] text-foreground">₹{book.price?.toFixed(2) || "0.00"}</div>
-                              </div>
-                            </div>
-                            <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
-                              <div className="flex-1">
-                                <h3 className="font-bold text-base leading-tight break-words mb-1 text-foreground book-text-font" title={book.name}>{book.name}</h3>
-                                <div className="text-xs text-muted-foreground truncate -mt-1" title={book.author}>Author: <span className="text-foreground font-medium book-text-font leading-none">{book.author}</span></div>
-                                {book.publication && <div className="text-xs text-muted-foreground truncate -mt-1" title={book.publication}>Pub: <span className="text-foreground book-text-font leading-none">{book.publication}</span></div>}
-                                <div className="text-[13px] mt-0.5 flex flex-wrap gap-1">
-                                  <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground book-text-font leading-none">{book.language}</span>
-                                  <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground book-text-font leading-none">{book.category}</span>
-                                </div>
-                              </div>
-                              <div className="pt-1 flex flex-col gap-2 mt-auto">
-                                <div className="flex items-center gap-2 w-full">
-                                  {/* Barcode in the same row */}
-                                  <div className="flex-1 flex justify-center items-center h-7 overflow-hidden bg-white rounded border border-border/50 shadow-sm p-0.5">
-                                    {book.id && (
-                                      <Barcode
-                                        value={String(book.id)}
-                                        width={0.6}
-                                        height={20}
-                                        fontSize={0}
-                                        margin={0}
-                                        displayValue={false}
-                                        background="transparent"
-                                      />
-                                    )}
-                                  </div>
+                  <span className={`text-[11px] sm:text-xs md:text-sm font-bold tracking-tight sm:tracking-wide text-center break-words w-full max-w-full leading-tight [overflow-wrap:anywhere] ${isActive ? s.labelActive : "text-slate-600 dark:text-slate-400"
+                    }`}>
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <div className={`absolute bottom-0 left-0 w-full h-1 ${s.bottomBar}`}></div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-                                  <div className="flex-1">
-                                    {(() => {
-                                      const existingReq = pendingRequests.find(r => r.bookId?._id === book._id || r.bookId === book._id);
-                                      if (existingReq) {
-                                        return (
-                                          <Button 
-                                            size="sm" 
-                                            className="w-full h-7 text-[10px] font-bold bg-red-600 hover:bg-red-700 text-white"
-                                            onClick={() => handleCancelRequest(existingReq._id)}
-                                          >
-                                            Cancel Request
-                                          </Button>
-                                        );
-                                      } else if (book.status !== "Available") {
-                                        return (
-                                          <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold bg-muted text-muted-foreground">
-                                            Not Available
-                                          </Button>
-                                        );
-                                      } else {
-                                        return (
-                                          <Button 
-                                            size="sm" 
-                                            className="w-full h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                                            onClick={() => handleRequestBook(book)}
-                                          >
-                                            Request
-                                          </Button>
-                                        );
-                                      }
-                                    })()}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    }}
-                  />
-                )}
+        <div className="space-y-6" ref={detailsRef}>
+          {isLoading && !initialData ? (
+            <Card className="min-h-[400px] flex flex-col items-center justify-center p-12 bg-white/50 backdrop-blur-sm border-dashed">
+              <div className="relative">
+                <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+                <div className="absolute inset-0 blur-xl bg-blue-500/20 rounded-full animate-pulse"></div>
               </div>
-            ) : (
-              <div className="w-full min-w-0">
-                {rentalsLoading ? (
-                  <div className="flex items-center justify-center py-20">
-                    <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+              <p className="mt-6 text-base font-medium text-slate-600 animate-pulse tracking-wide font-normal not-italic">
+                Loading your personalized dashboard...
+              </p>
+            </Card>
+          ) : (
+            <>
+              {/* Current inline profile header for Print only */}
+              <Card className="hidden print:block bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900 shadow-none card-print-break mb-6">
+                <CardContent className="p-5 flex items-center gap-6">
+                  <Avatar className="h-24 w-24 rounded-lg flex-shrink-0">
+                    <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} />
+                    <AvatarFallback>{currentUser?.name?.[0]}</AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex-1 flex flex-col justify-center">
+                    <h2 className="text-xl font-bold mb-0.5">{currentUser?.name}</h2>
+
+                    <div className="grid grid-cols-[60px_10px_1fr] items-center text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground text-sm">ID</span>
+                      <span className="text-sm">:</span>
+                      <span className="text-sm">{currentUser?._id}</span>
+
+                      {currentUser?.studentSpecificField?.status === "Active" && (
+                        <>
+                          <span className="font-medium text-foreground text-sm">Class</span>
+                          <span className="text-sm">:</span>
+                          <span className="text-sm">{className || "N/A"}</span>
+                        </>
+                      )}
+
+                      <span className="font-medium text-foreground text-sm">Batch</span>
+                      <span className="text-sm">:</span>
+                      <span className="text-sm">{batchName || "N/A"}</span>
+
+                      <span className="font-medium text-foreground text-sm">Status</span>
+                      <span className="text-sm">:</span>
+                      <div className="flex">
+                        <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${getStatusClass(currentUser?.studentSpecificField?.status)}`}>
+                          {currentUser?.studentSpecificField?.status}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                ) : rentalHistory && rentalHistory.length > 0 ? (
-                  <div className="rounded-md border overflow-auto max-h-[500px] w-full min-w-0">
-                    <Table className="min-w-[500px] w-full">
-                      <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                        <TableRow>
-                          <TableHead className="w-[60px] whitespace-nowrap">Sl No</TableHead>
-                          <TableHead className="min-w-[180px]">Book Name</TableHead>
-                          <TableHead className="whitespace-nowrap min-w-[120px]">Rented Date</TableHead>
-                          <TableHead className="whitespace-nowrap min-w-[120px]">Returned Date</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {rentalHistory.map((rental, index) => (
-                          <TableRow key={rental._id}>
-                            <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                            <TableCell className="font-medium">
-                              {rental.bookId?.name || "Unknown Book"}
+                </CardContent>
+              </Card>
+
+              {activeTab === "PROFILE" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+                  {/* Personal Information */}
+                  <Card className="card-print-break h-full shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-base font-bold flex items-center justify-between">
+                        <span>Personal Info</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs font-semibold text-blue-600 hover:text-blue-700 p-0"
+                          onClick={() => setIsProfileSummaryOpen(true)}
+                        >
+                          View Full Sheet
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
+                      <ProfileField label="Full Name" value={currentUser?.name} />
+                      <ProfileField label="Student ID" value={currentUser?._id} isBold={true} />
+                      <ProfileField
+                        label="Admission No"
+                        value={currentUser?.studentSpecificField?.admissionNumber || currentUser?.admissionNumber}
+                      />
+                      <ProfileField
+                        label="Date of Birth"
+                        value={formatDateShort(currentUser?.dateOfBirth)}
+                      />
+                      <ProfileField
+                        label="Blood Group"
+                        value={currentUser?.studentSpecificField?.bloodGroup || currentUser?.bloodGroup}
+                      />
+                      <ProfileField
+                        label="Aadhar No"
+                        value={currentUser?.studentSpecificField?.aadharNo || currentUser?.aadharNo}
+                      />
+                      {(currentUser?.address || currentUser?.place || currentUser?.district) && (
+                        <>
+                          <div className="text-sm font-medium text-muted-foreground py-1">
+                            Address
+                          </div>
+                          <div className="text-sm px-1 py-1">:</div>
+                          <div className="text-sm text-foreground py-1 space-y-0.5">
+                            {(currentUser?.address?.houseName || currentUser?.houseName) && (
+                              <div>{currentUser?.address?.houseName || currentUser?.houseName}</div>
+                            )}
+                            {((currentUser?.address?.place || currentUser?.place) || (currentUser?.address?.postOffice || currentUser?.postOffice)) && (
+                              <div>
+                                {[currentUser?.address?.place || currentUser?.place, currentUser?.address?.postOffice || currentUser?.postOffice]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </div>
+                            )}
+                            {(currentUser?.address?.locationPoint || currentUser?.locationPoint) && (
                               <div className="text-xs text-muted-foreground">
-                                {rental.bookId?.id || "N/A"}
+                                Point: {currentUser?.address?.locationPoint || currentUser?.locationPoint}
                               </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3 text-muted-foreground" />
-                                {formatDateWithoutDay(rental.rentedDate)}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {rental.receivedDate ? (
-                                <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                  <Clock className="h-3 w-3" />
-                                  {formatDateWithoutDay(rental.receivedDate)}
+                            )}
+                            {((currentUser?.address?.district || currentUser?.district) ||
+                              (currentUser?.address?.state || currentUser?.state) ||
+                              (currentUser?.address?.pin || currentUser?.pin)) && (
+                                <div>
+                                  {[currentUser?.address?.district || currentUser?.district, currentUser?.address?.state || currentUser?.state]
+                                    .filter(Boolean)
+                                    .join(", ")}
+                                  {(currentUser?.address?.pin || currentUser?.pin) && ` - ${currentUser?.address?.pin || currentUser?.pin}`}
                                 </div>
-                              ) : (
-                                <span className="text-orange-600 dark:text-orange-400 font-medium">
-                                  Currently Reading
-                                </span>
                               )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center py-20 text-muted-foreground">
-                    <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                    <p>No book rental history found.</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
 
-      {activeTab === "MARKS" && (
-        <div className="grid grid-cols-1 gap-5 pt-5 print-stack-vertical">
-          <Card className="flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-indigo-500" />
-                Exam Marks
-              </CardTitle>
-            </div>
-            {marks && marks.length > 0 && (
-              <div className="no-print">
-                <Select onValueChange={setSelectedExamId} value={selectedExamId}>
-                  <SelectTrigger className="w-[180px] h-8 text-xs">
-                    <SelectValue placeholder="Select Exam" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Exams</SelectItem>
-                    {marks.map((exam) => (
-                      <SelectItem key={exam._id} value={exam._id}>
-                        {exam.examName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="flex-1">
-            <div className="max-h-[400px] overflow-y-auto pr-2">
-              {marksLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : marks && marks.length > 0 ? (
-                <div className="space-y-6">
-                  {marks
-                    .filter((exam) => selectedExamId === "all" || exam._id === selectedExamId)
-                    .map((exam) => {
-                      const studentMarks = exam.students.find(s => s.studentId?._id === currentUser._id || s.studentId === currentUser._id);
-                      if (!studentMarks) return null;
+                  {/* Academic Info */}
+                  <Card className="card-print-break h-full shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-base font-bold">Academic Info</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
+                      <ProfileField label="Current Class" value={className} isBold={true} />
+                      <ProfileField label="Batch" value={batchName} />
+                      <ProfileField
+                        label="Status"
+                        value={currentUser?.studentSpecificField?.status || "Active"}
+                      />
+                      <ProfileField
+                        label="Admission Class"
+                        value={admissionClassName}
+                      />
+                      <ProfileField
+                        label="Admission Date"
+                        value={formatDateShort(
+                          currentUser?.studentSpecificField?.admissionDate || currentUser?.admissionDate
+                        )}
+                      />
+                      <ProfileField
+                        label="Islamic Qualif."
+                        value={currentUser?.studentSpecificField?.islamicQualification || currentUser?.islamicQualification}
+                      />
+                      <ProfileField
+                        label="Islamic Course"
+                        value={ongoingIslamicCoursesDisplay}
+                      />
+                      <ProfileField
+                        label="Academic Qualif."
+                        value={currentUser?.studentSpecificField?.academicQualification || currentUser?.academicQualification}
+                      />
+                      <ProfileField
+                        label="Academic Course"
+                        value={ongoingAcademicCoursesDisplay}
+                      />
+                      <ProfileField
+                        label="Graduated Year"
+                        value={currentUser?.studentSpecificField?.graduatedYear || currentUser?.graduatedYear}
+                      />
+                      {currentUser?.studentSpecificField?.status === "Dropped Out" && (
+                        <>
+                          <ProfileField
+                            label="Dropout Date"
+                            value={formatDateShort(currentUser?.studentSpecificField?.droppedOutDate)}
+                          />
+                          <ProfileField
+                            label="Dropout Class"
+                            value={classes?.find(c => c._id === currentUser?.studentSpecificField?.droppedOutClass)?.name || currentUser?.studentSpecificField?.droppedOutClass}
+                          />
+                          <ProfileField
+                            label="Dropout Reason"
+                            value={currentUser?.studentSpecificField?.droppedOutReason}
+                          />
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
 
-                      // Calculate totals, percentage, and rank
-                      let studentTotal = 0;
-                      let maxTotal = 0;
-                      exam.subjects.forEach(subject => {
-                        const m = studentMarks.marks?.[subject.name];
-                        if (subject.subColumns && subject.subColumns.length > 0) {
-                            subject.subColumns.forEach(sc => {
-                                studentTotal += (m && typeof m === 'object') ? (Number(m[sc.name]) || 0) : 0;
-                                maxTotal += Number(sc.maxMark) || 0;
-                            });
-                        } else {
-                            studentTotal += Number(m) || 0;
-                            maxTotal += subject.maxMark || 100;
-                        }
-                      });
-                      const percentage = maxTotal > 0 ? ((studentTotal / maxTotal) * 100).toFixed(2) : 0;
+                  {/* Contact Info */}
+                  <Card className="card-print-break h-full shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-base font-bold">Guardian & Contact</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
+                      <ProfileField label="Email" value={currentUser?.email} />
+                      <ProfileField label="Contact No" value={currentUser?.contactNumber} />
+                      <ProfileField
+                        label="Alt. Contact"
+                        value={currentUser?.alternativeNumber}
+                      />
+                      <ProfileField
+                        label="Guardian"
+                        value={currentUser?.studentSpecificField?.guardianName || currentUser?.guardianName}
+                        isBold={true}
+                      />
+                      <ProfileField
+                        label="Relationship"
+                        value={currentUser?.studentSpecificField?.relationship || currentUser?.relationship}
+                      />
+                      <ProfileField
+                        label="G. Contact"
+                        value={currentUser?.studentSpecificField?.guardianContactNumber || currentUser?.guardianContactNumber}
+                      />
+                      <ProfileField
+                        label="G. Alt. Contact"
+                        value={currentUser?.studentSpecificField?.guardianAlternativeNumber || currentUser?.guardianAlternativeNumber}
+                      />
+                    </CardContent>
+                  </Card>
 
-                      // Rank calculation
-                      const allStudentTotals = exam.students.map(s => {
-                        let total = 0;
-                        exam.subjects.forEach(subject => {
-                          const m = s.marks?.[subject.name];
-                          if (subject.subColumns && subject.subColumns.length > 0) {
-                              subject.subColumns.forEach(sc => {
-                                  total += (m && typeof m === 'object') ? (Number(m[sc.name]) || 0) : 0;
-                              });
-                          } else {
-                              total += Number(m) || 0;
-                          }
-                        });
-                        return { studentId: s.studentId?._id || s.studentId, total };
-                      });
-                      allStudentTotals.sort((a, b) => b.total - a.total);
-                      const rank = allStudentTotals.findIndex(s => s.studentId === currentUser._id) + 1;
-
-                      // Collect all unique sub-column names for this exam
-                      const subColNames = [];
-                      exam.subjects.forEach(subject => {
-                        if (subject.subColumns && subject.subColumns.length > 0) {
-                          subject.subColumns.forEach(sc => {
-                            if (!subColNames.includes(sc.name)) {
-                              subColNames.push(sc.name);
-                            }
-                          });
-                        }
-                      });
-
-                      return (
-                        <div key={exam._id} className="space-y-1 print-exam-card w-full min-w-0">
-                          <div className="rounded-md border overflow-x-auto w-full min-w-0">
+                  {showKinship && (currentUser?.studentSpecificField?.familyDetails?.length > 0 || currentUser?.familyOtherDetails) && (
+                    <Card className="card-print-break shadow-sm col-span-full mt-2">
+                      <CardHeader className="bg-muted/10 border-b py-3">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Users className="h-5 w-5 text-primary" />
+                          Kinship Details
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        {currentUser?.studentSpecificField?.familyDetails?.length > 0 && (
+                          <div className="overflow-x-auto w-full min-w-0">
                             <Table className="min-w-[550px] w-full">
                               <TableHeader className="bg-muted/50">
                                 <TableRow>
-                                  <TableHead colSpan={3 + subColNames.length} className="text-center font-bold text-sm h-10 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300">
-                                    {exam.examName}
-                                  </TableHead>
-                                </TableRow>
-                                <TableRow className="bg-muted/30">
-                                  <TableHead className="py-2 text-xs min-w-[150px]">Subject</TableHead>
-                                  {subColNames.map(name => (
-                                    <TableHead key={name} className="py-2 text-xs text-center whitespace-nowrap min-w-[80px]">{name}</TableHead>
-                                  ))}
-                                  <TableHead className="py-2 text-xs text-center whitespace-nowrap min-w-[80px]">Total</TableHead>
-                                  <TableHead className="py-2 text-xs text-center whitespace-nowrap min-w-[90px]">Result</TableHead>
+                                  <TableHead className="w-16 text-center">Sl.No</TableHead>
+                                  <TableHead>Position</TableHead>
+                                  <TableHead>Name</TableHead>
+                                  <TableHead className="text-center">Age</TableHead>
+                                  <TableHead>Education</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Mobile</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {exam.subjects.map((subject, sIndex) => {
-                                  const rawMark = studentMarks.marks?.[subject.name];
-                                  let markTotal = 0;
-                                  let maxMarkTotal = subject.maxMark || 100;
-                                  let isPass = true;
-                                  const hasSubCols = subject.subColumns && subject.subColumns.length > 0;
-                                  
-                                  if (hasSubCols) {
-                                      maxMarkTotal = 0;
-                                      subject.subColumns.forEach(sc => {
-                                          const scVal = (rawMark && typeof rawMark === 'object') ? (Number(rawMark[sc.name]) || 0) : 0;
-                                          markTotal += scVal;
-                                          maxMarkTotal += Number(sc.maxMark) || 0;
-                                          if (scVal < (Number(sc.passMark) || 0)) isPass = false;
-                                      });
-                                  } else {
-                                      markTotal = Number(rawMark) || 0;
-                                      if (markTotal < (subject.passMark || 40)) isPass = false;
-                                  }
-                                  
-                                  const displayMark = (rawMark === undefined || rawMark === null) ? "N/A" : markTotal;
+                                {currentUser.studentSpecificField.familyDetails.map((member, index) => (
+                                  <TableRow key={index} className="hover:bg-muted/30 transition-colors">
+                                    <TableCell className="text-center text-muted-foreground font-medium">{index + 1}</TableCell>
+                                    <TableCell className="font-semibold">{member.position}</TableCell>
+                                    <TableCell className="uppercase text-blue-600 font-medium">{member.name}</TableCell>
+                                    <TableCell className="text-center">{member.age || "-"}</TableCell>
+                                    <TableCell>{member.education || "-"}</TableCell>
+                                    <TableCell>{member.status || "-"}</TableCell>
+                                    <TableCell className="whitespace-nowrap font-mono text-xs">{member.mobileNumber || "-"}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                        {currentUser?.familyOtherDetails && (
+                          <div className="p-4 bg-muted/5 border-t">
+                            <h4 className="text-xs font-bold mb-2 flex items-center gap-2 text-muted-foreground uppercase tracking-widest">
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              General Notes
+                            </h4>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                              {currentUser.familyOtherDetails}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
 
+              {activeTab === "FINANCE" && (
+                <div className="space-y-6">
+                  <Card className="bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900 card-print-break shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
+                        <Clock className="h-5 w-5" />
+                        Pending Transactions
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-2 sm:p-6 pt-0">
+                      <div className="max-h-[400px] overflow-auto rounded-md border min-h-[100px] w-full min-w-0">
+                        {fundsLoading ? (
+                          <div className="flex items-center justify-center py-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                            <span className="ml-2 text-sm text-muted-foreground">Loading financial records...</span>
+                          </div>
+                        ) : displayFunds && displayFunds.length > 0 ? (
+                          <Table className="w-full">
+                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                              <TableRow>
+                                <TableHead className="w-10 sm:w-14 py-2 px-1.5 sm:px-3 text-center whitespace-nowrap text-xs sm:text-sm">#</TableHead>
+                                <TableHead className="py-2 px-2 sm:px-4 text-xs sm:text-sm">Fund Name</TableHead>
+                                <TableHead className="py-2 px-2 sm:px-4 text-right whitespace-nowrap w-24 sm:w-32 text-xs sm:text-sm">Balance</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {displayFunds.map((item, index) => (
+                                <TableRow key={index} className="group hover:bg-muted/30 transition-colors">
+                                  <TableCell className="py-2 px-1.5 sm:px-3 text-center text-muted-foreground font-medium text-xs sm:text-sm">{index + 1}</TableCell>
+                                  <TableCell className="py-2 px-2 sm:px-4">
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 break-words">{item.label}</span>
+                                      {item.subLabel && <span className="text-[9px] sm:text-[10px] text-muted-foreground uppercase break-words">{item.subLabel}</span>}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell
+                                    className={`py-2 px-2 sm:px-4 text-right font-bold text-xs sm:text-sm cursor-pointer hover:underline decoration-dotted whitespace-nowrap ${item.value < 0 ? 'text-red-600' : 'text-green-600'}`}
+                                    onClick={() => {
+                                      if (item.isCoupon) {
+                                        setIsCouponModalOpen(true);
+                                      } else if (item.isInteractive) {
+                                        setSelectedStandardFund(item);
+                                        setIsStandardModalOpen(true);
+                                      }
+                                    }}
+                                  >
+                                    {(item.value || 0).toFixed(2)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                              {/* Total Summary Row */}
+                              <TableRow className="bg-muted/40 font-bold border-t-2 border-muted hover:bg-muted/40">
+                                <TableCell colSpan={2} className="py-2.5 sm:py-3 px-2 sm:px-4 text-emerald-800 dark:text-emerald-300 uppercase tracking-wider text-[11px] sm:text-xs">
+                                  Total Pending Balance
+                                </TableCell>
+                                <TableCell className={`py-2.5 sm:py-3 px-2 sm:px-4 text-right text-sm sm:text-base whitespace-nowrap ${totalPending < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                  {(totalPending || 0).toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                            <Clock className="h-8 w-8 opacity-20" />
+                            <p className="text-sm font-normal not-italic">No pending transactions found.</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Standard Fund Details Modal */}
+                      <Dialog open={isStandardModalOpen} onOpenChange={setIsStandardModalOpen}>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto [&>button.absolute]:hidden p-0 gap-0">
+                          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-3 sm:px-5 py-3 sm:py-4 border-b space-y-0 bg-background sticky top-0 z-20">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              <IndianRupee className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                              <DialogTitle className="text-xl font-bold m-0">
+                                {selectedStandardFund?.label} Details
+                              </DialogTitle>
+                              <DialogDescription className="m-0">
+                                Fund collection breakdown and transaction history
+                              </DialogDescription>
+                            </div>
+                            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                              <X className="h-5 w-5" />
+                            </DialogClose>
+                          </DialogHeader>
+                          <div className="p-3 sm:p-5 space-y-5 sm:space-y-8 w-full min-w-0 overflow-hidden">
+                            {/* Collection Breakdown */}
+                            <div>
+                              <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                Collection Breakdown
+                              </h3>
+                              <div className="w-full min-w-0 rounded-md border overflow-hidden">
+                                <Table className="w-full table-fixed">
+                                  <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                      <TableHead className="py-2 px-2 sm:px-3 text-xs w-[60%]">Role Holder</TableHead>
+                                      <TableHead className="py-2 px-2 sm:px-3 text-right text-xs w-[40%]">Balance</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {(selectedStandardFund?.records || []).map((record, i) => (
+                                      <TableRow key={i}>
+                                        <TableCell className="py-2 px-2 sm:px-3 text-xs break-words">{record.holder}</TableCell>
+                                        <TableCell className={`py-2 px-2 sm:px-3 text-right font-bold text-xs whitespace-nowrap ${(record.value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                          {(record.value || 0).toFixed(2)}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </div>
+
+                            {/* Full Transaction History */}
+                            <div>
+                              <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                Fund History
+                              </h3>
+                              <div className="rounded-md border w-full min-w-0 overflow-hidden">
+                                <Table className="w-full table-fixed">
+                                  <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                      <TableHead className="py-2 px-1.5 sm:px-3 text-xs w-[32%] sm:w-[30%]">Date</TableHead>
+                                      <TableHead className="py-2 px-1.5 sm:px-3 text-right text-xs w-[38%] sm:w-[40%]">Transactions</TableHead>
+                                      <TableHead className="py-2 px-1.5 sm:px-3 text-right text-xs w-[30%] sm:w-[30%]">Balance</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {selectedStandardFund?.allTransactions && selectedStandardFund.allTransactions.length > 0 ? (
+                                      [...selectedStandardFund.allTransactions]
+                                        .sort((a, b) => new Date(b.date) - new Date(a.date)) // Newest first for display
+                                        .map((t, idx) => (
+                                          <TableRow key={idx}>
+                                            <TableCell className="py-2 px-1.5 sm:px-3 text-xs leading-tight">
+                                              <div className="flex flex-col min-w-0">
+                                                <span className="font-medium whitespace-nowrap text-[11px] sm:text-xs">{formatDateShort(t.date)}</span>
+                                                <span className="text-muted-foreground text-[9px] sm:text-[10px] whitespace-nowrap">
+                                                  {t.date && !isNaN(new Date(t.date).getTime()) ? new Date(t.date).toLocaleTimeString("en-US", {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                    hour12: true,
+                                                  }) : ""}
+                                                </span>
+                                              </div>
+                                            </TableCell>
+                                            <TableCell className={`py-2 px-1.5 sm:px-3 text-xs text-right font-bold ${t.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
+                                              <div className="flex flex-col items-end gap-0.5 min-w-0">
+                                                <span className="text-[11px] sm:text-xs whitespace-nowrap">{t.type === 'Withdrawal' ? '-' : '+'}{(t.amount || 0).toFixed(2)}</span>
+                                                {t.note && (
+                                                  <span className="text-[9px] sm:text-[10px] font-normal text-muted-foreground leading-tight text-right break-words line-clamp-2 max-w-full">
+                                                    {t.note}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </TableCell>
+                                            <TableCell className={`py-2 px-1.5 sm:px-3 text-xs text-right font-bold whitespace-nowrap ${t.calculatedBalance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                              <span className="text-[11px] sm:text-xs">{t.calculatedBalance?.toFixed(2) || "0.00"}</span>
+                                            </TableCell>
+                                          </TableRow>
+                                        ))
+                                    ) : (
+                                      <TableRow>
+                                        <TableCell colSpan={3} className="text-center py-6 text-muted-foreground text-xs font-normal not-italic">
+                                          No transaction history found for this fund.
+                                        </TableCell>
+                                      </TableRow>
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
+                      {/* Coupon Details Modal */}
+                      <Dialog open={isCouponModalOpen} onOpenChange={setIsCouponModalOpen}>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto [&>button.absolute]:hidden p-0 gap-0">
+                          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background sticky top-0 z-20">
+                            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                              <Wallet className="h-5 w-5 text-emerald-600" />
+                            </div>
+                            <div className="flex-1 text-left space-y-0.5">
+                              <DialogTitle className="text-xl font-bold m-0">
+                                Coupon Fund Details
+                              </DialogTitle>
+                              <DialogDescription className="m-0">
+                                Coupon payment history and outstanding balances
+                              </DialogDescription>
+                            </div>
+                            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                              <X className="h-5 w-5" />
+                            </DialogClose>
+                          </DialogHeader>
+                          <div className="p-4 overflow-x-auto w-full min-w-0">
+                            <Table className="min-w-[650px] w-full">
+                              <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                  <TableHead className="py-2 w-[60px]">Sl No</TableHead>
+                                  <TableHead className="py-2">Year</TableHead>
+                                  <TableHead className="py-2">Coupon No.</TableHead>
+                                  <TableHead className="py-2 text-right">Fund</TableHead>
+                                  <TableHead className="py-2 text-right">Total Paid</TableHead>
+                                  <TableHead className="py-2 text-right">Balance</TableHead>
+                                  <TableHead className="py-2">Payment History</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {couponDetails.map((coupon, index) => {
+                                  const paid = (coupon.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+                                  const balance = (coupon.couponAmount || 0) - paid;
                                   return (
-                                    <TableRow key={`${subject.name}-${sIndex}`}>
-                                      <TableCell className="py-2 text-sm font-medium">
-                                          {subject.name}
+                                    <TableRow key={coupon._id} className="align-top">
+                                      <TableCell className="py-3 text-muted-foreground">{index + 1}</TableCell>
+                                      <TableCell className="py-3 font-bold text-sm">
+                                        {coupon.academicYear}
                                       </TableCell>
-                                      {subColNames.map(name => {
-                                        let val = "-";
-                                        if (hasSubCols) {
-                                          const sc = subject.subColumns.find(col => col.name === name);
-                                          if (sc) {
-                                            const scVal = (rawMark && typeof rawMark === 'object') ? rawMark[sc.name] : undefined;
-                                            val = scVal !== undefined ? scVal : "-";
-                                          }
-                                        }
-                                        return (
-                                          <TableCell key={name} className="py-2 text-sm text-center">
-                                            {val}
-                                          </TableCell>
-                                        );
-                                      })}
-                                      <TableCell className="py-2 text-sm text-center">
-                                        <span className="font-semibold">{displayMark}</span> <span className="text-xs text-muted-foreground">/ {maxMarkTotal}</span>
+                                      <TableCell className="py-3 text-sm">
+                                        {coupon.couponNumber || "N/A"}
                                       </TableCell>
-                                      <TableCell className="py-2 text-center">
-                                        {displayMark !== "N/A" ? (
-                                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${isPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {isPass ? 'Pass' : 'Fail'}
-                                          </span>
-                                        ) : "-"}
+                                      <TableCell className="py-3 text-right text-sm">₹{(coupon.couponAmount || 0).toFixed(2)}</TableCell>
+                                      <TableCell className="py-3 text-right text-sm text-green-600">₹{(paid || 0).toFixed(2)}</TableCell>
+                                      <TableCell className="py-3 text-right font-bold text-orange-600 text-sm">
+                                        ₹{(balance || 0).toFixed(2)}
+                                      </TableCell>
+                                      <TableCell className="py-2">
+                                        <div className="space-y-1">
+                                          {coupon.payments && coupon.payments.length > 0 ? (
+                                            coupon.payments.map((p, pIdx) => (
+                                              <div key={pIdx} className="flex items-center justify-between gap-4 text-[10px] bg-muted/30 px-2 py-1 rounded border border-muted/50">
+                                                <span className="text-muted-foreground">{formatDateShort(p.date)}</span>
+                                                <span className="font-bold text-green-700">₹{(p.amount || 0).toFixed(2)}</span>
+                                              </div>
+                                            ))
+                                          ) : (
+                                            <span className="text-[10px] text-muted-foreground font-normal not-italic">No payments recorded</span>
+                                          )}
+                                        </div>
                                       </TableCell>
                                     </TableRow>
                                   );
                                 })}
-                                {/* Summary Row */}
-                                <TableRow className="bg-indigo-50/30 dark:bg-indigo-950/20 font-bold border-t-2">
-                                  <TableCell colSpan={1 + subColNames.length} className="py-2 text-sm text-indigo-700 dark:text-indigo-300">SUMMARY</TableCell>
-                                  <TableCell className="py-2 text-sm text-center">
-                                    <div className="flex flex-col">
-                                      <span>{studentTotal} / {maxTotal}</span>
-                                      <span className="text-[10px] text-muted-foreground">{percentage}%</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="py-2 text-center">
-                                    <div className="inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">
-                                      <span className="text-[10px] font-bold">RANK</span>
-                                      <span className="text-sm">#{rank}</span>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
+                                {couponDetails.length === 0 && (
+                                  <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                                      No coupon records found.
+                                    </TableCell>
+                                  </TableRow>
+                                )}
                               </TableBody>
                             </Table>
                           </div>
+                        </DialogContent>
+                      </Dialog>
 
-                        </div>
-                      );
-                    })}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                  <BookOpen className="h-10 w-10 mb-2 opacity-20" />
-                  <p className="text-sm">No exam marks records found.</p>
+                    </CardContent>
+                  </Card>
+
+
                 </div>
               )}
-            </div>
-          </CardContent>
-          </Card>
-        </div>
-      )}
 
-      {activeTab === "ATTENDANCE" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-5 print-stack-vertical">
-          {/* Attendance History */}
-          <Card className="card-print-break" ref={historyRef}>
-            <CardHeader className="bg-muted/10 pb-4 pt-4 border-b flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Calendar 
-                  className="w-5 h-5 text-primary cursor-pointer hover:opacity-80 transition-opacity no-print" 
-                  onClick={() => downloadCardAsJpeg(historyRef, `Attendance_History_${selectedYear}.jpg`)}
-                  title="Download as Image"
-                />
-                Attendance History
-              </CardTitle>
-              <div className="no-print">
-                <Select
-                  onValueChange={(value) => setSelectedYear(parseInt(value))}
-                  defaultValue={selectedYear.toString()}
-                >
-                  <SelectTrigger className="w-[100px] h-8 text-xs">
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {academicYears.map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent className="px-2 sm:px-4 pt-4 pb-6">
-              <div className="max-h-[400px] overflow-auto border rounded-md w-full min-w-0">
-                <Table className="w-full">
-                  <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                    <TableRow>
-                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Month</TableHead>
-                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Total</TableHead>
-                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Present</TableHead>
-                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Absent</TableHead>
-                      <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">%</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAttendanceHistory.length > 0 ? (
-                      filteredAttendanceHistory.map((row) => (
-                        <React.Fragment key={row.monthYear}>
-                          <TableRow
-                            onClick={() =>
-                              setExpandedMonth(
-                                expandedMonth === row.monthYear ? null : row.monthYear
-                              )
-                            }
-                            className="cursor-pointer hover:bg-muted/50"
-                          >
-                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm font-medium whitespace-nowrap">{row.month}</TableCell>
-                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{row.totalPeriods}</TableCell>
-                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{row.presentPeriods}</TableCell>
-                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{(row.totalPeriods || 0) - (row.presentPeriods || 0)}</TableCell>
-                            <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
-                              <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-bold ${parseFloat(row.percentage) > 80 ? 'bg-green-100 text-green-700' :
-                                parseFloat(row.percentage) >= 50 ? 'bg-orange-100 text-orange-700' :
-                                  'bg-red-100 text-red-700'
-                                }`}>
-                                {row.percentage}%
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                          {expandedMonth === row.monthYear && (
-                            <TableRow className="bg-muted/30">
-                              <TableCell colSpan={5} className="p-0">
-                                <div className="p-1 sm:p-4 overflow-x-auto w-full min-w-0">
-                                  <Table className="border rounded-md bg-background w-full">
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="h-8 py-1 px-1.5 sm:px-4 whitespace-nowrap text-xs">Date</TableHead>
-                                        <TableHead className="h-8 py-1 px-1.5 sm:px-4 text-xs">Subject (Teacher)</TableHead>
-                                        <TableHead className="h-8 py-1 px-1.5 sm:px-4 text-center whitespace-nowrap text-xs">Status</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {row.details.map((detail, dIdx) => (
-                                        <TableRow key={`${detail.id || detail.date}-${dIdx}`} className="h-8">
-                                          <TableCell className="py-1 px-1.5 sm:px-4 text-xs whitespace-nowrap">
-                                            {formatDateShort(detail.rawDate || detail.date) || detail.date}
-                                          </TableCell>
-                                          <TableCell className="py-1 px-1.5 sm:px-4 text-xs font-medium">
-                                            {detail.subject} <span className="text-muted-foreground font-normal">({detail.teacher})</span>
-                                          </TableCell>
-                                          <TableCell className="py-1 px-1.5 sm:px-4 text-center whitespace-nowrap">
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
-                                              }`}>
-                                              {detail.present ? "Present" : "Absent"}
-                                            </span>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </React.Fragment>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm font-normal not-italic">
-                          No records found for {selectedYear}.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+              {activeTab === "LIBRARY" && (
+                <Card className="lg:col-span-2 print:col-span-2 card-print-break shadow-sm">
+                  <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4 pb-2 border-b mb-4 relative">
+                    <div className="flex items-center bg-muted rounded-lg p-1 w-full md:w-auto order-2 md:order-1 flex-wrap gap-1">
+                      <Button
+                        variant={librarySubTab === "BOOKS" ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`flex-1 md:flex-none md:w-28 h-8 rounded-md transition-all ${librarySubTab === "BOOKS" ? "bg-white dark:bg-slate-800 shadow-sm font-bold" : ""}`}
+                        onClick={() => setLibrarySubTab("BOOKS")}
+                      >
+                        <LayoutGrid className="h-4 w-4 mr-2" />
+                        Books
+                      </Button>
+                      <Button
+                        variant={librarySubTab === "REQUESTS" ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`flex-1 md:flex-none md:w-32 h-8 rounded-md transition-all ${librarySubTab === "REQUESTS" ? "bg-white dark:bg-slate-800 shadow-sm font-bold" : ""}`}
+                        onClick={() => setLibrarySubTab("REQUESTS")}
+                      >
+                        <Clock className="h-4 w-4 mr-1.5" />
+                        Requests
+                        {pendingRequests && pendingRequests.length > 0 && (
+                          <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-bold leading-none">
+                            {pendingRequests.length}
+                          </span>
+                        )}
+                      </Button>
+                      <Button
+                        variant={librarySubTab === "HISTORY" ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`flex-1 md:flex-none md:w-28 h-8 rounded-md transition-all ${librarySubTab === "HISTORY" ? "bg-white dark:bg-slate-800 shadow-sm font-bold" : ""}`}
+                        onClick={() => setLibrarySubTab("HISTORY")}
+                      >
+                        <List className="h-4 w-4 mr-2" />
+                        History
+                      </Button>
+                    </div>
+                    <CardTitle className="flex items-center gap-2 text-center md:absolute md:left-1/2 md:-translate-x-1/2 order-1 md:order-2">
+                      <BookOpen className="h-5 w-5 text-amber-500" />
+                      Library Services
+                    </CardTitle>
+                    <div className="hidden md:block w-56 order-3" /> {/* Spacer to balance the left buttons */}
+                  </CardHeader>
+                  <CardContent className="pt-2">
+                    {librarySubTab === "BOOKS" ? (
+                      <div className="space-y-4">
+                        {libraryBooksLoading ? (
+                          <div className="flex items-center justify-center py-20">
+                            <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+                          </div>
+                        ) : (
+                          <TableComponent
+                            data={libraryBooks}
+                            getRowId={(row) => row._id}
+                            tableHeight="calc(100vh - 450px)"
+                            hidePrintBtn={true}
+                            hideColumnManagement={true}
+                            enableGrid={true}
+                            defaultViewMode="grid"
+                            gridColsClass="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                            hideViewToggle={true}
+                            inlineFilters={true}
+                            requireFilterToRenderData={false}
+                            columnsConfig={[
+                              { accessorKey: "id", header: "Book ID", sortingFn: "alphanumeric" },
+                              { accessorKey: "name", header: "Book Name" },
+                              { accessorKey: "author", header: "Author" },
+                              {
+                                accessorKey: "category",
+                                header: "Category",
+                                filterFn: (row, columnId, filterValue) => {
+                                  if (!filterValue || filterValue.length === 0) return true;
+                                  const rowValue = normalizeCategoryName(row.getValue(columnId));
+                                  const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
+                                  return filterArr.some(val => normalizeCategoryName(val) === rowValue);
+                                }
+                              },
+                              {
+                                accessorKey: "language",
+                                header: "Language",
+                                filterFn: (row, columnId, filterValue) => {
+                                  if (!filterValue || filterValue.length === 0) return true;
+                                  const rowValue = row.getValue(columnId);
+                                  const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
+                                  return filterArr.some(val => String(val).toLowerCase() === String(rowValue).toLowerCase());
+                                }
+                              },
+                              { accessorKey: "status", header: "Status" },
+                            ]}
+                            filterConfig={[
+                              {
+                                id: "category",
+                                label: "Category",
+                                inputType: "multiSelect",
+                                options: Array.from(new Set(libraryBooks.map(b => normalizeCategoryName(b.category)))).filter(Boolean).sort().map(c => ({ value: c, label: c }))
+                              },
+                              {
+                                id: "language",
+                                label: "Language",
+                                inputType: "multiSelect",
+                                options: Array.from(new Set(libraryBooks.map(b => typeof b.language === 'string' ? b.language.toUpperCase() : b.language))).filter(Boolean).sort().map(l => ({ value: l, label: l }))
+                              },
+                              {
+                                id: "status",
+                                label: "Status",
+                                inputType: "multiSelect",
+                                options: [
+                                  { value: "Available", label: "Available" },
+                                  { value: "Rented", label: "Rented" },
+                                ]
+                              }
+                            ]}
+                            renderGridItem={(row) => {
+                              const book = row.original;
+                              return (
+                                <Card className="h-full hover:shadow-md transition-shadow overflow-hidden border border-border/50">
+                                  <CardContent className="p-4 flex gap-4 items-start">
+                                    <div className="flex-shrink-0 flex flex-col items-center gap-1.5 w-[72px]">
+                                      <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md flex items-center justify-center w-full aspect-square border border-border/50">
+                                        <BookOpen className="h-6 w-6 text-muted-foreground" />
+                                      </div>
+                                      <div className="text-center w-full space-y-1">
+                                        <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/80 py-0.5 rounded border truncate">ID: {book.id}</div>
+                                        <div className={`text-[8px] px-1 py-0.5 mt-1.5 rounded-full font-bold uppercase tracking-wider inline-block w-full ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                          {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
+                                        </div>
+                                        <div className="font-bold text-[11px] text-foreground">₹{book.price?.toFixed(2) || "0.00"}</div>
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
+                                      <div className="flex-1">
+                                        <h3 className="font-bold text-base leading-tight break-words mb-1 text-foreground book-text-font" title={book.name}>{book.name}</h3>
+                                        <div className="text-xs text-muted-foreground truncate -mt-1" title={book.author}>Author: <span className="text-foreground font-medium book-text-font leading-none">{book.author}</span></div>
+                                        {book.publication && <div className="text-xs text-muted-foreground truncate -mt-1" title={book.publication}>Pub: <span className="text-foreground book-text-font leading-none">{book.publication}</span></div>}
+                                        <div className="text-[13px] mt-0.5 flex flex-wrap gap-1">
+                                          <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground book-text-font leading-none">{book.language}</span>
+                                          <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground book-text-font leading-none">{book.category}</span>
+                                        </div>
+                                      </div>
+                                      <div className="pt-1 flex flex-col gap-2 mt-auto">
+                                        <div className="flex items-center gap-2 w-full">
+                                          {/* Barcode in the same row */}
+                                          <div className="flex-1 flex justify-center items-center h-7 overflow-hidden bg-white rounded border border-border/50 shadow-sm p-0.5">
+                                            {book.id && (
+                                              <Barcode
+                                                value={String(book.id)}
+                                                width={0.6}
+                                                height={20}
+                                                fontSize={0}
+                                                margin={0}
+                                                displayValue={false}
+                                                background="transparent"
+                                              />
+                                            )}
+                                          </div>
 
-          {/* Attendance Chart */}
-          <Card className="card-print-break flex flex-col" ref={chartRef}>
-            <CardHeader className="bg-muted/10 pb-4 pt-4 border-b flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <LayoutGrid 
-                  className="w-5 h-5 text-primary cursor-pointer hover:opacity-80 transition-opacity no-print" 
-                  onClick={() => downloadCardAsJpeg(chartRef, `Attendance_Chart_${selectedYear}.jpg`)}
-                  title="Download as Image"
-                />
-                Attendance Chart ({selectedYear})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 flex-1 flex items-center justify-center">
-              <div className="w-full h-full min-h-[300px] overflow-x-auto pb-2 flex justify-start">
-                <BarChart
-                  width={Math.max(300, filteredAttendanceHistory.length * 60 + 60)}
-                  height={400}
-                  data={filteredAttendanceHistory}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
-                  barCategoryGap={20}
-                >
-                  <XAxis dataKey="month" tick={false} padding={{ left: 10, right: 10 }} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend verticalAlign="top" align="right" />
-                  <Bar
-                    dataKey="percentage"
-                    radius={[4, 4, 0, 0]}
-                    barSize={40}
-                  >
-                    <LabelList 
-                      dataKey="month" 
-                      position="center" 
-                      angle={-90} 
-                      fill="white"
-                      style={{ 
-                        fontWeight: 'bold', 
-                        fontSize: '9px',
-                        textTransform: 'uppercase',
-                        pointerEvents: 'none'
-                      }}
-                    />
-                    <LabelList 
-                      dataKey="percentage" 
-                      position="top" 
-                      formatter={(val) => `${val}%`}
-                      style={{ 
-                        fontWeight: 'bold', 
-                        fontSize: '10px',
-                        fill: '#6b7280'
-                      }}
-                    />
-                    {filteredAttendanceHistory.map((entry, index) => {
-                      const p = parseFloat(entry.percentage);
-                      const color = p > 80 ? "#22c55e" : p >= 50 ? "#ea580c" : "#ef4444";
-                      return <Cell key={`cell-${index}`} fill={color} />;
-                    })}
-                  </Bar>
-                </BarChart>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === "LEAVES" && (
-        <Card className="flex flex-col card-print-break mt-5 border-violet-100 dark:border-violet-900 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Plane className="h-5 w-5 text-violet-500" />
-              Leave History
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <div className="w-full min-w-0">
-              {leavesLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (leavesList && leavesList.length > 0) ? (
-                <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
-                  <Table className="min-w-[850px] w-full">
-                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                      <TableRow>
-                        <TableHead className="w-[60px] py-3 pl-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Sl No</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Date of Leave</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[180px]">Leave Reason</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Exp. Arrival</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Actual Arrival</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[120px] whitespace-nowrap">Late Reason</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[120px] whitespace-nowrap">Remark</TableHead>
-                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider text-center min-w-[100px] whitespace-nowrap">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[...leavesList]
-                        .sort((a, b) => new Date(b.dateOfLeave) - new Date(a.dateOfLeave))
-                        .map((leave, index) => (
-                        <TableRow key={leave._id} className="group hover:bg-muted/30 transition-colors">
-                          <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
-                          <TableCell className="py-3 text-sm font-bold text-violet-700 dark:text-violet-300 whitespace-nowrap">
-                            {formatDateShort(leave.dateOfLeave)}
-                          </TableCell>
-                          <TableCell className="py-3 min-w-[180px]">
-                            <p className="text-sm text-foreground leading-relaxed font-normal not-italic" title={leave.leaveReason}>
-                              {leave.leaveReason}
-                            </p>
-                          </TableCell>
-                          <TableCell className="py-3 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                            {formatDateShort(leave.dateOfArrival)}
-                          </TableCell>
-                          <TableCell className="py-3 text-sm font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
-                            {leave.arrivedDate ? formatDateShort(leave.arrivedDate) : "N/A"}
-                          </TableCell>
-                          <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
-                            {leave.lateReason || "-"}
-                          </TableCell>
-                          <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
-                            {leave.remark || "-"}
-                          </TableCell>
-                          <TableCell className="py-3 text-center whitespace-nowrap">
-                            {leave.arrivedDate ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                <span className="h-1 w-1 rounded-full bg-green-500" />
-                                Returned
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 animate-pulse">
-                                <span className="h-1 w-1 rounded-full bg-orange-500" />
-                                On Leave
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                  <Plane className="h-10 w-10 mb-2 opacity-20" />
-                  <p className="text-sm">No leave records found.</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === "REMARKS" && (
-        <Card className="flex flex-col card-print-break mt-5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-orange-500" />
-              Student Remarks & Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 space-y-4">
-            {/* Sub-tab Switcher */}
-            <div className="flex gap-2 border-b pb-3 overflow-x-auto no-scrollbar mt-2">
-              {[
-                { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "text-orange-600 dark:text-orange-400", activeBg: "bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300" },
-                { id: "PERFORMANCE", label: "Performance", icon: Trophy, color: "text-amber-600 dark:text-amber-400", activeBg: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" },
-              ].map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeRemarksSubTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveRemarksSubTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 ${
-                      isActive
-                        ? tab.activeBg
-                        : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                    }`}
-                  >
-                    <Icon className={`h-4 w-4 ${isActive ? "" : tab.color}`} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="w-full min-w-0">
-              {activeRemarksSubTab === "REMARKS" ? (
-                remarksLoading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (remarksList && remarksList.length > 0) ? (
-                  <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
-                    <Table className="min-w-[600px] w-full">
-                      <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                        <TableRow>
-                          <TableHead className="w-[60px] py-3 pl-4 text-xs font-semibold whitespace-nowrap">Sl No</TableHead>
-                          <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[100px]">Date</TableHead>
-                          <TableHead className="py-3 text-xs font-semibold min-w-[200px]">Remarks</TableHead>
-                          <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[120px]">Teacher</TableHead>
-                          <TableHead className="py-3 text-xs font-semibold text-center whitespace-nowrap min-w-[100px]">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {[...remarksList]
-                          .sort((a, b) => new Date(b.date) - new Date(a.date))
-                          .map((remark, index) => (
-                          <TableRow key={remark._id} className="group hover:bg-muted/30 transition-colors">
-                            <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
-                            <TableCell className="py-3 text-sm font-medium whitespace-nowrap">
-                              {formatDateShort(remark.date)}
-                            </TableCell>
-                            <TableCell className="py-3 min-w-[200px]">
-                              <p className="text-sm text-foreground leading-relaxed font-normal not-italic">{remark.comments}</p>
-                            </TableCell>
-                            <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
-                              {remark.teacherName || "N/A"}
-                            </TableCell>
-                            <TableCell className="py-3 text-center whitespace-nowrap">
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block" style={getStatusBadgeStyle(remark.status)}>
-                                {remark.status}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                    <MessageSquare className="h-10 w-10 mb-2 opacity-20" />
-                    <p className="text-sm">No remarks records found.</p>
-                  </div>
-                )
-              ) : (
-                performanceLoading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (performanceList && performanceList.length > 0) ? (
-                  <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
-                    <Table className="min-w-[600px] w-full">
-                      <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                        <TableRow>
-                          <TableHead className="w-[60px] py-3 pl-4 text-xs font-semibold whitespace-nowrap">Sl No</TableHead>
-                          <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[100px]">Date</TableHead>
-                          <TableHead className="py-3 text-xs font-semibold min-w-[200px]">Performance</TableHead>
-                          <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[120px]">Teacher</TableHead>
-                          <TableHead className="py-3 text-xs font-semibold text-center whitespace-nowrap min-w-[100px]">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {[...performanceList]
-                          .sort((a, b) => new Date(b.date) - new Date(a.date))
-                          .map((perf, index) => (
-                          <TableRow key={perf._id} className="group hover:bg-muted/30 transition-colors">
-                            <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
-                            <TableCell className="py-3 text-sm font-medium whitespace-nowrap">
-                              {formatDateShort(perf.date)}
-                            </TableCell>
-                            <TableCell className="py-3 min-w-[200px]">
-                              <p className="text-sm text-foreground leading-relaxed font-normal not-italic">{perf.comments}</p>
-                            </TableCell>
-                            <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
-                              {perf.teacherName || "N/A"}
-                            </TableCell>
-                            <TableCell className="py-3 text-center whitespace-nowrap">
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block" style={getStatusBadgeStyle(perf.status)}>
-                                {perf.status}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                    <Trophy className="h-10 w-10 mb-2 opacity-20" />
-                    <p className="text-sm">No performance records found.</p>
-                  </div>
-                )
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {(activeTab === "ALERTS" || activeTab === "NOTIFICATIONS") && (
-        <Card className="flex flex-col card-print-break mt-5 overflow-hidden w-full min-w-0">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-bold flex items-center gap-2 break-words">
-              <Bell className="h-5 w-5 text-cyan-500 shrink-0" />
-              Alerts
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 w-full min-w-0">
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-center px-4">
-              <div className="p-5 rounded-2xl bg-cyan-100 dark:bg-cyan-900/20 mb-4 shrink-0">
-                <Bell className="h-10 w-10 text-cyan-500 opacity-60" />
-              </div>
-              <p className="text-base font-semibold text-cyan-700 dark:text-cyan-300 mb-1 break-words">No Alerts</p>
-              <p className="text-sm text-muted-foreground break-words max-w-full">You have no alerts at this time.</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === "DOWNLOADS" && (
-        <Card className="flex flex-col card-print-break mt-5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Download className="h-5 w-5 text-teal-500" />
-              Downloads
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <DownloadsTabContent apiKey={apiKey} />
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === "AWARDS" && (
-        <Card className="flex flex-col card-print-break mt-5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              Awards &amp; Achievements
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <AwardsTabContent currentUser={currentUser} apiKey={apiKey} />
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === "ARTICLES" && (
-        <Card className="flex flex-col card-print-break mt-5 border-purple-100 dark:border-purple-900 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b mb-4">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Newspaper className="h-5 w-5 text-purple-500" />
-              Articles
-            </CardTitle>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              {articles?.length || 0} Total Articles
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1">
-            {articlesLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-              </div>
-            ) : articles && articles.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {articles.map((article, idx) => (
-                  <div key={article._id || idx} className="group overflow-hidden border border-gray-100 dark:border-border shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white dark:bg-slate-900 rounded-2xl cursor-default h-full">
-                    {article.image?.url ? (
-                      <div className="relative aspect-[16/10] overflow-hidden">
-                        <img
-                          src={article.image.url}
-                          alt={article.title}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      </div>
-                    ) : (
-                      <div className="aspect-[16/10] bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">
-                        <Newspaper className="w-12 h-12 text-purple-200 group-hover:text-purple-300 transition-colors" />
-                      </div>
-                    )}
-                    <div className="flex-1 p-5 md:p-6 flex flex-col">
-                      <div className="flex items-center gap-2 text-purple-600 text-xs font-bold uppercase tracking-widest mb-3">
-                        <span className="bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded">
-                          {article.date ? new Date(article.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Recent"}
-                        </span>
-                        {article.author && (
-                          <span className="text-muted-foreground font-medium normal-case tracking-normal truncate">by {article.author}</span>
+                                          <div className="flex-1">
+                                            {(() => {
+                                              const existingReq = pendingRequests.find(r => r.bookId?._id === book._id || r.bookId === book._id);
+                                              if (existingReq) {
+                                                return (
+                                                  <Button
+                                                    size="sm"
+                                                    className="w-full h-7 text-[10px] font-bold bg-red-600 hover:bg-red-700 text-white"
+                                                    onClick={() => handleCancelRequest(existingReq._id)}
+                                                  >
+                                                    Cancel Request
+                                                  </Button>
+                                                );
+                                              } else if (book.status !== "Available") {
+                                                return (
+                                                  <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold bg-muted text-muted-foreground">
+                                                    Not Available
+                                                  </Button>
+                                                );
+                                              } else {
+                                                return (
+                                                  <Button
+                                                    size="sm"
+                                                    className="w-full h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                                                    onClick={() => handleRequestBook(book)}
+                                                  >
+                                                    Request
+                                                  </Button>
+                                                );
+                                              }
+                                            })()}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              );
+                            }}
+                          />
                         )}
                       </div>
-                      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors line-clamp-2 leading-tight">
-                        {article.title}
-                      </h2>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 mb-4">
-                        {article.content}
-                      </p>
-                      <div className="pt-4 border-t border-gray-50 dark:border-border flex items-center justify-between">
-                        <span className="text-xs font-semibold text-purple-600 dark:text-purple-400"></span>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSharedArticle(article);
-                          }}
-                          className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                          title="Share this article"
-                        >
-                          <Share2 className="w-3 h-3" />
-                          Share
-                        </button>
+                    ) : librarySubTab === "REQUESTS" ? (
+                      <div className="w-full min-w-0">
+                        {pendingRequests && pendingRequests.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {pendingRequests.map((req) => (
+                              <Card key={req._id} className="border shadow-sm hover:shadow-md transition-all">
+                                <CardContent className="p-4 flex flex-col justify-between h-full gap-3">
+                                  <div className="flex items-start gap-3">
+                                    <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 border border-amber-200/50 shrink-0">
+                                      <BookOpen className="h-6 w-6" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        ID: {req.bookId?.id || "N/A"}
+                                      </div>
+                                      <h4 className="font-bold text-base text-foreground leading-snug line-clamp-2">
+                                        {req.bookId?.name || "Book Title"}
+                                      </h4>
+                                      {req.bookId?.author && (
+                                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                          Author: <span className="text-foreground font-medium">{req.bookId.author}</span>
+                                        </p>
+                                      )}
+                                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                          <Clock className="h-3 w-3" />
+                                          Pending Approval
+                                        </span>
+                                        {req.createdAt && (
+                                          <span className="text-[10px] text-muted-foreground">
+                                            {formatDateShort(req.createdAt)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleCancelRequest(req._id)}
+                                    className="w-full text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200"
+                                  >
+                                    <X className="h-3.5 w-3.5 mr-1.5" />
+                                    Cancel Request
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+                            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-amber-500 mb-3">
+                              <Clock className="h-8 w-8" />
+                            </div>
+                            <h4 className="font-bold text-foreground text-base mb-1">No Pending Requests</h4>
+                            <p className="text-xs text-muted-foreground max-w-xs mb-4">
+                              You have not requested any books currently awaiting librarian approval.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setLibrarySubTab("BOOKS")}
+                              className="font-bold text-xs"
+                            >
+                              Browse Books Catalog
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <div className="p-5 rounded-2xl bg-purple-100 dark:bg-purple-900/20 mb-4">
-                  <Newspaper className="h-10 w-10 text-purple-500 opacity-60" />
-                </div>
-                <p className="text-base font-semibold text-purple-700 dark:text-purple-300 mb-1">No Articles Available</p>
-                <p className="text-sm text-muted-foreground text-center max-w-xs">No articles have been published yet. Check back later!</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                    ) : (
+                      <div className="w-full min-w-0">
+                        {rentalsLoading ? (
+                          <div className="flex items-center justify-center py-20">
+                            <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+                          </div>
+                        ) : rentalHistory && rentalHistory.length > 0 ? (
+                          <div className="rounded-md border overflow-auto max-h-[500px] w-full min-w-0">
+                            <Table className="min-w-[500px] w-full">
+                              <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                <TableRow>
+                                  <TableHead className="w-[60px] whitespace-nowrap">Sl No</TableHead>
+                                  <TableHead className="min-w-[180px]">Book Name</TableHead>
+                                  <TableHead className="whitespace-nowrap min-w-[120px]">Rented Date</TableHead>
+                                  <TableHead className="whitespace-nowrap min-w-[120px]">Returned Date</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {rentalHistory.map((rental, index) => (
+                                  <TableRow key={rental._id}>
+                                    <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                                    <TableCell className="font-medium">
+                                      {rental.bookId?.name || "Unknown Book"}
+                                      <div className="text-xs text-muted-foreground">
+                                        {rental.bookId?.id || "N/A"}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3 text-muted-foreground" />
+                                        {formatDateWithoutDay(rental.rentedDate)}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                      {rental.receivedDate ? (
+                                        <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                          <Clock className="h-3 w-3" />
+                                          {formatDateWithoutDay(rental.receivedDate)}
+                                        </div>
+                                      ) : (
+                                        <span className="text-orange-600 dark:text-orange-400 font-medium">
+                                          Currently Reading
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : (
+                          <div className="text-center py-20 text-muted-foreground">
+                            <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                            <p>No book rental history found.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
-      {activeTab === "UPDATES" && (
-        <Card className="flex flex-col card-print-break mt-5 border-pink-100 dark:border-pink-900 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b mb-4">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Megaphone className="h-5 w-5 text-pink-500" />
-              Latest Updates
-            </CardTitle>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              {updates?.length || 0} Total Updates
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {updates && updates.length > 0 ? (
-                updates.map((update, idx) => (
-                  <UpdateCard key={update._id || idx} update={update} />
-                ))
-              ) : (
-                <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <div className="p-5 rounded-2xl bg-pink-100 dark:bg-pink-900/20 mb-4">
-                    <Megaphone className="h-10 w-10 text-pink-500 opacity-60" />
-                  </div>
-                  <p className="text-base font-semibold text-pink-700 dark:text-pink-300 mb-1">No Updates Available</p>
-                  <p className="text-sm text-muted-foreground text-center max-w-xs">There are no institutional updates or news items at this time. Check back later!</p>
+              {activeTab === "MARKS" && (
+                <div className="grid grid-cols-1 gap-5 pt-5 print-stack-vertical">
+                  <Card className="flex flex-col">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <div className="flex flex-col gap-1">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <BookOpen className="h-5 w-5 text-indigo-500" />
+                          Exam Marks
+                        </CardTitle>
+                      </div>
+                      {marks && marks.length > 0 && (
+                        <div className="no-print">
+                          <Select onValueChange={setSelectedExamId} value={selectedExamId}>
+                            <SelectTrigger className="w-[180px] h-8 text-xs">
+                              <SelectValue placeholder="Select Exam" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Exams</SelectItem>
+                              {marks.map((exam) => (
+                                <SelectItem key={exam._id} value={exam._id}>
+                                  {exam.examName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                      <div className="max-h-[400px] overflow-y-auto pr-2">
+                        {marksLoading ? (
+                          <div className="flex items-center justify-center py-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : marks && marks.length > 0 ? (
+                          <div className="space-y-6">
+                            {marks
+                              .filter((exam) => selectedExamId === "all" || exam._id === selectedExamId)
+                              .map((exam) => {
+                                const studentMarks = exam.students.find(s => s.studentId?._id === currentUser._id || s.studentId === currentUser._id);
+                                if (!studentMarks) return null;
+
+                                // Calculate totals, percentage, and rank
+                                let studentTotal = 0;
+                                let maxTotal = 0;
+                                exam.subjects.forEach(subject => {
+                                  const m = studentMarks.marks?.[subject.name];
+                                  if (subject.subColumns && subject.subColumns.length > 0) {
+                                    subject.subColumns.forEach(sc => {
+                                      studentTotal += (m && typeof m === 'object') ? (Number(m[sc.name]) || 0) : 0;
+                                      maxTotal += Number(sc.maxMark) || 0;
+                                    });
+                                  } else {
+                                    studentTotal += Number(m) || 0;
+                                    maxTotal += subject.maxMark || 100;
+                                  }
+                                });
+                                const percentage = maxTotal > 0 ? ((studentTotal / maxTotal) * 100).toFixed(2) : 0;
+
+                                // Rank calculation
+                                const allStudentTotals = exam.students.map(s => {
+                                  let total = 0;
+                                  exam.subjects.forEach(subject => {
+                                    const m = s.marks?.[subject.name];
+                                    if (subject.subColumns && subject.subColumns.length > 0) {
+                                      subject.subColumns.forEach(sc => {
+                                        total += (m && typeof m === 'object') ? (Number(m[sc.name]) || 0) : 0;
+                                      });
+                                    } else {
+                                      total += Number(m) || 0;
+                                    }
+                                  });
+                                  return { studentId: s.studentId?._id || s.studentId, total };
+                                });
+                                allStudentTotals.sort((a, b) => b.total - a.total);
+                                const rank = allStudentTotals.findIndex(s => s.studentId === currentUser._id) + 1;
+
+                                // Collect all unique sub-column names for this exam
+                                const subColNames = [];
+                                exam.subjects.forEach(subject => {
+                                  if (subject.subColumns && subject.subColumns.length > 0) {
+                                    subject.subColumns.forEach(sc => {
+                                      if (!subColNames.includes(sc.name)) {
+                                        subColNames.push(sc.name);
+                                      }
+                                    });
+                                  }
+                                });
+
+                                return (
+                                  <div key={exam._id} className="space-y-1 print-exam-card w-full min-w-0">
+                                    <div className="rounded-md border overflow-x-auto w-full min-w-0">
+                                      <Table className="min-w-[550px] w-full">
+                                        <TableHeader className="bg-muted/50">
+                                          <TableRow>
+                                            <TableHead colSpan={3 + subColNames.length} className="text-center font-bold text-sm h-10 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300">
+                                              {exam.examName}
+                                            </TableHead>
+                                          </TableRow>
+                                          <TableRow className="bg-muted/30">
+                                            <TableHead className="py-2 text-xs min-w-[150px]">Subject</TableHead>
+                                            {subColNames.map(name => (
+                                              <TableHead key={name} className="py-2 text-xs text-center whitespace-nowrap min-w-[80px]">{name}</TableHead>
+                                            ))}
+                                            <TableHead className="py-2 text-xs text-center whitespace-nowrap min-w-[80px]">Total</TableHead>
+                                            <TableHead className="py-2 text-xs text-center whitespace-nowrap min-w-[90px]">Result</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {exam.subjects.map((subject, sIndex) => {
+                                            const rawMark = studentMarks.marks?.[subject.name];
+                                            let markTotal = 0;
+                                            let maxMarkTotal = subject.maxMark || 100;
+                                            let isPass = true;
+                                            const hasSubCols = subject.subColumns && subject.subColumns.length > 0;
+
+                                            if (hasSubCols) {
+                                              maxMarkTotal = 0;
+                                              subject.subColumns.forEach(sc => {
+                                                const scVal = (rawMark && typeof rawMark === 'object') ? (Number(rawMark[sc.name]) || 0) : 0;
+                                                markTotal += scVal;
+                                                maxMarkTotal += Number(sc.maxMark) || 0;
+                                                if (scVal < (Number(sc.passMark) || 0)) isPass = false;
+                                              });
+                                            } else {
+                                              markTotal = Number(rawMark) || 0;
+                                              if (markTotal < (subject.passMark || 40)) isPass = false;
+                                            }
+
+                                            const displayMark = (rawMark === undefined || rawMark === null) ? "N/A" : markTotal;
+
+                                            return (
+                                              <TableRow key={`${subject.name}-${sIndex}`}>
+                                                <TableCell className="py-2 text-sm font-medium">
+                                                  {subject.name}
+                                                </TableCell>
+                                                {subColNames.map(name => {
+                                                  let val = "-";
+                                                  if (hasSubCols) {
+                                                    const sc = subject.subColumns.find(col => col.name === name);
+                                                    if (sc) {
+                                                      const scVal = (rawMark && typeof rawMark === 'object') ? rawMark[sc.name] : undefined;
+                                                      val = scVal !== undefined ? scVal : "-";
+                                                    }
+                                                  }
+                                                  return (
+                                                    <TableCell key={name} className="py-2 text-sm text-center">
+                                                      {val}
+                                                    </TableCell>
+                                                  );
+                                                })}
+                                                <TableCell className="py-2 text-sm text-center">
+                                                  <span className="font-semibold">{displayMark}</span> <span className="text-xs text-muted-foreground">/ {maxMarkTotal}</span>
+                                                </TableCell>
+                                                <TableCell className="py-2 text-center">
+                                                  {displayMark !== "N/A" ? (
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${isPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                      {isPass ? 'Pass' : 'Fail'}
+                                                    </span>
+                                                  ) : "-"}
+                                                </TableCell>
+                                              </TableRow>
+                                            );
+                                          })}
+                                          {/* Summary Row */}
+                                          <TableRow className="bg-indigo-50/30 dark:bg-indigo-950/20 font-bold border-t-2">
+                                            <TableCell colSpan={1 + subColNames.length} className="py-2 text-sm text-indigo-700 dark:text-indigo-300">SUMMARY</TableCell>
+                                            <TableCell className="py-2 text-sm text-center">
+                                              <div className="flex flex-col">
+                                                <span>{studentTotal} / {maxTotal}</span>
+                                                <span className="text-[10px] text-muted-foreground">{percentage}%</span>
+                                              </div>
+                                            </TableCell>
+                                            <TableCell className="py-2 text-center">
+                                              <div className="inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">
+                                                <span className="text-[10px] font-bold">RANK</span>
+                                                <span className="text-sm">#{rank}</span>
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                            <BookOpen className="h-10 w-10 mb-2 opacity-20" />
+                            <p className="text-sm">No exam marks records found.</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-          </>
-        )}
-      <div className="fixed bottom-4 right-4 no-print">
-        <Button onClick={() => window.print()}>
-          <Printer className="mr-2 h-4 w-4" />
-          Print
-        </Button>
-      </div>
-      </div>
-    </div>
-    
-    <ProfileEditModal 
-      user={currentUser} 
-      open={isEditModalOpen} 
-      onClose={() => setIsEditModalOpen(false)} 
-      onSuccess={async () => {
-        // 1. Optimistically update status to show 'Requested' immediately
-        const now = new Date();
-        setCurrentUser(prev => ({ 
-          ...prev, 
-          profileUpdateStatus: "Pending",
-          profileRequestDate: now.toISOString()
-        }));
-        
-        // 2. Invalidate React Query to update any visible tables immediately
-        queryClient.invalidateQueries({ queryKey: ["users"] });
-        
-        // 3. Re-fetch full user data to ensure state is in sync with server
-        try {
-          const res = await fetch(`/api/users?_id=${currentUser._id}`, {
-             headers: { "x-api-key": apiKey }
-          });
-          const data = await res.json();
-          // The API returns { users: [...], pagination: ... }
-          if (data && data.users && Array.isArray(data.users) && data.users.length > 0) {
-            setCurrentUser(data.users[0]);
-          } else if (data && Array.isArray(data) && data.length > 0) {
-            setCurrentUser(data[0]);
-          }
-        } catch (error) {
-          console.error("Error refreshing user data:", error);
-        }
 
-        // 4. Trigger router refresh for any server components
-        router.refresh();
-      }}
-    />
-    <ShareModal
-      open={!!sharedArticle}
-      onOpenChange={(open) => !open && setSharedArticle(null)}
-      title={sharedArticle?.title || ""}
-      text={sharedArticle?.content || ""}
-      url={
-        sharedArticle
-          ? `${typeof window !== "undefined" ? window.location.origin : ""}/articles/${sharedArticle._id}`
-          : ""
-      }
-      category="Article"
-    />
-  </>
+              {activeTab === "ATTENDANCE" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-5 print-stack-vertical">
+                  {/* Attendance History */}
+                  <Card className="card-print-break" ref={historyRef}>
+                    <CardHeader className="bg-muted/10 pb-4 pt-4 border-b flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg font-bold flex items-center gap-2">
+                        <Calendar
+                          className="w-5 h-5 text-primary cursor-pointer hover:opacity-80 transition-opacity no-print"
+                          onClick={() => downloadCardAsJpeg(historyRef, `Attendance_History_${selectedYear}.jpg`)}
+                          title="Download as Image"
+                        />
+                        Attendance History
+                      </CardTitle>
+                      <div className="no-print">
+                        <Select
+                          onValueChange={(value) => setSelectedYear(parseInt(value))}
+                          defaultValue={selectedYear.toString()}
+                        >
+                          <SelectTrigger className="w-[100px] h-8 text-xs">
+                            <SelectValue placeholder="Year" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {academicYears.map((year) => (
+                              <SelectItem key={year} value={year.toString()}>
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-2 sm:px-4 pt-4 pb-6">
+                      <div className="max-h-[400px] overflow-auto border rounded-md w-full min-w-0">
+                        <Table className="w-full">
+                          <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                            <TableRow>
+                              <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Month</TableHead>
+                              <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Total</TableHead>
+                              <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Present</TableHead>
+                              <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">Absent</TableHead>
+                              <TableHead className="py-2 px-1 sm:px-4 text-xs whitespace-nowrap">%</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredAttendanceHistory.length > 0 ? (
+                              filteredAttendanceHistory.map((row) => (
+                                <React.Fragment key={row.monthYear}>
+                                  <TableRow
+                                    onClick={() =>
+                                      setExpandedMonth(
+                                        expandedMonth === row.monthYear ? null : row.monthYear
+                                      )
+                                    }
+                                    className="cursor-pointer hover:bg-muted/50"
+                                  >
+                                    <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm font-medium whitespace-nowrap">{row.month}</TableCell>
+                                    <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{row.totalPeriods}</TableCell>
+                                    <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{row.presentPeriods}</TableCell>
+                                    <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">{(row.totalPeriods || 0) - (row.presentPeriods || 0)}</TableCell>
+                                    <TableCell className="py-2 px-1 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
+                                      <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-bold ${parseFloat(row.percentage) > 80 ? 'bg-green-100 text-green-700' :
+                                        parseFloat(row.percentage) >= 50 ? 'bg-orange-100 text-orange-700' :
+                                          'bg-red-100 text-red-700'
+                                        }`}>
+                                        {row.percentage}%
+                                      </span>
+                                    </TableCell>
+                                  </TableRow>
+                                  {expandedMonth === row.monthYear && (
+                                    <TableRow className="bg-muted/30">
+                                      <TableCell colSpan={5} className="p-0">
+                                        <div className="p-1 sm:p-4 overflow-x-auto w-full min-w-0">
+                                          <Table className="border rounded-md bg-background w-full">
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead className="h-8 py-1 px-1.5 sm:px-4 whitespace-nowrap text-xs">Date</TableHead>
+                                                <TableHead className="h-8 py-1 px-1.5 sm:px-4 text-xs">Subject (Teacher)</TableHead>
+                                                <TableHead className="h-8 py-1 px-1.5 sm:px-4 text-center whitespace-nowrap text-xs">Status</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {row.details.map((detail, dIdx) => (
+                                                <TableRow key={`${detail.id || detail.date}-${dIdx}`} className="h-8">
+                                                  <TableCell className="py-1 px-1.5 sm:px-4 text-xs whitespace-nowrap">
+                                                    {formatDateShort(detail.rawDate || detail.date) || detail.date}
+                                                  </TableCell>
+                                                  <TableCell className="py-1 px-1.5 sm:px-4 text-xs font-medium">
+                                                    {detail.subject} <span className="text-muted-foreground font-normal">({detail.teacher})</span>
+                                                  </TableCell>
+                                                  <TableCell className="py-1 px-1.5 sm:px-4 text-center whitespace-nowrap">
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+                                                      }`}>
+                                                      {detail.present ? "Present" : "Absent"}
+                                                    </span>
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  )}
+                                </React.Fragment>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm font-normal not-italic">
+                                  No records found for {selectedYear}.
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Attendance Chart */}
+                  <Card className="card-print-break flex flex-col" ref={chartRef}>
+                    <CardHeader className="bg-muted/10 pb-4 pt-4 border-b flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg font-bold flex items-center gap-2">
+                        <LayoutGrid
+                          className="w-5 h-5 text-primary cursor-pointer hover:opacity-80 transition-opacity no-print"
+                          onClick={() => downloadCardAsJpeg(chartRef, `Attendance_Chart_${selectedYear}.jpg`)}
+                          title="Download as Image"
+                        />
+                        Attendance Chart ({selectedYear})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 flex-1 flex items-center justify-center">
+                      <div className="w-full h-full min-h-[300px] overflow-x-auto pb-2 flex justify-start">
+                        <BarChart
+                          width={Math.max(300, filteredAttendanceHistory.length * 60 + 60)}
+                          height={400}
+                          data={filteredAttendanceHistory}
+                          margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
+                          barCategoryGap={20}
+                        >
+                          <XAxis dataKey="month" tick={false} padding={{ left: 10, right: 10 }} />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend verticalAlign="top" align="right" />
+                          <Bar
+                            dataKey="percentage"
+                            radius={[4, 4, 0, 0]}
+                            barSize={40}
+                          >
+                            <LabelList
+                              dataKey="month"
+                              position="center"
+                              angle={-90}
+                              fill="white"
+                              style={{
+                                fontWeight: 'bold',
+                                fontSize: '9px',
+                                textTransform: 'uppercase',
+                                pointerEvents: 'none'
+                              }}
+                            />
+                            <LabelList
+                              dataKey="percentage"
+                              position="top"
+                              formatter={(val) => `${val}%`}
+                              style={{
+                                fontWeight: 'bold',
+                                fontSize: '10px',
+                                fill: '#6b7280'
+                              }}
+                            />
+                            {filteredAttendanceHistory.map((entry, index) => {
+                              const p = parseFloat(entry.percentage);
+                              const color = p > 80 ? "#22c55e" : p >= 50 ? "#ea580c" : "#ef4444";
+                              return <Cell key={`cell-${index}`} fill={color} />;
+                            })}
+                          </Bar>
+                        </BarChart>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {activeTab === "LEAVES" && (
+                <Card className="flex flex-col card-print-break mt-5 border-violet-100 dark:border-violet-900 shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <Plane className="h-5 w-5 text-violet-500" />
+                      Leave History
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <div className="w-full min-w-0">
+                      {leavesLoading ? (
+                        <div className="flex items-center justify-center py-10">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : (leavesList && leavesList.length > 0) ? (
+                        <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
+                          <Table className="min-w-[850px] w-full">
+                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                              <TableRow>
+                                <TableHead className="w-[60px] py-3 pl-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Sl No</TableHead>
+                                <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Date of Leave</TableHead>
+                                <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[180px]">Leave Reason</TableHead>
+                                <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Exp. Arrival</TableHead>
+                                <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[110px] whitespace-nowrap">Actual Arrival</TableHead>
+                                <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[120px] whitespace-nowrap">Late Reason</TableHead>
+                                <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[120px] whitespace-nowrap">Remark</TableHead>
+                                <TableHead className="py-3 text-xs font-bold uppercase tracking-wider text-center min-w-[100px] whitespace-nowrap">Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {[...leavesList]
+                                .sort((a, b) => new Date(b.dateOfLeave) - new Date(a.dateOfLeave))
+                                .map((leave, index) => (
+                                  <TableRow key={leave._id} className="group hover:bg-muted/30 transition-colors">
+                                    <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
+                                    <TableCell className="py-3 text-sm font-bold text-violet-700 dark:text-violet-300 whitespace-nowrap">
+                                      {formatDateShort(leave.dateOfLeave)}
+                                    </TableCell>
+                                    <TableCell className="py-3 min-w-[180px]">
+                                      <p className="text-sm text-foreground leading-relaxed font-normal not-italic" title={leave.leaveReason}>
+                                        {leave.leaveReason}
+                                      </p>
+                                    </TableCell>
+                                    <TableCell className="py-3 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                      {formatDateShort(leave.dateOfArrival)}
+                                    </TableCell>
+                                    <TableCell className="py-3 text-sm font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                                      {leave.arrivedDate ? formatDateShort(leave.arrivedDate) : "N/A"}
+                                    </TableCell>
+                                    <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
+                                      {leave.lateReason || "-"}
+                                    </TableCell>
+                                    <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
+                                      {leave.remark || "-"}
+                                    </TableCell>
+                                    <TableCell className="py-3 text-center whitespace-nowrap">
+                                      {leave.arrivedDate ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                          <span className="h-1 w-1 rounded-full bg-green-500" />
+                                          Returned
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 animate-pulse">
+                                          <span className="h-1 w-1 rounded-full bg-orange-500" />
+                                          On Leave
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                          <Plane className="h-10 w-10 mb-2 opacity-20" />
+                          <p className="text-sm">No leave records found.</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === "REMARKS" && (
+                <Card className="flex flex-col card-print-break mt-5">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-orange-500" />
+                      Student Remarks & Performance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 space-y-4">
+                    {/* Sub-tab Switcher */}
+                    <div className="flex gap-2 border-b pb-3 overflow-x-auto no-scrollbar mt-2">
+                      {[
+                        { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "text-orange-600 dark:text-orange-400", activeBg: "bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300" },
+                        { id: "PERFORMANCE", label: "Performance", icon: Trophy, color: "text-amber-600 dark:text-amber-400", activeBg: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" },
+                      ].map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeRemarksSubTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveRemarksSubTab(tab.id)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 ${isActive
+                              ? tab.activeBg
+                              : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                              }`}
+                          >
+                            <Icon className={`h-4 w-4 ${isActive ? "" : tab.color}`} />
+                            <span>{tab.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="w-full min-w-0">
+                      {activeRemarksSubTab === "REMARKS" ? (
+                        remarksLoading ? (
+                          <div className="flex items-center justify-center py-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : (remarksList && remarksList.length > 0) ? (
+                          <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
+                            <Table className="min-w-[600px] w-full">
+                              <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                <TableRow>
+                                  <TableHead className="w-[60px] py-3 pl-4 text-xs font-semibold whitespace-nowrap">Sl No</TableHead>
+                                  <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[100px]">Date</TableHead>
+                                  <TableHead className="py-3 text-xs font-semibold min-w-[200px]">Remarks</TableHead>
+                                  <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[120px]">Teacher</TableHead>
+                                  <TableHead className="py-3 text-xs font-semibold text-center whitespace-nowrap min-w-[100px]">Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {[...remarksList]
+                                  .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                  .map((remark, index) => (
+                                    <TableRow key={remark._id} className="group hover:bg-muted/30 transition-colors">
+                                      <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
+                                      <TableCell className="py-3 text-sm font-medium whitespace-nowrap">
+                                        {formatDateShort(remark.date)}
+                                      </TableCell>
+                                      <TableCell className="py-3 min-w-[200px]">
+                                        <p className="text-sm text-foreground leading-relaxed font-normal not-italic">{remark.comments}</p>
+                                      </TableCell>
+                                      <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
+                                        {remark.teacherName || "N/A"}
+                                      </TableCell>
+                                      <TableCell className="py-3 text-center whitespace-nowrap">
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block" style={getStatusBadgeStyle(remark.status)}>
+                                          {remark.status}
+                                        </span>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                            <MessageSquare className="h-10 w-10 mb-2 opacity-20" />
+                            <p className="text-sm">No remarks records found.</p>
+                          </div>
+                        )
+                      ) : (
+                        performanceLoading ? (
+                          <div className="flex items-center justify-center py-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : (performanceList && performanceList.length > 0) ? (
+                          <div className="rounded-md border overflow-auto max-h-[400px] w-full min-w-0">
+                            <Table className="min-w-[600px] w-full">
+                              <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                <TableRow>
+                                  <TableHead className="w-[60px] py-3 pl-4 text-xs font-semibold whitespace-nowrap">Sl No</TableHead>
+                                  <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[100px]">Date</TableHead>
+                                  <TableHead className="py-3 text-xs font-semibold min-w-[200px]">Performance</TableHead>
+                                  <TableHead className="py-3 text-xs font-semibold whitespace-nowrap min-w-[120px]">Teacher</TableHead>
+                                  <TableHead className="py-3 text-xs font-semibold text-center whitespace-nowrap min-w-[100px]">Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {[...performanceList]
+                                  .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                  .map((perf, index) => (
+                                    <TableRow key={perf._id} className="group hover:bg-muted/30 transition-colors">
+                                      <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
+                                      <TableCell className="py-3 text-sm font-medium whitespace-nowrap">
+                                        {formatDateShort(perf.date)}
+                                      </TableCell>
+                                      <TableCell className="py-3 min-w-[200px]">
+                                        <p className="text-sm text-foreground leading-relaxed font-normal not-italic">{perf.comments}</p>
+                                      </TableCell>
+                                      <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
+                                        {perf.teacherName || "N/A"}
+                                      </TableCell>
+                                      <TableCell className="py-3 text-center whitespace-nowrap">
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block" style={getStatusBadgeStyle(perf.status)}>
+                                          {perf.status}
+                                        </span>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                            <Trophy className="h-10 w-10 mb-2 opacity-20" />
+                            <p className="text-sm">No performance records found.</p>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {(activeTab === "ALERTS" || activeTab === "NOTIFICATIONS") && (
+                <Card className="flex flex-col card-print-break mt-5 overflow-hidden w-full min-w-0">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2 break-words">
+                      <Bell className="h-5 w-5 text-cyan-500 shrink-0" />
+                      Alerts
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 w-full min-w-0">
+                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-center px-4">
+                      <div className="p-5 rounded-2xl bg-cyan-100 dark:bg-cyan-900/20 mb-4 shrink-0">
+                        <Bell className="h-10 w-10 text-cyan-500 opacity-60" />
+                      </div>
+                      <p className="text-base font-semibold text-cyan-700 dark:text-cyan-300 mb-1 break-words">No Alerts</p>
+                      <p className="text-sm text-muted-foreground break-words max-w-full">You have no alerts at this time.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === "DOWNLOADS" && (
+                <Card className="flex flex-col card-print-break mt-5">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <Download className="h-5 w-5 text-teal-500" />
+                      Downloads
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <DownloadsTabContent apiKey={apiKey} />
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === "AWARDS" && (
+                <Card className="flex flex-col card-print-break mt-5">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-500" />
+                      Awards &amp; Achievements
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <AwardsTabContent currentUser={currentUser} apiKey={apiKey} />
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === "ARTICLES" && (
+                <Card className="flex flex-col card-print-break mt-5 border-purple-100 dark:border-purple-900 shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 border-b mb-4">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <Newspaper className="h-5 w-5 text-purple-500" />
+                      Articles
+                    </CardTitle>
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {articles?.length || 0} Total Articles
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    {articlesLoading ? (
+                      <div className="flex items-center justify-center py-16">
+                        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                      </div>
+                    ) : articles && articles.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {articles.map((article, idx) => (
+                          <div key={article._id || idx} className="group overflow-hidden border border-gray-100 dark:border-border shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white dark:bg-slate-900 rounded-2xl cursor-default h-full">
+                            {article.image?.url ? (
+                              <div className="relative aspect-[16/10] overflow-hidden">
+                                <img
+                                  src={article.image.url}
+                                  alt={article.title}
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                              </div>
+                            ) : (
+                              <div className="aspect-[16/10] bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">
+                                <Newspaper className="w-12 h-12 text-purple-200 group-hover:text-purple-300 transition-colors" />
+                              </div>
+                            )}
+                            <div className="flex-1 p-5 md:p-6 flex flex-col">
+                              <div className="flex items-center gap-2 text-purple-600 text-xs font-bold uppercase tracking-widest mb-3">
+                                <span className="bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded">
+                                  {article.date ? new Date(article.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Recent"}
+                                </span>
+                                {article.author && (
+                                  <span className="text-muted-foreground font-medium normal-case tracking-normal truncate">by {article.author}</span>
+                                )}
+                              </div>
+                              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors line-clamp-2 leading-tight">
+                                {article.title}
+                              </h2>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 mb-4">
+                                {article.content}
+                              </p>
+                              <div className="pt-4 border-t border-gray-50 dark:border-border flex items-center justify-between">
+                                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400"></span>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSharedArticle(article);
+                                  }}
+                                  className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                                  title="Share this article"
+                                >
+                                  <Share2 className="w-3 h-3" />
+                                  Share
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                        <div className="p-5 rounded-2xl bg-purple-100 dark:bg-purple-900/20 mb-4">
+                          <Newspaper className="h-10 w-10 text-purple-500 opacity-60" />
+                        </div>
+                        <p className="text-base font-semibold text-purple-700 dark:text-purple-300 mb-1">No Articles Available</p>
+                        <p className="text-sm text-muted-foreground text-center max-w-xs">No articles have been published yet. Check back later!</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === "UPDATES" && (
+                <Card className="flex flex-col card-print-break mt-5 border-pink-100 dark:border-pink-900 shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 border-b mb-4">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <Megaphone className="h-5 w-5 text-pink-500" />
+                      Latest Updates
+                    </CardTitle>
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {updates?.length || 0} Total Updates
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {updates && updates.length > 0 ? (
+                        updates.map((update, idx) => (
+                          <UpdateCard key={update._id || idx} update={update} />
+                        ))
+                      ) : (
+                        <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground">
+                          <div className="p-5 rounded-2xl bg-pink-100 dark:bg-pink-900/20 mb-4">
+                            <Megaphone className="h-10 w-10 text-pink-500 opacity-60" />
+                          </div>
+                          <p className="text-base font-semibold text-pink-700 dark:text-pink-300 mb-1">No Updates Available</p>
+                          <p className="text-sm text-muted-foreground text-center max-w-xs">There are no institutional updates or news items at this time. Check back later!</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+          <div className="fixed bottom-4 right-4 no-print">
+            <Button onClick={() => window.print()} className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <ProfileEditModal
+        user={currentUser}
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={async () => {
+          // 1. Optimistically update status to show 'Requested' immediately
+          const now = new Date();
+          setCurrentUser(prev => ({
+            ...prev,
+            profileUpdateStatus: "Pending",
+            profileRequestDate: now.toISOString()
+          }));
+
+          // 2. Invalidate React Query to update any visible tables immediately
+          queryClient.invalidateQueries({ queryKey: ["users"] });
+
+          // 3. Re-fetch full user data to ensure state is in sync with server
+          try {
+            const res = await fetch(`/api/users?_id=${currentUser._id}`, {
+              headers: { "x-api-key": apiKey }
+            });
+            const data = await res.json();
+            // The API returns { users: [...], pagination: ... }
+            if (data && data.users && Array.isArray(data.users) && data.users.length > 0) {
+              setCurrentUser(data.users[0]);
+            } else if (data && Array.isArray(data) && data.length > 0) {
+              setCurrentUser(data[0]);
+            }
+          } catch (error) {
+            console.error("Error refreshing user data:", error);
+          }
+
+          // 4. Trigger router refresh for any server components
+          router.refresh();
+        }}
+      />
+      <Dialog open={isProfileSummaryOpen} onOpenChange={setIsProfileSummaryOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-8 border-b pb-3">
+              <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Official Student Profile Summary
+              </DialogTitle>
+              <Button
+                size="sm"
+                onClick={handlePrintProfile}
+                className="gap-1.5 font-semibold no-print bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
+              >
+                <Printer className="h-4 w-4" />
+                <span>Print</span>
+              </Button>
+            </div>
+          </DialogHeader>
+            <div className="py-2" ref={profilePrintRef}>
+              <StudentProfilePrintView
+                student={currentUser}
+                classes={classes}
+                batches={batches}
+                apiKey={apiKey}
+              />
+            </div>
+        </DialogContent>
+      </Dialog>
+      <ShareModal
+        open={!!sharedArticle}
+        onOpenChange={(open) => !open && setSharedArticle(null)}
+        title={sharedArticle?.title || ""}
+        text={sharedArticle?.content || ""}
+        url={
+          sharedArticle
+            ? `${typeof window !== "undefined" ? window.location.origin : ""}/articles/${sharedArticle._id}`
+            : ""
+        }
+        category="Article"
+      />
+    </>
   );
 }

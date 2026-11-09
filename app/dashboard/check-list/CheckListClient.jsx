@@ -277,9 +277,8 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                             <span className="font-semibold text-foreground">{sortedPrograms.length}</span> programs
                         </div>
                         <Button
-                            variant="outline"
                             size="sm"
-                            className="gap-2 bg-black text-white hover:bg-black/90 hover:text-white dark:bg-white dark:text-black dark:hover:bg-white/90"
+                            className="gap-2 bg-black text-white hover:bg-black/90 hover:text-white dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                             onClick={() => window.print()}
                         >
                             <Printer className="h-4 w-4" />

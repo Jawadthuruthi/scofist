@@ -8,5 +8,9 @@
         "Topbar"
     ],
     "postman.settings.dotenv-detection-notification-visibility": false,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "files.associations": {
+        "*.jsx": "javascriptreact",
+        "*.js": "javascript"
+    }
 }

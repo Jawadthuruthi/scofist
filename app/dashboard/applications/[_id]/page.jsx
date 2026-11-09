@@ -9,7 +9,7 @@ import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
 import { useParams } from "next/navigation";
 import useCrud from "@/hooks/use-crud";
-import { Loader, CheckCircle2 } from "lucide-react";
+import { Loader, CheckCircle2, Printer } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -387,10 +387,10 @@ const ApplicationDisplayPage = () => {
       {applicationData && (
         <div className="flex flex-col sm:flex-row gap-3 mt-4 justify-center print:hidden w-full max-w-[210mm]">
           <Button
-            variant="default"
             onClick={handlePrint}
-            className="order-2 sm:order-1"
+            className="order-2 sm:order-1 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print gap-2"
           >
+            <Printer className="h-4 w-4" />
             Print Application
           </Button>
 

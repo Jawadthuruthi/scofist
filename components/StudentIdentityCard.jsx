@@ -39,7 +39,7 @@ const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageU
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <Button
                     onClick={handlePrint}
-                    className="flex items-center justify-center gap-2"
+                    className="flex items-center justify-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                     aria-label="Print/Download ID Card"
                 >
                     <Printer size={16} />

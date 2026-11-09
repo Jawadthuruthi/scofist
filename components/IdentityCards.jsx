@@ -277,7 +277,7 @@ const IdentityCards = ({
 
             <Button
               onClick={handlePrint}
-              className="flex items-center justify-center gap-2 flex-1 h-10"
+              className="flex items-center justify-center gap-2 flex-1 h-10 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
               aria-label="Print"
             >
               <Printer size={16} />

@@ -906,7 +906,7 @@ const ResultComponent = ({
               <Button
                 variant="default"
                 onClick={handlePrint}
-                className="h-10 px-2.5 sm:px-3 shrink-0 whitespace-nowrap"
+                className="h-10 px-2.5 sm:px-3 shrink-0 whitespace-nowrap bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
               >
                 <Printer className="mr-1.5 h-4 w-4" />
                 Print

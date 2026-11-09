@@ -423,8 +423,7 @@ export default function DocumentPreviewDialog({ open, onOpenChange, item }) {
             {/* Print Button */}
             <Button
               size="sm"
-              variant="outline"
-              className="h-8 gap-1.5 text-xs px-2.5"
+              className="h-8 gap-1.5 text-xs px-2.5 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
               onClick={handlePrint}
               disabled={isPrinting}
               title="Print Document"

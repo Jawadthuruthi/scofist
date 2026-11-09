@@ -1020,6 +1020,7 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
               onClick={handlePrint}
               size="sm"
               disabled={isLoading || filteredPrograms.length === 0}
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
             >
               <Printer className="w-4 h-4 mr-1" />
               Print

@@ -345,7 +345,7 @@ export default function PrintAllDocsButton({ transactions = [], apiKey }) {
     };
 
     return (
-        <Button onClick={handlePrint} variant="outline" className="gap-2 bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100">
+        <Button onClick={handlePrint} className="gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
             <Printer className="h-4 w-4" /> Print All
         </Button>
     );

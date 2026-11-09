@@ -319,7 +319,7 @@ const ParticipantsCard = ({
             onClick={handlePrint}
             aria-label="Print Participant Cards"
             variant="default"
-            className="whitespace-nowrap"
+            className="whitespace-nowrap bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
           >
             <Printer size={16} className="mr-2" />
             Print

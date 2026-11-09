@@ -368,7 +368,7 @@ const IndividualResultsComponent = ({ divisions = [], apiKey }) => {
               <Button
                 onClick={handlePrint}
                 disabled={programsWithPoints.length === 0}
-                className="w-full h-8 sm:h-10 text-sm"
+                className="w-full h-8 sm:h-10 text-sm bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                 size="sm"
               >
                 <Printer className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />

@@ -262,7 +262,7 @@ export default function AttendanceTableReport({ classes }) {
 
                     <div className="flex-1 md:hidden">
                         <label className="text-[10px] font-medium mb-1 block">Actions</label>
-                        <Button onClick={handlePrint} className="w-full flex items-center justify-center gap-2 bg-black text-white px-2 h-10">
+                        <Button onClick={handlePrint} className="w-full flex items-center justify-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print px-2 h-10">
                             <Printer className="h-4 w-4" /> Print
                         </Button>
                     </div>
@@ -288,7 +288,7 @@ export default function AttendanceTableReport({ classes }) {
 
                     <div className="flex-1 md:hidden">
                         <label className="text-[10px] font-medium mb-1 block invisible">Actions</label>
-                        <Button onClick={handlePrintSheet} className="w-full flex items-center justify-center gap-2 bg-black text-white px-2 h-10">
+                        <Button onClick={handlePrintSheet} className="w-full flex items-center justify-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print px-2 h-10">
                             <FileText className="h-4 w-4" /> Sheet
                         </Button>
                     </div>
@@ -296,10 +296,10 @@ export default function AttendanceTableReport({ classes }) {
 
                 {/* Desktop-only Buttons */}
                 <div className="hidden md:flex gap-2 ml-auto">
-                    <Button onClick={handlePrint} className="flex items-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90">
+                    <Button onClick={handlePrint} className="flex items-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
                         <Printer className="h-4 w-4" /> Print
                     </Button>
-                    <Button onClick={handlePrintSheet} className="flex items-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90">
+                    <Button onClick={handlePrintSheet} className="flex items-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
                         <FileText className="h-4 w-4" /> Print Sheet
                     </Button>
                 </div>

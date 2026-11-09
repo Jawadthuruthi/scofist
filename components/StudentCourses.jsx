@@ -1821,7 +1821,7 @@ export default function StudentCourses({
             <Button
               type="button"
               onClick={onPrintClick}
-              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-md h-9 w-9 sm:w-auto sm:px-3 p-0 gap-1.5 flex items-center justify-center shrink-0 shadow-sm border border-transparent"
+              className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 rounded-md h-9 w-9 sm:w-auto sm:px-3 p-0 gap-1.5 flex items-center justify-center shrink-0 shadow-sm border border-transparent btn-print"
               title="Print Student Details of Each Course"
             >
               <Printer className="h-4 w-4" />

@@ -2376,7 +2376,7 @@ export default function LibraryDashboard({
                                     variant="default"
                                     size="sm"
                                     onClick={() => tableRef.current?.printTable()}
-                                    className="h-8 w-8 p-0 md:w-auto md:px-3 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                                    className="h-8 w-8 p-0 md:w-auto md:px-3 shrink-0 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                                     title="Print"
                                 >
                                     <Printer className="h-4 w-4" />
@@ -2499,7 +2499,7 @@ export default function LibraryDashboard({
                                             variant="default"
                                             size="sm"
                                             onClick={() => tableRef.current?.printTable()}
-                                            className="h-8 w-8 p-0 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                                            className="h-8 w-8 p-0 shrink-0 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                                             title="Print"
                                         >
                                             <Printer className="h-4 w-4" />

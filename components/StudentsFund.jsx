@@ -1055,7 +1055,7 @@ const StudentsFund = ({
                                   </Button>
                                   <Button
                                     onClick={handleAllStudentsFundPrint}
-                                    className="hidden md:flex gap-2 bg-foreground text-background hover:bg-foreground/90 btn-print"
+                                    className="hidden md:flex gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                                   >
                                     <Printer className="h-5 w-5" />
                                     Print
@@ -1364,7 +1364,7 @@ const StudentsFund = ({
                   <Button
                     onClick={handleAllStudentsFundPrint}
                     title="Print Balance Sheet"
-                    className="gap-2 btn-print"
+                    className="gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                   >
                     <Printer className="h-4 w-4" />
                     Print
@@ -1554,7 +1554,7 @@ const StudentsFund = ({
                           </Button>
                           <Button
                             onClick={handlePrint}
-                            className="hidden md:flex gap-2 bg-foreground text-background hover:bg-foreground/90 btn-print"
+                            className="hidden md:flex gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                           >
                             <Printer className="h-5 w-5" />
                             Print
@@ -1682,7 +1682,7 @@ const StudentsFund = ({
                       </div>
                       <div className="flex gap-2">
                         <Button
-                          className="flex-1 btn-print"
+                          className="flex-1 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                           onClick={handlePrint}
                         >
                           <FileText className="h-4 w-4 mr-2" />

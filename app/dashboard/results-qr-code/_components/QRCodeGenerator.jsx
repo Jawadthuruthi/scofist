@@ -204,7 +204,7 @@ export function QRCodeGenerator({
             Download QR Code
           </Button>
 
-          <Button onClick={handlePrint} className="w-full" variant="outline">
+          <Button onClick={handlePrint} className="w-full bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
             <Printer className="mr-2 h-4 w-4" />
             Print QR Code
           </Button>

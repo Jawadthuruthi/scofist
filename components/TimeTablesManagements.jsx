@@ -14,6 +14,7 @@ import {
   ChevronRight,
   X,
   Calendar,
+  Printer,
 } from "lucide-react";
 
 // UI Components
@@ -1654,7 +1655,10 @@ const TimeTablesManagements = ({
               icon="Reset"
             />
           )}
-          <Button onClick={handlePrint} className="btn-print">Print</Button>
+          <Button onClick={handlePrint} className="gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
         </div>
       </div>
 

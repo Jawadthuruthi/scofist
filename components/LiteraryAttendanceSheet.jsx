@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import axios from "axios";
-import { Loader, Check, X, Calendar as CalendarIcon, Search } from "lucide-react";
+import { Loader, Check, X, Calendar as CalendarIcon, Search, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -293,9 +293,10 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
 
                 <div className="pt-5">
                     <Button
-                        className="bg-black text-white hover:bg-gray-800 w-full"
+                        className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 w-full btn-print gap-2"
                         onClick={() => window.print()}
                     >
+                        <Printer className="h-4 w-4" />
                         Print
                     </Button>
                 </div>

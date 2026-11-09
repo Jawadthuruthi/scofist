@@ -849,7 +849,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
           >
             <Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Add Debt</span>
           </Button>
-          <Button variant="default" size="sm" onClick={() => window.print()}>
+          <Button size="sm" onClick={() => window.print()} className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
             <Printer className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Print</span>
           </Button>
         </div>

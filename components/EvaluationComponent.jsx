@@ -710,7 +710,7 @@ const EvaluationComponent = ({
               size="sm"
               onClick={handlePrint}
               disabled={filteredRegistrations.length === 0}
-              className="h-9 px-3 gap-1.5 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 border-transparent shadow-sm"
+              className="h-9 px-3 gap-1.5 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 border-transparent shadow-sm btn-print"
               title="Print Program Sheet"
             >
               <Printer className="h-4 w-4" />
@@ -848,7 +848,7 @@ const EvaluationComponent = ({
                 size="icon"
                 onClick={handlePrint}
                 disabled={filteredRegistrations.length === 0}
-                className="h-10 w-10 shrink-0 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 border-transparent shadow-sm"
+                className="h-10 w-10 shrink-0 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 border-transparent shadow-sm btn-print"
                 title="Print Program Sheet"
               >
                 <Printer className="h-4 w-4" />

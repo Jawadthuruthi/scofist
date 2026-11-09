@@ -406,8 +406,7 @@ export default function AccountsClient({ activeRole, initialSummary, apiKey, acc
                 row.original.type === "Income" ? (
                     <Button
                         size="sm"
-                        variant="outline"
-                        className="text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800 gap-1 text-xs px-2 py-1 h-7"
+                        className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 gap-1 text-xs px-2 py-1 h-7 border-0 btn-print"
                         onClick={() => handleOpenPrint(row.original)}
                     >
                         <Printer className="h-3 w-3" />
@@ -416,8 +415,7 @@ export default function AccountsClient({ activeRole, initialSummary, apiKey, acc
                 ) : (
                     <Button
                         size="sm"
-                        variant="outline"
-                        className="text-blue-700 border-blue-300 hover:bg-blue-50 hover:text-blue-800 gap-1 text-xs px-2 py-1 h-7"
+                        className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 gap-1 text-xs px-2 py-1 h-7 border-0 btn-print"
                         onClick={() => handleOpenPrint(row.original)}
                     >
                         <Printer className="h-3 w-3" />

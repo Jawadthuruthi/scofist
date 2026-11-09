@@ -109,6 +109,12 @@ export async function POST(req) {
             path: "/",
         });
 
+        response.cookies.set("active-role", "Student", {
+            path: "/",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 365,
+        });
+
         return response;
     } catch (error) {
         console.error("Student Login Error:", error.message);

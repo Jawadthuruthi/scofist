@@ -353,7 +353,7 @@ export default function BookBarcodesClient({ initialBooks = [] }) {
                             <Button variant="outline" size="sm" onClick={downloadQR}>
                                 <Download className="h-4 w-4 mr-2" /> Download
                             </Button>
-                            <Button variant="outline" size="sm" onClick={handlePrintQR}>
+                            <Button size="sm" onClick={handlePrintQR} className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
                                 <Printer className="h-4 w-4 mr-2" /> Print
                             </Button>
                         </div>
@@ -365,7 +365,7 @@ export default function BookBarcodesClient({ initialBooks = [] }) {
                     id="barcode-print-btn"
                     onClick={handlePrint}
                     disabled={selected.size === 0}
-                    className="px-2 md:px-4"
+                    className="px-2 md:px-4 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                 >
                     <Printer className="h-4 w-4 md:mr-2" />
                     <span className="hidden md:inline">Print{selected.size > 0 ? ` (${selected.size})` : ""}</span>

@@ -870,7 +870,7 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
         if (studentData.pagination?.total !== undefined) {
           setPendingStudentRequestsCount(studentData.pagination.total);
         }
-      } catch { /* silent */ }
+      } catch (error) { /* silent */ }
     };
     fetchCounts();
     const handleUpdate = () => fetchCounts();
@@ -886,7 +886,7 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
         const res = await fetch("/api/library/requests?status=Pending");
         const data = await res.json();
         if (data.success) setPendingRequestsCount(data.data?.length || 0);
-      } catch { /* silent */ }
+      } catch (error) { /* silent */ }
     };
     fetchCount();
     const handleUpdate = () => fetchCount();

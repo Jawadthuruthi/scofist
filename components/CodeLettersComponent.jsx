@@ -683,7 +683,7 @@ const CodeLettersComponent = ({
                 variant="default"
                 onClick={handlePrint}
                 disabled={filteredPrograms.length === 0}
-                className="h-9 w-9 p-0"
+                className="h-9 w-9 p-0 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
               >
                 <Printer className="h-4 w-4" />
               </Button>
@@ -768,7 +768,7 @@ const CodeLettersComponent = ({
                 variant="default"
                 onClick={handlePrint}
                 disabled={filteredPrograms.length === 0}
-                className="whitespace-nowrap h-10 px-4"
+                className="whitespace-nowrap h-10 px-4 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
               >
                 <Printer className="h-4 w-4 mr-1" />
                 <span>Print</span>

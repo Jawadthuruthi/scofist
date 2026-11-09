@@ -443,7 +443,7 @@ const TableComponent = forwardRef(({
                 size={searchInSameRowOnMobile ? "default" : "sm"}
                 onClick={handlePrint}
                 className={cn(
-                  "flex p-0 shrink-0 items-center justify-center bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 md:h-10 md:w-auto md:px-3",
+                  "flex p-0 shrink-0 items-center justify-center bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print md:h-10 md:w-auto md:px-3",
                   searchInSameRowOnMobile ? "h-10 w-10" : (mobileIconSize || "h-8 w-8")
                 )}
                 title="Print"
@@ -533,7 +533,7 @@ const TableComponent = forwardRef(({
             <Button
               size="sm"
               onClick={handlePrint}
-              className="hidden md:flex h-8 md:h-10 w-auto px-3 shrink-0 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0"
+              className="hidden md:flex h-8 md:h-10 w-auto px-3 shrink-0 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
               title="Print"
             >
               <Printer className="h-4 w-4" />

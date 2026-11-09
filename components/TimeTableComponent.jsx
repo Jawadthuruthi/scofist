@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X, Columns, Rows } from "lucide-react";
+import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X, Columns, Rows, Printer } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -1379,7 +1379,11 @@ const TimeTableComponent = ({
 
       {!hidePrintButton && (
         <div className="flex justify-end mt-4 no-print">
-          <Button variant="default" onClick={handlePrint}>
+          <Button
+            onClick={handlePrint}
+            className="gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
+          >
+            <Printer className="h-4 w-4" />
             Print
           </Button>
         </div>

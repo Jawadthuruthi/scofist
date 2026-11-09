@@ -1,10 +1,16 @@
 import { NextResponse, NextRequest } from "next/server";
-import { GET as getBestReader } from "@/app/api/library/stats/best-reader/route";
+import connectToDB from "@/lib/db";
+import Rental from "@/models/Rental";
+import Participant from "@/models/Participant";
+import Result from "@/models/Result";
+import Program from "@/models/Program";
+import Team from "@/models/Team";
+import Division from "@/models/Division";
+import Mark from "@/models/Mark";
+import User from "@/models/User";
+import RankAchiever from "@/models/RankAchiever";
 import { GET as getAttendanceToppers } from "@/app/api/attendanceToppers/route";
 import { GET as getStar } from "@/app/api/performance/star/route";
-import { GET as getWinnerPosters } from "@/app/api/winner-posters/route";
-import { GET as getIndividualToppers } from "@/app/api/individual-toppers/route";
-import { GET as getMarksToppers } from "@/app/api/marks/toppers/route";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +25,8 @@ const formatMonthYear = (date) => {
 
 export async function GET(req) {
     try {
+        await connectToDB();
+
         const url = new URL(req.url);
         const studentId = url.searchParams.get("studentId");
         const studentName = url.searchParams.get("studentName");
@@ -28,261 +36,399 @@ export async function GET(req) {
             return NextResponse.json({ success: false, msg: "Missing studentId" }, { status: 400 });
         }
 
-        const bestReaderPromises = [];
-        const attendancePromises = [];
-        const starPromises = [];
-
-        // Star of the Month cutoff: only completed months from July 2026 onwards
-        // July 2026 = month index 6 (0-based), year 2026
-        const STAR_CUTOFF_YEAR = 2026;
-        const STAR_CUTOFF_MONTH = 6; // July (0-based)
-
-        // Attendance & Best Reader cutoff: academic year starts June 2025
-        // (month index 5 = June, 0-based)
-        const ATTENDANCE_CUTOFF_YEAR = 2025;
-        const ATTENDANCE_CUTOFF_MONTH = 5; // June (0-based)
-
         const now = new Date();
-        // "Current month" is the ongoing month — not yet complete, so exclude it.
-        // We only show fully-completed months: month < now's month (if same year) or year < now's year.
-        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        
-        // Helper to construct a mock request for internal routing
-        const createMockReq = (path) => {
-            const mockUrl = new URL(path, req.url);
-            return new NextRequest(mockUrl, {
-                headers: { "api-key": apiKey || "" }
-            });
+        const studentAwards = [];
+        const seenAwardKeys = new Set();
+
+        const addAward = (award) => {
+            const key = `${award.type}-${award.title}-${award.subtitle}-${award.period}`.toLowerCase();
+            if (!seenAwardKeys.has(key)) {
+                seenAwardKeys.add(key);
+                studentAwards.push(award);
+            }
         };
 
-        // Build list of completed months for attendance & best reader
-        // from June 2025 up to (but not including) the current month
-        const attendanceMonthsToIterate = [];
-        {
-            let iterDate = new Date(ATTENDANCE_CUTOFF_YEAR, ATTENDANCE_CUTOFF_MONTH, 1);
-            while (iterDate < currentMonthStart) {
-                attendanceMonthsToIterate.push(new Date(iterDate));
-                iterDate.setMonth(iterDate.getMonth() + 1);
+        // 1. FEST COMPETITION AWARDS (Stage, Off-Stage, Group & Individual across ALL Years)
+        try {
+            const idPattern = new RegExp(`^${studentId}`, "i");
+            const orFilters = [{ _id: studentId }, { _id: idPattern }];
+            if (studentName) {
+                orFilters.push({ name: new RegExp(`^${studentName.trim()}$`, "i") });
             }
+
+            const [participants, declaredResults] = await Promise.all([
+                Participant.find({ $or: orFilters })
+                    .populate("programs.id", "name category type divisionId year")
+                    .populate("teamId", "name color")
+                    .populate("divisionId", "name")
+                    .lean(),
+                Result.find({ isResultDeclared: true })
+                    .populate({
+                        path: "programId",
+                        select: "name category type divisionId year",
+                        populate: { path: "divisionId", select: "name" }
+                    })
+                    .populate("participants.id", "name teamId")
+                    .lean(),
+            ]);
+
+            // Map all participant records for this student
+            participants.forEach((p) => {
+                if (Array.isArray(p.programs)) {
+                    p.programs.forEach((prog) => {
+                        const rank = prog.rank;
+                        if (rank >= 1 && rank <= 3) {
+                            const programDoc = prog.id;
+                            const progName = programDoc?.name || "Fest Competition";
+                            const progYear = programDoc?.year || p.year || "Fest Session";
+                            const teamName = p.teamId?.name || "Team Member";
+                            const rankBadge = rank === 1 ? "1st Place 🥇" : rank === 2 ? "2nd Place 🥈" : "3rd Place 🥉";
+                            const color = rank === 1 ? "gold" : rank === 2 ? "silver" : "bronze";
+
+                            addAward({
+                                type: "STUDENTS FEST",
+                                title: rankBadge,
+                                subtitle: progName,
+                                extraInfo: `Team: ${teamName} | Points: ${prog.points || 0} | Grade: ${prog.grade || "N/A"}`,
+                                period: progYear,
+                                date: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
+                                iconName: rank === 1 ? "Trophy" : "Award",
+                                color,
+                                rankLabel: `${rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd"} Place`,
+                                isFestWinner: true,
+                            });
+                        }
+                    });
+                }
+            });
+
+            // Cross-reference declared results for any wins
+            declaredResults.forEach((res) => {
+                if (!res.programId || !Array.isArray(res.participants)) return;
+
+                res.participants.forEach((part) => {
+                    if (part.rank >= 1 && part.rank <= 3) {
+                        const partObj = part.id;
+                        const partIdStr = String(partObj?._id || part.id || "");
+                        const partName = partObj?.name || "";
+
+                        const isMatch =
+                            partIdStr.toLowerCase().startsWith(studentId.toLowerCase()) ||
+                            partIdStr.toLowerCase() === studentId.toLowerCase() ||
+                            (studentName && partName && partName.trim().toLowerCase() === studentName.trim().toLowerCase());
+
+                        if (isMatch) {
+                            const progName = res.programId.name || "Fest Competition";
+                            const progYear = res.programId.year || res.year || "Fest Session";
+                            const rank = part.rank;
+                            const rankBadge = rank === 1 ? "1st Place 🥇" : rank === 2 ? "2nd Place 🥈" : "3rd Place 🥉";
+                            const color = rank === 1 ? "gold" : rank === 2 ? "silver" : "bronze";
+
+                            addAward({
+                                type: "STUDENTS FEST",
+                                title: rankBadge,
+                                subtitle: progName,
+                                extraInfo: `Rank: ${rank} | Points: ${part.points || 0} | Grade: ${part.grade || "N/A"}`,
+                                period: progYear,
+                                date: res.declaredAt ? new Date(res.declaredAt).toISOString() : new Date().toISOString(),
+                                iconName: rank === 1 ? "Trophy" : "Award",
+                                color,
+                                rankLabel: `${rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd"} Place`,
+                                isFestWinner: true,
+                            });
+                        }
+                    }
+                });
+            });
+        } catch (err) {
+            console.warn("Fest winners check failed:", err.message);
         }
 
-        // Build list of completed months for Star of the Month
-        // from July 2026 up to (but not including) the current month
-        const starMonthsToIterate = [];
-        {
-            let iterDate = new Date(STAR_CUTOFF_YEAR, STAR_CUTOFF_MONTH, 1);
-            while (iterDate < currentMonthStart) {
-                starMonthsToIterate.push(new Date(iterDate));
-                iterDate.setMonth(iterDate.getMonth() + 1);
-            }
-        }
+        // 2. BEST READER AWARDS (Instant single-query aggregation across ALL months in history)
+        try {
+            const bestReaderAgg = await Rental.aggregate([
+                {
+                    $match: {
+                        rentedDate: { $exists: true, $ne: null }
+                    }
+                },
+                {
+                    $project: {
+                        studentId: 1,
+                        year: { $year: "$rentedDate" },
+                        month: { $month: "$rentedDate" }
+                    }
+                },
+                {
+                    $group: {
+                        _id: { year: "$year", month: "$month", studentId: "$studentId" },
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { "_id.year": -1, "_id.month": -1, count: -1 } }
+            ]);
 
-        // Attendance Toppers & Best Reader — iterate from academic year start (June 2025)
-        for (const date of attendanceMonthsToIterate) {
-            const month = date.getMonth();
-            const year = date.getFullYear();
+            // Top reader for each month
+            const monthlyTops = new Map();
+            bestReaderAgg.forEach((item) => {
+                const key = `${item._id.year}-${item._id.month}`;
+                if (!monthlyTops.has(key)) {
+                    monthlyTops.set(key, item);
+                }
+            });
 
-            const firstDayDate = new Date(year, month, 1);
-            const lastDayDate = new Date(year, month + 1, 0);
-            const firstDay = formatDate(firstDayDate);
-            const lastDay = formatDate(lastDayDate);
-
-            // Best Reader
-            bestReaderPromises.push(
-                getBestReader(createMockReq(`/api/library/stats/best-reader?month=${month}&year=${year}`))
-                    .then(res => res.json())
-                    .then(data => ({ data, type: 'best-reader', capturedDate: new Date(date) }))
-                    .catch(() => null)
-            );
-
-            // Attendance Toppers
-            attendancePromises.push(
-                getAttendanceToppers(createMockReq(`/api/attendanceToppers?startDate=${firstDay}&endDate=${lastDay}&limit=100`))
-                    .then(res => res.json())
-                    .then(data => ({ data, type: 'attendance', capturedDate: new Date(date) }))
-                    .catch(() => null)
-            );
-        }
-
-        // Star of the Month — only for completed months from July 2026 onwards
-        for (const date of starMonthsToIterate) {
-            const month = date.getMonth();
-            const year = date.getFullYear();
-
-            starPromises.push(
-                getStar(createMockReq(`/api/performance/star?classId=all&month=${month + 1}&year=${year}`))
-                    .then(res => res.json())
-                    .then(data => ({ data, type: 'star', capturedDate: new Date(date) }))
-                    .catch(() => null)
-            );
-        }
-
-        // Global Awards
-        const winnersPromise = getWinnerPosters(createMockReq(`/api/winner-posters`))
-            .then(res => res.json())
-            .then(data => ({ data, type: 'winners' }))
-            .catch(() => null);
-
-        const individualToppersPromise = getIndividualToppers(createMockReq(`/api/individual-toppers`))
-            .then(res => res.json())
-            .then(data => ({ data, type: 'individual' }))
-            .catch(() => null);
-
-        const marksToppersPromise = getMarksToppers(createMockReq(`/api/marks/toppers`))
-            .then(res => res.json())
-            .then(data => ({ data, type: 'marks' }))
-            .catch(() => null);
-
-        const results = await Promise.all([
-            ...bestReaderPromises,
-            ...attendancePromises,
-            ...starPromises,
-            winnersPromise,
-            individualToppersPromise,
-            marksToppersPromise
-        ]);
-
-        const studentAwards = [];
-
-        results.forEach(result => {
-            if (!result || !result.data) return;
-
-            if (result.type === 'best-reader') {
-                const res = result.data;
-                const bestReaderId = res.data?.student?._id;
-                if (res.success && bestReaderId && String(bestReaderId) === String(studentId)) {
-                    studentAwards.push({
+            monthlyTops.forEach((topItem) => {
+                const topStudentId = String(topItem._id.studentId || "");
+                if (topStudentId.toLowerCase() === studentId.toLowerCase()) {
+                    const capturedDate = new Date(topItem._id.year, topItem._id.month - 1, 1);
+                    addAward({
                         type: "BEST READER",
                         title: "Best Reader of the Month",
                         subtitle: "Library Achievement",
-                        extraInfo: `${res.data.count} books borrowed`,
-                        period: formatMonthYear(result.capturedDate),
-                        date: new Date(result.capturedDate.getFullYear(), result.capturedDate.getMonth(), 1).toISOString(),
+                        extraInfo: `${topItem.count} books borrowed`,
+                        period: formatMonthYear(capturedDate),
+                        date: capturedDate.toISOString(),
                         iconName: "BookOpen",
                         color: "amber",
-                        rankLabel: "Best Reader"
+                        rankLabel: "Best Reader",
                     });
                 }
-            }
-            else if (result.type === 'attendance') {
-                const res = result.data;
-                if (res.success && res.attendanceToppers?.length > 0) {
-                    res.attendanceToppers.forEach(classResult => {
-                        const topperEntry = classResult.students.find(s => String(s.studentId) === String(studentId));
-                        if (topperEntry) {
-                            studentAwards.push({
-                                type: "ATTENDANCE TOPPER",
-                                title: "Attendance Topper",
-                                subtitle: classResult.className || "Class Topper",
-                                extraInfo: topperEntry.attendancePercentage != null ? `${topperEntry.attendancePercentage}% Attendance` : undefined,
-                                period: formatMonthYear(result.capturedDate),
-                                date: new Date(result.capturedDate.getFullYear(), result.capturedDate.getMonth(), 1).toISOString(),
-                                iconName: "Calendar",
-                                color: "emerald",
-                                rankLabel: "Topper"
-                            });
-                        }
-                    });
-                }
-            }
-            else if (result.type === 'star') {
-                const res = result.data;
-                if (res.success && res.data) {
-                    res.data.forEach(starData => {
-                        if (starData.student && String(starData.student.id) === String(studentId)) {
-                            studentAwards.push({
-                                type: "STAR OF THE MONTH",
-                                title: "Star of the Month",
-                                subtitle: starData.className || "Class Star",
-                                extraInfo: `Total Score: ${starData.totalScore}`,
-                                period: formatMonthYear(result.capturedDate),
-                                date: new Date(result.capturedDate.getFullYear(), result.capturedDate.getMonth(), 1).toISOString(),
-                                iconName: "Trophy",
-                                color: "gold",
-                                rankLabel: "Star Student"
-                            });
-                        }
-                    });
-                }
-            }
-            else if (result.type === 'winners') {
-                const res = result.data;
-                if (res.success && res.programs) {
-                    res.programs.forEach(prog => {
-                        prog.winners.forEach(w => {
-                            const winnerId = String(w._id || "").split("-")[0];
-                            const isMatch =
-                                winnerId === String(studentId) ||
-                                String(w._id) === String(studentId) ||
-                                (w.name && studentName && w.name.trim().toUpperCase() === studentName.trim().toUpperCase());
+            });
+        } catch (err) {
+            console.warn("Best reader aggregation check failed:", err.message);
+        }
 
-                            if (isMatch) {
-                                let awardInfo = null;
-                                if (w.rank === 1) awardInfo = { type: "STUDENTS FEST", title: "1st Place 🥇", color: "gold", iconName: "Trophy", rankLabel: "1st Place" };
-                                else if (w.rank === 2) awardInfo = { type: "STUDENTS FEST", title: "2nd Place 🥈", color: "silver", iconName: "Award", rankLabel: "2nd Place" };
-                                else if (w.rank === 3) awardInfo = { type: "STUDENTS FEST", title: "3rd Place 🥉", color: "bronze", iconName: "Award", rankLabel: "3rd Place" };
+        // 3. UNIVERSITY / BOARD RANK ACHIEVERS
+        try {
+            if (studentName) {
+                const rankAchievers = await RankAchiever.find({
+                    name: new RegExp(`^${studentName.trim()}$`, "i")
+                }).lean();
 
-                                if (awardInfo) {
-                                    studentAwards.push({
-                                        ...awardInfo,
-                                        subtitle: prog.name,
-                                        extraInfo: `Team: ${w.teamName} | Grade: ${w.grade || 'N/A'} | Points: ${w.points || 0}`,
-                                        period: prog.division || "Competition Result",
-                                        date: new Date().toISOString(),
-                                        isFestWinner: true // Flag to tell client to prepend fest settings
-                                    });
+                rankAchievers.forEach((ra) => {
+                    addAward({
+                        type: "RANK ACHIEVER",
+                        title: `${ra.rank || "University"} Rank Holder 🏆`,
+                        subtitle: ra.course || "Board Examination",
+                        extraInfo: `${ra.college ? ra.college + " | " : ""}Year: ${ra.year}`,
+                        period: `Academic Year ${ra.year}`,
+                        date: ra.createdAt ? new Date(ra.createdAt).toISOString() : new Date().toISOString(),
+                        iconName: "Trophy",
+                        color: "gold",
+                        rankLabel: ra.rank || "Rank Holder",
+                    });
+                });
+            }
+        } catch (err) {
+            console.warn("Rank achiever check failed:", err.message);
+        }
+
+        // 4. ACADEMIC EXCELLENCE (Exam Mark Toppers across ALL recorded exams)
+        try {
+            let studentAdmn = "";
+            let targetStudentName = studentName || "";
+            try {
+                const userDoc = await User.findById(studentId).select("name studentSpecificField.admissionNumber").lean();
+                if (userDoc) {
+                    studentAdmn = userDoc.studentSpecificField?.admissionNumber || "";
+                    if (!targetStudentName && userDoc.name) targetStudentName = userDoc.name;
+                }
+            } catch { }
+
+            const exams = await Mark.find()
+                .populate("classId", "name")
+                .populate({
+                    path: "students.studentId",
+                    select: "name _id studentSpecificField.admissionNumber studentSpecificField.classId"
+                })
+                .lean();
+
+            exams.forEach((exam) => {
+                if (!exam.students || !exam.students.length) return;
+
+                const examSubjects = (exam.subjects || []).map((s) =>
+                    typeof s === "string"
+                        ? { name: s, maxMark: 100, passMark: 40, subColumns: [] }
+                        : { name: s?.name || "", maxMark: Number(s?.maxMark) || 100, passMark: Number(s?.passMark) || 40, subColumns: s?.subColumns || [] }
+                );
+
+                const studentStats = exam.students.map((entry) => {
+                    let marksObj = entry.marks;
+                    if (marksObj instanceof Map) {
+                        marksObj = Object.fromEntries(marksObj);
+                    } else if (marksObj && typeof marksObj === "object") {
+                        marksObj = marksObj;
+                    } else {
+                        marksObj = {};
+                    }
+
+                    let total = 0;
+                    let maxTotal = 0;
+
+                    examSubjects.forEach((subj) => {
+                        const findMark = (key) => {
+                            if (!key) return undefined;
+                            if (marksObj[key] !== undefined) return marksObj[key];
+                            const trimmed = key.trim().toLowerCase();
+                            const foundKey = Object.keys(marksObj).find(k => k.trim().toLowerCase() === trimmed);
+                            return foundKey ? marksObj[foundKey] : undefined;
+                        };
+
+                        const val = findMark(subj.name);
+
+                        if (subj.subColumns && subj.subColumns.length > 0) {
+                            subj.subColumns.forEach((sc) => {
+                                const scName = typeof sc === "string" ? sc : (sc?.name || "");
+                                const scMax = typeof sc === "string" ? 100 : (Number(sc?.maxMark) || 100);
+                                let scVal = 0;
+                                if (val && typeof val === "object") {
+                                    if (val[scName] !== undefined) {
+                                        scVal = Number(val[scName]) || 0;
+                                    } else {
+                                        const foundScKey = Object.keys(val).find(k => k.trim().toLowerCase() === scName.trim().toLowerCase());
+                                        scVal = foundScKey ? (Number(val[foundScKey]) || 0) : 0;
+                                    }
                                 }
+                                total += scVal;
+                                maxTotal += scMax;
+                            });
+                        } else {
+                            total += Number(val || 0);
+                            maxTotal += subj.maxMark;
+                        }
+                    });
+
+                    const percentage = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(2) : "0.00";
+                    const entryObj = entry.studentId;
+                    const entryIdStr = String(entryObj?._id || entry.studentId || "").trim();
+                    const entryNameStr = String(entryObj?.name || "").trim();
+                    const entryAdmnStr = String(entryObj?.studentSpecificField?.admissionNumber || "").trim();
+
+                    const isCurrentStudent = Boolean(
+                        (entryIdStr && entryIdStr.toLowerCase() === studentId.toLowerCase()) ||
+                        (studentAdmn && entryAdmnStr && entryAdmnStr.toLowerCase() === studentAdmn.toLowerCase()) ||
+                        (targetStudentName && entryNameStr && entryNameStr.toLowerCase() === targetStudentName.trim().toLowerCase()) ||
+                        (targetStudentName && entryIdStr.toLowerCase() === targetStudentName.trim().toLowerCase())
+                    );
+
+                    return {
+                        studentId: entryIdStr,
+                        studentName: entryNameStr,
+                        total,
+                        maxTotal,
+                        percentage,
+                        isCurrentStudent,
+                    };
+                });
+
+                studentStats.sort((a, b) => b.total - a.total);
+                if (studentStats.length > 0) {
+                    const highestTotal = studentStats[0].total;
+                    const isTopper = studentStats.find((s) => s.total === highestTotal && s.isCurrentStudent);
+
+                    if (isTopper && isTopper.total > 0) {
+                        const examName = exam.examName || "Term Examination";
+                        const className = exam.classId?.name || "All Exams";
+                        const examYear = exam.createdAt ? new Date(exam.createdAt).getFullYear() : "";
+
+                        addAward({
+                            type: "MARK TOPPER",
+                            title: "Mark Topper 🏆",
+                            subtitle: examName,
+                            extraInfo: `Top Score: ${isTopper.total}${isTopper.maxTotal ? `/${isTopper.maxTotal}` : ""} (${isTopper.percentage}%)`,
+                            period: className ? `${className}${examYear ? ` • ${examYear}` : ""}` : (examYear ? `Academic Year ${examYear}` : "Academic Examination"),
+                            date: exam.createdAt ? new Date(exam.createdAt).toISOString() : new Date().toISOString(),
+                            iconName: "Trophy",
+                            color: "gold",
+                            rankLabel: "Mark Topper",
+                        });
+                    }
+                }
+            });
+        } catch (err) {
+            console.warn("Marks toppers check failed:", err.message);
+        }
+
+        // 5. ATTENDANCE TOPPERS & STAR OF THE MONTH (Recent 4 months)
+        try {
+            const createMockReq = (path) => {
+                const mockUrl = new URL(path, req.url);
+                return new NextRequest(mockUrl, {
+                    headers: { "api-key": apiKey || "" }
+                });
+            };
+
+            const recentMonths = [];
+            for (let i = 1; i <= 4; i++) {
+                recentMonths.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+            }
+
+            for (const date of recentMonths) {
+                const month = date.getMonth();
+                const year = date.getFullYear();
+
+                const firstDay = formatDate(new Date(year, month, 1));
+                const lastDay = formatDate(new Date(year, month + 1, 0));
+
+                try {
+                    const attRes = await getAttendanceToppers(
+                        createMockReq(`/api/attendanceToppers?startDate=${firstDay}&endDate=${lastDay}&limit=100`)
+                    ).then((r) => r.json()).catch(() => null);
+
+                    if (attRes?.success && Array.isArray(attRes.attendanceToppers)) {
+                        attRes.attendanceToppers.forEach((cls) => {
+                            const topper = cls.students?.find(
+                                (s) => String(s.studentId).toLowerCase() === studentId.toLowerCase()
+                            );
+                            if (topper) {
+                                addAward({
+                                    type: "ATTENDANCE TOPPER",
+                                    title: "Attendance Topper",
+                                    subtitle: cls.className || "Class Topper",
+                                    extraInfo: topper.attendancePercentage != null ? `${topper.attendancePercentage}% Attendance` : undefined,
+                                    period: formatMonthYear(date),
+                                    date: new Date(year, month, 1).toISOString(),
+                                    iconName: "Calendar",
+                                    color: "emerald",
+                                    rankLabel: "Attendance Topper",
+                                });
                             }
                         });
-                    });
-                }
-            }
-            else if (result.type === 'individual') {
-                const res = result.data;
-                if (res.success && res.data) {
-                    res.data.forEach(topper => {
-                        if (String(topper._id) === String(studentId) || topper.name === studentName) {
-                            studentAwards.push({
-                                type: "TOPPER",
-                                title: "Overall Division Topper",
-                                subtitle: `${topper.divisionName} Category`,
-                                period: `Accrued ${topper.points} Points`,
-                                date: new Date().toISOString(),
-                                iconName: "Award",
-                                color: "indigo"
-                            });
-                        }
-                    });
-                }
-            }
-            else if (result.type === 'marks') {
-                const res = result.data;
-                if (res.success && res.data) {
-                    res.data.forEach(examGroup => {
-                        const topperEntry = examGroup.toppers.find(t => String(t.studentId) === String(studentId));
-                        if (topperEntry) {
-                            studentAwards.push({
-                                type: "MARKS TOPPER",
-                                title: "Academic Excellence",
-                                subtitle: `${examGroup.examName}`,
-                                extraInfo: `Score: ${topperEntry.total} (${topperEntry.percentage}%)`,
-                                period: examGroup.className,
-                                date: new Date().toISOString(),
-                                iconName: "Trophy",
-                                color: "indigo",
-                                rankLabel: "Topper"
-                            });
-                        }
-                    });
-                }
-            }
-        });
+                    }
+                } catch { }
 
-        // Sort awards by date descending
+                try {
+                    const starRes = await getStar(
+                        createMockReq(`/api/performance/star?classId=all&month=${month + 1}&year=${year}`)
+                    ).then((r) => r.json()).catch(() => null);
+
+                    if (starRes?.success && Array.isArray(starRes.data)) {
+                        starRes.data.forEach((st) => {
+                            if (st.student && String(st.student.id || "").toLowerCase() === studentId.toLowerCase()) {
+                                addAward({
+                                    type: "STAR OF THE MONTH",
+                                    title: "Star of the Month",
+                                    subtitle: st.className || "Class Star",
+                                    extraInfo: `Total Score: ${st.totalScore}`,
+                                    period: formatMonthYear(date),
+                                    date: new Date(year, month, 1).toISOString(),
+                                    iconName: "Trophy",
+                                    color: "gold",
+                                    rankLabel: "Star Student",
+                                });
+                            }
+                        });
+                    }
+                } catch { }
+            }
+        } catch (err) {
+            console.warn("Attendance/Star check failed:", err.message);
+        }
+
+        // Sort all awards descending by date
         studentAwards.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         return NextResponse.json({ success: true, awards: studentAwards }, { status: 200 });
-
     } catch (error) {
         console.error("Error in student-awards API:", error);
         return NextResponse.json({ success: false, msg: error.message }, { status: 500 });

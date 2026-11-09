@@ -228,9 +228,10 @@ export default function StudentProfilePrintView({ student, classes, batches, api
                 <InfoField label="Email" value={student?.email} fullWidth={true} />
                 
                 <InfoField label="Student ID" value={student._id} />
+                <InfoField label="Admission No" value={student?.studentSpecificField?.admissionNumber || student?.admissionNumber} />
                 <InfoField label="Date of Birth" value={formatDateShort(student?.dateOfBirth)} />
-                <InfoField label="Blood Group" value={student?.bloodGroup} />
-                <InfoField label="Aadhar No" value={student?.aadharNo} />
+                <InfoField label="Blood Group" value={student?.studentSpecificField?.bloodGroup || student?.bloodGroup} />
+                <InfoField label="Aadhar No" value={student?.studentSpecificField?.aadharNo || student?.aadharNo} />
                 <InfoField label="Contact No" value={student.contactNumber} />
                 <InfoField label="Alt. Contact" value={student.alternativeNumber} />
             </div>
@@ -239,36 +240,48 @@ export default function StudentProfilePrintView({ student, classes, batches, api
 
       {/* Academic Info */}
       <Section title="ACADEMIC RECORDS">
-        {/* Using flattened fields directly provided by API */}
-        <InfoField label="Current Class" value={student.className} />
-        <InfoField label="Current Batch" value={student.batchName} />
-        <InfoField label="Admission Class" value={student.admissionClassName} />
-        <InfoField label="Admission Date" value={formatDateShort(student?.admissionDate)} />
-        <InfoField label="Islamic Qualif." value={student?.islamicQualification || student?.studentSpecificField?.islamicQualification} />
+        {/* Using resolved class/batch names with fallbacks */}
+        <InfoField label="Current Class" value={student.className || classes?.find(c => String(c._id) === String(student?.studentSpecificField?.classId))?.name} />
+        <InfoField label="Current Batch" value={student.batchName || batches?.find(b => String(b._id) === String(student?.studentSpecificField?.batchId))?.name} />
+        <InfoField label="Admission Class" value={student.admissionClassName || classes?.find(c => String(c._id) === String(student?.studentSpecificField?.admissionClassId))?.name} />
+        <InfoField label="Admission Date" value={formatDateShort(student?.studentSpecificField?.admissionDate || student?.admissionDate)} />
+        <InfoField label="Islamic Qualif." value={student?.studentSpecificField?.islamicQualification || student?.islamicQualification} />
         <InfoField label="Islamic Course" value={ongoingIslamicCourse} />
-        <InfoField label="Academic Qualif." value={student?.academicQualification || student?.studentSpecificField?.academicQualification} />
+        <InfoField label="Academic Qualif." value={student?.studentSpecificField?.academicQualification || student?.academicQualification} />
         <InfoField label="Academic Course" value={ongoingAcademicCourse} />
-        <InfoField label="Graduated Year" value={student?.graduatedYear || student?.studentSpecificField?.graduatedYear} />
-        <InfoField label="Current Status" value={student?.status || student?.studentSpecificField?.status} />
+        <InfoField label="Graduated Year" value={student?.studentSpecificField?.graduatedYear || student?.graduatedYear} />
+        <InfoField label="Current Status" value={student?.studentSpecificField?.status || student?.status} />
       </Section>
 
       {/* Guardian Details */}
       <Section title="GUARDIAN INFORMATION">
-        <InfoField label="Guardian Name" value={student?.guardianName} />
-        <InfoField label="Relationship" value={student?.relationship} />
-        <InfoField label="Guardian Phone" value={student?.guardianContactNumber} />
-        <InfoField label="G. Alt Phone" value={student?.guardianAlternativeNumber} />
+        <InfoField 
+          label="Guardian Name" 
+          value={student?.studentSpecificField?.guardianName || student?.guardianName || student?.guardian?.name} 
+        />
+        <InfoField 
+          label="Relationship" 
+          value={student?.studentSpecificField?.relationship || student?.relationship || student?.guardian?.relationship} 
+        />
+        <InfoField 
+          label="Guardian Phone" 
+          value={student?.studentSpecificField?.guardianContactNumber || student?.guardianContactNumber || student?.guardian?.contactNumber} 
+        />
+        <InfoField 
+          label="G. Alt Phone" 
+          value={student?.studentSpecificField?.guardianAlternativeNumber || student?.guardianAlternativeNumber || student?.guardian?.alternativeNumber} 
+        />
       </Section>
 
       {/* Address - Redesigned with individual labels */}
       <Section title="RESIDENTIAL ADDRESS">
-        <InfoField label="House Name" value={student?.houseName || student?.address?.houseName} />
-        <InfoField label="Place" value={student?.place || student?.address?.place} />
-        <InfoField label="Location Point" value={student?.locationPoint || student?.address?.locationPoint} />
-        <InfoField label="Post Office" value={student?.postOffice || student?.address?.postOffice} />
-        <InfoField label="District" value={student?.district || student?.address?.district} />
-        <InfoField label="State" value={student?.state || student?.address?.state} />
-        <InfoField label="Pin Code" value={student?.pin || student?.address?.pin} />
+        <InfoField label="House Name" value={student?.studentSpecificField?.address?.houseName || student?.address?.houseName || student?.houseName} />
+        <InfoField label="Place" value={student?.studentSpecificField?.address?.place || student?.address?.place || student?.place} />
+        <InfoField label="Location Point" value={student?.studentSpecificField?.address?.locationPoint || student?.address?.locationPoint || student?.locationPoint} />
+        <InfoField label="Post Office" value={student?.studentSpecificField?.address?.postOffice || student?.address?.postOffice || student?.postOffice} />
+        <InfoField label="District" value={student?.studentSpecificField?.address?.district || student?.address?.district || student?.district} />
+        <InfoField label="State" value={student?.studentSpecificField?.address?.state || student?.address?.state || student?.state} />
+        <InfoField label="Pin Code" value={student?.studentSpecificField?.address?.pin || student?.address?.pin || student?.pin} />
       </Section>
 
       {/* Dropout Info if applicable */}

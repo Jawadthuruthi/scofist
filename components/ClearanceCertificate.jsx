@@ -122,7 +122,7 @@ export default function ClearanceCertificate({ apiKey, userId }) {
                     />
                 </div>
                 {selectedStudent && (
-                    <Button onClick={handlePrint} className="w-full sm:w-auto sm:ml-auto">
+                    <Button onClick={handlePrint} className="w-full sm:w-auto sm:ml-auto bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
                         <Printer className="w-4 h-4 mr-2" />
                         Print Certificate
                     </Button>

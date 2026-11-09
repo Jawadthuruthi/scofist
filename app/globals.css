@@ -363,7 +363,38 @@
 
 @layer components {
   .btn-print {
-    @apply bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200;
+    @apply bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 border-transparent shadow;
+  }
+
+  button.btn-print,
+  .btn-print {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+  button.btn-print:hover,
+  .btn-print:hover {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    color: #ffffff !important;
+  }
+  button.btn-print svg,
+  .btn-print svg {
+    color: #ffffff !important;
+    stroke: currentColor !important;
+  }
+  .dark button.btn-print,
+  .dark .btn-print {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .dark button.btn-print:hover,
+  .dark .btn-print:hover {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    color: #000000 !important;
+  }
+  .dark button.btn-print svg,
+  .dark .btn-print svg {
+    color: #000000 !important;
+    stroke: currentColor !important;
   }
 
   .tight-column {

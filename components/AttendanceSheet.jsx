@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { sortClasses } from "@/lib/utils";
 import axios from "axios";
-import { Loader, Check, X, Filter, Download, FileSpreadsheet, Search } from "lucide-react";
+import { Loader, Check, X, Filter, Download, FileSpreadsheet, Search, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -423,9 +423,10 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                     </Button>
 
                     <Button
-                        className="bg-black text-white hover:bg-gray-800 flex-1 sm:flex-none"
+                        className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 flex-1 sm:flex-none btn-print gap-2"
                         onClick={() => window.print()}
                     >
+                        <Printer className="h-4 w-4" />
                         Print
                     </Button>
                 </div>

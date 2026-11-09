@@ -6,6 +6,8 @@ import { cookies, headers } from "next/headers";
 import FestDashboard from "@/components/FestDashboard";
 import SparkDashboardClient from "./spark/SparkDashboardClient";
 import { getSparkStats } from "@/libservices/spark-services";
+import connectToDB from "@/lib/db";
+import User from "@/models/User";
 
 const getApiEndpoints = (dateStr) => [
   {
@@ -60,12 +62,13 @@ export default async function DashboardPage({ searchParams }) {
     const dateStr = dateParam || todayIST;
 
     const cookieStore = await cookies();
-    const activeRole = cookieStore.get("active-role")?.value;
+    const headersList = await headers();
+    const userHeader = headersList.get("x-user");
+    const user = userHeader && userHeader !== "undefined" ? JSON.parse(userHeader) : null;
+    const activeRole = cookieStore.get("active-role")?.value || headersList.get("active-role") || user?.roles?.[0];
     const apiKey = process.env.API_KEY;
 
     if (["Program Committee", "Program Leader"].includes(activeRole)) {
-      const headersList = headers();
-      const user = headersList.get("x-user") ? JSON.parse(headersList.get("x-user")) : null;
       return <FestDashboard activeRole={activeRole} apiKey={apiKey} user={user} />;
     }
 
@@ -81,18 +84,18 @@ export default async function DashboardPage({ searchParams }) {
     }
 
     if (activeRole === "Student") {
-      const headersList = headers();
-      const user = JSON.parse(headersList.get("x-user"));
-      const userId = user._id || user.id;
+      const userId = user?._id || user?.id;
 
+      await connectToDB();
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      const [classes, batches, updatesData, debtsRaw] = await Promise.all([
+      const [classes, batches, updatesData, debtsRaw, fullStudent] = await Promise.all([
         fetchData("classes", "status=Active&projection=_id,name,shortname,batchId,status"),
         fetchData("batches"),
         fetchData("updates", "limit=10", 60, "updates"),
         fetch(`${baseUrl}/api/debtors?studentId=${userId}`)
           .then(r => r.json())
           .catch(() => ({ debts: [] })),
+        userId ? User.findById(userId).lean() : null,
       ]);
 
       const debtBalances = (debtsRaw.debts || [])
@@ -104,7 +107,8 @@ export default async function DashboardPage({ searchParams }) {
         }));
 
       const updates = Array.isArray(updatesData) ? updatesData : updatesData?.updates || [];
-      return <StudentDashboard user={user} apiKey={apiKey} classes={classes} batches={batches} updates={updates} debtBalances={debtBalances} />;
+      const hydratedStudent = fullStudent ? { ...user, ...fullStudent, _id: fullStudent._id?.toString() } : user;
+      return <StudentDashboard user={hydratedStudent} apiKey={apiKey} classes={classes} batches={batches} updates={updates} debtBalances={debtBalances} showKinship={true} />;
     }
 
     const [

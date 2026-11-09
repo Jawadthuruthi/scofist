@@ -452,7 +452,7 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
                 variant="default"
                 onClick={handlePrint}
                 disabled={filteredRegistrations.length === 0}
-                className="h-10 whitespace-nowrap w-full sm:w-auto"
+                className="h-10 whitespace-nowrap w-full sm:w-auto bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
               >
                 <Printer className="mr-2 h-4 w-4" />
                 Print Sheets

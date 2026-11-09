@@ -33,6 +33,23 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
     const handlePrint = useReactToPrint({
         contentRef: componentRef,
         documentTitle: `Category Balance Summary - ${filterType}`,
+        pageStyle: `
+            @page {
+                size: A4 portrait;
+                margin: 15mm;
+            }
+            @media print {
+                body {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    background: white !important;
+                    color: black !important;
+                }
+                .no-print {
+                    display: none !important;
+                }
+            }
+        `,
     });
 
     const filteredCategories = useMemo(() => {
@@ -79,35 +96,35 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
                         </SelectContent>
                     </Select>
 
-                    <Button onClick={handlePrint} className="btn-print">
+                    <Button onClick={handlePrint} className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print">
                         <Printer className="mr-2 h-4 w-4" />
                         Print
                     </Button>
                 </div>
 
-                <div ref={componentRef} className="p-4 bg-white">
+                <div ref={componentRef} className="p-4 bg-white text-black dark:bg-card dark:text-card-foreground print:bg-white print:text-black rounded-md">
                     <div className="mb-4 text-center print:block hidden">
                         <h2 className="text-xl font-bold">Category Balance Summary {filterType !== "All" ? `(${filterType})` : ""}</h2>
                         <p className="text-sm text-gray-500">{new Date().toLocaleDateString()}</p>
                     </div>
 
-                    <Table>
+                    <Table className="w-full border-collapse border border-gray-200 dark:border-zinc-800 print:border-gray-400">
                         <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[50px]">Sl No</TableHead>
-                                <TableHead>Category</TableHead>
-                                {showIncome && <TableHead className="text-right">Income</TableHead>}
-                                {showExpense && <TableHead className="text-right">Expense</TableHead>}
-                                {showBalance && <TableHead className="text-right">Balance</TableHead>}
+                            <TableRow className="print:border-b-2 print:border-gray-400">
+                                <TableHead className="w-[50px] border border-gray-200 dark:border-zinc-800 print:border-gray-300 print:text-black font-bold">Sl No</TableHead>
+                                <TableHead className="border border-gray-200 dark:border-zinc-800 print:border-gray-300 print:text-black font-bold">Category</TableHead>
+                                {showIncome && <TableHead className="text-right border border-gray-200 dark:border-zinc-800 print:border-gray-300 print:text-black font-bold">Income</TableHead>}
+                                {showExpense && <TableHead className="text-right border border-gray-200 dark:border-zinc-800 print:border-gray-300 print:text-black font-bold">Expense</TableHead>}
+                                {showBalance && <TableHead className="text-right border border-gray-200 dark:border-zinc-800 print:border-gray-300 print:text-black font-bold">Balance</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredCategories.map((cat, index) => (
-                                <TableRow key={cat.category}>
-                                    <TableCell>{index + 1}</TableCell>
-                                    <TableCell className="font-medium">{cat.category}</TableCell>
+                                <TableRow key={cat.category} className="print:border-b print:border-gray-200">
+                                    <TableCell className="border border-gray-200 dark:border-zinc-800 print:border-gray-300">{index + 1}</TableCell>
+                                    <TableCell className="font-medium border border-gray-200 dark:border-zinc-800 print:border-gray-300">{cat.category}</TableCell>
                                     {showIncome && (
-                                        <TableCell className="text-right text-green-600">
+                                        <TableCell className="text-right text-green-600 print:text-green-700 border border-gray-200 dark:border-zinc-800 print:border-gray-300 font-semibold">
                                             <div className="flex items-center justify-end">
                                                 <IndianRupee className="h-3 w-3 mr-1" />
                                                 {cat.income}
@@ -115,7 +132,7 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
                                         </TableCell>
                                     )}
                                     {showExpense && (
-                                        <TableCell className="text-right text-red-600">
+                                        <TableCell className="text-right text-red-600 print:text-red-700 border border-gray-200 dark:border-zinc-800 print:border-gray-300 font-semibold">
                                             <div className="flex items-center justify-end">
                                                 <IndianRupee className="h-3 w-3 mr-1" />
                                                 {cat.expense}
@@ -123,7 +140,7 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
                                         </TableCell>
                                     )}
                                     {showBalance && (
-                                        <TableCell className={`text-right font-bold ${cat.balance >= 0 ? "text-green-700" : "text-red-700"}`}>
+                                        <TableCell className={`text-right font-bold border border-gray-200 dark:border-zinc-800 print:border-gray-300 ${cat.balance >= 0 ? "text-green-700" : "text-red-700"}`}>
                                             <div className="flex items-center justify-end">
                                                 <IndianRupee className="h-3 w-3 mr-1" />
                                                 {cat.balance}
@@ -133,10 +150,10 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
                                 </TableRow>
                             ))}
                             {/* Grand Total Row */}
-                            <TableRow className="bg-muted/50 font-bold border-t-2">
-                                <TableCell colSpan={2}>Grand Total</TableCell>
+                            <TableRow className="bg-muted/50 font-bold border-t-2 print:border-t-2 print:border-gray-400 print:bg-gray-100">
+                                <TableCell colSpan={2} className="border border-gray-200 dark:border-zinc-800 print:border-gray-300">Grand Total</TableCell>
                                 {showIncome && (
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right border border-gray-200 dark:border-zinc-800 print:border-gray-300">
                                         <div className="flex items-center justify-end">
                                             <IndianRupee className="h-3 w-3 mr-1" />
                                             {totalIncome}
@@ -144,7 +161,7 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
                                     </TableCell>
                                 )}
                                 {showExpense && (
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right border border-gray-200 dark:border-zinc-800 print:border-gray-300">
                                         <div className="flex items-center justify-end">
                                             <IndianRupee className="h-3 w-3 mr-1" />
                                             {totalExpense}
@@ -152,7 +169,7 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
                                     </TableCell>
                                 )}
                                 {showBalance && (
-                                    <TableCell className="text-right text-emerald-600">
+                                    <TableCell className="text-right text-emerald-600 print:text-emerald-700 border border-gray-200 dark:border-zinc-800 print:border-gray-300">
                                         <div className="flex items-center justify-end">
                                             <IndianRupee className="h-3 w-3 mr-1" />
                                             {filterType === "All" ? totalBalance : currentTotalBalance}

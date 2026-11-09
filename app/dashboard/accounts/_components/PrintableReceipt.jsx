@@ -138,7 +138,7 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                     <span className="font-semibold text-gray-700">
                         Receipt Preview No.&nbsp;{transaction.invoiceNo}
                     </span>
-                    <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                    <Button onClick={handlePrint} className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 gap-2 border-0 btn-print">
                         <Printer className="h-4 w-4" /> Print Receipt
                     </Button>
                 </div>

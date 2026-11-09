@@ -51,7 +51,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
                             variant="default" 
                             size="sm" 
                             onClick={handlePrint}
-                            className="flex items-center gap-0 sm:gap-2 font-bold uppercase tracking-wider text-xs bg-black text-white hover:bg-black/90 px-2 sm:px-4 h-8"
+                            className="flex items-center gap-0 sm:gap-2 font-bold uppercase tracking-wider text-xs bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print px-2 sm:px-4 h-8"
                             title="Print"
                         >
                             <Printer className="h-3.5 w-3.5" />

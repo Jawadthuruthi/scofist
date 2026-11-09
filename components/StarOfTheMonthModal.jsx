@@ -441,7 +441,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
               {filteredStudents && filteredStudents.length > 0 && (
                 <Button 
                   onClick={handlePrintTable}
-                  className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 shrink-0 px-3 md:px-4"
+                  className="bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 border-0 btn-print shrink-0 px-3 md:px-4"
                   title="Print Table"
                 >
                   <Printer className="h-4 w-4 md:mr-2" />
@@ -468,8 +468,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
               <Button 
                 onClick={handlePrintAll}
                 disabled={exporting || !filteredStarData || filteredStarData.length === 0}
-                variant="outline"
-                className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50 h-9 w-9 p-0 md:h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center shrink-0"
+                className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print h-9 w-9 p-0 md:h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center shrink-0"
                 title="Print Posters"
               >
                 {exporting ? <Loader2 className="h-4 w-4 animate-spin md:mr-2" /> : <ImageIcon className="h-4 w-4 md:mr-2" />}
@@ -478,8 +477,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
               <Button 
                 onClick={handlePrintStars}
                 disabled={exporting || !filteredStarData || filteredStarData.length === 0}
-                variant="outline"
-                className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50 h-9 w-9 p-0 md:h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center shrink-0"
+                className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print h-9 w-9 p-0 md:h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center shrink-0"
                 title="Print Stars"
               >
                 <Star className="h-4 w-4 md:mr-2" />

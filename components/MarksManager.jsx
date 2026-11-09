@@ -1389,7 +1389,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                 <Button
                                     size="sm"
                                     variant="default"
-                                    className="h-8 py-0 bg-foreground text-background hover:bg-foreground/90"
+                                    className="h-8 py-0 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                                     onClick={handlePrint}
                                 >
                                     <Printer className="w-3.5 h-3.5 sm:mr-1.5" />

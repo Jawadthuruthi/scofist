@@ -1608,7 +1608,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                             {/* Mobile Print Button: Same row as Title */}
                                                             <Button
                                                                 type="button"
-                                                                className="h-9 md:hidden bg-black hover:bg-gray-800 text-white px-4"
+                                                                className="h-9 md:hidden bg-black hover:bg-black/90 text-white dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print px-4"
                                                                 onClick={handlePrintSheet}
                                                             >
                                                                 <Printer className="mr-2 h-4 w-4" />
@@ -1632,7 +1632,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                                 {/* Desktop Print Button: Before Global Amount */}
                                                                 <Button
                                                                     type="button"
-                                                                    className="hidden md:flex h-10 bg-black hover:bg-gray-800 text-white px-8 md:order-1"
+                                                                    className="hidden md:flex h-10 bg-black hover:bg-black/90 text-white dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print px-8 md:order-1"
                                                                     onClick={handlePrintSheet}
                                                                 >
                                                                     <Printer className="mr-2 h-4 w-4" />
@@ -1866,7 +1866,7 @@ export default function StudentCouponClient({ apiKey }) {
                                     <Download className="h-4 w-4 mr-2" />
                                     <span>PDF</span>
                                 </Button>
-                                <Button size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none btn-print" onClick={() => window.print()}>
+                                <Button size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print" onClick={() => window.print()}>
                                     <Printer className="h-4 w-4 mr-2" />
                                     <span>Print</span>
                                 </Button>
