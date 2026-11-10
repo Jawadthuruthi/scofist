@@ -505,10 +505,10 @@ const StudentDashboardView = ({ apiKey, batches = [], classes = [] }) => {
             </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
-                Active Students By Class
+                Active Students ({activeStudents.length})
               </DialogTitle>
               <DialogDescription className="m-0">
-                Distribution of active students ({activeStudents.length} students)
+                Distribution of active students.
               </DialogDescription>
             </div>
             <DialogClose
@@ -556,11 +556,10 @@ const StudentDashboardView = ({ apiKey, batches = [], classes = [] }) => {
             </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
-                <span className="sm:hidden">Graduated Students</span>
-                <span className="hidden sm:inline">Graduated Students By Batch</span>
+                Graduated Students ({graduatedStudents.length})
               </DialogTitle>
               <DialogDescription className="m-0">
-                Distribution of graduated students ({graduatedStudents.length} students)
+                Distribution of graduated students.
               </DialogDescription>
             </div>
             <DialogClose

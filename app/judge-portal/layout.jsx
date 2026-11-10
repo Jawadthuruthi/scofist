@@ -63,7 +63,7 @@ export default async function Layout({ children }) {
         <div className="flex h-screen overflow-hidden min-w-full max-w-full">
           <AppSidebar roles={user?.roles} activeRole={activeRole} user={user} settingsData={settingsData} initialActiveYear={initialActiveYear} />
           <div className="flex flex-col flex-1 min-w-0">
-            <Topbar user={user} festival={festivalWithFullName} activeRole={activeRole} />
+            <Topbar user={user} festival={festivalWithFullName} activeRole={activeRole} settingsData={settingsData} />
             <main className="flex-1 p-4 mt-14 overflow-auto container">
               {children}
               <div className="h-20 md:h-0 no-print"></div>

@@ -831,14 +831,36 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
     window.addEventListener("active-role-changed", handleRoleChanged);
     return () => window.removeEventListener("active-role-changed", handleRoleChanged);
   }, []);
-  const appLogoUrl =
-    settingsData?.general?.appIcon?.url ||
+
+  const resolveAppLogo = (data) =>
+    data?.general?.appLogo?.url ||
+    data?.general?.appIcon?.url ||
+    data?.institution?.logo?.url ||
     "/favicon.svg";
+
+  const appLogoUrl = resolveAppLogo(settingsData);
   const [logoSrc, setLogoSrc] = useState(appLogoUrl);
 
   useEffect(() => {
-    if (appLogoUrl) setLogoSrc(appLogoUrl);
-  }, [appLogoUrl]);
+    const resolved = resolveAppLogo(settingsData);
+    if (resolved) setLogoSrc(resolved);
+  }, [settingsData]);
+
+  useEffect(() => {
+    if (
+      !settingsData?.general?.appLogo?.url &&
+      !settingsData?.general?.appIcon?.url &&
+      !settingsData?.institution?.logo?.url
+    ) {
+      fetch("/api/settings")
+        .then((res) => res.json())
+        .then((data) => {
+          const resolved = resolveAppLogo(data?.settings);
+          if (resolved) setLogoSrc(resolved);
+        })
+        .catch(() => { });
+    }
+  }, [settingsData]);
 
   useEffect(() => {
     const handleAppIconUpdate = (e) => {
@@ -846,7 +868,11 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
       if (newUrl) setLogoSrc(newUrl);
     };
     window.addEventListener("scofist:app-icon-updated", handleAppIconUpdate);
-    return () => window.removeEventListener("scofist:app-icon-updated", handleAppIconUpdate);
+    window.addEventListener("scofist:app-logo-updated", handleAppIconUpdate);
+    return () => {
+      window.removeEventListener("scofist:app-icon-updated", handleAppIconUpdate);
+      window.removeEventListener("scofist:app-logo-updated", handleAppIconUpdate);
+    };
   }, []);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [pendingTeacherRequestsCount, setPendingTeacherRequestsCount] = useState(0);
@@ -958,22 +984,26 @@ export function AppSidebar({ roles, activeRole, user, settingsData, initialActiv
           }
         }
 
-        // Custom check for Downloads, Students, and Identity Cards: Visible only for 'Active' students
-        if (
-          (item.title === "Downloads" || item.title === "Students" || item.title === "My Identity Card") &&
-          role === "Student" &&
-          user?.studentSpecificField?.status !== "Active"
-        ) {
-          return false;
-        }
+        // Custom check for Student status (Active vs Graduated/Dropped Out)
+        if (role === "Student") {
+          const studentStatus = user?.studentSpecificField?.status || "Active";
+          const isAlumni = studentStatus === "Graduated" || studentStatus === "Dropped Out";
 
-        // Custom check for Spark and Alumnies: Visible only for 'Graduated' or 'Dropped Out' students
-        if (
-          (item.title === "Spark" || item.title === "Alumnies") &&
-          role === "Student" &&
-          user?.studentSpecificField?.status === "Active"
-        ) {
-          return false;
+          // Downloads, Students, and Identity Cards: Visible only for 'Active' students
+          if (
+            (item.title === "Downloads" || item.title === "Students" || item.title === "My Identity Card") &&
+            isAlumni
+          ) {
+            return false;
+          }
+
+          // Spark and Alumnies: Visible only for 'Graduated' or 'Dropped Out' students
+          if (
+            (item.title === "Spark" || item.title === "Alumnies") &&
+            !isAlumni
+          ) {
+            return false;
+          }
         }
 
         return true;

@@ -88,7 +88,15 @@ export async function POST(req) {
 
         // Generate Token
         const token = jwt.sign(
-            { userId: user._id, email: user.email, roles: ["Student"], name: user.name },
+            {
+                userId: user._id,
+                email: user.email,
+                roles: ["Student"],
+                name: user.name,
+                studentSpecificField: user.studentSpecificField?.status
+                    ? { status: user.studentSpecificField.status }
+                    : undefined,
+            },
             process.env.JWT_SECRET,
             {
                 expiresIn: "1y",
@@ -114,6 +122,10 @@ export async function POST(req) {
             sameSite: "lax",
             maxAge: 60 * 60 * 24 * 365,
         });
+
+        // Clear stale session cookies from any previous login
+        response.cookies.delete("profile-cache");
+        response.cookies.delete("custom-member-token");
 
         return response;
     } catch (error) {

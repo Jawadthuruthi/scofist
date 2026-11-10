@@ -27,7 +27,7 @@ import PushNotificationToggle from "./PushNotificationToggle";
 import { usePathname } from "next/navigation";
 import Cookies from "js-cookie";
 
-export function Topbar({ user, festival: initialFestival, activeRole: activeRoleProp, hideSidebarToggle = false }) {
+export function Topbar({ user, festival: initialFestival, activeRole: activeRoleProp, hideSidebarToggle = false, settingsData }) {
   const { toggleSidebar } = useSidebar();
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();

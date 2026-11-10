@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import Cookies from "js-cookie";
-import { LayoutDashboard, GraduationCap, Users, IdCard } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Users, IdCard, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function StudentBottomBar({ user, activeRole: activeRoleProp }) {
@@ -45,36 +45,93 @@ export default function StudentBottomBar({ user, activeRole: activeRoleProp }) {
     hasStudentRole &&
     (effectiveRole === "Student" || (!effectiveRole && user?.roles?.includes("Student")));
 
-  const navItems = [
-    {
-      title: "Dashboard",
-      label: "Dashboard",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      active: pathname === "/dashboard",
-    },
-    {
-      title: "Students",
-      label: "Students",
-      href: "/dashboard/students",
-      icon: GraduationCap,
-      active: pathname?.startsWith("/dashboard/students"),
-    },
-    {
-      title: "Faculty",
-      label: "Faculty",
-      href: "/dashboard/faculty",
-      icon: Users,
-      active: pathname?.startsWith("/dashboard/faculty"),
-    },
-    {
-      title: "My ID",
-      label: "My ID",
-      href: "/dashboard/identity-cards",
-      icon: IdCard,
-      active: pathname?.startsWith("/dashboard/identity-cards"),
-    },
-  ];
+  const [currentStatus, setCurrentStatus] = useState(
+    user?.studentSpecificField?.status || user?.status || user?.studentStatus || "Active"
+  );
+
+  useEffect(() => {
+    if (user?.studentSpecificField?.status) {
+      setCurrentStatus(user.studentSpecificField.status);
+      return;
+    }
+    const uid = user?._id || user?.userId || user?.id;
+    if (uid) {
+      fetch(`/api/users?_id=${uid}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const fullUser =
+            data?.users?.[0] || (Array.isArray(data) ? data[0] : (data?.user || data));
+          const s =
+            fullUser?.studentSpecificField?.status || fullUser?.status || fullUser?.studentStatus;
+          if (s) setCurrentStatus(s);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const isGraduated = currentStatus === "Graduated" || currentStatus === "Dropped Out";
+
+  const navItems = isGraduated
+    ? [
+        {
+          title: "Dashboard",
+          label: "Dashboard",
+          href: "/dashboard",
+          icon: LayoutDashboard,
+          active: pathname === "/dashboard",
+        },
+        {
+          title: "Faculty",
+          label: "Faculty",
+          href: "/dashboard/faculty",
+          icon: Users,
+          active: pathname?.startsWith("/dashboard/faculty"),
+        },
+        {
+          title: "Spark",
+          label: "Spark",
+          href: "/dashboard/spark",
+          icon: Briefcase,
+          active: pathname?.startsWith("/dashboard/spark"),
+        },
+        {
+          title: "Alumnies",
+          label: "Alumnies",
+          href: "/dashboard/alumnies",
+          icon: GraduationCap,
+          active: pathname?.startsWith("/dashboard/alumnies"),
+        },
+      ]
+    : [
+        {
+          title: "Dashboard",
+          label: "Dashboard",
+          href: "/dashboard",
+          icon: LayoutDashboard,
+          active: pathname === "/dashboard",
+        },
+        {
+          title: "Students",
+          label: "Students",
+          href: "/dashboard/students",
+          icon: GraduationCap,
+          active: pathname?.startsWith("/dashboard/students"),
+        },
+        {
+          title: "Faculty",
+          label: "Faculty",
+          href: "/dashboard/faculty",
+          icon: Users,
+          active: pathname?.startsWith("/dashboard/faculty"),
+        },
+        {
+          title: "My ID",
+          label: "My ID",
+          href: "/dashboard/identity-cards",
+          icon: IdCard,
+          active: pathname?.startsWith("/dashboard/identity-cards"),
+        },
+      ];
 
   // Eagerly prefetch navigation targets
   useEffect(() => {
@@ -84,7 +141,7 @@ export default function StudentBottomBar({ user, activeRole: activeRoleProp }) {
         router.prefetch(item.href);
       } catch (err) {}
     });
-  }, [isStudent, router]);
+  }, [isStudent, router, navItems]);
 
   useEffect(() => {
     setPendingHref(null);
@@ -172,4 +229,3 @@ export default function StudentBottomBar({ user, activeRole: activeRoleProp }) {
     </nav>
   );
 }
-

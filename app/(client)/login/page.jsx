@@ -334,7 +334,7 @@ export default function LoginPage() {
               <AlertDialogAction 
                 onClick={() => {
                   setLoginSuccess(false);
-                  router.push("/dashboard");
+                  window.location.href = "/dashboard";
                 }}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-emerald-500/25"
               >

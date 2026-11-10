@@ -140,7 +140,7 @@ const IdentityCards = ({
   const filteredList = useMemo(() => {
     const list = selectionType === "Student ID" ? filteredStudents : filteredTeachers;
     if (userRole === "Student" && userId) {
-      return list.filter((person) => person._id === userId);
+      return list.filter((person) => String(person._id) === String(userId));
     }
     return list;
   }, [selectionType, filteredStudents, filteredTeachers, userRole, userId]);
@@ -150,121 +150,86 @@ const IdentityCards = ({
   return (
     <div>
       <Header
-        title="IDENTITY CARDS"
-        subTitle={userRole === "Student" ? "Identity cards for Students" : "Identity cards for Students and Teachers"}
+        title={userRole === "Student" ? "MY IDENTITY CARD" : "IDENTITY CARDS"}
+        subTitle={userRole === "Student" ? "View and print your official student identity card" : "Identity cards for Students and Teachers"}
         rightAction={
-          (userRole === "College Admin" || allRoles.includes("College Admin")) && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" title="Settings">
-                  <Settings size={16} />
-                </Button>
-              </DialogTrigger>
-              <DialogContent ref={popupRef} data-html2canvas-popup="true" className="sm:max-w-2xl overflow-hidden rounded-2xl sm:rounded-2xl max-h-[90vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-gray-100 shadow-xl">
-                <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-                  <button 
-                    type="button"
-                    className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
-                    onClick={handleDownload}
-                    title="Download Image"
-                    data-html2canvas-ignore="true"
-                  >
-                    <Settings className="h-5 w-5 text-primary" />
-                  </button>
-                  <div className="flex-1 text-left space-y-0.5">
-                    <DialogTitle className="text-xl font-bold m-0">ID Card Settings</DialogTitle>
-                    <DialogDescription className="m-0 text-sm">
-                      Background and seal for ID cards
-                    </DialogDescription>
-                  </div>
-                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
-                    <X className="h-5 w-5" />
-                  </DialogClose>
-                </DialogHeader>
-                <div className="p-6 overflow-y-auto">
-                  <FormComponent
-                    formFields={idCardFormField}
-                    apiKey={apiKey}
-                    data={settings.idCard}
-                    resource="settings"
-                    hideDefaultSubmit={true}
-                    removeCardWrapper={true}
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
-          )
-        }
-      />
-      <div className="flex flex-col md:flex-row gap-4 mb-6 md:items-end flex-wrap xl:flex-nowrap">
-        {isManagementView && (
-          <>
-            <div className="flex flex-row gap-4 w-full md:w-auto md:flex-1 md:max-w-[666px]">
-              <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
-                <label className="text-sm font-medium mb-1 block">ID Type</label>
-                <Select value={selectionType} onValueChange={setSelectionType}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Select an option" />
+          userRole === "Student" ? (
+            <div className="hidden md:flex items-center gap-3">
+              <div className="w-36">
+                <Select value={selectedSide} onValueChange={setSelectedSide}>
+                  <SelectTrigger id="side-select-desktop" className="h-10">
+                    <SelectValue placeholder="Select Side" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Student ID">Student ID</SelectItem>
-                    <SelectItem value="Teacher ID">Teacher ID</SelectItem>
+                    <SelectItem value="Both Sides">Both Sides</SelectItem>
+                    <SelectItem value="Front Side">Front Side</SelectItem>
+                    <SelectItem value="Back Side">Back Side</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {selectionType === "Student ID" ? (
-                <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
-                  <label htmlFor="class-select" className="text-sm font-medium mb-1 block">
-                    Select a Class
-                  </label>
-                  <MultiSelect
-                    options={classOptions}
-                    onValueChange={setSelectedClass}
-                    value={selectedClass}
-                    placeholder="Select a Class"
-                    multiSelect={true}
-                  />
-                </div>
-              ) : (
-                <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
-                  <label className="text-sm font-medium mb-1 block">Select Teacher</label>
-                  <MultiSelect
-                    options={teacherOptions}
-                    onValueChange={setSelectedTeacher}
-                    value={selectedTeacher}
-                    placeholder="Select a teacher"
-                    multiSelect={true}
-                  />
-                </div>
-              )}
+              <Button
+                onClick={handlePrint}
+                className="flex items-center justify-center gap-2 h-10 px-4 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print shrink-0"
+                aria-label="Print"
+              >
+                <Printer size={16} />
+                <span>Print</span>
+              </Button>
             </div>
+          ) : (
+            (userRole === "College Admin" || allRoles.includes("College Admin")) && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" title="Settings">
+                    <Settings size={16} />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent ref={popupRef} data-html2canvas-popup="true" className="sm:max-w-2xl overflow-hidden rounded-2xl sm:rounded-2xl max-h-[90vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-gray-100 shadow-xl">
+                  <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+                    <button 
+                      type="button"
+                      className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+                      onClick={handleDownload}
+                      title="Download Image"
+                      data-html2canvas-ignore="true"
+                    >
+                      <Settings className="h-5 w-5 text-primary" />
+                    </button>
+                    <div className="flex-1 text-left space-y-0.5">
+                      <DialogTitle className="text-xl font-bold m-0">ID Card Settings</DialogTitle>
+                      <DialogDescription className="m-0 text-sm">
+                        Background and seal for ID cards
+                      </DialogDescription>
+                    </div>
+                    <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
+                      <X className="h-5 w-5" />
+                    </DialogClose>
+                  </DialogHeader>
+                  <div className="p-6 overflow-y-auto">
+                    <FormComponent
+                      formFields={idCardFormField}
+                      apiKey={apiKey}
+                      data={settings.idCard}
+                      resource="settings"
+                      hideDefaultSubmit={true}
+                      removeCardWrapper={true}
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )
+          )
+        }
+      />
 
-            {selectionType === "Student ID" && (
-              <div className="w-full md:flex-1 md:max-w-[325px]">
-                <label htmlFor="student-select" className="text-sm font-medium mb-1 block">
-                  Select a Student
-                </label>
-                <MultiSelect
-                  options={studentOptions}
-                  onValueChange={setSelectedStudent}
-                  value={selectedStudent}
-                  placeholder="Select a Student"
-                  multiSelect={true}
-                />
-              </div>
-            )}
-          </>
-        )}
-
-        <div className="w-full md:flex-1 md:max-w-[325px] flex flex-col gap-3">
-          <div className="flex gap-2 items-end w-full">
-            <div className="flex-1">
-              <label htmlFor="side-select" className="text-sm font-medium mb-1 block">
-                Print Side
-              </label>
+      {/* For student login: print side and print button on mobile only (below heading) */}
+      {userRole === "Student" && (
+        <div className="flex md:hidden items-center justify-center w-full mb-6">
+          <div className="flex items-center gap-2 w-full max-w-[340px]">
+            <div className="flex-1 w-1/2">
               <Select value={selectedSide} onValueChange={setSelectedSide}>
-                <SelectTrigger id="side-select" className="h-10">
+                <SelectTrigger id="side-select-mobile" className="h-10 w-full">
                   <SelectValue placeholder="Select Side" />
                 </SelectTrigger>
                 <SelectContent>
@@ -275,17 +240,109 @@ const IdentityCards = ({
               </Select>
             </div>
 
-            <Button
-              onClick={handlePrint}
-              className="flex items-center justify-center gap-2 flex-1 h-10 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
-              aria-label="Print"
-            >
-              <Printer size={16} />
-              Print
-            </Button>
+            <div className="flex-1 w-1/2">
+              <Button
+                onClick={handlePrint}
+                className="flex items-center justify-center gap-2 w-full h-10 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
+                aria-label="Print"
+              >
+                <Printer size={16} />
+                <span>Print</span>
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Management controls for admin/teacher */}
+      {isManagementView && (
+        <div className="flex flex-col md:flex-row gap-4 mb-6 md:items-end flex-wrap xl:flex-nowrap">
+          <div className="flex flex-row gap-4 w-full md:w-auto md:flex-1 md:max-w-[666px]">
+            <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
+              <label className="text-sm font-medium mb-1 block">ID Type</label>
+              <Select value={selectionType} onValueChange={setSelectionType}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Select an option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Student ID">Student ID</SelectItem>
+                  <SelectItem value="Teacher ID">Teacher ID</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectionType === "Student ID" ? (
+              <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
+                <label htmlFor="class-select" className="text-sm font-medium mb-1 block">
+                  Select a Class
+                </label>
+                <MultiSelect
+                  options={classOptions}
+                  onValueChange={setSelectedClass}
+                  value={selectedClass}
+                  placeholder="Select a Class"
+                  multiSelect={true}
+                />
+              </div>
+            ) : (
+              <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
+                <label className="text-sm font-medium mb-1 block">Select Teacher</label>
+                <MultiSelect
+                  options={teacherOptions}
+                  onValueChange={setSelectedTeacher}
+                  value={selectedTeacher}
+                  placeholder="Select a teacher"
+                  multiSelect={true}
+                />
+              </div>
+            )}
+          </div>
+
+          {selectionType === "Student ID" && (
+            <div className="w-full md:flex-1 md:max-w-[325px]">
+              <label htmlFor="student-select" className="text-sm font-medium mb-1 block">
+                Select a Student
+              </label>
+              <MultiSelect
+                options={studentOptions}
+                onValueChange={setSelectedStudent}
+                value={selectedStudent}
+                placeholder="Select a Student"
+                multiSelect={true}
+              />
+            </div>
+          )}
+
+          <div className="w-full md:flex-1 md:max-w-[325px] flex flex-col gap-3">
+            <div className="flex gap-2 items-end w-full">
+              <div className="flex-1">
+                <label htmlFor="side-select" className="text-sm font-medium mb-1 block">
+                  Print Side
+                </label>
+                <Select value={selectedSide} onValueChange={setSelectedSide}>
+                  <SelectTrigger id="side-select" className="h-10">
+                    <SelectValue placeholder="Select Side" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Both Sides">Both Sides</SelectItem>
+                    <SelectItem value="Front Side">Front Side</SelectItem>
+                    <SelectItem value="Back Side">Back Side</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                onClick={handlePrint}
+                className="flex items-center justify-center gap-2 flex-1 h-10 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
+                aria-label="Print"
+              >
+                <Printer size={16} />
+                Print
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Screen Preview */}
       <div className="grid grid-cols-12 gap-4 print:hidden mb-8">
@@ -413,14 +470,15 @@ const IdCard = ({
   const showBack = selectedSide === "Both Sides" || selectedSide === "Back Side";
 
   const isStudentView = userRole === "Student";
+  const studentAdmissionNo = person.admissionNumber || person.studentSpecificField?.admissionNumber || person._id?.substring(0, 8).toUpperCase();
 
   return (
-    <div className={`preview-container ${isStudentView ? "col-span-12 flex-row flex-wrap items-stretch justify-center" : "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 flex-col"} gap-4 flex`}>
+    <div className={`preview-container ${isStudentView ? "col-span-12 flex-row flex-wrap items-stretch justify-center" : "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 flex-col"} gap-6 flex`}>
       {/* Front Side Preview */}
       {showFront && (
-        <Card className={`shadow-md overflow-hidden border-none flex-1 ${isStudentView ? "max-w-[340px] min-w-[300px]" : ""}`}>
-          <CardContent className="p-0">
-            <div className="relative bg-white w-full h-full p-4 rounded shadow overflow-hidden">
+        <Card className={`shadow-lg overflow-hidden border border-slate-200 bg-white text-slate-900 dark:bg-white dark:text-slate-900 dark:border-slate-200 flex-1 ${isStudentView ? "max-w-[340px] min-w-[300px] w-full" : ""}`}>
+          <CardContent className="p-0 flex flex-col h-full bg-white dark:bg-white text-slate-900 dark:text-slate-900">
+            <div className="relative bg-white dark:bg-white text-slate-900 dark:text-slate-900 w-full flex-1 p-4 overflow-hidden">
               {idCardBackgroundImageUrl && (
                 <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
                   <svg width="100%" height="100%">
@@ -428,91 +486,95 @@ const IdCard = ({
                   </svg>
                 </div>
               )}
-              <div className="relative z-10 w-full h-full">
+              <div className="relative z-10 w-full h-full flex flex-col">
                 {/* Centered Institution Title */}
-              <div className="text-center mb-3">
-                <h2 className="font-bold text-sm uppercase tracking-wider">
-                  {institution.name || "Educational Institution"}
-                </h2>
-                <p className="text-xs opacity-90">
-                  {institution.tagline || "Excellence in Education"}
-                </p>
-              </div>
-
-              {/* Institution Logo */}
-              <div className="flex justify-center mb-3">
-                <div className="h-12 w-12 bg-white rounded-full relative overflow-hidden shadow-md">
-                  {institution.logo ? (
-                    <div className="relative h-full w-full">
-                      <Image
-                        src={institution.logo.url || ""}
-                        alt="Institution Logo"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center">
-                      <Shield className="text-indigo-700" size={24} />
-                    </div>
-                  )}
+                <div className="text-center mb-3">
+                  <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-slate-900 drop-shadow-sm">
+                    {institution.name || "Educational Institution"}
+                  </h2>
+                  <p className="text-xs text-slate-600 dark:text-slate-600 font-medium">
+                    {institution.tagline || "Excellence in Education"}
+                  </p>
                 </div>
-              </div>
 
-              {/* Person Photo and Details - Centered Layout */}
-              <div className="flex flex-col items-center">
-                <div className="mb-3">
-                  <div className="w-20 h-24 bg-white border-2 border-white rounded-md relative overflow-hidden shadow-md">
-                    {person.profilePic?.url ? (
+                {/* Institution Logo */}
+                <div className="flex justify-center mb-3">
+                  <div className="h-14 w-14 bg-white rounded-full relative overflow-hidden shadow-md p-1 border border-slate-100 flex items-center justify-center">
+                    {institution.logo ? (
                       <div className="relative h-full w-full">
                         <Image
-                          src={person?.profilePic?.url || ""}
-                          alt={`${person.name}'s photo`}
+                          src={institution.logo.url || ""}
+                          alt="Institution Logo"
                           fill
-                          className="object-cover"
+                          className="object-contain p-0.5"
                         />
                       </div>
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
-                        <User size={28} className="text-gray-400" />
+                        <Shield className="text-indigo-700" size={26} />
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Person Name and ID - Centered */}
-                <div className="text-center space-y-1">
-                  <h2 className="text-base font-bold mt-1 bg-white/20 inline-block px-2 py-0.5 rounded">
-                    {isStudent
-                      ? `Admn No: ${person._id?.substring(0, 8).toUpperCase()}`
-                      : ""}
-                  </h2>
-                  <h3 className="font-bold text-xs">{person.name}</h3>
-                  {!isStudent && (
-                    <p className="text-xs">
-                      {person.address?.place || "No place provided"}
-                    </p>
-                  )}
+                {/* Person Photo and Details - Centered Layout */}
+                <div className="flex flex-col items-center">
+                  <div className="mb-3">
+                    <div className="w-24 h-28 bg-white border-2 border-white rounded-md relative overflow-hidden shadow-md">
+                      {person.profilePic?.url ? (
+                        <div className="relative h-full w-full">
+                          <Image
+                            src={person?.profilePic?.url || ""}
+                            alt={`${person.name}'s photo`}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-slate-50">
+                          <User size={32} className="text-slate-400" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Person Name and ID - Centered */}
+                  <div className="text-center space-y-1">
+                    <h2 className="text-sm font-bold mt-1 bg-slate-100/90 text-slate-900 dark:text-slate-900 border border-slate-200/80 inline-block px-2.5 py-0.5 rounded shadow-sm">
+                      {isStudent
+                        ? `Admn No: ${studentAdmissionNo}`
+                        : "Faculty"}
+                    </h2>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-slate-900 mt-0.5">{person.name}</h3>
+                    {!isStudent && (
+                      <div className="text-xs text-slate-600 dark:text-slate-600">
+                        <p>{person.address?.place || person.place || "No place provided"}</p>
+                        {(person.address?.district || person.district) && (
+                          <p>{person.address?.district || person.district}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
 
-            <div className="p-2 flex flex-col items-center">
-              <div className="text-xs text-center font-medium text-indigo-800 mb-1 bg-white/80 rounded-md py-0.5 px-2 inline-block shadow-sm w-full">
+            <div className="p-3 bg-white dark:bg-white flex flex-col items-center border-t border-slate-100">
+              <div className="text-xs text-center font-bold text-indigo-900 dark:text-indigo-900 mb-1 bg-indigo-50/90 border border-indigo-100/90 rounded-md py-1 px-2 inline-block shadow-sm w-full">
                 {isStudent
                   ? "OFFICIAL STUDENT ID"
                   : "OFFICIAL TEACHER ID"}
               </div>
               {isStudent && (
-                <div className="flex justify-center mt-2 p-1 bg-white rounded shadow-sm overflow-hidden h-12">
+                <div className="flex justify-center mt-1 p-1 bg-white rounded border border-slate-200 shadow-sm overflow-hidden h-12">
                   <Barcode
-                    value={person._id?.substring(0, 8).toUpperCase()}
+                    value={studentAdmissionNo}
                     width={1.5}
                     height={30}
                     format="CODE128"
                     displayValue={false}
                     background="#ffffff"
+                    lineColor="#000000"
                     renderer="svg"
                     margin={0}
                   />
@@ -525,11 +587,11 @@ const IdCard = ({
 
       {/* Back Side Preview */}
       {showBack && (
-        <Card className={`shadow-md overflow-hidden border border-gray-200 flex-1 ${isStudentView ? "max-w-[340px] min-w-[300px]" : ""}`}>
-          <CardContent className="p-4 flex flex-col h-full">
-            <div className="border-b border-gray-200 pb-2 mb-3">
-              <h3 className="text-sm font-semibold text-gray-800 text-center">
-                {isStudent ? `${person._id?.substring(0, 8).toUpperCase()} - ` : ""}Contact Information
+        <Card className={`shadow-lg overflow-hidden border border-slate-200 bg-white text-slate-900 dark:bg-white dark:text-slate-900 dark:border-slate-200 flex-1 ${isStudentView ? "max-w-[340px] min-w-[300px] w-full" : ""}`}>
+          <CardContent className="p-4 flex flex-col h-full bg-white dark:bg-white text-slate-900 dark:text-slate-900">
+            <div className="border-b border-slate-200 pb-2 mb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-900 text-center">
+                {isStudent ? `${studentAdmissionNo} - ` : ""}Contact Information
               </h3>
             </div>
 
@@ -540,18 +602,18 @@ const IdCard = ({
               idCardSealImageUrl={idCardSealImageUrl}
             />
 
-            <div className="mt-auto bg-indigo-50 p-2 rounded-md">
-              <div className="text-xs text-center text-gray-700">
-                <p className=" font-bold text-indigo-700">
+            <div className="mt-auto bg-indigo-50/90 border border-indigo-100/80 p-2.5 rounded-md">
+              <div className="text-xs text-center text-slate-700 dark:text-slate-700">
+                <p className="font-bold text-indigo-900 dark:text-indigo-900 text-xs">
                   {institution.name || "Educational Institution"}
                 </p>
-                <p className="text-xxs text-gray-700">
+                <p className="text-xxs text-slate-600 dark:text-slate-600 font-medium">
                   {institution.tagline && <span>({institution.tagline})</span>}
                 </p>
-                <p className="text-xxs text-gray-700">
+                <p className="text-xxs text-slate-600 dark:text-slate-600">
                   Sa-adabad, Deli, P.O Kalanad, Kasaragod
                 </p>
-                <p className="text-xxs text-gray-700">
+                <p className="text-xxs text-slate-600 dark:text-slate-600">
                   {institution.contact?.primaryPhone &&
                     `Phone: ${institution.contact.primaryPhone}`}
                   {institution.contact?.secondaryPhone &&
@@ -571,114 +633,119 @@ const PersonDetails = ({ person, academicYear, isStudent, idCardSealImageUrl }) 
   const sealUrl = idCardSealImageUrl || "/sdc_seal.png";
   
   return (
-    <div className="relative">
+    <div className="relative my-auto">
       {sealUrl && (
-        <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-40">
-          <svg width="250" height="250">
-            <image href={sealUrl} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" />
-          </svg>
+        <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-25 select-none overflow-hidden">
+          <div className="relative w-44 h-44 mix-blend-multiply">
+            <Image
+              src={sealUrl}
+              alt="Seal"
+              fill
+              className="object-contain"
+            />
+          </div>
         </div>
       )}
-      <div className="relative text-xs z-10 grid grid-cols-[max-content_auto_1fr] gap-x-1 gap-y-1 w-full">
+      <div className="relative text-xs z-10 grid grid-cols-[max-content_auto_1fr] gap-x-1.5 gap-y-1.5 w-full text-slate-900 dark:text-slate-900">
         {isStudent ? (
           <>
-            <span className="font-semibold">Class</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">{person.className}</span>
+            <span className="font-bold text-slate-900 dark:text-slate-900">Class</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">{person.className || "N/A"}</span>
 
-            <span className="font-semibold">Batch</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">{person.batchName}</span>
+            <span className="font-bold text-slate-900 dark:text-slate-900">Batch</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">{person.batchName || "N/A"}</span>
 
-            <span className="font-semibold">Dob</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Dob</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">
               {formatDateMonthYear(person.dateOfBirth) || "No DOB provided"}
             </span>
 
-            <span className="font-semibold">Phone No</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Phone No</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">
               {person.contactNumber || "No phone provided"}
             </span>
 
-            <span className="font-semibold">Email</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Email</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0 break-all">
               {person.email || "No email provided"}
             </span>
 
-            <span className="font-semibold">S/o</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">S/o</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">
               {person.guardianName || "No guardian provided"}
             </span>
 
-            <span className="font-semibold whitespace-nowrap">
+            <span className="font-bold text-slate-900 dark:text-slate-900 whitespace-nowrap">
               Contact No
             </span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">
               {person.guardianContactNumber || "No contact provided"}
             </span>
 
-            <span className="font-semibold">Address</span>
-            <span>:</span>
-            <span className="text-gray-700 text-[0.65rem] break-words leading-tight whitespace-normal min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Address</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 text-[0.65rem] break-words leading-tight whitespace-normal min-w-0 font-medium">
               {Object.values(person.address || {})
                 .filter(Boolean)
                 .join(", ") || "No address provided"}
             </span>
 
-            <span className="font-semibold">Validity</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">{academicYear}</span>
+            <span className="font-bold text-slate-900 dark:text-slate-900">Validity</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">{academicYear}</span>
           </>
         ) : (
           <>
-            <span className="font-semibold">Email</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Email</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0 break-all">
               {person.email || "No email provided"}
             </span>
 
-            <span className="font-semibold">Date of Joining</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Date of Joining</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">
               {formatDateForDisplay(new Date(person.dateOfJoining)) ||
                 "No date provided"}
             </span>
 
-            <span className="font-semibold">Alternative Contact</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Alternative Contact</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">
               {person.alternativeContactNumber || "No contact provided"}
             </span>
 
-            <span className="font-semibold">Dob</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Dob</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">
               {formatDateForDisplay(new Date(person.dateOfBirth)) ||
                 "No DOB provided"}
             </span>
 
-            <span className="font-semibold">Address</span>
-            <span>:</span>
-            <span className="text-gray-700 text-[0.65rem] break-words leading-tight whitespace-normal min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Address</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 text-[0.65rem] break-words leading-tight whitespace-normal min-w-0 font-medium">
               {Object.values(person.address || {})
                 .filter(Boolean)
                 .join(", ") || "No address provided"}
             </span>
 
-            <span className="font-semibold">Phone No</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">
+            <span className="font-bold text-slate-900 dark:text-slate-900">Phone No</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">
               {person.contactNumber || "No phone provided"}
             </span>
 
-            <span className="font-semibold">Validity</span>
-            <span>:</span>
-            <span className="text-gray-700 min-w-0">{academicYear}</span>
+            <span className="font-bold text-slate-900 dark:text-slate-900">Validity</span>
+            <span className="text-slate-500 font-bold">:</span>
+            <span className="text-slate-700 dark:text-slate-700 font-medium min-w-0">{academicYear}</span>
           </>
         )}
       </div>
@@ -700,7 +767,8 @@ const PrintableIdCard = ({
   const showBack = selectedSide === "Both Sides" || selectedSide === "Back Side";
 
   const wrapperClass = selectedSide === "Both Sides" ? "w-1/2 h-1/2 p-2 flex space-x-2" : "w-1/4 h-1/2 p-2 flex";
-  const innerClass = selectedSide === "Both Sides" ? "border rounded shadow w-1/2 overflow-hidden" : "border rounded shadow w-full overflow-hidden";
+  const innerClass = selectedSide === "Both Sides" ? "border rounded shadow w-1/2 overflow-hidden bg-white text-slate-900" : "border rounded shadow w-full overflow-hidden bg-white text-slate-900";
+  const studentAdmissionNo = person.admissionNumber || person.studentSpecificField?.admissionNumber || person._id?.substring(0, 8).toUpperCase();
 
   return (
     <div
@@ -720,85 +788,91 @@ const PrintableIdCard = ({
             )}
             <div className="relative z-10 flex flex-col h-full w-full">
               <div className="text-center mb-1">
-              <h2 className="font-bold text-xs uppercase tracking-wider">
-                {institution.name || "Educational Institution"}
-              </h2>
-              <p className="text-xxs opacity-90">
-                {institution.tagline || "Excellence in Education"}
-              </p>
-            </div>
-
-            <div className="flex justify-center mb-1">
-              <div className="h-8 w-8 bg-white rounded-full relative overflow-hidden">
-                {institution.logo ? (
-                  <div className="relative h-full w-full">
-                    <Image
-                      src={institution.logo.url || ""}
-                      alt="Institution Logo"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center">
-                    <Shield className="text-indigo-700" size={16} />
-                  </div>
-                )}
+                <h2 className="font-bold text-xs uppercase tracking-wider text-slate-900">
+                  {institution.name || "Educational Institution"}
+                </h2>
+                <p className="text-xxs text-slate-600 opacity-90">
+                  {institution.tagline || "Excellence in Education"}
+                </p>
               </div>
-            </div>
 
-            <div className="flex flex-col items-center flex-grow">
-              <div className="mb-1">
-                <div className="w-28 h-28 bg-white border border-white rounded relative overflow-hidden">
-                  {person.profilePic?.url ? (
+              <div className="flex justify-center mb-1">
+                <div className="h-8 w-8 bg-white rounded-full relative overflow-hidden shadow-sm p-0.5 border border-slate-100 flex items-center justify-center">
+                  {institution.logo ? (
                     <div className="relative h-full w-full">
                       <Image
-                        src={person?.profilePic?.url || ""}
-                        alt={`${person.name}'s photo`}
+                        src={institution.logo.url || ""}
+                        alt="Institution Logo"
                         fill
-                        className="object-cover"
+                        className="object-contain p-0.5"
                       />
                     </div>
                   ) : (
                     <div className="h-full w-full flex items-center justify-center">
-                      <User size={20} className="text-gray-400" />
+                      <Shield className="text-indigo-700" size={16} />
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="text-center">
-                <h3 className="text-base font-bold mt-0.5 bg-white/20 inline-block px-1 py-0.5 rounded">
-                  {isStudent
-                    ? `Admn No: ${person._id?.substring(0, 8).toUpperCase()}`
-                    : ""}
-                </h3>
-                <h3 className="font-bold text-xs">{person.name}</h3>
-                {!isStudent && (
-                  <p className="text-xs">
-                    {person.address?.place || "No place provided"}
-                  </p>
+              <div className="flex flex-col items-center flex-grow">
+                <div className="mb-1">
+                  <div className="w-28 h-28 bg-white border border-slate-200 rounded relative overflow-hidden">
+                    {person.profilePic?.url ? (
+                      <div className="relative h-full w-full">
+                        <Image
+                          src={person?.profilePic?.url || ""}
+                          alt={`${person.name}'s photo`}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-slate-50">
+                        <User size={20} className="text-slate-400" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <h3 className="text-base font-bold mt-0.5 bg-slate-100 text-slate-900 inline-block px-1.5 py-0.5 rounded">
+                    {isStudent
+                      ? `Admn No: ${studentAdmissionNo}`
+                      : ""}
+                  </h3>
+                  <h3 className="font-bold text-xs text-slate-900">{person.name}</h3>
+                  {!isStudent && (
+                    <div className="text-xs text-slate-600">
+                      <p>{person.address?.place || person.place || "No place provided"}</p>
+                      {(person.address?.district || person.district) && (
+                        <p>{person.address?.district || person.district}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-xs font-bold text-center mt-auto p-1 flex flex-col items-center w-full">
+                <span className="mb-1 mt-1 bg-indigo-50 border border-indigo-100 rounded-md py-0.5 px-2 shadow-sm text-indigo-900 font-bold w-full whitespace-nowrap">
+                  {isStudent ? "OFFICIAL STUDENT ID" : "OFFICIAL TEACHER ID"}
+                </span>
+                {isStudent && (
+                  <div className="p-1 mb-1 bg-white rounded border border-slate-200 overflow-hidden h-12 flex items-center">
+                    <Barcode
+                      value={studentAdmissionNo}
+                      width={1.5}
+                      height={30}
+                      format="CODE128"
+                      displayValue={false}
+                      background="#ffffff"
+                      lineColor="#000000"
+                      renderer="svg"
+                      margin={0}
+                    />
+                  </div>
                 )}
               </div>
-            </div>
-
-            <div className="text-xs font-bold text-center mt-auto p-1 flex flex-col items-center w-full">
-              <span className="mb-1 mt-1 bg-white/80 rounded-md py-0.5 px-2 shadow-sm text-indigo-900 w-full whitespace-nowrap">{isStudent ? "OFFICIAL STUDENT ID" : "OFFICIAL TEACHER ID"}</span>
-              {isStudent && (
-                <div className="p-1 mb-1 bg-white rounded overflow-hidden h-12 flex items-center">
-                  <Barcode
-                    value={person._id?.substring(0, 8).toUpperCase()}
-                    width={1.5}
-                    height={30}
-                    format="CODE128"
-                    displayValue={false}
-                    background="#ffffff"
-                    renderer="svg"
-                    margin={0}
-                  />
-                </div>
-              )}
-            </div>
             </div>
           </div>
         </div>
@@ -808,9 +882,9 @@ const PrintableIdCard = ({
       {showBack && (
         <div className={innerClass}>
           <div className="p-2 bg-white h-full flex flex-col">
-            <div className="border-b border-gray-200 pb-1 mb-1">
-              <h3 className="text-xs font-semibold text-gray-800 text-center">
-                {isStudent ? `${person._id?.substring(0, 8).toUpperCase()} - ` : ""}Contact Information
+            <div className="border-b border-slate-200 pb-1 mb-1">
+              <h3 className="text-xs font-bold text-slate-900 text-center">
+                {isStudent ? `${studentAdmissionNo} - ` : ""}Contact Information
               </h3>
             </div>
 
@@ -821,17 +895,17 @@ const PrintableIdCard = ({
               idCardSealImageUrl={idCardSealImageUrl}
             />
 
-            <div className="bg-indigo-50 p-1 rounded text-center text-xs mt-auto">
-              <p className="font-bold text-indigo-700 text-xs px-8">
+            <div className="bg-indigo-50/90 border border-indigo-100/80 p-1.5 rounded text-center text-xs mt-auto">
+              <p className="font-bold text-indigo-900 text-xs px-8">
                 {institution.name || "Educational Institution"}
               </p>
-              <p className="text-xxs text-gray-700">
+              <p className="text-xxs text-slate-600">
                 {institution.tagline && <span>({institution.tagline})</span>}
               </p>
-              <p className="text-xxs text-gray-700">
+              <p className="text-xxs text-slate-600">
                 Sa-adabad, Deli, P.O Kalanad, Kasaragod
               </p>
-              <p className="text-xxs text-gray-700">
+              <p className="text-xxs text-slate-600">
                 {institution.contact?.primaryPhone &&
                   `Phone: ${institution.contact.primaryPhone}`}
                 {institution.contact?.secondaryPhone &&

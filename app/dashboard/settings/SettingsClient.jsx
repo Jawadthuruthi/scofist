@@ -11,7 +11,7 @@ const FormComponent = dynamic(() => import("@/components/FormComponent"), {
 const appIconFormField = [
   {
     name: "appIcon",
-    label: "App Icon (PWA)",
+    label: "App Logo / Icon",
     inputType: "image",
     type: "object",
     className: "col-span-2",
@@ -454,6 +454,28 @@ export default function SettingsClient({
             title="Institution Profile"
             description="Configure Your Institution Details"
             hideDefaultSubmit={true}
+            onSuccess={() => {
+              if (typeof window !== "undefined") {
+                fetch("/api/settings")
+                  .then((r) => r.json())
+                  .then((d) => {
+                    const logo = d.settings?.general?.appLogo || d.settings?.general?.appIcon || d.settings?.institution?.logo;
+                    if (logo?.url) {
+                      window.dispatchEvent(
+                        new CustomEvent("scofist:app-icon-updated", {
+                          detail: logo,
+                        })
+                      );
+                      window.dispatchEvent(
+                        new CustomEvent("scofist:app-logo-updated", {
+                          detail: logo,
+                        })
+                      );
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }}
           />
           <div className="mt-8 max-w-md">
             <FormComponent
@@ -461,18 +483,24 @@ export default function SettingsClient({
               apiKey={apiKey}
               data={general}
               resource="settings"
-              title="App Icon"
-              description="Configure the PWA App Icon"
+              title="App Logo"
+              description="Configure the Application Logo (Sidebar, Topbar & PWA Icon)"
               hideDefaultSubmit={true}
               onSuccess={() => {
                 if (typeof window !== "undefined") {
                   fetch("/api/settings")
                     .then((r) => r.json())
                     .then((d) => {
-                      if (d.settings?.general?.appIcon?.url) {
+                      const logo = d.settings?.general?.appLogo || d.settings?.general?.appIcon;
+                      if (logo?.url) {
                         window.dispatchEvent(
                           new CustomEvent("scofist:app-icon-updated", {
-                            detail: d.settings.general.appIcon,
+                            detail: logo,
+                          })
+                        );
+                        window.dispatchEvent(
+                          new CustomEvent("scofist:app-logo-updated", {
+                            detail: logo,
                           })
                         );
                       }

@@ -1,23 +1,39 @@
 import ErrorPage from "@/components/ErrorPage";
 import IdentityCards from "@/components/IdentityCards";
 import { fetchData, sortTeachers, sortClasses } from "@/lib/utils";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 const identityCardsPage = async () => {
   try {
     const headersList = await headers();
+    const cookiesStore = await cookies();
     const userHeader = headersList.get("x-user");
     const user = userHeader ? JSON.parse(userHeader) : null;
-    const activeRole = headersList.get("x-active-role") || (user?.roles?.[0]);
+    const activeRole = cookiesStore.get("active-role")?.value || headersList.get("x-active-role") || (user?.roles?.[0]);
 
-    let [students, settings, classes, teachers] = await Promise.all([
-      fetchData("users", "roles=Student&status=Active"),
+    const isStudent = activeRole === "Student";
+    const studentQuery = isStudent && user?._id
+      ? `_id=${user._id}`
+      : "roles=Student&status=Active";
+
+    let [studentsData, settings, classes, teachers] = await Promise.all([
+      fetchData("users", studentQuery),
       fetchData("settings"),
       fetchData("classes", "status=Active&projection=_id,name,status"),
       fetchData("users", "roles=Teacher"),
     ]);
+
+    let students = Array.isArray(studentsData) ? studentsData : (studentsData?.users || []);
+
+    if (isStudent && user?._id && !students.some((s) => String(s._id) === String(user._id))) {
+      const singleData = await fetchData("users", `_id=${user._id}`).catch(() => null);
+      const studentObj = Array.isArray(singleData) ? singleData[0] : (singleData?.users?.[0] || singleData);
+      if (studentObj && studentObj._id) {
+        students = [studentObj];
+      }
+    }
 
     if (students && students.length > 0) {
       students = [...students].sort((a, b) => {

@@ -7,10 +7,22 @@ export async function GET(req) {
       { status: 200 }
     );
 
-    // Remove the cookie by setting it to an expired date
+    // Remove the cookies by setting them to an expired date
     response.cookies.set("auth-token", "", {
       httpOnly: true,
       expires: new Date(0), // Expire the cookie immediately
+      path: "/",
+    });
+    response.cookies.set("active-role", "", {
+      expires: new Date(0),
+      path: "/",
+    });
+    response.cookies.set("profile-cache", "", {
+      expires: new Date(0),
+      path: "/",
+    });
+    response.cookies.set("custom-member-token", "", {
+      expires: new Date(0),
       path: "/",
     });
 

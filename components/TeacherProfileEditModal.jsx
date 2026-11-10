@@ -1,53 +1,120 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, Upload, X } from "lucide-react";
+import { Loader2, Save, Upload, X, User } from "lucide-react";
 import { toast } from "sonner";
-import Image from "next/image";
+
+const formatDate = (dateVal) => {
+  if (!dateVal) return "";
+  try {
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
+  } catch {
+    return "";
+  }
+};
+
+const getInitialPhoto = (user) => {
+  return user?.pendingProfileUpdate?.profilePic?.url || user?.profilePic?.url || null;
+};
+
+const getInitialFormData = (user) => {
+  const p = user?.pendingProfileUpdate || {};
+  const t = user?.teacherSpecificField || {};
+  const a = user?.address || {};
+
+  return {
+    name: p.name || user?.name || "",
+    email: p.email || user?.email || "",
+    contactNumber: p.contactNumber || user?.contactNumber || user?.phone || "",
+    alternativeNumber: p.alternativeNumber || user?.alternativeNumber || "",
+    dateOfBirth: formatDate(p.dateOfBirth || user?.dateOfBirth),
+    address: {
+      houseName: p.address?.houseName || a.houseName || user?.houseName || "",
+      place: p.address?.place || a.place || user?.place || "",
+      locationPoint: p.address?.locationPoint || a.locationPoint || user?.locationPoint || "",
+      postOffice: p.address?.postOffice || a.postOffice || user?.postOffice || "",
+      district: p.address?.district || a.district || user?.district || "",
+      state: p.address?.state || a.state || user?.state || "",
+      pin: p.address?.pin || a.pin || user?.pin || a.pinCode || user?.pinCode || "",
+    },
+    teacherSpecificField: {
+      dateOfJoining: formatDate(p.teacherSpecificField?.dateOfJoining || t.dateOfJoining || user?.dateOfJoining),
+    },
+  };
+};
 
 export default function TeacherProfileEditModal({ user, open, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
+  const [fetchingUser, setFetchingUser] = useState(false);
   const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(user?.profilePic?.url || null);
+  const [previewUrl, setPreviewUrl] = useState(() => getInitialPhoto(user));
   const fileInputRef = useRef(null);
+  const [formData, setFormData] = useState(() => getInitialFormData(user));
 
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    contactNumber: user?.contactNumber || "",
-    alternativeNumber: user?.alternativeNumber || "",
-    dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split("T")[0] : "",
-    address: {
-      houseName: user?.address?.houseName || user?.houseName || "",
-      place: user?.address?.place || user?.place || "",
-      locationPoint: user?.address?.locationPoint || user?.locationPoint || "",
-      postOffice: user?.address?.postOffice || user?.postOffice || "",
-      district: user?.address?.district || user?.district || "",
-      state: user?.address?.state || user?.state || "",
-      pin: user?.address?.pin || user?.pin || "",
-    },
-    teacherSpecificField: {
-      dateOfJoining: user?.teacherSpecificField?.dateOfJoining ? new Date(user.teacherSpecificField.dateOfJoining).toISOString().split("T")[0] : "",
-    }
-  });
+  useEffect(() => {
+    if (!open) return;
+
+    setFormData(getInitialFormData(user));
+    setPreviewUrl(getInitialPhoto(user));
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    const userId = user?._id || user?.userId || user?.id;
+    if (!userId) return;
+
+    let active = true;
+    setFetchingUser(true);
+
+    fetch(`/api/users?_id=${userId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
+        const fullUser =
+          data?.users?.[0] ||
+          (Array.isArray(data) ? data[0] : (data?.user || data));
+        if (fullUser && typeof fullUser === "object") {
+          setFormData(getInitialFormData(fullUser));
+          const photo = getInitialPhoto(fullUser);
+          if (photo) setPreviewUrl(photo);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching full teacher profile:", err);
+      })
+      .finally(() => {
+        if (active) setFetchingUser(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.includes(".")) {
       const [parent, child] = name.split(".");
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [parent]: {
           ...prev[parent],
-          [child]: value
-        }
+          [child]: value,
+        },
       }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -66,7 +133,7 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
 
   const removeFile = () => {
     setFile(null);
-    setPreviewUrl(user?.profilePic?.url || null);
+    setPreviewUrl(getInitialPhoto(user));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -143,9 +210,9 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: user._id,
-          pendingChanges: transformedData
-        })
+          userId: user?._id || user?.userId || user?.id,
+          pendingChanges: transformedData,
+        }),
       });
 
       if (response.ok) {
@@ -165,15 +232,38 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            Edit Profile Request
-          </DialogTitle>
+      <DialogContent className="w-[95vw] sm:max-w-4xl h-[90vh] sm:max-h-[92vh] p-0 overflow-hidden rounded-2xl shadow-2xl flex flex-col [&>button.absolute]:hidden border border-border">
+        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+            <User className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left space-y-0.5 min-w-0">
+            <div className="flex items-center gap-2">
+              <DialogTitle className="text-xl font-bold m-0 text-foreground truncate">
+                Edit Profile Request
+              </DialogTitle>
+              {fetchingUser && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            <DialogDescription className="text-sm text-muted-foreground m-0">
+              Submit changes for admin approval.
+            </DialogDescription>
+          </div>
+          <DialogClose asChild>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </DialogClose>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-8 py-4">
-          
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+          {/* Profile Photo Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-1 text-primary text-center">Profile Photo</h3>
             <div className="flex flex-col gap-4 items-center">
@@ -224,6 +314,7 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
             </div>
           </div>
 
+          {/* Personal Details Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-1 text-primary">Personal Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -242,6 +333,7 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
             </div>
           </div>
 
+          {/* Contact Details Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-1 text-primary">Contact Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -260,6 +352,7 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
             </div>
           </div>
 
+          {/* Address Details Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-1 text-primary">Address Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -291,16 +384,23 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
                 <Label htmlFor="pin">PIN Code</Label>
                 <Input id="pin" name="address.pin" value={formData.address.pin} onChange={handleChange} maxLength={6} />
               </div>
+              {/* Cancel and Submit button opposite of PIN Code on desktop */}
+              <div className="flex items-end justify-end gap-3 pt-2 md:pt-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="border border-input hover:bg-muted font-medium"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading} className="gap-2">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Submit Request
+                </Button>
+              </div>
             </div>
           </div>
-
-          <DialogFooter className="pt-6">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={loading} className="gap-2">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Submit Request
-            </Button>
-          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

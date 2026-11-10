@@ -8,10 +8,13 @@ export async function GET(req) {
   try {
     await connectToDB();
     const settings = await Settings.findOne({}).lean();
-    const targetUrl = settings?.general?.appIcon?.url;
+    const iconUrl =
+      settings?.general?.appLogo?.url ||
+      settings?.general?.appIcon?.url ||
+      settings?.institution?.logo?.url;
 
-    if (targetUrl) {
-      return NextResponse.redirect(targetUrl, {
+    if (iconUrl) {
+      return NextResponse.redirect(iconUrl, {
         status: 302,
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",

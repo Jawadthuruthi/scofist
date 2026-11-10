@@ -1158,7 +1158,7 @@ const StatsOverview = memo(({
             </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
-                Active Students By Class
+                Active Students ({dashboardData?.activeStudents?.length || 0})
               </DialogTitle>
               <DialogDescription className="m-0">
                 Distribution of active students.
@@ -1202,8 +1202,7 @@ const StatsOverview = memo(({
             </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
-                <span className="sm:hidden">Graduated Students</span>
-                <span className="hidden sm:inline">Graduated Students By Batch</span>
+                Graduated Students ({dashboardData?.graduatedStudents?.length || 0})
               </DialogTitle>
               <DialogDescription className="m-0">
                 Distribution of graduated students.

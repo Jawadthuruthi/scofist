@@ -50,7 +50,18 @@ export async function POST(req) {
     }
 
     const token = jwt.sign(
-      { userId: user?._id, email, roles: user.roles, name: user.name },
+      {
+        userId: user?._id,
+        email,
+        roles: user.roles,
+        name: user.name,
+        teacherSpecificField: user.teacherSpecificField?.status
+          ? { status: user.teacherSpecificField.status }
+          : undefined,
+        studentSpecificField: user.studentSpecificField?.status
+          ? { status: user.studentSpecificField.status }
+          : undefined,
+      },
       process.env.JWT_SECRET,
       {
         expiresIn: "1y",

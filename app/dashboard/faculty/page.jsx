@@ -7,7 +7,7 @@ export default async function FacultyPage() {
   try {
     const teachers = await fetchData(
       "users",
-      "projection=_id,name,email,profilePic,contactNumber,dateOfBirth,address,place,teacherSpecificField.status&roles=Teacher&status=Active,Principal,Guest"
+      "projection=_id,name,email,profilePic,contactNumber,dateOfBirth,address,place,district,teacherSpecificField.status&roles=Teacher&status=Active,Principal,Guest"
     );
 
     const rawClasses = await fetchData("classes", "status=Active&projection=_id,name,teacherId,status");
@@ -17,10 +17,11 @@ export default async function FacultyPage() {
     const sortedTeachers = sortTeachers(teachers);
 
     return (
-      <div className="flex flex-col space-y-6">
+      <div>
         <Header
           title="FACULTY PROFILES"
           subTitle="View active teaching staff"
+          className="mb-2"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedTeachers?.map((teacher) => {

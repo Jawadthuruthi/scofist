@@ -12,16 +12,31 @@ import { Button } from "@/components/ui/button";
 import { X, Printer, User } from "lucide-react";
 import StudentProfilePrintView from "@/components/StudentProfilePrintView";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
+import { useReactToPrint } from "react-to-print";
 import { useRef } from "react";
 
 export default function StudentProfileDialog({ student, open, onClose, classes, batches, apiKey }) {
     if (!student) return null;
     const popupRef = useRef(null);
+    const printRef = useRef(null);
     const { handleDownload } = useDownloadPopup(popupRef, `Student_Profile_${student.name.replace(/\s+/g, '_')}.jpeg`);
 
-    const handlePrint = () => {
-        window.print();
-    };
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `Student Profile - ${student?.name || "Summary"}`,
+        pageStyle: `
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        `,
+    });
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -38,8 +53,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
                     </button>
                     <div className="flex-1 text-left space-y-0.5">
                         <DialogTitle className="text-xl font-bold m-0">
-                            <span className="sm:hidden">Profile Summary</span>
-                            <span className="hidden sm:inline">Student Profile Summary</span>
+                            Profile Summary
                         </DialogTitle>
                         <DialogDescription className="text-sm text-muted-foreground m-0">
                             <span className="sm:hidden">{student.name}</span>
@@ -51,7 +65,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
                             variant="default" 
                             size="sm" 
                             onClick={handlePrint}
-                            className="flex items-center gap-0 sm:gap-2 font-bold uppercase tracking-wider text-xs bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print px-2 sm:px-4 h-8"
+                            className="flex items-center gap-0 sm:gap-2 font-bold uppercase tracking-wider text-xs bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print px-2.5 sm:px-4 h-8"
                             title="Print"
                         >
                             <Printer className="h-3.5 w-3.5" />
@@ -64,12 +78,14 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
                 </DialogHeader>
                 
                 <div className="flex-1 overflow-y-auto p-0 sm:p-6 bg-slate-50/10">
-                    <StudentProfilePrintView 
-                        student={student} 
-                        apiKey={apiKey} 
-                        classes={classes} 
-                        batches={batches}
-                    />
+                    <div ref={printRef} className="py-2">
+                        <StudentProfilePrintView 
+                            student={student} 
+                            apiKey={apiKey} 
+                            classes={classes} 
+                            batches={batches}
+                        />
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

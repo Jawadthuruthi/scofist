@@ -18,11 +18,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const MONTHS = [
@@ -113,6 +114,17 @@ export default function AcademicCalendarManager({ apiKey }) {
     const [confirmNotifyEv, setConfirmNotifyEv] = useState(null);
     const calendarRef = useRef();
 
+    const addPopupRef = useRef(null);
+    const dayPopupRef = useRef(null);
+    const { handleDownload: handleAddDownload } = useDownloadPopup(
+        addPopupRef,
+        `${editingEvent ? "Edit" : "Add"}_Special_Day.jpeg`
+    );
+    const { handleDownload: handleDayDownload } = useDownloadPopup(
+        dayPopupRef,
+        `Special_Day_${selectedDay || "Detail"}.jpeg`
+    );
+
     const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } =
         useCrud("academic-calendar", apiKey);
 
@@ -137,7 +149,7 @@ export default function AcademicCalendarManager({ apiKey }) {
 
     const openAddDialog = useCallback((preDate = "") => {
         setEditingEvent(null);
-        setForm({ ...EMPTY_FORM, date: preDate });
+        setForm({ ...EMPTY_FORM, date: preDate || fmtInput(new Date()) });
         setDialogOpen(true); setDayDialogOpen(false);
     }, []);
 
@@ -331,102 +343,214 @@ export default function AcademicCalendarManager({ apiKey }) {
 
             {/* Day Detail Dialog */}
             <Dialog open={dayDialogOpen} onOpenChange={setDayDialogOpen}>
-                <DialogContent className="max-w-md no-print">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <CalendarDays className="h-5 w-5" />
-                            {selectedDay && new Date(selectedDay + "T00:00:00").toLocaleDateString("en-IN", {
-                                weekday: "long", day: "numeric", month: "long", year: "numeric"
-                            })}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {selectedDayEvs.length === 0 ? "No special day marked." : `${selectedDayEvs.length} special day(s) marked.`}
-                        </DialogDescription>
+                <DialogContent
+                    ref={dayPopupRef}
+                    data-html2canvas-popup="true"
+                    className="w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl flex flex-col [&>button.absolute]:hidden no-print max-h-[90dvh]"
+                >
+                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                        <button
+                            type="button"
+                            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer shrink-0"
+                            onClick={handleDayDownload}
+                            title="Download Image"
+                            data-html2canvas-ignore="true"
+                        >
+                            <CalendarDays className="h-5 w-5 text-primary" />
+                        </button>
+                        <div className="flex-1 text-left space-y-0.5 min-w-0">
+                            <DialogTitle className="text-xl font-bold m-0 text-foreground truncate">
+                                {selectedDay ? new Date(selectedDay + "T00:00:00").toLocaleDateString("en-IN", {
+                                    weekday: "short", day: "numeric", month: "short", year: "numeric"
+                                }) : "Special Day Details"}
+                            </DialogTitle>
+                            <DialogDescription className="text-sm text-muted-foreground m-0">
+                                {selectedDayEvs.length === 0 ? "No special day marked." : `${selectedDayEvs.length} special day(s) marked.`}
+                            </DialogDescription>
+                        </div>
+                        <DialogClose asChild>
+                            <button
+                                type="button"
+                                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                                data-html2canvas-ignore="true"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </DialogClose>
                     </DialogHeader>
-                    <div className="space-y-3">
-                        {selectedDayEvs.map(ev => (
-                            <div key={ev._id} className="rounded-lg border p-3 bg-accent/50">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                        <p className="font-semibold text-sm">{ev.title}</p>
-                                        <p className="text-[10px] text-muted-foreground">{ev.time || "--"}</p>
-                                        {ev.description && <p className="text-xs mt-1 opacity-80">{ev.description}</p>}
-                                    </div>
-                                    <div className="flex gap-1 shrink-0">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(ev)}>
-                                            <Pencil className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon"
-                                            className="h-7 w-7 text-destructive hover:text-destructive"
-                                            onClick={() => setDeletingId(ev._id)}>
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon"
-                                            className="h-7 w-7 text-blue-500 hover:text-blue-600"
-                                            title="Send Alert to Teachers"
-                                            onClick={() => setConfirmNotifyEv(ev)}
-                                            disabled={notifyingId === ev._id}>
-                                            {notifyingId === ev._id ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
-                                        </Button>
+
+                    <div className="p-5 space-y-3 overflow-y-auto max-h-[60vh]">
+                        {selectedDayEvs.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-6">No special days marked for this date.</p>
+                        ) : (
+                            selectedDayEvs.map(ev => (
+                                <div key={ev._id} className="rounded-xl border p-3.5 bg-muted/30 hover:bg-muted/50 transition-colors">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="space-y-1 min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <p className="font-semibold text-sm text-foreground">{ev.title}</p>
+                                                {ev.type && (
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                        {ev.type}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground font-medium">{ev.time || "All Day"}</p>
+                                            {ev.description && <p className="text-xs mt-1 text-muted-foreground/90 whitespace-pre-wrap">{ev.description}</p>}
+                                        </div>
+                                        <div className="flex gap-1 shrink-0">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(ev)} title="Edit">
+                                                <Pencil className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon"
+                                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                                onClick={() => setDeletingId(ev._id)}
+                                                title="Delete">
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon"
+                                                className="h-7 w-7 text-blue-500 hover:text-blue-600"
+                                                title="Send Alert to Teachers"
+                                                onClick={() => setConfirmNotifyEv(ev)}
+                                                disabled={notifyingId === ev._id}>
+                                                {notifyingId === ev._id ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
-                    <Button className="w-full gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => openAddDialog(selectedDay || "")}>
-                        <Plus className="h-4 w-4" /> <span>Add <span className="hidden sm:inline">Special Day</span></span>
-                    </Button>
+
+                    <div className="p-5 pt-0 border-t mt-auto">
+                        <Button className="w-full gap-2 mt-4 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => openAddDialog(selectedDay || "")}>
+                            <Plus className="h-4 w-4" /> <span>Add <span className="hidden sm:inline">Special Day</span></span>
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
             {/* Add / Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-md no-print">
-                    <DialogHeader>
-                        <DialogTitle>{editingEvent ? "Edit Special Day" : "Add Special Day"}</DialogTitle>
-                        <DialogDescription>
-                            {editingEvent ? "Update the details of this special day." : "Mark a date as a special day."}
-                        </DialogDescription>
+                <DialogContent
+                    ref={addPopupRef}
+                    data-html2canvas-popup="true"
+                    className="w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl flex flex-col [&>button.absolute]:hidden no-print max-h-[90dvh]"
+                >
+                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                        <button
+                            type="button"
+                            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer shrink-0"
+                            onClick={handleAddDownload}
+                            title="Download Image"
+                            data-html2canvas-ignore="true"
+                        >
+                            {editingEvent ? (
+                                <Pencil className="h-5 w-5 text-primary" />
+                            ) : (
+                                <CalendarDays className="h-5 w-5 text-primary" />
+                            )}
+                        </button>
+                        <div className="flex-1 text-left space-y-0.5 min-w-0">
+                            <DialogTitle className="text-xl font-bold m-0 text-foreground">
+                                {editingEvent ? "Edit Special Day" : "Add Special Day"}
+                            </DialogTitle>
+                            <DialogDescription className="text-sm text-muted-foreground m-0">
+                                {editingEvent ? "Update the details of this special day." : "Mark a date as a special day."}
+                            </DialogDescription>
+                        </div>
+                        <DialogClose asChild>
+                            <button
+                                type="button"
+                                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                                data-html2canvas-ignore="true"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </DialogClose>
                     </DialogHeader>
-                    <div className="space-y-4 pt-2">
+
+                    <div className="p-5 space-y-4 overflow-y-auto max-h-[calc(90dvh-130px)]">
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium">Title <span className="text-red-500">*</span></label>
-                            <Input placeholder="e.g. Eid Al-Fitr, Semester Exam, College Day"
-                                value={form.title} onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Time <span className="text-gray-400 text-xs">(optional)</span></label>
-                            <Input placeholder="e.g. 10:00 AM, All Day"
-                                value={form.time} onChange={(e) => setForm(p => ({ ...p, time: e.target.value }))} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Date <span className="text-red-500">*</span></label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !form.date && "text-muted-foreground"
-                                    )}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {form.date ? fmtDDMMYYYY(form.date) : "DD/MM/YYYY"}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={form.date ? new Date(form.date) : undefined}
-                                        onSelect={(d) => setForm(p => ({ ...p, date: d ? fmtInput(d) : "" }))}
-                                        initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                            <Input
+                                placeholder="e.g. Eid Al-Fitr, Semester Exam, College Day"
+                                value={form.title}
+                                onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))}
+                            />
                         </div>
 
-                        <div className="flex justify-end gap-2 pt-2">
-                            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Date <span className="text-red-500">*</span></label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !form.date && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                            <span className="truncate">{form.date ? fmtDDMMYYYY(form.date) : "DD/MM/YYYY"}</span>
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={form.date ? new Date(form.date) : undefined}
+                                            onSelect={(d) => setForm(p => ({ ...p, date: d ? fmtInput(d) : "" }))}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Time <span className="text-muted-foreground text-xs">(optional)</span></label>
+                                <Input
+                                    placeholder="e.g. 10:00 AM, All Day"
+                                    value={form.time}
+                                    onChange={(e) => setForm(p => ({ ...p, time: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Type</label>
+                            <Select
+                                value={form.type || "Event"}
+                                onValueChange={(val) => setForm(p => ({ ...p, type: val }))}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Holiday">Holiday</SelectItem>
+                                    <SelectItem value="Event">Event</SelectItem>
+                                    <SelectItem value="Exam">Exam</SelectItem>
+                                    <SelectItem value="Activity">Activity</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Description <span className="text-muted-foreground text-xs">(optional)</span></label>
+                            <Textarea
+                                placeholder="Add any extra notes, instructions, or schedule details..."
+                                rows={3}
+                                value={form.description}
+                                onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))}
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-3 border-t">
+                            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>
                                 <X className="h-4 w-4 mr-1" />Cancel
                             </Button>
-                            <Button onClick={handleSubmit} disabled={submitting}>
+                            <Button onClick={handleSubmit} disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white">
                                 {submitting ? <Loader className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
                                 {editingEvent ? "Update" : "Add Special Day"}
                             </Button>

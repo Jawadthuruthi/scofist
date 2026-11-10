@@ -465,6 +465,19 @@ const SettingsSchema = new Schema(
           type: String,
         },
       },
+      appLogo: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
       attendanceCategories: {
         type: [String],
         default: ["Masjid", "Haddad", "Programs", "Spot"],

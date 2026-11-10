@@ -782,6 +782,8 @@ async function handleApiRequest(req) {
           userId: payload.userId,
           roles: payloadRoles,
           name: payload.name || "User",
+          teacherSpecificField: payload.teacherSpecificField,
+          studentSpecificField: payload.studentSpecificField,
         };
       }
 
@@ -1026,6 +1028,9 @@ function sanitizeProfile(user) {
     teacherSpecificField: user.teacherSpecificField?.status
       ? { status: user.teacherSpecificField.status }
       : undefined,
+    studentSpecificField: user.studentSpecificField?.status
+      ? { status: user.studentSpecificField.status }
+      : undefined,
     profilePic: user.profilePic,
     contactNumber: user.contactNumber,
   };
@@ -1042,6 +1047,8 @@ function createFallbackUser(payload) {
     roles: payloadRoles,
     name: payload.name || "User",
     email: payload.email,
+    teacherSpecificField: payload.teacherSpecificField,
+    studentSpecificField: payload.studentSpecificField,
   };
 }
 

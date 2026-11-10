@@ -47,6 +47,12 @@ export async function GET(req, res) {
 
     // Ensure default schedules in settings.general
     if (settings?.general) {
+      if (!settings.general.appLogo && settings.general.appIcon) {
+        settings.general.appLogo = settings.general.appIcon;
+      } else if (!settings.general.appIcon && settings.general.appLogo) {
+        settings.general.appIcon = settings.general.appLogo;
+      }
+
       if (!settings.general.schedules || settings.general.schedules.length === 0) {
         settings.general.schedules = [
           { id: "normal", name: "Normal Schedule", isDefault: true },
@@ -156,7 +162,8 @@ export async function POST(req, res) {
         isWorkingDay:
           data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
         occasion: data.occasion ?? existingSettings?.general?.occasion,
-        appIcon: data.appIcon ?? existingSettings?.general?.appIcon,
+        appIcon: data.appIcon ?? data.appLogo ?? existingSettings?.general?.appIcon,
+        appLogo: data.appLogo ?? data.appIcon ?? existingSettings?.general?.appLogo,
         allowPreviousDayAttendance: data.allowPreviousDayAttendance ?? existingSettings?.general?.allowPreviousDayAttendance ?? true,
         isSpecialDay: data.isSpecialDay ?? existingSettings?.general?.isSpecialDay ?? false,
         activeSchedule:
@@ -505,6 +512,7 @@ export async function PUT(req) {
       data.isWorkingDay !== undefined ||
       data.occasion !== undefined ||
       data.appIcon !== undefined ||
+      data.appLogo !== undefined ||
       data.allowPreviousDayAttendance !== undefined ||
       data.isSpecialDay !== undefined ||
       data.activeSchedule !== undefined ||
@@ -521,6 +529,15 @@ export async function PUT(req) {
       }
       if (data.appIcon !== undefined) {
         updateData["general.appIcon"] = data.appIcon;
+        if (data.appLogo === undefined) {
+          updateData["general.appLogo"] = data.appIcon;
+        }
+      }
+      if (data.appLogo !== undefined) {
+        updateData["general.appLogo"] = data.appLogo;
+        if (data.appIcon === undefined) {
+          updateData["general.appIcon"] = data.appLogo;
+        }
       }
       if (data.allowPreviousDayAttendance !== undefined) {
         updateData["general.allowPreviousDayAttendance"] = data.allowPreviousDayAttendance;

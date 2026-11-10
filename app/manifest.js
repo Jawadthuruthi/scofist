@@ -13,8 +13,12 @@ export default async function manifest() {
   try {
     await connectToDB();
     const settings = await Settings.findOne({}).lean();
-    if (settings?.general?.appIcon?.url) {
-      appIconUrl = settings.general.appIcon.url;
+    const resolvedIcon =
+      settings?.general?.appLogo?.url ||
+      settings?.general?.appIcon?.url ||
+      settings?.institution?.logo?.url;
+    if (resolvedIcon) {
+      appIconUrl = resolvedIcon;
     }
 
     if (settings?.institution?.name) {

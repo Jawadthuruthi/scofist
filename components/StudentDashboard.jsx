@@ -26,8 +26,7 @@ import UpdateCard from "@/components/UpdateCard";
 import ShareModal from "@/components/ShareModal";
 import ProfileEditModal from "./ProfileEditModal";
 import DocumentPreviewDialog from "./DocumentPreviewDialog";
-import StudentProfilePrintView from "@/components/StudentProfilePrintView";
-import { useReactToPrint } from "react-to-print";
+import StudentProfileDialog from "@/components/StudentProfileDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import html2canvas from "html2canvas";
 import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate, copyToClipboard } from "@/lib/utils";
@@ -951,24 +950,6 @@ export default function StudentDashboard({
   const detailsRef = useRef(null);
   const historyRef = useRef(null);
   const chartRef = useRef(null);
-  const profilePrintRef = useRef(null);
-
-  const handlePrintProfile = useReactToPrint({
-    contentRef: profilePrintRef,
-    documentTitle: `Student Profile - ${currentUser?.name || "Summary"}`,
-    pageStyle: `
-      @page {
-        size: A4 portrait;
-        margin: 10mm;
-      }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-      }
-    `,
-  });
 
   const downloadCardAsJpeg = async (elementRef, filename) => {
     if (!elementRef.current) return;
@@ -3767,34 +3748,14 @@ export default function StudentDashboard({
           router.refresh();
         }}
       />
-      <Dialog open={isProfileSummaryOpen} onOpenChange={setIsProfileSummaryOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between pr-8 border-b pb-3">
-              <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Official Student Profile Summary
-              </DialogTitle>
-              <Button
-                size="sm"
-                onClick={handlePrintProfile}
-                className="gap-1.5 font-semibold no-print bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
-              >
-                <Printer className="h-4 w-4" />
-                <span>Print</span>
-              </Button>
-            </div>
-          </DialogHeader>
-            <div className="py-2" ref={profilePrintRef}>
-              <StudentProfilePrintView
-                student={currentUser}
-                classes={classes}
-                batches={batches}
-                apiKey={apiKey}
-              />
-            </div>
-        </DialogContent>
-      </Dialog>
+      <StudentProfileDialog
+        student={currentUser}
+        open={isProfileSummaryOpen}
+        onClose={setIsProfileSummaryOpen}
+        classes={classes}
+        batches={batches}
+        apiKey={apiKey}
+      />
       <ShareModal
         open={!!sharedArticle}
         onOpenChange={(open) => !open && setSharedArticle(null)}
