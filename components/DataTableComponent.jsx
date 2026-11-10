@@ -573,31 +573,81 @@ const DataTableComponent = ({
   );
 
   const generatedPrintTitle = useMemo(() => {
-    if (toppersOnly && enableMonthYearFilter && filterMonth && filterYear) {
-      return `Attendance Toppers - ${new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} ${filterYear}`;
-    }
+    const hasCustomDateRange = (() => {
+      const dateFilterConfig = filterConfig?.find(f => f.inputType === "dateRange");
+      if (!dateFilterConfig) return false;
+      const filterState = filters?.[dateFilterConfig.id];
+      const filterVal = filterState?.value !== undefined ? filterState.value : filterState;
+      if (!filterVal) return false;
+      if (typeof filterVal === "object" && !Array.isArray(filterVal)) {
+        return !!(filterVal.startDate || filterVal.endDate);
+      }
+      if (typeof filterVal === "string" && filterVal.includes(",")) {
+        const [s, e] = filterVal.split(",");
+        return !!(s || e);
+      }
+      return false;
+    })();
 
-    let baseTitle = printTitle || resource;
+    const monthYearLabel = (enableMonthYearFilter && filterMonth && filterYear && !hasCustomDateRange)
+      ? `${new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} ${filterYear}`
+      : "";
+
+    let baseTitle = toppersOnly ? "Attendance Toppers" : (printTitle || resource);
     let activeFilterLabels = [];
+    let monthYearAdded = false;
 
     if (filters && filterConfig) {
       filterConfig.forEach(config => {
         const filterState = filters[config.id];
         const filterVal = filterState?.value !== undefined ? filterState.value : filterState;
 
-        if (filterVal !== undefined && filterVal !== null && filterVal !== "") {
+        if (
+          filterVal !== undefined &&
+          filterVal !== null &&
+          filterVal !== "" &&
+          !(Array.isArray(filterVal) && filterVal.length === 0)
+        ) {
           if (config.inputType === "dateRange") return; // Date range is in subTitle
 
-          if (config.options) {
-            const opt = config.options.find(o => String(o.value) === String(filterVal));
-            if (opt) {
-              activeFilterLabels.push(opt.label);
+          let label = "";
+          if (Array.isArray(filterVal)) {
+            if (config.options) {
+              const labels = filterVal
+                .map(v => config.options.find(o => String(o.value) === String(v))?.label || String(v))
+                .filter(Boolean);
+              label = labels.join(", ");
+            } else {
+              label = filterVal.join(", ");
             }
+          } else if (config.options) {
+            const opt = config.options.find(o => String(o.value) === String(filterVal));
+            label = opt ? opt.label : String(filterVal);
           } else {
-            activeFilterLabels.push(String(filterVal));
+            label = String(filterVal);
+          }
+
+          if (label) {
+            activeFilterLabels.push(label);
+
+            const isClassFilter =
+              config.id === "classId" ||
+              config.id === "class" ||
+              config.id === "className" ||
+              config.label?.toLowerCase() === "class";
+
+            if (isClassFilter && monthYearLabel && !monthYearAdded) {
+              activeFilterLabels.push(monthYearLabel);
+              monthYearAdded = true;
+            }
           }
         }
       });
+    }
+
+    if (monthYearLabel && !monthYearAdded) {
+      activeFilterLabels.push(monthYearLabel);
+      monthYearAdded = true;
     }
 
     let fullTitle = baseTitle;

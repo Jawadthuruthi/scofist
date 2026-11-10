@@ -210,90 +210,95 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
             </div>
 
             {/* Filters - Hidden in Print */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6 print:hidden">
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">From</label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full justify-start text-left font-normal bg-background",
-                                    !filters.fromDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {filters.fromDate ? format(filters.fromDate, "dd MMM yyyy") : <span>Select Date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={filters.fromDate}
-                                onSelect={(v) => setFilters(prev => ({ ...prev, fromDate: v }))}
-                                initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
+            <div className="flex flex-col md:flex-row flex-wrap items-stretch md:items-end gap-3 mb-6 print:hidden">
+                {/* Date pickers */}
+                <div className="grid grid-cols-2 gap-2 md:flex md:items-end md:gap-3 shrink-0">
+                    <div className="space-y-1 md:w-[135px]">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">From</label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal bg-background text-xs md:text-sm px-2.5",
+                                        !filters.fromDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                                    {filters.fromDate ? format(filters.fromDate, "dd MMM yyyy") : <span>Select Date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={filters.fromDate}
+                                    onSelect={(v) => setFilters(prev => ({ ...prev, fromDate: v }))}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <div className="space-y-1 md:w-[135px]">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">To</label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal bg-background text-xs md:text-sm px-2.5",
+                                        !filters.toDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                                    {filters.toDate ? format(filters.toDate, "dd MMM yyyy") : <span>Select Date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={filters.toDate}
+                                    onSelect={(v) => setFilters(prev => ({ ...prev, toDate: v }))}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
 
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">To</label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full justify-start text-left font-normal bg-background",
-                                    !filters.toDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {filters.toDate ? format(filters.toDate, "dd MMM yyyy") : <span>Select Date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={filters.toDate}
-                                onSelect={(v) => setFilters(prev => ({ ...prev, toDate: v }))}
-                                initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
+                {/* Category & Class (Class is expanded) */}
+                <div className="flex items-end gap-2 flex-1 min-w-[240px]">
+                    <div className="space-y-1 w-[110px] md:w-[125px] shrink-0">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Category</label>
+                        <Select value={filters.category} onValueChange={(v) => setFilters(prev => ({ ...prev, category: v }))}>
+                            <SelectTrigger className="w-full text-xs md:text-sm"><SelectValue placeholder="Category" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">General</SelectItem>
+                                <SelectItem value="GROUP">Group</SelectItem>
+                                <SelectItem value="BOTH">Both</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1 flex-1 min-w-0">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Class</label>
+                        <Select value={filters.categoryId} onValueChange={(v) => setFilters(prev => ({ ...prev, categoryId: v }))} disabled={!filters.category}>
+                            <SelectTrigger className="w-full text-xs md:text-sm"><SelectValue placeholder="Select Class" /></SelectTrigger>
+                            <SelectContent>
+                                {classes.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Category</label>
-                    <Select value={filters.category} onValueChange={(v) => setFilters(prev => ({ ...prev, category: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="ALL">General</SelectItem>
-                            <SelectItem value="GROUP">Group</SelectItem>
-                            <SelectItem value="BOTH">Both</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Class</label>
-                    <Select value={filters.categoryId} onValueChange={(v) => setFilters(prev => ({ ...prev, categoryId: v }))} disabled={!filters.category}>
-                        <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
-                        <SelectContent>
-                            {classes.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="pt-5">
-                    <Button onClick={loadAttendance} disabled={loading} className="w-full">
-                        {loading ? <Loader className="animate-spin" /> : "Load Data"}
+                {/* Action Buttons (reduced length) */}
+                <div className="flex items-center gap-2 shrink-0 pt-1 md:pt-0">
+                    <Button onClick={loadAttendance} disabled={loading} className="w-auto px-4 h-9 text-xs md:text-sm">
+                        {loading ? <Loader className="animate-spin h-4 w-4 mr-1" /> : null}
+                        Load Data
                     </Button>
-                </div>
-
-                <div className="pt-5">
                     <Button
-                        className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 w-full btn-print gap-2"
+                        className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 w-auto px-3.5 h-9 btn-print gap-1.5 text-xs md:text-sm"
                         onClick={() => window.print()}
                     >
                         <Printer className="h-4 w-4" />
@@ -303,14 +308,14 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
             </div>
 
             {/* Table */}
-            <div className="border rounded-md overflow-x-auto print:max-h-none print:overflow-visible">
+            <div className="border rounded-md overflow-x-auto max-w-full print:max-h-none print:overflow-visible">
                 <Table>
                     <TableHeader className="sticky top-0 bg-secondary z-20 print:static">
                         <TableRow>
-                            <TableHead className="w-[50px] sticky left-0 bg-secondary z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
-                            <TableHead className="w-auto whitespace-nowrap sticky left-[50px] px-2 py-1.5 bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none min-w-[150px]">
+                            <TableHead className="w-[38px] sm:w-[50px] sticky left-0 bg-secondary z-30 px-1 sm:px-2 text-center text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
+                            <TableHead className="w-auto whitespace-nowrap sticky left-[38px] sm:left-[50px] px-2 py-1.5 bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none min-w-[120px] max-w-[150px] sm:max-w-xs">
                                 <span className="hidden print:inline px-2">Student Name</span>
-                                <div className="relative flex items-center w-full max-w-xs print:hidden">
+                                <div className="relative flex items-center w-full max-w-[120px] sm:max-w-xs print:hidden">
                                     <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                                     <Input
                                         type="text"
@@ -365,12 +370,12 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            displayedStudents.map(({ student, originalIndex }) => (
+                            displayedStudents.map(({ student, originalIndex }, index) => (
                                 <TableRow key={student._id} className="group print:break-inside-avoid">
-                                    <TableCell className="sticky left-0 bg-background group-hover:bg-muted/50 z-30 font-medium text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
+                                    <TableCell className="w-[38px] sm:w-[50px] sticky left-0 bg-background group-hover:bg-muted/50 z-30 font-medium text-center text-xs px-1 sm:px-2 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
                                         {originalIndex}
                                     </TableCell>
-                                    <TableCell className="sticky left-[50px] px-4 whitespace-nowrap bg-background group-hover:bg-muted/50 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
+                                    <TableCell className="sticky left-[38px] sm:left-[50px] px-2 sm:px-4 whitespace-nowrap bg-background group-hover:bg-muted/50 z-10 font-medium text-xs sm:text-sm max-w-[140px] sm:max-w-none truncate shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
                                         {student.name}
                                     </TableCell>
                                     {daysInMonth.filter(d => activeDates.has(format(d, "yyyy-MM-dd"))).map(day => {

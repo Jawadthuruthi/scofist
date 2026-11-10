@@ -177,343 +177,303 @@ export default function AcademicCalendarManager({ apiKey }) {
     return (
         <>
             <div className="space-y-6 no-print">
-            {/* Toolbar */}
-            <div className="flex flex-row items-center justify-between gap-2 overflow-x-auto pb-2 sm:pb-0 sm:overflow-visible">
-                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                    <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setYear(y => y - 1)}>
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v))}>
-                        <SelectTrigger className="w-[140px] sm:w-[140px] h-8 sm:h-9 text-sm">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setYear(y => y + 1)}>
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
+                {/* Toolbar */}
+                <div className="flex flex-row items-center justify-between gap-2 overflow-x-auto pb-2 sm:pb-0 sm:overflow-visible">
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                        <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setYear(y => y - 1)}>
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v))}>
+                            <SelectTrigger className="w-[140px] sm:w-[140px] h-8 sm:h-9 text-sm">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setYear(y => y + 1)}>
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                        <Button onClick={() => openAddDialog()} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white">
+                            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>Add <span className="hidden sm:inline">Special Day</span></span>
+                        </Button>
+                        <Button onClick={handlePrint} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print text-xs sm:text-sm">
+                            <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Print
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                    <Button onClick={() => openAddDialog()} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white">
-                        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>Add <span className="hidden sm:inline">Special Day</span></span>
-                    </Button>
-                    <Button onClick={handlePrint} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print text-xs sm:text-sm">
-                        <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Print
-                    </Button>
-                </div>
-            </div>
 
-            {calendarQuery.isLoading ? (
-                <div className="flex justify-center items-center h-60">
-                    <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-            ) : (
-                <Card className="shadow-sm border">
-                    <CardHeader className="pb-3 border-b">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                                <CalendarDays className="h-5 w-5 text-primary" />
-                                Special Days in {year}
-                            </CardTitle>
-                            <Badge variant="secondary" className="font-medium text-xs px-2.5 py-0.5">
-                                {events.length} {events.length === 1 ? "Day" : "Days"}
-                            </Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0 overflow-x-auto">
-                        {events.length === 0 ? (
-                            <div className="text-center py-16 px-4 space-y-3">
-                                <CalendarDays className="h-10 w-10 text-muted-foreground/40 mx-auto" />
-                                <p className="text-base font-medium text-foreground">
-                                    No special days marked for {year}.
-                                </p>
-                                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                                    Click "Add Special Day" above to mark holidays, exams, or events for this academic year.
-                                </p>
-                                <Button onClick={() => openAddDialog()} className="mt-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white gap-1.5">
-                                    <Plus className="h-4 w-4" /> Add Special Day
-                                </Button>
+                {calendarQuery.isLoading ? (
+                    <div className="flex justify-center items-center h-60">
+                        <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                ) : (
+                    <Card className="shadow-sm border">
+                        <CardHeader className="pb-3 border-b">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                                    <CalendarDays className="h-5 w-5 text-primary" />
+                                    Special Days in {year}
+                                </CardTitle>
+                                <Badge variant="secondary" className="font-medium text-xs px-2.5 py-0.5">
+                                    {events.length} {events.length === 1 ? "Day" : "Days"}
+                                </Badge>
                             </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-muted/30">
-                                        <TableHead className="w-14 sm:w-16 text-center font-semibold">Sl No</TableHead>
-                                        <TableHead className="w-36 sm:w-44 font-semibold">Date & Time</TableHead>
-                                        <TableHead className="w-28 sm:w-32 font-semibold">Type</TableHead>
-                                        <TableHead className="font-semibold">Event Details</TableHead>
-                                        <TableHead className="w-28 text-right pr-4 font-semibold">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {tableMonthGroups.flatMap(([monthIndex, monthEvents]) => [
-                                        <TableRow key={`m-${monthIndex}`} className="bg-muted/60 hover:bg-muted/60 border-y border-border">
-                                            <TableCell colSpan={5} className="font-bold text-center py-2 h-auto text-xs uppercase tracking-wider text-muted-foreground">
-                                                {MONTHS[monthIndex]}
-                                            </TableCell>
-                                        </TableRow>,
-                                        ...monthEvents.map((ev, idx) => (
-                                            <TableRow key={ev._id} className="hover:bg-muted/40 transition-colors">
-                                                <TableCell className="text-center font-medium text-xs text-muted-foreground align-top py-3 w-14 sm:w-16">
-                                                    {idx + 1}
-                                                </TableCell>
-                                                <TableCell className="text-xs font-medium whitespace-nowrap align-top py-3">
-                                                    <div className="font-semibold text-foreground">{fmtDisplay(ev.date)}</div>
-                                                    <div className="text-muted-foreground mt-0.5">{ev.time || "--"}</div>
-                                                </TableCell>
-                                                <TableCell className="align-top py-3">
-                                                    <Badge
-                                                        variant={
-                                                            ev.type === "Holiday"
-                                                                ? "destructive"
-                                                                : ev.type === "Exam"
-                                                                ? "secondary"
-                                                                : "outline"
-                                                        }
-                                                        className={cn(
-                                                            "text-[11px] font-medium",
-                                                            ev.type === "Holiday" && "bg-red-500/15 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900",
-                                                            ev.type === "Exam" && "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900",
-                                                            ev.type === "Event" && "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900",
-                                                            ev.type === "Activity" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900"
-                                                        )}
-                                                    >
-                                                        {ev.type || "Event"}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="align-top py-3">
-                                                    <div className="space-y-1">
-                                                        <p className="text-sm font-semibold text-foreground">{ev.title}</p>
-                                                        {ev.description && (
-                                                            <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed max-w-2xl">
-                                                                {ev.description}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-right pr-4 align-top py-3">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                                            title="Edit Special Day"
-                                                            onClick={() => openEditDialog(ev)}
-                                                        >
-                                                            <Pencil className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                            title="Delete Special Day"
-                                                            onClick={() => setDeletingId(ev._id)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                                                            title="Send Alert to Teachers"
-                                                            onClick={() => setConfirmNotifyEv(ev)}
-                                                            disabled={notifyingId === ev._id}
-                                                        >
-                                                            {notifyingId === ev._id ? (
-                                                                <Loader className="h-4 w-4 animate-spin" />
-                                                            ) : (
-                                                                <BellRing className="h-4 w-4" />
-                                                            )}
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ])}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Add / Edit Dialog */}
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent
-                    ref={addPopupRef}
-                    data-html2canvas-popup="true"
-                    className="w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl flex flex-col [&>button.absolute]:hidden no-print max-h-[90dvh]"
-                >
-                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                        <button
-                            type="button"
-                            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer shrink-0"
-                            onClick={handleAddDownload}
-                            title="Download Image"
-                            data-html2canvas-ignore="true"
-                        >
-                            {editingEvent ? (
-                                <Pencil className="h-5 w-5 text-primary" />
+                        </CardHeader>
+                        <CardContent className="p-0 overflow-x-auto">
+                            {events.length === 0 ? (
+                                <div className="text-center py-16 px-4 space-y-3">
+                                    <CalendarDays className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                                    <p className="text-base font-medium text-foreground">
+                                        No special days marked for {year}.
+                                    </p>
+                                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                                        Click "Add Special Day" above to mark holidays, exams, or events for this academic year.
+                                    </p>
+                                    <Button onClick={() => openAddDialog()} className="mt-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white gap-1.5">
+                                        <Plus className="h-4 w-4" /> Add Special Day
+                                    </Button>
+                                </div>
                             ) : (
-                                <CalendarDays className="h-5 w-5 text-primary" />
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/30">
+                                            <TableHead className="w-14 sm:w-16 text-center font-semibold">Sl No</TableHead>
+                                            <TableHead className="w-36 sm:w-44 font-semibold">Date & Time</TableHead>
+                                            <TableHead className="font-semibold">Event Details</TableHead>
+                                            <TableHead className="w-28 text-right pr-4 font-semibold">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {tableMonthGroups.flatMap(([monthIndex, monthEvents]) => [
+                                            <TableRow key={`m-${monthIndex}`} className="bg-muted/60 hover:bg-muted/60 border-y border-border">
+                                                <TableCell colSpan={4} className="font-bold text-center py-2 h-auto text-xs uppercase tracking-wider text-muted-foreground">
+                                                    {MONTHS[monthIndex]}
+                                                </TableCell>
+                                            </TableRow>,
+                                            ...monthEvents.map((ev, idx) => (
+                                                <TableRow key={ev._id} className="hover:bg-muted/40 transition-colors">
+                                                    <TableCell className="text-center font-medium text-xs text-muted-foreground align-top py-3 w-14 sm:w-16">
+                                                        {idx + 1}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs font-medium whitespace-nowrap align-top py-3">
+                                                        <div className="font-semibold text-foreground">{fmtDisplay(ev.date)}</div>
+                                                        <div className="text-muted-foreground mt-0.5">{ev.time || "--"}</div>
+                                                    </TableCell>
+                                                    <TableCell className="align-top py-3">
+                                                        <div className="space-y-1">
+                                                            <p className="text-sm font-semibold text-foreground">{ev.title}</p>
+                                                            {ev.description && (
+                                                                <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed max-w-2xl">
+                                                                    {ev.description}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-right pr-4 align-top py-3">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                                title="Edit Special Day"
+                                                                onClick={() => openEditDialog(ev)}
+                                                            >
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                title="Delete Special Day"
+                                                                onClick={() => setDeletingId(ev._id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                                                title="Send Alert to Teachers"
+                                                                onClick={() => setConfirmNotifyEv(ev)}
+                                                                disabled={notifyingId === ev._id}
+                                                            >
+                                                                {notifyingId === ev._id ? (
+                                                                    <Loader className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <BellRing className="h-4 w-4" />
+                                                                )}
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ])}
+                                    </TableBody>
+                                </Table>
                             )}
-                        </button>
-                        <div className="flex-1 text-left space-y-0.5 min-w-0">
-                            <DialogTitle className="text-xl font-bold m-0 text-foreground">
-                                {editingEvent ? "Edit Special Day" : "Add Special Day"}
-                            </DialogTitle>
-                            <DialogDescription className="text-sm text-muted-foreground m-0">
-                                {editingEvent ? "Update the details of this special day." : "Mark a date as a special day."}
-                            </DialogDescription>
-                        </div>
-                        <DialogClose asChild>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Add / Edit Dialog */}
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogContent
+                        ref={addPopupRef}
+                        data-html2canvas-popup="true"
+                        className="w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl flex flex-col [&>button.absolute]:hidden no-print max-h-[90dvh]"
+                    >
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
                             <button
                                 type="button"
-                                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                                className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer shrink-0"
+                                onClick={handleAddDownload}
+                                title="Download Image"
                                 data-html2canvas-ignore="true"
                             >
-                                <X className="h-5 w-5" />
+                                {editingEvent ? (
+                                    <Pencil className="h-5 w-5 text-primary" />
+                                ) : (
+                                    <CalendarDays className="h-5 w-5 text-primary" />
+                                )}
                             </button>
-                        </DialogClose>
-                    </DialogHeader>
-
-                    <div className="p-5 space-y-4 overflow-y-auto max-h-[calc(90dvh-130px)]">
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Title <span className="text-red-500">*</span></label>
-                            <Input
-                                placeholder="e.g. Eid Al-Fitr, Semester Exam, College Day"
-                                value={form.title}
-                                onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-medium">Date <span className="text-red-500">*</span></label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            className={cn(
-                                                "w-full justify-start text-left font-normal",
-                                                !form.date && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-                                            <span className="truncate">{form.date ? fmtDDMMYYYY(form.date) : "DD/MM/YYYY"}</span>
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={form.date ? new Date(form.date) : undefined}
-                                            onSelect={(d) => setForm(p => ({ ...p, date: d ? fmtInput(d) : "" }))}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
+                            <div className="flex-1 text-left space-y-0.5 min-w-0">
+                                <DialogTitle className="text-xl font-bold m-0 text-foreground">
+                                    {editingEvent ? "Edit Special Day" : "Add Special Day"}
+                                </DialogTitle>
+                                <DialogDescription className="text-sm text-muted-foreground m-0">
+                                    {editingEvent ? "Update the details of this special day." : "Mark a date as a special day."}
+                                </DialogDescription>
                             </div>
+                            <DialogClose asChild>
+                                <button
+                                    type="button"
+                                    className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                                    data-html2canvas-ignore="true"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </DialogClose>
+                        </DialogHeader>
 
+                        <div className="p-5 space-y-4 overflow-y-auto max-h-[calc(90dvh-130px)]">
                             <div className="space-y-1.5">
-                                <label className="text-sm font-medium">Time <span className="text-muted-foreground text-xs">(optional)</span></label>
+                                <label className="text-sm font-medium">Title <span className="text-red-500">*</span></label>
                                 <Input
-                                    placeholder="e.g. 10:00 AM, All Day"
-                                    value={form.time}
-                                    onChange={(e) => setForm(p => ({ ...p, time: e.target.value }))}
+                                    placeholder="e.g. Eid Al-Fitr, Semester Exam, College Day"
+                                    value={form.title}
+                                    onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))}
                                 />
                             </div>
-                        </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Type</label>
-                            <Select
-                                value={form.type || "Event"}
-                                onValueChange={(val) => setForm(p => ({ ...p, type: val }))}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Holiday">Holiday</SelectItem>
-                                    <SelectItem value="Event">Event</SelectItem>
-                                    <SelectItem value="Exam">Exam</SelectItem>
-                                    <SelectItem value="Activity">Activity</SelectItem>
-                                    <SelectItem value="Other">Other</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium">Date <span className="text-red-500">*</span></label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !form.date && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                                <span className="truncate">{form.date ? fmtDDMMYYYY(form.date) : "DD/MM/YYYY"}</span>
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={form.date ? new Date(form.date) : undefined}
+                                                onSelect={(d) => setForm(p => ({ ...p, date: d ? fmtInput(d) : "" }))}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Description <span className="text-muted-foreground text-xs">(optional)</span></label>
-                            <Textarea
-                                placeholder="Add any extra notes, instructions, or schedule details..."
-                                rows={3}
-                                value={form.description}
-                                onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))}
-                            />
-                        </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium">Time <span className="text-muted-foreground text-xs">(optional)</span></label>
+                                    <Input
+                                        placeholder="e.g. 10:00 AM, All Day"
+                                        value={form.time}
+                                        onChange={(e) => setForm(p => ({ ...p, time: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
 
-                        <div className="flex justify-end gap-2 pt-3 border-t">
-                            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>
-                                <X className="h-4 w-4 mr-1" />Cancel
-                            </Button>
-                            <Button onClick={handleSubmit} disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white">
-                                {submitting ? <Loader className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-                                {editingEvent ? "Update" : "Add Special Day"}
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Description <span className="text-muted-foreground text-xs">(optional)</span></label>
+                                <Textarea
+                                    placeholder="Add any extra notes, instructions, or schedule details..."
+                                    rows={3}
+                                    value={form.description}
+                                    onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))}
+                                />
+                            </div>
 
-        {/* Printable View - Hidden on Screen */}
-        <div ref={calendarRef} className="absolute -top-[9999px] left-0 print:static print:block p-4 sm:p-8 bg-white print:w-full">
+                            <div className="flex justify-end gap-2 pt-3 border-t">
+                                <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>
+                                    <X className="h-4 w-4 mr-1" />Cancel
+                                </Button>
+                                <Button onClick={handleSubmit} disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                    {submitting ? <Loader className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
+                                    {editingEvent ? "Update" : "Add Special Day"}
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            {/* Printable View - Hidden on Screen */}
+            <div ref={calendarRef} className="absolute -top-[9999px] left-0 print:static print:block p-4 sm:p-8 bg-white print:w-full">
                 <PrintHeader
-                        apiKey={apiKey}
-                        title={`ACADEMIC CALENDAR - ${year}`}
-                        subTitle="Special Days and Events"
-                        displayOnScreen={true}
-                    />
+                    apiKey={apiKey}
+                    title={`ACADEMIC CALENDAR - ${year}`}
+                    subTitle="Special Days and Events"
+                    displayOnScreen={true}
+                />
 
-                    <div className="mt-6">
-                        <table className="w-full border-collapse border border-slate-300 text-sm">
-                            <thead>
-                                <tr className="bg-slate-50">
-                                    <th className="w-14 font-bold border border-slate-300 p-2 text-center">Sl No</th>
-                                    <th className="w-1/4 font-bold border border-slate-300 p-2 text-left">Date</th>
-                                    <th className="w-1/5 font-bold border border-slate-300 p-2 text-left">Time</th>
-                                    <th className="font-bold border border-slate-300 p-2 text-left">Event Title</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {printMonthGroups.map(([monthIndex, monthEvents]) => (
-                                    <React.Fragment key={monthIndex}>
-                                        <tr className="bg-slate-100">
-                                            <td colSpan={4} className="text-center font-bold py-2 border border-slate-300">
-                                                {MONTHS[monthIndex]}
+                <div className="mt-6">
+                    <table className="w-full border-collapse border border-slate-300 text-sm">
+                        <thead>
+                            <tr className="bg-slate-50">
+                                <th className="w-14 font-bold border border-slate-300 p-2 text-center">Sl No</th>
+                                <th className="w-1/4 font-bold border border-slate-300 p-2 text-left">Date</th>
+                                <th className="w-1/5 font-bold border border-slate-300 p-2 text-left">Time</th>
+                                <th className="font-bold border border-slate-300 p-2 text-left">Event Title</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {printMonthGroups.map(([monthIndex, monthEvents]) => (
+                                <React.Fragment key={monthIndex}>
+                                    <tr className="bg-slate-100">
+                                        <td colSpan={4} className="text-center font-bold py-2 border border-slate-300">
+                                            {MONTHS[monthIndex]}
+                                        </td>
+                                    </tr>
+                                    {monthEvents.map((ev, idx) => (
+                                        <tr key={ev._id} className="border-b">
+                                            <td className="border border-slate-300 p-2 text-center text-slate-600 font-medium">
+                                                {idx + 1}
                                             </td>
+                                            <td className="border border-slate-300 p-2">{fmtDisplay(ev.date)}</td>
+                                            <td className="border border-slate-300 p-2 text-slate-500 italic">
+                                                {ev.time || "--"}
+                                            </td>
+                                            <td className="border border-slate-300 p-2 font-medium">{ev.title}</td>
                                         </tr>
-                                        {monthEvents.map((ev, idx) => (
-                                            <tr key={ev._id} className="border-b">
-                                                <td className="border border-slate-300 p-2 text-center text-slate-600 font-medium">
-                                                    {idx + 1}
-                                                </td>
-                                                <td className="border border-slate-300 p-2">{fmtDisplay(ev.date)}</td>
-                                                <td className="border border-slate-300 p-2 text-slate-500 italic">
-                                                    {ev.time || "--"}
-                                                </td>
-                                                <td className="border border-slate-300 p-2 font-medium">{ev.title}</td>
-                                            </tr>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                    ))}
+                                </React.Fragment>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
+            </div>
 
             {/* Delete Confirmation Modal */}
             {deletingId && (

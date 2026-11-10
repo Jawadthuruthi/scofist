@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle, UserPlus, TrendingUp } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle, UserPlus, TrendingUp, Copy } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { CLASS_ORDER, formatTime12Hour } from "@/lib/utils";
 import LiteraryWhatsAppAction from "@/components/LiteraryWhatsAppAction";
@@ -56,6 +57,60 @@ const SaveContactButton = ({ number, altNumber, name }) => {
     );
 };
 
+const CopyGroupButton = ({ group }) => {
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    if (!group) return;
+
+    const teamName = group.name || "Unnamed Group";
+    const leader = group.leaderName || (group.leaderId?.name ? `${group.leaderId.name} (${group.leaderId._id})` : "");
+    const assistantLeader = group.assistantLeaderName || (group.assistantLeaderId?.name ? `${group.assistantLeaderId.name} (${group.assistantLeaderId._id})` : "");
+
+    let studentsList = [];
+    if (Array.isArray(group.studentsDetails) && group.studentsDetails.length > 0) {
+      studentsList = group.studentsDetails.map((st, i) => {
+        const cls = st.className ? ` - ${st.className}` : "";
+        return `${i + 1}. ${st.name} (${st._id})${cls}`;
+      });
+    } else if (Array.isArray(group.studentsName) && group.studentsName.length > 0) {
+      studentsList = group.studentsName.map((st, i) => `${i + 1}. ${st}`);
+    } else if (Array.isArray(group.studentsId) && group.studentsId.length > 0) {
+      studentsList = group.studentsId.map((id, i) => `${i + 1}. ${id}`);
+    }
+
+    const lines = [
+      `Team: ${teamName}`,
+      leader ? `Leader: ${leader}` : null,
+      assistantLeader ? `Assistant Leader: ${assistantLeader}` : null,
+      "",
+      "Students:",
+      studentsList.length > 0 ? studentsList.join("\n") : "No students",
+    ].filter(Boolean).join("\n");
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(lines)
+        .then(() => {
+          toast.success(`Copied "${teamName}" details to clipboard`);
+        })
+        .catch(() => {
+          toast.error("Failed to copy to clipboard");
+        });
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer print:hidden mt-0.5"
+      title="Copy team name, leader, and students"
+      aria-label="Copy group details"
+    >
+      <Copy className="h-3.5 w-3.5" />
+    </button>
+  );
+};
+
 const useTableColumns = (columnConfig, onCellClick) => {
   return columnConfig.map((col) => {
     let columnDefinition = { ...col };
@@ -91,6 +146,16 @@ const useTableColumns = (columnConfig, onCellClick) => {
       columnDefinition.cell = ({ row, table }) => {
         const sortedRows = table.getSortedRowModel().flatRows;
         const index = sortedRows.findIndex((r) => r.id === row.id);
+
+        if (col.type?.includes("groupCopy") || col.allowGroupCopy) {
+          return (
+            <div className="flex flex-col items-center justify-center">
+              <span className="font-medium text-xs leading-none">{index + 1}</span>
+              <CopyGroupButton group={row.original} />
+            </div>
+          );
+        }
+
         return <div className="font-medium">{index + 1}</div>;
       };
     }

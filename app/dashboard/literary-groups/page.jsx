@@ -30,7 +30,7 @@ const columnsConfig = [
   {
     accessorKey: "serialNo",
     header: "Sl.No",
-    type: ["serialNo"],
+    type: ["serialNo", "groupCopy"],
     width: 60,
     maxWidth: 60,
     minWidth: 60,

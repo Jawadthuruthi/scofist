@@ -55,6 +55,7 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [deletingBook, setDeletingBook] = useState(null);
   const [filterName, setFilterName] = useState("");
   const [filterCourse, setFilterCourse] = useState("all");
   const [previewItem, setPreviewItem] = useState(null);
@@ -345,6 +346,7 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   };
 
   const handleDelete = async (book) => {
+    if (!book) return;
     setDeletingId(book._id);
     try {
       await deleteBook.mutateAsync({
@@ -355,6 +357,7 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
       });
       await fetchBooksQuery.refetch();
       toast.success("File deleted successfully!");
+      setDeletingBook(null);
     } catch (error) {
       console.error("Delete failed:", error);
       toast.error(`Failed to delete file: ${error.message}`);
@@ -649,46 +652,20 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      className="h-8 w-8 p-0"
-                                      title="Delete"
-                                      disabled={deletingId === book._id}
-                                    >
-                                      {deletingId === book._id ? (
-                                        <Loader className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Are you sure?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete the file "
-                                        {book.fileName}" ({book.name}). This
-                                        action cannot be undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => handleDelete(book)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8 w-8 p-0"
+                                  title="Delete"
+                                  disabled={deletingId === book._id}
+                                  onClick={() => setDeletingBook(book)}
+                                >
+                                  {deletingId === book._id ? (
+                                    <Loader className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
                               </>
                             )}
                           </div>
@@ -705,13 +682,32 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
 
       {/* Edit Book Dialog */}
       <Dialog open={!!editingBook} onOpenChange={(open) => !open && setEditingBook(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Book</DialogTitle>
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-20 shrink-0">
+            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0 text-blue-600 dark:text-blue-400">
+              <Pencil className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <DialogTitle className="text-lg font-bold m-0 text-foreground">
+                Edit Book
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground m-0">
+                Update book name and assigned course
+              </DialogDescription>
+            </div>
+            <DialogClose
+              onClick={() => setEditingBook(null)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Course</Label>
+
+          <div className="p-5 space-y-4 flex-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Course <span className="text-destructive">*</span>
+              </Label>
               <MultiSelect
                 value={editCourse}
                 onValueChange={setEditCourse}
@@ -723,24 +719,114 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                 onOptionDelete={activeRole === "College Admin" ? handleOptionDelete : undefined}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Book Name</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Book Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Enter book name"
+                className="h-10 text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingBook(null)}>Cancel</Button>
-            <Button onClick={handleUpdate} disabled={updateBook.isPending}>
-              {updateBook.isPending && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+          <DialogFooter className="p-4 border-t bg-muted/30 dark:bg-muted/10 flex items-center justify-end gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditingBook(null)}
+              disabled={updateBook.isPending}
+              className="h-9 px-4 text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUpdate}
+              disabled={updateBook.isPending || !editName.trim() || !editCourse}
+              className="h-9 px-4 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {updateBook.isPending ? (
+                <>
+                  <Loader className="mr-2 h-3.5 w-3.5 animate-spin" /> Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Book Confirmation Dialog */}
+      <AlertDialog
+        open={!!deletingBook}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setDeletingBook(null);
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-destructive/10 shrink-0 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <AlertDialogTitle className="text-lg font-bold m-0 text-destructive">
+                Delete Book?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-xs text-muted-foreground pt-0.5">
+                This book will be permanently removed
+              </AlertDialogDescription>
+            </div>
+            <AlertDialogCancel asChild>
+              <button
+                type="button"
+                disabled={!!deletingId}
+                onClick={() => setDeletingBook(null)}
+                className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </AlertDialogCancel>
+          </AlertDialogHeader>
+
+          <div className="p-5 text-sm text-muted-foreground space-y-2 leading-relaxed">
+            Are you sure you want to delete the file{" "}
+            <span className="font-semibold text-foreground">"{deletingBook?.fileName}"</span>
+            {deletingBook?.name ? (
+              <> ({deletingBook.name})</>
+            ) : null}?
+            <br />
+            <span className="text-xs text-destructive">
+              This action cannot be undone.
+            </span>
+          </div>
+
+          <AlertDialogFooter className="p-4 border-t bg-muted/20 flex flex-row items-center justify-end gap-3 w-full">
+            <AlertDialogCancel
+              disabled={!!deletingId}
+              onClick={() => setDeletingBook(null)}
+              className="h-9 px-4 text-xs mt-0"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete(deletingBook)}
+              disabled={!!deletingId}
+              className="h-9 px-4 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingId ? (
+                <>
+                  <Loader className="mr-2 h-3.5 w-3.5 animate-spin" /> Deleting...
+                </>
+              ) : (
+                "Delete Book"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Course Name Dialog */}
       <Dialog

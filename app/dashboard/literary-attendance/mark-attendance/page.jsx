@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDateForDisplay } from "@/lib/utils";
+import { formatDateForDisplay, cn } from "@/lib/utils";
 import Header from "@/components/Header";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
@@ -34,7 +34,8 @@ import AbsenteeStatus from "@/components/AbsenteeStatus";
 
 const LiteraryAttendance = () => {
   const [attendance, setAttendance] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [previousAttendanceState, setPreviousAttendanceState] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -315,46 +316,12 @@ const LiteraryAttendance = () => {
       });
   }, [students, searchQuery]);
 
-  useEffect(() => {
-    if (studentsQuery.isLoading || attendanceQuery.isLoading) {
-      setLoading(true);
-    } else {
-      setLoading(false);
-    }
-  }, [studentsQuery.isLoading, attendanceQuery.isLoading]);
-
-  useEffect(() => {
-    if (leaveRecordsQuery.isLoading || studentsQuery.isLoading) return;
-
-    if (students?.length > 0) {
-      if (Object.keys(attendance).length === 0) {
-        const initialAttendance = {};
-        students.forEach((student) => {
-          const isOnLeave = studentsOnLeave[student._id];
-          initialAttendance[student._id] = !isOnLeave;
-        });
-        setAttendance(initialAttendance);
-      }
-    }
-  }, [students, attendance, studentsOnLeave, leaveRecordsQuery.isLoading, studentsQuery.isLoading]);
-
-  const toggleAttendance = useCallback((studentId) => {
-    setAttendance((prev) => ({
-      ...prev,
-      [studentId]: !prev[studentId],
-    }));
-  }, []);
-
-  const formattedDate = useMemo(() => {
-    return formatDateForDisplay(queryParams.date);
-  }, [queryParams.date]);
-
-  const stats = useMemo(() => {
-    const total = students.length;
-    const present = Object.values(attendance).filter((status) => status).length;
-    const absent = total - present;
-    return { total, present, absent };
-  }, [students.length, attendance]);
+  const isDataLoading =
+    studentsQuery.isLoading ||
+    attendanceQuery.isLoading ||
+    leaveRecordsQuery.isLoading ||
+    (!!queryParams.groupId && participantsQuery.isLoading) ||
+    allGroupsQuery.isLoading;
 
   const attendanceExists = useMemo(() => {
     if (!!queryParams.groupId) {
@@ -373,7 +340,7 @@ const LiteraryAttendance = () => {
         att.category === queryParams.category &&
         att.day === queryParams.day
     );
-  }, [attendanceData]);
+  }, [attendanceData, queryParams]);
 
   const existingAttendance = useMemo(() => {
     if (!!queryParams.groupId) {
@@ -396,20 +363,146 @@ const LiteraryAttendance = () => {
   }, [
     attendanceData,
     queryParams.classId,
+    queryParams.groupId,
     queryParams.date,
     queryParams.category,
     queryParams.day,
   ]);
 
+  // Reset initialization when query parameters change
   useEffect(() => {
-    if (existingAttendance) {
+    setIsInitialized(false);
+    setPreviousAttendanceState(null);
+    setAttendance({});
+  }, [queryParams.classId, queryParams.groupId, queryParams.date, queryParams.category]);
+
+  // Unified attendance initialization: prevents showing all absent
+  useEffect(() => {
+    if (isDataLoading) return;
+
+    if (students?.length > 0 && !isInitialized) {
       const initialAttendance = {};
-      existingAttendance.attendanceData.forEach((data) => {
-        initialAttendance[data.studentId] = data.present;
-      });
+
+      if (existingAttendance && existingAttendance.attendanceData?.length > 0) {
+        existingAttendance.attendanceData.forEach((data) => {
+          initialAttendance[data.studentId] = data.present;
+        });
+        students.forEach((student) => {
+          if (initialAttendance[student._id] === undefined) {
+            initialAttendance[student._id] = !studentsOnLeave[student._id];
+          }
+        });
+      } else {
+        students.forEach((student) => {
+          const isOnLeave = studentsOnLeave[student._id];
+          initialAttendance[student._id] = !isOnLeave;
+        });
+      }
+
       setAttendance(initialAttendance);
+      setIsInitialized(true);
     }
-  }, [attendanceData, queryParams]);
+  }, [isDataLoading, students, isInitialized, existingAttendance, studentsOnLeave]);
+
+  const toggleAttendance = useCallback((studentId) => {
+    setPreviousAttendanceState(null);
+    setAttendance((prev) => ({
+      ...prev,
+      [studentId]: !prev[studentId],
+    }));
+  }, []);
+
+  const handlePresentCountClick = useCallback(() => {
+    if (saving || !students.length) return;
+
+    const targetList = displayedStudents.length > 0 ? displayedStudents.map((d) => d.student) : students;
+    const allPresent = targetList.every((st) => !!attendance[st._id]);
+
+    if (previousAttendanceState && (previousAttendanceState.mode === "present" || allPresent)) {
+      setAttendance(previousAttendanceState.attendance);
+      setPreviousAttendanceState(null);
+      toast.info("Restored earlier attendance");
+      return;
+    }
+
+    if (allPresent) {
+      toast.info("All students are already marked present");
+      return;
+    }
+
+    setPreviousAttendanceState((prev) =>
+      prev
+        ? { ...prev, mode: "present" }
+        : {
+            attendance: { ...attendance },
+            mode: "present",
+          }
+    );
+
+    setAttendance((prev) => {
+      const next = { ...prev };
+      targetList.forEach((st) => {
+        next[st._id] = true;
+      });
+      return next;
+    });
+
+    toast.success("Marked all students as present");
+  }, [displayedStudents, students, attendance, previousAttendanceState, saving]);
+
+  const handleAbsentCountClick = useCallback(() => {
+    if (saving || !students.length) return;
+
+    const targetList = displayedStudents.length > 0 ? displayedStudents.map((d) => d.student) : students;
+    const allAbsent = targetList.every((st) => !attendance[st._id]);
+
+    if (previousAttendanceState && (previousAttendanceState.mode === "absent" || allAbsent)) {
+      setAttendance(previousAttendanceState.attendance);
+      setPreviousAttendanceState(null);
+      toast.info("Restored earlier attendance");
+      return;
+    }
+
+    if (allAbsent) {
+      toast.info("All students are already marked absent");
+      return;
+    }
+
+    setPreviousAttendanceState((prev) =>
+      prev
+        ? { ...prev, mode: "absent" }
+        : {
+            attendance: { ...attendance },
+            mode: "absent",
+          }
+    );
+
+    setAttendance((prev) => {
+      const next = { ...prev };
+      targetList.forEach((st) => {
+        next[st._id] = false;
+      });
+      return next;
+    });
+
+    toast.success("Marked all students as absent");
+  }, [displayedStudents, students, attendance, previousAttendanceState, saving]);
+
+  const formattedDate = useMemo(() => {
+    return formatDateForDisplay(queryParams.date);
+  }, [queryParams.date]);
+
+  const stats = useMemo(() => {
+    const total = students.length;
+    if (total === 0 || !isInitialized) {
+      return { total: 0, present: 0, absent: 0 };
+    }
+    const present = students.filter((st) => !!attendance[st._id]).length;
+    const absent = Math.max(0, total - present);
+    return { total, present, absent };
+  }, [students, attendance, isInitialized]);
+
+  const showLoader = isDataLoading || (students.length > 0 && !isInitialized);
 
   const handleSaveAttendance = useCallback(async () => {
     setSaving(true);
@@ -474,6 +567,8 @@ const LiteraryAttendance = () => {
         data: { ids: idsToDelete },
       });
       setAttendance({});
+      setIsInitialized(false);
+      setPreviousAttendanceState(null);
       setSuccessMessage("Attendance record reset successfully.");
       setShowSuccessDialog(true);
       setTimeout(
@@ -486,72 +581,135 @@ const LiteraryAttendance = () => {
     } finally {
       setSaving(false);
     }
-  }, [attendanceData]);
+  }, [attendanceData, attendanceExists, existingAttendance, deleteAttendance]);
 
   return (
-    <div className="space-y-3">
-      <Header title="ATTENDANCE" subTitle="Mark Literary Attendance" />
-      {loading ? (
+    <div className="flex flex-col h-[calc(100dvh-8rem)] lg:h-[calc(100dvh-6.5rem)] -mb-20 lg:-mb-16 gap-2 md:gap-3">
+      <div className="shrink-0">
+        <Header title="LITERARY ATTENDANCE" subTitle="Mark Literary Attendance" />
+      </div>
+      {showLoader ? (
         <div className="flex items-center justify-center h-64">
           <Loader className="h-8 w-8 text-muted-foreground animate-spin" />
         </div>
       ) : (
         <>
           {/* Header & Metadata */}
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-4">
-            <div className="flex items-center gap-4 text-muted-foreground px-3 md:px-0">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm font-medium">{formattedDate}</span>
-              </div>
-              <div className="h-4 w-px bg-border"></div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  {queryParams.category === "ALL" || queryParams.category === "GROUP"
-                    ? queryParams.category === "ALL"
-                      ? `Class: ${queryParams.className}`
-                      : `Group: ${queryParams.groupName}`
-                    : `${queryParams.sessionLabel || queryParams.category} – ${queryParams.className || queryParams.groupName}`}
-                </span>
-              </div>
+          <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 text-muted-foreground px-1 shrink-0">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 shrink-0" />
+              <span className="text-sm font-medium">{formattedDate}</span>
+            </div>
+            <div className="hidden md:block h-4 w-px bg-border"></div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0" />
+              <span className="text-sm font-medium">
+                {queryParams.category === "ALL" || queryParams.category === "GROUP"
+                  ? queryParams.category === "ALL"
+                    ? `Class: ${queryParams.className}`
+                    : `Group: ${queryParams.groupName}`
+                  : `${queryParams.sessionLabel || queryParams.category} – ${queryParams.className || queryParams.groupName}`}
+              </span>
             </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="border border-border rounded-lg p-2 md:p-4 bg-card/30 mb-4">
+          <div className="border border-border rounded-lg p-2 md:p-3 bg-card/30 shrink-0">
             <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
-              <div className="flex flex-col items-center gap-1 md:gap-2">
-                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={handlePresentCountClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handlePresentCountClick();
+                  }
+                }}
+                className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
+                title={
+                  previousAttendanceState && (previousAttendanceState.mode === "present" || (stats.present === stats.total && stats.total > 0))
+                    ? "Click to restore earlier attendance"
+                    : "Click to mark all present"
+                }
+              >
+                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   Total
                 </span>
-                <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                <div
+                  className={cn(
+                    "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md",
+                    previousAttendanceState?.mode === "present" && "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+                  )}
+                >
                   {stats.total}
                 </div>
               </div>
 
-              <div className="flex flex-col items-center gap-1 md:gap-2">
-                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={handlePresentCountClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handlePresentCountClick();
+                  }
+                }}
+                className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg transition-all"
+                title={
+                  previousAttendanceState && (previousAttendanceState.mode === "present" || (stats.present === stats.total && stats.total > 0))
+                    ? "Click to restore earlier attendance"
+                    : "Click to mark all present"
+                }
+              >
+                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   Present
                 </span>
-                <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center text-green-600 dark:text-green-400">
+                <div
+                  className={cn(
+                    "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:border-emerald-500/60 group-hover:shadow-md text-green-600 dark:text-green-400",
+                    previousAttendanceState?.mode === "present" && "border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+                  )}
+                >
                   {stats.present}
                 </div>
               </div>
 
-              <div className="flex flex-col items-center gap-1 md:gap-2">
-                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={handleAbsentCountClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleAbsentCountClick();
+                  }
+                }}
+                className="flex flex-col items-center gap-1 md:gap-2 cursor-pointer select-none group touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg transition-all"
+                title={
+                  previousAttendanceState && (previousAttendanceState.mode === "absent" || (stats.absent === stats.total && stats.total > 0))
+                    ? "Click to restore earlier attendance"
+                    : "Click to mark all absent"
+                }
+              >
+                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
                   Absent
                 </span>
-                <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                <div
+                  className={cn(
+                    "w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center transition-all group-active:scale-95 group-hover:bg-red-600 group-hover:shadow-md",
+                    previousAttendanceState?.mode === "absent" && "ring-2 ring-red-400 ring-offset-2 dark:ring-offset-background font-extrabold"
+                  )}
+                >
                   {stats.absent}
                 </div>
               </div>
             </div>
           </div>
-          <div className="overflow-x-auto max-h-[calc(100vh-385px)] md:max-h-[calc(100vh-333px)] border rounded-md">
+          <div className="flex-1 min-h-0 overflow-y-auto border rounded-md">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                 <TableRow>
                   <TableHead className="w-10">Sl.no</TableHead>
                   <TableHead className="px-2 py-1.5 min-w-[150px]">
@@ -584,7 +742,7 @@ const LiteraryAttendance = () => {
                       )}
                     </div>
                   </TableHead>
-                  <TableHead className="text-right">History</TableHead>
+                  <TableHead className="w-[80px] md:w-[90px] text-center px-2">History</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -609,10 +767,16 @@ const LiteraryAttendance = () => {
                         className={rowClass}
                         onClick={() => toggleAttendance(student._id)}
                       >
-                        <TableCell>{originalIndex}</TableCell>
+                        <TableCell className="align-middle">{originalIndex}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col justify-center">
-                            <div>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8 shrink-0">
+                              <AvatarImage src={student.profilePic?.url} />
+                              <AvatarFallback className="text-xs font-semibold">
+                                {student.name?.substring(0, 1)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col justify-center min-w-0">
                               <p className="font-medium text-xs">
                                 {student.name}{" "}
                                 {(!!queryParams.groupId &&
@@ -623,13 +787,9 @@ const LiteraryAttendance = () => {
                                     "(Assistant Leader)") ||
                                   ""}
                               </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {student._id} {student?.className}
-                                  {queryParams.category === "ALL" &&
-                                    studentToGroupMap[student._id] &&
-                                    ` | ${studentToGroupMap[student._id].groupName}`}
-                                </p>
-                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {student._id} {student?.className || (queryParams.category === "ALL" ? queryParams.className : "")}
+                              </p>
                               {isOnLeave && (
                                 <div className="mt-1">
                                   <Badge variant="outline" className="h-4 text-[10px] px-1 bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-500 dark:border-yellow-800">
@@ -639,11 +799,14 @@ const LiteraryAttendance = () => {
                                 </div>
                               )}
                             </div>
+                          </div>
                         </TableCell>
-                        <TableCell className="text-right">
-                          {hasAbsenceHistory && (
-                            <AbsenteeStatus absenteeInfo={absenteeInfo} />
-                          )}
+                        <TableCell className="w-[80px] md:w-[90px] text-center align-middle px-2">
+                          <div className="flex justify-center items-center">
+                            {hasAbsenceHistory && (
+                              <AbsenteeStatus absenteeInfo={absenteeInfo} />
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -658,17 +821,17 @@ const LiteraryAttendance = () => {
               </TableBody>
             </Table>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between shrink-0 pt-1 pb-1">
             <Button
               onClick={handleDeleteAttendance}
-              disabled={!attendanceExists || saving || loading}
+              disabled={!attendanceExists || saving || showLoader}
             >
               {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
               Reset
             </Button>
             <Button
               onClick={handleSaveAttendance}
-              disabled={saving || loading || !students.length}
+              disabled={saving || showLoader || !students.length}
             >
               {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
               <Save className="mr-2 h-4 w-4" />

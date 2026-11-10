@@ -62,6 +62,7 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [deletingSyllabus, setDeletingSyllabus] = useState(null);
   const [filterYear, setFilterYear] = useState("all");
   const [filterCourse, setFilterCourse] = useState("all");
   const [previewItem, setPreviewItem] = useState(null);
@@ -213,9 +214,9 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const fetchSyllabusQuery = useFetchItems(
     null,
     null,
-    { 
-      year: filterYear === "all" ? "" : filterYear, 
-      course: filterCourse === "all" ? "" : filterCourse 
+    {
+      year: filterYear === "all" ? "" : filterYear,
+      course: filterCourse === "all" ? "" : filterCourse
     },
     { initialData: { syllabuses: initialSyllabus } }
   );
@@ -363,6 +364,7 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   };
 
   const handleDelete = async (syllabus) => {
+    if (!syllabus) return;
     setDeletingId(syllabus._id);
     try {
       await deleteSyllabus.mutateAsync({
@@ -374,6 +376,7 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
 
       await fetchSyllabusQuery.refetch();
       toast.success("File deleted successfully!");
+      setDeletingSyllabus(null);
     } catch (error) {
       console.error("Delete failed:", error);
       toast.error(`Failed to delete file: ${error.message}`);
@@ -623,49 +626,26 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  className="h-8 w-8 p-0"
+                                  title="Edit"
                                   onClick={() => handleEditClick(syllabus)}
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      disabled={deletingId === syllabus._id}
-                                    >
-                                      {deletingId === syllabus._id ? (
-                                        <Loader className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Are you sure?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete the file "
-                                        {syllabus.fileName}" from {syllabus.course}{" "}
-                                        Year {syllabus.year}. This action cannot be
-                                        undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => handleDelete(syllabus)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8 w-8 p-0"
+                                  title="Delete"
+                                  disabled={deletingId === syllabus._id}
+                                  onClick={() => setDeletingSyllabus(syllabus)}
+                                >
+                                  {deletingId === syllabus._id ? (
+                                    <Loader className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
                               </>
                             )}
                           </div>
@@ -682,13 +662,32 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
 
       {/* Edit Syllabus Dialog */}
       <Dialog open={!!editingSyllabus} onOpenChange={(open) => !open && setEditingSyllabus(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Syllabus</DialogTitle>
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl flex flex-col">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-md sticky top-0 z-20 shrink-0">
+            <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0 text-blue-600 dark:text-blue-400">
+              <Pencil className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <DialogTitle className="text-lg font-bold m-0 text-foreground">
+                Edit Syllabus
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground m-0">
+                Update course and year details for this syllabus
+              </DialogDescription>
+            </div>
+            <DialogClose
+              onClick={() => setEditingSyllabus(null)}
+              className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Course</Label>
+
+          <div className="p-5 space-y-4 flex-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Course <span className="text-destructive">*</span>
+              </Label>
               <MultiSelect
                 value={editCourse}
                 onValueChange={setEditCourse}
@@ -700,10 +699,12 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                 onOptionDelete={activeRole === "College Admin" ? handleOptionDelete : undefined}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Year</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Year <span className="text-destructive">*</span>
+              </Label>
               <Select value={String(editYear)} onValueChange={setEditYear}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10 text-sm">
                   <SelectValue placeholder="Select Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -714,15 +715,102 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingSyllabus(null)}>Cancel</Button>
-            <Button onClick={handleUpdate} disabled={updateSyllabus.isPending}>
-              {updateSyllabus.isPending && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+          <DialogFooter className="p-4 border-t bg-muted/30 dark:bg-muted/10 flex items-center justify-end gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditingSyllabus(null)}
+              disabled={updateSyllabus.isPending}
+              className="h-9 px-4 text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUpdate}
+              disabled={updateSyllabus.isPending || !editCourse || !editYear}
+              className="h-9 px-4 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {updateSyllabus.isPending ? (
+                <>
+                  <Loader className="mr-2 h-3.5 w-3.5 animate-spin" /> Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Syllabus Confirmation Dialog */}
+      <AlertDialog
+        open={!!deletingSyllabus}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setDeletingSyllabus(null);
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md flex flex-col p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden border shadow-2xl">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-destructive/10 shrink-0 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <AlertDialogTitle className="text-lg font-bold m-0 text-destructive">
+                Delete Syllabus?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-xs text-muted-foreground pt-0.5">
+                This syllabus will be permanently removed
+              </AlertDialogDescription>
+            </div>
+            <AlertDialogCancel asChild>
+              <button
+                type="button"
+                disabled={!!deletingId}
+                onClick={() => setDeletingSyllabus(null)}
+                className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </AlertDialogCancel>
+          </AlertDialogHeader>
+
+          <div className="p-5 text-sm text-muted-foreground space-y-2 leading-relaxed">
+            Are you sure you want to delete the file{" "}
+            <span className="font-semibold text-foreground">"{deletingSyllabus?.fileName}"</span>
+            {deletingSyllabus?.course ? (
+              <> from <span className="font-semibold text-foreground">{deletingSyllabus.course}</span> Year {deletingSyllabus.year}</>
+            ) : null}?
+            <br />
+            <span className="text-xs text-destructive">
+              This action cannot be undone.
+            </span>
+          </div>
+
+          <AlertDialogFooter className="p-4 border-t bg-muted/20 flex flex-row items-center justify-end gap-3 w-full">
+            <AlertDialogCancel
+              disabled={!!deletingId}
+              onClick={() => setDeletingSyllabus(null)}
+              className="h-9 px-4 text-xs mt-0"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete(deletingSyllabus)}
+              disabled={!!deletingId}
+              className="h-9 px-4 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingId ? (
+                <>
+                  <Loader className="mr-2 h-3.5 w-3.5 animate-spin" /> Deleting...
+                </>
+              ) : (
+                "Delete Syllabus"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Course Name Dialog */}
       <Dialog

@@ -82,7 +82,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const whatsappPopupRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-// Quick Leave states
+  // Quick Leave states
   const [quickLeaveOpen, setQuickLeaveOpen] = useState(false);
   const [quickLeaveStudent, setQuickLeaveStudent] = useState(null);
   const [quickLeaveReason, setQuickLeaveReason] = useState("");
@@ -788,11 +788,6 @@ const Attendance = ({ apiKey, teacherId }) => {
   const toggleAttendance = useCallback(
     (studentOrId) => {
       const studentId = typeof studentOrId === "object" ? studentOrId?._id : studentOrId;
-      const student =
-        typeof studentOrId === "object"
-          ? studentOrId
-          : students.find((s) => s._id === studentId) ||
-            filteredStudents.find((s) => s._id === studentId);
 
       setPreviousAttendanceState(null);
 
@@ -810,26 +805,14 @@ const Attendance = ({ apiKey, teacherId }) => {
           [studentId]: true,
         }));
       } else {
-        // Marking as absent -> IMMEDIATELY show leave reason popup!
+        // Marking as absent
         setAttendance((prev) => ({
           ...prev,
           [studentId]: false,
         }));
-
-        if (student) {
-          setQuickLeaveStudent(student);
-          const existing =
-            attendanceReasons[studentId] ||
-            studentLeaveStatus[studentId]?.leaveReason ||
-            "";
-          setQuickLeaveReason(existing);
-          setDropdownOpen(false);
-          setHighlightedIndex(-1);
-          setQuickLeaveOpen(true);
-        }
       }
     },
-    [attendance, students, filteredStudents, attendanceReasons, studentLeaveStatus]
+    [attendance]
   );
 
   // Memoize attendance statistics
@@ -1391,11 +1374,16 @@ const Attendance = ({ apiKey, teacherId }) => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setQuickLeaveStudent(student);
-                            setQuickLeaveReason(attendanceReasons[student._id] || "");
+                            setQuickLeaveReason(
+                              attendanceReasons[student._id] ||
+                              studentLeaveStatus[student._id]?.leaveReason ||
+                              ""
+                            );
                             setDropdownOpen(false);
                             setHighlightedIndex(-1);
                             setQuickLeaveOpen(true);
                           }}
+                          title={attendanceReasons[student._id] ? "Edit leave reason" : "Add leave reason"}
                         >
                           <FilePlus className="text-muted-foreground h-5 w-5 md:hidden hover:text-foreground" />
                           <Button size="sm" className="hidden md:inline-flex">
