@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Star, Trophy, Loader2, Download, Share2, ImagePlus, Printer, Image as ImageIcon, X } from "lucide-react";
+import { Star, Trophy, Loader2, Download, Share2, ImagePlus, Printer, Image as ImageIcon, X, ChevronDown } from "lucide-react";
 import html2canvas from "html2canvas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -300,7 +300,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     const value = Number(pts) || 0;
     if (value > 0) return <span className="font-semibold text-green-600">+{value} pts</span>;
     if (value < 0) return <span className="font-semibold text-red-500">{value} pts</span>;
-    return <span className="font-semibold text-gray-700">{value} pts</span>;
+    return <span className="font-semibold text-muted-foreground">{value} pts</span>;
   };
 
   const handleGenerate = async () => {
@@ -694,129 +694,204 @@ export default function StarOfTheMonthModal({ classes = [] }) {
       </Dialog>
 
       <Dialog open={!!selectedStudentForDetails} onOpenChange={(open) => !open && setSelectedStudentForDetails(null)}>
-        <DialogContent className="sm:max-w-md bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-indigo-700">Point Details - {selectedStudentForDetails?.name}</DialogTitle>
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md [&>button.absolute]:hidden flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10 transition-colors">
+              <Trophy className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5 min-w-0">
+              <DialogTitle className="text-xl font-bold m-0 text-foreground">
+                Point Details
+              </DialogTitle>
+              <DialogDescription className="m-0 text-xs sm:text-sm text-muted-foreground truncate">
+                {selectedStudentForDetails?.name}
+                {selectedStudentForDetails?.admnNo ? ` (${selectedStudentForDetails.admnNo})` : ""}
+              </DialogDescription>
+            </div>
+            <DialogClose 
+              className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
+              onClick={() => setSelectedStudentForDetails(null)}
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
+
           {selectedStudentForDetails && (
-            <div className="space-y-3 py-4">
-               <div className="flex flex-col border-b pb-2">
-                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'classAtt' ? null : 'classAtt')}>
-                   <span className="text-gray-600">Class Attendance</span>
-                   {formatPoints(selectedStudentForDetails.scores.regularAttendance)}
-                 </div>
-                 {expandedDetail === 'classAtt' && selectedStudentForDetails.details && (
-                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
-                     Attendance Percentage: <span className="font-medium">{selectedStudentForDetails.details.attendance?.regular?.percentage?.toFixed(1) || 0}%</span>
-                   </div>
-                 )}
-               </div>
-               <div className="flex flex-col border-b pb-2">
-                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'masjidAtt' ? null : 'masjidAtt')}>
-                   <span className="text-gray-600">Masjid Attendance</span>
-                   {formatPoints(selectedStudentForDetails.scores.masjidAttendance)}
-                 </div>
-                 {expandedDetail === 'masjidAtt' && selectedStudentForDetails.details && (
-                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
-                     Attendance Percentage: <span className="font-medium">{selectedStudentForDetails.details.attendance?.masjid?.percentage?.toFixed(1) || 0}%</span>
-                   </div>
-                 )}
-               </div>
-               <div className="flex flex-col border-b pb-2">
-                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'literaryAtt' ? null : 'literaryAtt')}>
-                   <span className="text-gray-600">Literary Attendance</span>
-                   {formatPoints(selectedStudentForDetails.scores.literaryAttendance)}
-                 </div>
-                 {expandedDetail === 'literaryAtt' && selectedStudentForDetails.details && (
-                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
-                     Attendance Percentage: <span className="font-medium">{selectedStudentForDetails.details.attendance?.literary?.percentage?.toFixed(1) || 0}%</span>
-                   </div>
-                 )}
-               </div>
-               <div className="flex flex-col border-b pb-2">
-                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'remarks' ? null : 'remarks')}>
-                   <span className="text-gray-600">Remarks</span>
-                   {formatPoints(selectedStudentForDetails.scores.remarks)}
-                 </div>
-                 {expandedDetail === 'remarks' && selectedStudentForDetails.details && (
-                     <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-48 overflow-y-auto">
-                       {selectedStudentForDetails.details.remarks?.length > 0 ? (
-                         <ul className="space-y-2">
-                           {selectedStudentForDetails.details.remarks.map((r, i) => (
-                             <li key={i} className="flex flex-col border-b border-gray-200 last:border-0 pb-1">
-                               <div className="flex justify-between">
-                                 <span><span className="font-medium">{r.status}</span> <span className="text-xs text-gray-400">({new Date(r.date).toLocaleDateString()})</span></span>
-                                 <span className={r.points > 0 ? "text-green-600" : "text-red-500"}>{r.points > 0 ? `+${r.points}` : r.points} pts</span>
-                               </div>
-                               {r.comments && <p className="text-xs text-gray-600 mt-0.5"><span className="font-semibold">Comment:</span> {r.comments}</p>}
-                               {r.teacherName && <p className="text-xs text-gray-500"><span className="font-semibold">Teacher:</span> {r.teacherName}</p>}
-                             </li>
-                           ))}
-                         </ul>
-                     ) : (
-                       <p className="text-gray-500 italic">No remarks in this month.</p>
-                     )}
-                   </div>
-                 )}
-               </div>
-               <div className="flex flex-col border-b pb-2">
-                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'performance' ? null : 'performance')}>
-                   <span className="text-gray-600">Performance</span>
-                   {formatPoints(selectedStudentForDetails.scores.performance)}
-                 </div>
-                 {expandedDetail === 'performance' && selectedStudentForDetails.details && (
-                     <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-48 overflow-y-auto">
-                       {selectedStudentForDetails.details.performance?.length > 0 ? (
-                         <ul className="space-y-2">
-                           {selectedStudentForDetails.details.performance.map((p, i) => (
-                             <li key={i} className="flex flex-col border-b border-gray-200 last:border-0 pb-1">
-                               <div className="flex justify-between">
-                                 <span><span className="font-medium">{p.status}</span> <span className="text-xs text-gray-400">({new Date(p.date).toLocaleDateString()})</span></span>
-                                 <span className={p.points > 0 ? "text-green-600" : "text-red-500"}>{p.points > 0 ? `+${p.points}` : p.points} pts</span>
-                               </div>
-                               {p.comments && <p className="text-xs text-gray-600 mt-0.5"><span className="font-semibold">Comment:</span> {p.comments}</p>}
-                               {p.teacherName && <p className="text-xs text-gray-500"><span className="font-semibold">Teacher:</span> {p.teacherName}</p>}
-                             </li>
-                           ))}
-                         </ul>
-                     ) : (
-                       <p className="text-gray-500 italic">No performance records in this month.</p>
-                     )}
-                   </div>
-                 )}
-               </div>
-               <div className="flex flex-col border-b pb-2">
-                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'leaves' ? null : 'leaves')}>
-                   <span className="text-gray-600">Leaves</span>
-                   {formatPoints(selectedStudentForDetails.scores.leaves)}
-                 </div>
-                 {expandedDetail === 'leaves' && selectedStudentForDetails.details && (
-                     <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-48 overflow-y-auto">
-                       <p className="text-xs text-gray-500 mb-1">Base score: 10 pts (lost if leaves taken)</p>
-                       {selectedStudentForDetails.details.leaves?.length > 0 ? (
-                         <ul className="space-y-2">
-                           {selectedStudentForDetails.details.leaves.map((l, i) => (
-                             <li key={i} className="flex flex-col border-b border-gray-200 last:border-0 pb-1">
-                               <div className="flex justify-between">
-                                 <span><span className="font-medium">{l.status}</span> <span className="text-xs text-gray-400">({new Date(l.date).toLocaleDateString()})</span></span>
-                                 <span className={l.points > 0 ? "text-green-600" : "text-red-500"}>{l.points > 0 ? `+${l.points}` : l.points} pts</span>
-                               </div>
-                               {l.leaveReason && <p className="text-xs text-gray-600 mt-0.5"><span className="font-semibold">Reason:</span> {l.leaveReason}</p>}
-                             </li>
-                           ))}
-                         </ul>
-                     ) : (
-                       <p className="text-green-600 italic">No leaves taken.</p>
-                     )}
-                   </div>
-                 )}
-               </div>
-               <div className="flex justify-between pt-2 text-lg font-bold">
-                 <span>Total Score</span>
-                  <span className={selectedStudentForDetails.totalScore > 0 ? 'text-green-600' : selectedStudentForDetails.totalScore < 0 ? 'text-red-500' : 'text-gray-700'}>
-                    {selectedStudentForDetails.totalScore > 0 ? '+' : ''}{selectedStudentForDetails.totalScore} pts
-                  </span>
-               </div>
+            <div className="p-5 overflow-y-auto max-h-[70vh] sm:max-h-[75vh] space-y-3">
+              <div className="flex flex-col border-b border-border/60 pb-2.5">
+                <div 
+                  className="flex justify-between items-center cursor-pointer hover:bg-muted/50 p-1.5 rounded-lg transition-colors text-sm" 
+                  onClick={() => setExpandedDetail(expandedDetail === 'classAtt' ? null : 'classAtt')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground font-medium">Class Attendance</span>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground/60 transition-transform duration-200 ${expandedDetail === 'classAtt' ? 'rotate-180' : ''}`} />
+                  </div>
+                  {formatPoints(selectedStudentForDetails.scores.regularAttendance)}
+                </div>
+                {expandedDetail === 'classAtt' && selectedStudentForDetails.details && (
+                  <div className="text-xs sm:text-sm bg-muted/40 border border-border/40 p-2.5 rounded-lg mt-1 text-muted-foreground">
+                    Attendance Percentage: <span className="font-semibold text-foreground">{selectedStudentForDetails.details.attendance?.regular?.percentage?.toFixed(1) || 0}%</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col border-b border-border/60 pb-2.5">
+                <div 
+                  className="flex justify-between items-center cursor-pointer hover:bg-muted/50 p-1.5 rounded-lg transition-colors text-sm" 
+                  onClick={() => setExpandedDetail(expandedDetail === 'masjidAtt' ? null : 'masjidAtt')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground font-medium">Masjid Attendance</span>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground/60 transition-transform duration-200 ${expandedDetail === 'masjidAtt' ? 'rotate-180' : ''}`} />
+                  </div>
+                  {formatPoints(selectedStudentForDetails.scores.masjidAttendance)}
+                </div>
+                {expandedDetail === 'masjidAtt' && selectedStudentForDetails.details && (
+                  <div className="text-xs sm:text-sm bg-muted/40 border border-border/40 p-2.5 rounded-lg mt-1 text-muted-foreground">
+                    Attendance Percentage: <span className="font-semibold text-foreground">{selectedStudentForDetails.details.attendance?.masjid?.percentage?.toFixed(1) || 0}%</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col border-b border-border/60 pb-2.5">
+                <div 
+                  className="flex justify-between items-center cursor-pointer hover:bg-muted/50 p-1.5 rounded-lg transition-colors text-sm" 
+                  onClick={() => setExpandedDetail(expandedDetail === 'literaryAtt' ? null : 'literaryAtt')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground font-medium">Literary Attendance</span>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground/60 transition-transform duration-200 ${expandedDetail === 'literaryAtt' ? 'rotate-180' : ''}`} />
+                  </div>
+                  {formatPoints(selectedStudentForDetails.scores.literaryAttendance)}
+                </div>
+                {expandedDetail === 'literaryAtt' && selectedStudentForDetails.details && (
+                  <div className="text-xs sm:text-sm bg-muted/40 border border-border/40 p-2.5 rounded-lg mt-1 text-muted-foreground">
+                    Attendance Percentage: <span className="font-semibold text-foreground">{selectedStudentForDetails.details.attendance?.literary?.percentage?.toFixed(1) || 0}%</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col border-b border-border/60 pb-2.5">
+                <div 
+                  className="flex justify-between items-center cursor-pointer hover:bg-muted/50 p-1.5 rounded-lg transition-colors text-sm" 
+                  onClick={() => setExpandedDetail(expandedDetail === 'remarks' ? null : 'remarks')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground font-medium">Remarks</span>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground/60 transition-transform duration-200 ${expandedDetail === 'remarks' ? 'rotate-180' : ''}`} />
+                  </div>
+                  {formatPoints(selectedStudentForDetails.scores.remarks)}
+                </div>
+                {expandedDetail === 'remarks' && selectedStudentForDetails.details && (
+                  <div className="text-xs sm:text-sm bg-muted/40 border border-border/40 p-2.5 rounded-lg mt-1 max-h-48 overflow-y-auto">
+                    {selectedStudentForDetails.details.remarks?.length > 0 ? (
+                      <ul className="space-y-2">
+                        {selectedStudentForDetails.details.remarks.map((r, i) => (
+                          <li key={i} className="flex flex-col border-b border-border/50 last:border-0 pb-1.5">
+                            <div className="flex justify-between items-center">
+                              <span>
+                                <span className="font-medium text-foreground">{r.status}</span>{" "}
+                                <span className="text-xs text-muted-foreground">({new Date(r.date).toLocaleDateString()})</span>
+                              </span>
+                              <span className={r.points > 0 ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
+                                {r.points > 0 ? `+${r.points}` : r.points} pts
+                              </span>
+                            </div>
+                            {r.comments && <p className="text-xs text-muted-foreground mt-0.5"><span className="font-semibold text-foreground">Comment:</span> {r.comments}</p>}
+                            {r.teacherName && <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Teacher:</span> {r.teacherName}</p>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground italic">No remarks in this month.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col border-b border-border/60 pb-2.5">
+                <div 
+                  className="flex justify-between items-center cursor-pointer hover:bg-muted/50 p-1.5 rounded-lg transition-colors text-sm" 
+                  onClick={() => setExpandedDetail(expandedDetail === 'performance' ? null : 'performance')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground font-medium">Performance</span>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground/60 transition-transform duration-200 ${expandedDetail === 'performance' ? 'rotate-180' : ''}`} />
+                  </div>
+                  {formatPoints(selectedStudentForDetails.scores.performance)}
+                </div>
+                {expandedDetail === 'performance' && selectedStudentForDetails.details && (
+                  <div className="text-xs sm:text-sm bg-muted/40 border border-border/40 p-2.5 rounded-lg mt-1 max-h-48 overflow-y-auto">
+                    {selectedStudentForDetails.details.performance?.length > 0 ? (
+                      <ul className="space-y-2">
+                        {selectedStudentForDetails.details.performance.map((p, i) => (
+                          <li key={i} className="flex flex-col border-b border-border/50 last:border-0 pb-1.5">
+                            <div className="flex justify-between items-center">
+                              <span>
+                                <span className="font-medium text-foreground">{p.status}</span>{" "}
+                                <span className="text-xs text-muted-foreground">({new Date(p.date).toLocaleDateString()})</span>
+                              </span>
+                              <span className={p.points > 0 ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
+                                {p.points > 0 ? `+${p.points}` : p.points} pts
+                              </span>
+                            </div>
+                            {p.comments && <p className="text-xs text-muted-foreground mt-0.5"><span className="font-semibold text-foreground">Comment:</span> {p.comments}</p>}
+                            {p.teacherName && <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Teacher:</span> {p.teacherName}</p>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground italic">No performance records in this month.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col border-b border-border/60 pb-2.5">
+                <div 
+                  className="flex justify-between items-center cursor-pointer hover:bg-muted/50 p-1.5 rounded-lg transition-colors text-sm" 
+                  onClick={() => setExpandedDetail(expandedDetail === 'leaves' ? null : 'leaves')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground font-medium">Leaves</span>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground/60 transition-transform duration-200 ${expandedDetail === 'leaves' ? 'rotate-180' : ''}`} />
+                  </div>
+                  {formatPoints(selectedStudentForDetails.scores.leaves)}
+                </div>
+                {expandedDetail === 'leaves' && selectedStudentForDetails.details && (
+                  <div className="text-xs sm:text-sm bg-muted/40 border border-border/40 p-2.5 rounded-lg mt-1 max-h-48 overflow-y-auto">
+                    <p className="text-xs text-muted-foreground mb-1">Base score: 10 pts (lost if leaves taken)</p>
+                    {selectedStudentForDetails.details.leaves?.length > 0 ? (
+                      <ul className="space-y-2">
+                        {selectedStudentForDetails.details.leaves.map((l, i) => (
+                          <li key={i} className="flex flex-col border-b border-border/50 last:border-0 pb-1.5">
+                            <div className="flex justify-between items-center">
+                              <span>
+                                <span className="font-medium text-foreground">{l.status}</span>{" "}
+                                <span className="text-xs text-muted-foreground">({new Date(l.date).toLocaleDateString()})</span>
+                              </span>
+                              <span className={l.points > 0 ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
+                                {l.points > 0 ? `+${l.points}` : l.points} pts
+                              </span>
+                            </div>
+                            {l.leaveReason && <p className="text-xs text-muted-foreground mt-0.5"><span className="font-semibold text-foreground">Reason:</span> {l.leaveReason}</p>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-green-600 italic">No leaves taken.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center pt-3 pb-1 border-t border-border text-base sm:text-lg font-bold">
+                <span className="text-foreground">Total Score</span>
+                <span className={selectedStudentForDetails.totalScore > 0 ? 'text-green-600 font-extrabold' : selectedStudentForDetails.totalScore < 0 ? 'text-red-500 font-extrabold' : 'text-muted-foreground font-extrabold'}>
+                  {selectedStudentForDetails.totalScore > 0 ? '+' : ''}{selectedStudentForDetails.totalScore} pts
+                </span>
+              </div>
             </div>
           )}
         </DialogContent>

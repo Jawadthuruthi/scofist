@@ -37,75 +37,12 @@ const fmtInput = (d) => { const x = new Date(d); return `${x.getFullYear()}-${St
 const fmtDisplay = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const fmtDDMMYYYY = (d) => { if (!d) return ""; const x = new Date(d); return `${String(x.getDate()).padStart(2, "0")}/${String(x.getMonth() + 1).padStart(2, "0")}/${x.getFullYear()}`; };
 
-// ─── Mini Month Calendar ─────────────────────────────────────────────────────
-function MonthCalendar({ year, monthIndex, events, onDayClick }) {
-    const today = new Date();
-    const daysInMon = new Date(year, monthIndex + 1, 0).getDate();
-    const firstDay = new Date(year, monthIndex, 1).getDay();
-
-    const eventsByDay = useMemo(() => {
-        const map = {};
-        events.forEach((ev) => {
-            const d = new Date(ev.date);
-            if (d.getMonth() === monthIndex && d.getFullYear() === year) {
-                const day = d.getDate();
-                if (!map[day]) map[day] = [];
-                map[day].push(ev);
-            }
-        });
-        return map;
-    }, [events, monthIndex, year]);
-
-    const isToday = (day) =>
-        today.getDate() === day && today.getMonth() === monthIndex && today.getFullYear() === year;
-
-    return (
-        <Card className="border shadow-sm">
-            <CardHeader className="pb-2 pt-3 px-3">
-                <CardTitle className="text-sm font-semibold text-center">{MONTHS[monthIndex]}</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-4">
-                <div className="grid grid-cols-7 mb-2">
-                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                        <div key={d} className="text-center text-xs font-bold text-muted-foreground">{d}</div>
-                    ))}
-                </div>
-                <div className="grid grid-cols-7 gap-y-0.5">
-                    {Array(firstDay).fill(null).map((_, i) => <div key={`b${i}`} />)}
-                    {Array.from({ length: daysInMon }, (_, i) => i + 1).map((day) => {
-                        const evs = eventsByDay[day] || [];
-                        const dateStr = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                        return (
-                            <button key={day} onClick={() => onDayClick(dateStr, evs)}
-                                className={cn(
-                                    "relative flex flex-col items-center text-sm py-1.5 rounded-md transition-colors hover:bg-accent",
-                                    isToday(day) && "bg-primary text-primary-foreground hover:bg-primary/90 font-bold",
-                                    evs.length > 0 && !isToday(day) && "text-blue-600 bg-blue-50 font-bold"
-                                )}>
-                                <span>{day}</span>
-                                {evs.length > 0 && (
-                                    <div className="flex gap-px mt-px">
-                                        <span className="h-1 w-1 rounded-full bg-primary" />
-                                    </div>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
 // ─── Main Export ─────────────────────────────────────────────────────────────
 export default function AcademicCalendarManager({ apiKey }) {
     const currentYear = new Date().getFullYear();
     const [year, setYear] = useState(currentYear);
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [dayDialogOpen, setDayDialogOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
-    const [selectedDay, setSelectedDay] = useState(null);
-    const [selectedDayEvs, setSelectedDayEvs] = useState([]);
     const [form, setForm] = useState(EMPTY_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
@@ -115,14 +52,9 @@ export default function AcademicCalendarManager({ apiKey }) {
     const calendarRef = useRef();
 
     const addPopupRef = useRef(null);
-    const dayPopupRef = useRef(null);
     const { handleDownload: handleAddDownload } = useDownloadPopup(
         addPopupRef,
         `${editingEvent ? "Edit" : "Add"}_Special_Day.jpeg`
-    );
-    const { handleDownload: handleDayDownload } = useDownloadPopup(
-        dayPopupRef,
-        `Special_Day_${selectedDay || "Detail"}.jpeg`
     );
 
     const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } =
@@ -140,27 +72,53 @@ export default function AcademicCalendarManager({ apiKey }) {
         () => calendarQuery.data?.["academic-calendar"] || [],
         [calendarQuery.data]
     );
-    const sortedEvents = useMemo(
-        () => [...events].sort((a, b) => new Date(a.date) - new Date(b.date)),
-        [events]
-    );
+
+    // Descending order for the on-screen table (latest dates on top)
+    const tableMonthGroups = useMemo(() => {
+        const sortedDesc = [...events].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const groups = [];
+        const monthMap = new Map();
+        sortedDesc.forEach((ev) => {
+            const m = new Date(ev.date).getMonth();
+            if (!monthMap.has(m)) {
+                const group = [m, []];
+                monthMap.set(m, group);
+                groups.push(group);
+            }
+            monthMap.get(m)[1].push(ev);
+        });
+        return groups;
+    }, [events]);
+
+    // Ascending order for print view (chronological order: January to December)
+    const printMonthGroups = useMemo(() => {
+        const sortedAsc = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const groups = [];
+        const monthMap = new Map();
+        sortedAsc.forEach((ev) => {
+            const m = new Date(ev.date).getMonth();
+            if (!monthMap.has(m)) {
+                const group = [m, []];
+                monthMap.set(m, group);
+                groups.push(group);
+            }
+            monthMap.get(m)[1].push(ev);
+        });
+        return groups.sort(([mA], [mB]) => Number(mA) - Number(mB));
+    }, [events]);
 
     const years = useMemo(() => Array.from({ length: 10 }, (_, i) => currentYear - 3 + i), [currentYear]);
 
     const openAddDialog = useCallback((preDate = "") => {
         setEditingEvent(null);
         setForm({ ...EMPTY_FORM, date: preDate || fmtInput(new Date()) });
-        setDialogOpen(true); setDayDialogOpen(false);
+        setDialogOpen(true);
     }, []);
 
     const openEditDialog = useCallback((ev) => {
         setEditingEvent(ev);
         setForm({ title: ev.title, date: fmtInput(ev.date), time: ev.time || "", description: ev.description || "", type: ev.type || "Event" });
-        setDialogOpen(true); setDayDialogOpen(false);
-    }, []);
-
-    const handleDayClick = useCallback((dateStr, evs) => {
-        setSelectedDay(dateStr); setSelectedDayEvs(evs); setDayDialogOpen(true);
+        setDialogOpen(true);
     }, []);
 
     const handleSubmit = async () => {
@@ -183,7 +141,6 @@ export default function AcademicCalendarManager({ apiKey }) {
             await deleteEvent.mutateAsync({ data: [id] });
             toast.success("Special day deleted.");
             calendarQuery.refetch();
-            setSelectedDayEvs((p) => p.filter((e) => e._id !== id));
             setDeletingId(null);
         } catch (err) { toast.error(err.message || "Delete failed."); }
         finally { setIsDeletingRecord(false); }
@@ -239,11 +196,11 @@ export default function AcademicCalendarManager({ apiKey }) {
                     </Button>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                    <Button onClick={handlePrint} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print text-xs sm:text-sm">
-                        <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Print
-                    </Button>
                     <Button onClick={() => openAddDialog()} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white">
                         <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>Add <span className="hidden sm:inline">Special Day</span></span>
+                    </Button>
+                    <Button onClick={handlePrint} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print text-xs sm:text-sm">
+                        <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Print
                     </Button>
                 </div>
             </div>
@@ -253,182 +210,134 @@ export default function AcademicCalendarManager({ apiKey }) {
                     <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                    {/* Events Side Panel (Top on mobile, Right on desktop) */}
-                    <div className="lg:col-span-1 lg:order-last">
-                        <Card className="sticky top-4">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                    <CalendarDays className="h-4 w-4" />
-                                    Special Days in {year}
-                                    <Badge variant="secondary" className="ml-auto">{sortedEvents.length}</Badge>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0 max-h-[50vh] lg:max-h-[70vh] overflow-y-auto">
-                                {sortedEvents.length === 0 ? (
-                                    <p className="text-center text-sm text-muted-foreground p-6">
-                                        No special days marked for {year}.
-                                    </p>
-                                ) : (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Date & Time</TableHead>
-                                                <TableHead>Title</TableHead>
-                                                <TableHead className="w-16" />
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {Object.entries(
-                                                sortedEvents.reduce((acc, ev) => {
-                                                    const m = new Date(ev.date).getMonth();
-                                                    if (!acc[m]) acc[m] = [];
-                                                    acc[m].push(ev);
-                                                    return acc;
-                                                }, {})
-                                            ).flatMap(([monthIndex, monthEvents]) => [
-                                                <TableRow key={`m-${monthIndex}`} className="bg-muted/50 hover:bg-muted/50">
-                                                    <TableCell colSpan={3} className="font-semibold text-center py-1.5 h-auto text-xs">
-                                                        {MONTHS[monthIndex]}
-                                                    </TableCell>
-                                                </TableRow>,
-                                                ...monthEvents.map(ev => (
-                                                    <TableRow key={ev._id}>
-                                                        <TableCell className="text-xs whitespace-nowrap">
-                                                            <div>{fmtDisplay(ev.date)}</div>
-                                                            <div className="text-muted-foreground mt-0.5">{ev.time || "--"}</div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <p className="text-xs font-medium">{ev.title}</p>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="flex gap-1">
-                                                                <Button variant="ghost" size="icon" className="h-7 w-7"
-                                                                    onClick={() => openEditDialog(ev)}>
-                                                                    <Pencil className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                                 <Button variant="ghost" size="icon"
-                                                                    className="h-7 w-7 text-destructive hover:text-destructive"
-                                                                    onClick={() => setDeletingId(ev._id)}>
-                                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                                <Button variant="ghost" size="icon"
-                                                                    className="h-7 w-7 text-blue-500 hover:text-blue-600"
-                                                                    title="Send Alert to Teachers"
-                                                                    onClick={() => setConfirmNotifyEv(ev)}
-                                                                    disabled={notifyingId === ev._id}>
-                                                                    {notifyingId === ev._id ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
-                                                                </Button>
-                                                            </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))
-                                            ])}
-                                        </TableBody>
-                                    </Table>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Calendar Grid (Bottom on mobile, Left on desktop) */}
-                    <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {MONTHS.map((_, idx) => (
-                            <MonthCalendar key={idx} year={year} monthIndex={idx}
-                                events={events} onDayClick={handleDayClick} />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Day Detail Dialog */}
-            <Dialog open={dayDialogOpen} onOpenChange={setDayDialogOpen}>
-                <DialogContent
-                    ref={dayPopupRef}
-                    data-html2canvas-popup="true"
-                    className="w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl flex flex-col [&>button.absolute]:hidden no-print max-h-[90dvh]"
-                >
-                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                        <button
-                            type="button"
-                            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer shrink-0"
-                            onClick={handleDayDownload}
-                            title="Download Image"
-                            data-html2canvas-ignore="true"
-                        >
-                            <CalendarDays className="h-5 w-5 text-primary" />
-                        </button>
-                        <div className="flex-1 text-left space-y-0.5 min-w-0">
-                            <DialogTitle className="text-xl font-bold m-0 text-foreground truncate">
-                                {selectedDay ? new Date(selectedDay + "T00:00:00").toLocaleDateString("en-IN", {
-                                    weekday: "short", day: "numeric", month: "short", year: "numeric"
-                                }) : "Special Day Details"}
-                            </DialogTitle>
-                            <DialogDescription className="text-sm text-muted-foreground m-0">
-                                {selectedDayEvs.length === 0 ? "No special day marked." : `${selectedDayEvs.length} special day(s) marked.`}
-                            </DialogDescription>
+                <Card className="shadow-sm border">
+                    <CardHeader className="pb-3 border-b">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                                <CalendarDays className="h-5 w-5 text-primary" />
+                                Special Days in {year}
+                            </CardTitle>
+                            <Badge variant="secondary" className="font-medium text-xs px-2.5 py-0.5">
+                                {events.length} {events.length === 1 ? "Day" : "Days"}
+                            </Badge>
                         </div>
-                        <DialogClose asChild>
-                            <button
-                                type="button"
-                                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
-                                data-html2canvas-ignore="true"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </DialogClose>
-                    </DialogHeader>
-
-                    <div className="p-5 space-y-3 overflow-y-auto max-h-[60vh]">
-                        {selectedDayEvs.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-6">No special days marked for this date.</p>
+                    </CardHeader>
+                    <CardContent className="p-0 overflow-x-auto">
+                        {events.length === 0 ? (
+                            <div className="text-center py-16 px-4 space-y-3">
+                                <CalendarDays className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                                <p className="text-base font-medium text-foreground">
+                                    No special days marked for {year}.
+                                </p>
+                                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                                    Click "Add Special Day" above to mark holidays, exams, or events for this academic year.
+                                </p>
+                                <Button onClick={() => openAddDialog()} className="mt-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white gap-1.5">
+                                    <Plus className="h-4 w-4" /> Add Special Day
+                                </Button>
+                            </div>
                         ) : (
-                            selectedDayEvs.map(ev => (
-                                <div key={ev._id} className="rounded-xl border p-3.5 bg-muted/30 hover:bg-muted/50 transition-colors">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="space-y-1 min-w-0 flex-1">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="font-semibold text-sm text-foreground">{ev.title}</p>
-                                                {ev.type && (
-                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                                        {ev.type}
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/30">
+                                        <TableHead className="w-14 sm:w-16 text-center font-semibold">Sl No</TableHead>
+                                        <TableHead className="w-36 sm:w-44 font-semibold">Date & Time</TableHead>
+                                        <TableHead className="w-28 sm:w-32 font-semibold">Type</TableHead>
+                                        <TableHead className="font-semibold">Event Details</TableHead>
+                                        <TableHead className="w-28 text-right pr-4 font-semibold">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {tableMonthGroups.flatMap(([monthIndex, monthEvents]) => [
+                                        <TableRow key={`m-${monthIndex}`} className="bg-muted/60 hover:bg-muted/60 border-y border-border">
+                                            <TableCell colSpan={5} className="font-bold text-center py-2 h-auto text-xs uppercase tracking-wider text-muted-foreground">
+                                                {MONTHS[monthIndex]}
+                                            </TableCell>
+                                        </TableRow>,
+                                        ...monthEvents.map((ev, idx) => (
+                                            <TableRow key={ev._id} className="hover:bg-muted/40 transition-colors">
+                                                <TableCell className="text-center font-medium text-xs text-muted-foreground align-top py-3 w-14 sm:w-16">
+                                                    {idx + 1}
+                                                </TableCell>
+                                                <TableCell className="text-xs font-medium whitespace-nowrap align-top py-3">
+                                                    <div className="font-semibold text-foreground">{fmtDisplay(ev.date)}</div>
+                                                    <div className="text-muted-foreground mt-0.5">{ev.time || "--"}</div>
+                                                </TableCell>
+                                                <TableCell className="align-top py-3">
+                                                    <Badge
+                                                        variant={
+                                                            ev.type === "Holiday"
+                                                                ? "destructive"
+                                                                : ev.type === "Exam"
+                                                                ? "secondary"
+                                                                : "outline"
+                                                        }
+                                                        className={cn(
+                                                            "text-[11px] font-medium",
+                                                            ev.type === "Holiday" && "bg-red-500/15 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900",
+                                                            ev.type === "Exam" && "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900",
+                                                            ev.type === "Event" && "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900",
+                                                            ev.type === "Activity" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900"
+                                                        )}
+                                                    >
+                                                        {ev.type || "Event"}
                                                     </Badge>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground font-medium">{ev.time || "All Day"}</p>
-                                            {ev.description && <p className="text-xs mt-1 text-muted-foreground/90 whitespace-pre-wrap">{ev.description}</p>}
-                                        </div>
-                                        <div className="flex gap-1 shrink-0">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(ev)} title="Edit">
-                                                <Pencil className="h-3.5 w-3.5" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon"
-                                                className="h-7 w-7 text-destructive hover:text-destructive"
-                                                onClick={() => setDeletingId(ev._id)}
-                                                title="Delete">
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon"
-                                                className="h-7 w-7 text-blue-500 hover:text-blue-600"
-                                                title="Send Alert to Teachers"
-                                                onClick={() => setConfirmNotifyEv(ev)}
-                                                disabled={notifyingId === ev._id}>
-                                                {notifyingId === ev._id ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
+                                                </TableCell>
+                                                <TableCell className="align-top py-3">
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-semibold text-foreground">{ev.title}</p>
+                                                        {ev.description && (
+                                                            <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed max-w-2xl">
+                                                                {ev.description}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right pr-4 align-top py-3">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                            title="Edit Special Day"
+                                                            onClick={() => openEditDialog(ev)}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                            title="Delete Special Day"
+                                                            onClick={() => setDeletingId(ev._id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                                            title="Send Alert to Teachers"
+                                                            onClick={() => setConfirmNotifyEv(ev)}
+                                                            disabled={notifyingId === ev._id}
+                                                        >
+                                                            {notifyingId === ev._id ? (
+                                                                <Loader className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <BellRing className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ])}
+                                </TableBody>
+                            </Table>
                         )}
-                    </div>
-
-                    <div className="p-5 pt-0 border-t mt-auto">
-                        <Button className="w-full gap-2 mt-4 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => openAddDialog(selectedDay || "")}>
-                            <Plus className="h-4 w-4" /> <span>Add <span className="hidden sm:inline">Special Day</span></span>
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Add / Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -573,28 +482,25 @@ export default function AcademicCalendarManager({ apiKey }) {
                         <table className="w-full border-collapse border border-slate-300 text-sm">
                             <thead>
                                 <tr className="bg-slate-50">
+                                    <th className="w-14 font-bold border border-slate-300 p-2 text-center">Sl No</th>
                                     <th className="w-1/4 font-bold border border-slate-300 p-2 text-left">Date</th>
                                     <th className="w-1/5 font-bold border border-slate-300 p-2 text-left">Time</th>
                                     <th className="font-bold border border-slate-300 p-2 text-left">Event Title</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {Object.entries(
-                                    sortedEvents.reduce((acc, ev) => {
-                                        const m = new Date(ev.date).getMonth();
-                                        if (!acc[m]) acc[m] = [];
-                                        acc[m].push(ev);
-                                        return acc;
-                                    }, {})
-                                ).map(([monthIndex, monthEvents]) => (
+                                {printMonthGroups.map(([monthIndex, monthEvents]) => (
                                     <React.Fragment key={monthIndex}>
                                         <tr className="bg-slate-100">
-                                            <td colSpan={3} className="text-center font-bold py-2 border border-slate-300">
+                                            <td colSpan={4} className="text-center font-bold py-2 border border-slate-300">
                                                 {MONTHS[monthIndex]}
                                             </td>
                                         </tr>
-                                        {monthEvents.map((ev) => (
+                                        {monthEvents.map((ev, idx) => (
                                             <tr key={ev._id} className="border-b">
+                                                <td className="border border-slate-300 p-2 text-center text-slate-600 font-medium">
+                                                    {idx + 1}
+                                                </td>
                                                 <td className="border border-slate-300 p-2">{fmtDisplay(ev.date)}</td>
                                                 <td className="border border-slate-300 p-2 text-slate-500 italic">
                                                     {ev.time || "--"}

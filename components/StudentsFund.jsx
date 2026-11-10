@@ -1507,24 +1507,13 @@ const StudentsFund = ({
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
-                      onClick={() => {
-                        setDeleteConfirmText("");
-                        setShowClearHistoryDialogue(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Clear History
-                    </Button>
+                  <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
                     <Dialog
                       open={showHistoryDialog}
                       onOpenChange={setShowHistoryDialog}
                     >
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="flex-1">
+                        <Button variant="outline" className="w-full flex-1">
                           <FileText className="h-4 w-4 mr-2" />
                           View Full History
                         </Button>
@@ -1619,7 +1608,18 @@ const StudentsFund = ({
                       </div>
                     </DialogContent>
                   </Dialog>
-                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                    onClick={() => {
+                      setDeleteConfirmText("");
+                      setShowClearHistoryDialogue(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear History
+                  </Button>
+                </div>
 
                 </div>
               ) : (
@@ -1680,9 +1680,9 @@ const StudentsFund = ({
                           </div>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
                         <Button
-                          className="flex-1 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
+                          className="w-full flex-1 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
                           onClick={handlePrint}
                         >
                           <FileText className="h-4 w-4 mr-2" />
@@ -1691,7 +1691,7 @@ const StudentsFund = ({
                         {selectedStudentData && (
                           <Button
                             variant="outline"
-                            className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                            className="w-full flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
                             onClick={() => {
                               setDeleteConfirmText("");
                               setShowClearHistoryDialogue(true);

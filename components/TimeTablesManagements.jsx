@@ -194,7 +194,7 @@ const AbsenteesDialog = ({
               <Table className="w-full border-collapse">
                 <TableHeader className="bg-red-50 dark:bg-red-950/20 border-b dark:border-zinc-700">
                   <TableRow className="border-b dark:border-zinc-700">
-                    <TableHead className="h-9 py-1 border-r dark:border-zinc-700">ID</TableHead>
+                    <TableHead className="h-9 py-1 w-24">ID</TableHead>
                     <TableHead className="h-9 py-1">Student Name</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -203,7 +203,7 @@ const AbsenteesDialog = ({
                     const leaveReason = getLeaveReason(student);
                     return (
                       <TableRow key={student.studentId} className="border-b dark:border-zinc-700">
-                        <TableCell className="py-2 font-medium border-r dark:border-zinc-700">{student.studentId || "Unknown"}</TableCell>
+                        <TableCell className="py-2 font-medium">{student.studentId || "Unknown"}</TableCell>
                         <TableCell className="py-2 font-medium">
                           {student.studentName || "-"}
                           {leaveReason && (

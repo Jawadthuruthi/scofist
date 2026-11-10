@@ -1995,10 +1995,10 @@ const StatsOverview = memo(({
           data-html2canvas-popup="true"
           className="rounded-2xl sm:rounded-2xl max-w-4xl max-h-[75vh] sm:max-h-[85vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0"
         >
-          <DialogHeader className="flex flex-row items-start sm:items-center gap-2.5 sm:gap-3 mx-0 px-4 sm:px-5 py-3 sm:py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+          <DialogHeader className="flex flex-row items-center gap-2.5 sm:gap-3 mx-0 px-4 sm:px-5 py-3 sm:py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <button
               type="button"
-              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer shrink-0 mt-0.5 sm:mt-0"
+              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer shrink-0"
               onClick={handleRankAchieversDownload}
               title="Download Image"
               data-html2canvas-ignore="true"
@@ -2006,62 +2006,31 @@ const StatsOverview = memo(({
               <Trophy className="h-5 w-5 text-primary" />
             </button>
             <div className="flex-1 text-left space-y-0.5 min-w-0">
-              <div className="flex items-center gap-2">
-                <DialogTitle className="text-lg sm:text-xl font-bold m-0 leading-tight">
-                  Rank Achievers
-                </DialogTitle>
-                <Badge variant="secondary" className="hidden sm:inline-flex text-xs font-semibold">
-                  {rankAchievers.length}
-                </Badge>
-              </div>
-              <DialogDescription className="m-0 text-xs text-muted-foreground">
+              <DialogTitle className="text-lg sm:text-xl font-bold m-0 leading-tight truncate">
+                Rank Achievers ({rankAchievers.length})
+              </DialogTitle>
+              <DialogDescription className="m-0 text-xs text-muted-foreground truncate">
                 College rank holders
               </DialogDescription>
             </div>
 
-            {/* Mobile View: count before close button, add button under them */}
-            <div className="sm:hidden flex flex-col items-end gap-1.5 shrink-0">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5">
-                  {rankAchievers.length}
-                </Badge>
-                <DialogClose
-                  data-html2canvas-ignore="true"
-                  className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
-                >
-                  <X className="h-4 w-4" />
-                </DialogClose>
-              </div>
-              {isCollegeAdmin && (
-                <Button
-                  data-html2canvas-ignore="true"
-                  size="sm"
-                  className="h-7 w-full px-2 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                  onClick={handleOpenAddAchiever}
-                >
-                  <Plus className="h-3 w-3" />
-                  <span>Add</span>
-                </Button>
-              )}
-            </div>
-
-            {/* Desktop View: Actions in a single row */}
             <div
-              className="hidden sm:flex items-center gap-2 shrink-0"
+              className="flex items-center gap-1.5 sm:gap-2 shrink-0"
               data-html2canvas-ignore="true"
             >
               {isCollegeAdmin && (
                 <Button
                   size="sm"
-                  className="h-8 px-3 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  className="h-8 px-2 sm:px-3 gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                   onClick={handleOpenAddAchiever}
+                  title="Add Rank Achiever"
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add Rank Achiever</span>
+                  <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                  <span className="hidden sm:inline">Add Rank Achiever</span>
                 </Button>
               )}
-              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
-                <X className="h-5 w-5" />
+              <DialogClose className="p-1.5 -mr-1 sm:-mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </DialogClose>
             </div>
           </DialogHeader>
@@ -2083,7 +2052,7 @@ const StatsOverview = memo(({
                   <Button
                     size="sm"
                     onClick={handleOpenAddAchiever}
-                    className="gap-1.5 text-xs mt-1"
+                    className="gap-1.5 text-xs mt-1 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Add Rank Achiever
