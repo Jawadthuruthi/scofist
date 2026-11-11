@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Component } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -58,6 +58,81 @@ const AVAILABLE_ROLES = [
   'Judge',
 ];
 
+// ─── Error Boundary ──────────────────────────────────────────────────────────
+class TabErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('TabErrorBoundary caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card className="p-8 text-center my-4 border-destructive/20 bg-destructive/5">
+          <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+          <h3 className="font-semibold text-lg text-foreground">Something went wrong</h3>
+          <p className="text-sm text-muted-foreground mt-1 mb-4">
+            {this.state.error?.message || 'An error occurred while displaying user roles.'}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              this.props.onRetry?.();
+            }}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" /> Try Again
+          </Button>
+        </Card>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─── Safe Helpers ────────────────────────────────────────────────────────────
+function normalizeRoles(roles) {
+  if (!roles) return [];
+  if (Array.isArray(roles)) {
+    return roles
+      .filter((r) => r !== null && r !== undefined)
+      .map((r) => (typeof r === 'string' ? r.trim() : String(r?.name || r).trim()))
+      .filter(Boolean);
+  }
+  if (typeof roles === 'string') {
+    const trimmed = roles.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  return [];
+}
+
+function normalizeMembers(members) {
+  if (!members || !Array.isArray(members)) return [];
+  return members
+    .filter(Boolean)
+    .map((m) => {
+      if (typeof m === 'string') {
+        const trimmed = m.trim();
+        return { email: trimmed, name: trimmed, id: trimmed };
+      }
+      return {
+        email: typeof m.email === 'string' ? m.email.trim() : (m.email ? String(m.email).trim() : ''),
+        name: typeof m.name === 'string' ? m.name.trim() : (m.name ? String(m.name).trim() : ''),
+        id: m._id || m.id || '',
+      };
+    })
+    .filter((m) => m.email || m.name);
+}
+
 // ─── Confirmation Dialog ────────────────────────────────────────────────────
 function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, loading, confirmText = "Confirm Delete" }) {
   return (
@@ -93,43 +168,46 @@ function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, load
   );
 }
 
-// ─── ADMIN USERS TAB (existing logic, cleaned up) ───────────────────────────
+// ─── ADMIN USERS TAB ─────────────────────────────────────────────────────────
 function AdminUsersTab({ users, customRoles, loading, refresh }) {
-
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-
-
   // Filter for Admin view (excludes Teacher/Student from standard list)
   const adminFilteredUsers = (users || []).filter((u) => {
-    if (!u.roles || !Array.isArray(u.roles) || u.roles.length === 0) return true;
-    return !u.roles.some((r) => r === 'Teacher' || r === 'Student');
+    if (!u) return false;
+    const roles = normalizeRoles(u.roles);
+    if (roles.length === 0) return true;
+    return !roles.some((r) => r === 'Teacher' || r === 'Student');
   });
 
   const filteredUsers = adminFilteredUsers.filter((u) => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
-    const name = u.name?.toString().toLowerCase() || '';
-    const email = u.email?.toString().toLowerCase() || '';
-    const id = (u._id || u.id)?.toString().toLowerCase() || '';
-    const contact = u.contactNumber?.toString().toLowerCase() || '';
+    const name = String(u?.name || '').toLowerCase();
+    const email = String(u?.email || '').toLowerCase();
+    const id = String(u?._id || u?.id || '').toLowerCase();
+    const contact = String(u?.contactNumber || '').toLowerCase();
 
     return name.includes(search) || email.includes(search) || id.includes(search) || contact.includes(search);
   });
 
   // Helper to find custom roles for a specific user
   const getUserCustomRoles = (email) => {
-    if (!email) return [];
-    const emailLower = email.toLowerCase();
+    if (!email || !Array.isArray(customRoles)) return [];
+    const emailLower = String(email).trim().toLowerCase();
     return customRoles
-      .filter(role => role.members?.some(m => m.email?.toLowerCase() === emailLower))
-      .map(role => role.name);
+      .filter((role) => {
+        if (!role) return false;
+        const members = normalizeMembers(role.members);
+        return members.some((m) => m.email && m.email.toLowerCase() === emailLower);
+      })
+      .map((role) => (role.name ? String(role.name) : ''))
+      .filter(Boolean);
   };
-
 
   const toggleRole = (role) =>
     setSelectedRoles((prev) =>
@@ -138,7 +216,7 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
 
   const handleAssign = (user) => {
     setSelectedUser(user);
-    setSelectedRoles(user.roles || []);
+    setSelectedRoles(normalizeRoles(user?.roles));
     setIsDialogOpen(true);
   };
 
@@ -147,18 +225,23 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
       toast.error('Select at least one role');
       return;
     }
+    const userId = selectedUser?._id || selectedUser?.id;
+    if (!userId) {
+      toast.error('User identifier not found');
+      return;
+    }
     try {
       setSubmitting(true);
       const res = await fetch('/api/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: [selectedUser._id], roles: selectedRoles }),
+        body: JSON.stringify({ ids: [userId], roles: selectedRoles }),
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message);
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to update roles');
       }
-      toast.success(`Roles assigned to ${selectedUser.name}!`);
+      toast.success(`Roles assigned to ${selectedUser.name || 'user'}!`);
       setIsDialogOpen(false);
       refresh();
     } catch (err) {
@@ -222,17 +305,19 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => {
+                    const userRoles = normalizeRoles(user.roles);
                     const uCustomRoles = getUserCustomRoles(user.email);
+                    const userId = user._id || user.id || Math.random().toString();
                     return (
-                      <TableRow key={user._id || user.id}>
-                        <TableCell className="font-medium">{user.name ?? 'N/A'}</TableCell>
+                      <TableRow key={userId}>
+                        <TableCell className="font-medium">{user.name ? String(user.name) : 'N/A'}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                          {user.email ?? '—'}
+                          {user.email ? String(user.email) : '—'}
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <div className="flex flex-wrap gap-1">
                             {/* Standard Roles */}
-                            {user.roles?.map((r) => (
+                            {userRoles.map((r) => (
                               <Badge key={r} variant="secondary" className="text-xs">
                                 {r}
                               </Badge>
@@ -244,7 +329,7 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
                               </Badge>
                             ))}
                             {/* No Roles Placeholder */}
-                            {(!user.roles?.length && !uCustomRoles.length) && (
+                            {(!userRoles.length && !uCustomRoles.length) && (
                               <Badge variant="outline" className="text-xs">
                                 No Roles
                               </Badge>
@@ -253,7 +338,7 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
                         </TableCell>
                         <TableCell>
                           <Button size="sm" onClick={() => handleAssign(user)} className="text-xs">
-                            {user.roles?.length ? 'Edit Roles' : 'Assign Roles'}
+                            {userRoles.length ? 'Edit Roles' : 'Assign Roles'}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -276,7 +361,7 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">Assign Roles</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground pt-1">
-                Select roles to assign to <strong>{selectedUser?.name}</strong>.
+                Select roles to assign to <strong>{selectedUser?.name || 'user'}</strong>.
               </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
@@ -322,7 +407,6 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
   );
 }
 
-
 // ─── ROLE SUMMARY TAB (Role-centric view) ──────────────────────────────────
 function RoleSummaryTab({ users, customRoles, loading, refresh }) {
   // --- Member Management ---
@@ -356,42 +440,48 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
     );
   }
 
-  // Aggregate memberships
+  // Aggregate memberships safely
   const roleGroups = [];
 
   // Standard Roles
   const allStandardRoles = [...new Set([
     ...AVAILABLE_ROLES,
-    ...(users || []).flatMap(u => u.roles || [])
+    ...(users || []).flatMap((u) => normalizeRoles(u?.roles))
   ])]
-    .filter(role => role !== 'Teacher' && role !== 'Student' && role !== 'Stationary' && role !== 'IT Lab' && role !== 'Finance' && role !== 'Library Manager')
-    .sort();
+    .filter((role) => typeof role === 'string' && role !== 'Teacher' && role !== 'Student' && role !== 'Stationary' && role !== 'IT Lab' && role !== 'Finance' && role !== 'Library Manager')
+    .sort((a, b) => String(a).localeCompare(String(b)));
 
-  allStandardRoles.forEach(roleName => {
-    const members = users.filter(u => u.roles?.includes(roleName));
+  allStandardRoles.forEach((roleName) => {
+    const members = (users || []).filter((u) => u && normalizeRoles(u.roles).includes(roleName));
     roleGroups.push({
       name: roleName,
       type: 'Standard',
-      members: members.map(m => ({ email: m.email, name: m.name, id: m._id })),
-      total: members.length
+      members: members.map((m) => ({
+        email: String(m?.email || ''),
+        name: String(m?.name || m?.email || 'N/A'),
+        id: m?._id || m?.id || '',
+      })),
+      total: members.length,
     });
   });
 
   // Custom Roles
-  (customRoles || []).forEach(role => {
+  (customRoles || []).forEach((role) => {
+    if (!role) return;
+    const members = normalizeMembers(role.members);
     roleGroups.push({
-      name: role.name,
+      name: String(role.name || 'Unnamed Role'),
       type: 'Custom',
-      id: role._id,
-      members: role.members.map(m => ({ email: m.email, name: m.name })),
-      total: role.members.length
+      id: role._id || role.id,
+      members: members,
+      total: members.length,
     });
   });
 
   // Sort by type then name
   roleGroups.sort((a, b) => {
     if (a.type !== b.type) return a.type === 'Standard' ? -1 : 1;
-    return a.name.localeCompare(b.name);
+    return String(a.name || '').localeCompare(String(b.name || ''));
   });
 
   const handleAddMember = async () => {
@@ -399,34 +489,39 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
       toast.error('Email is required');
       return;
     }
+    const cleanEmail = memberEmail.trim();
     try {
       setAdding(true);
       if (addRole.type === 'Custom') {
         const res = await fetch(`/api/custom-roles/${addRole.id}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: memberEmail.trim() }),
+          body: JSON.stringify({ email: cleanEmail }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.message || 'Failed to add member to custom role');
       } else {
-        const user = users.find(u => u.email?.toLowerCase() === memberEmail.trim().toLowerCase());
+        const user = (users || []).find((u) => u && String(u.email || '').toLowerCase() === cleanEmail.toLowerCase());
         if (!user) throw new Error('User not found. They must exist in the system first.');
-        if (user.roles?.includes(addRole.name)) throw new Error('User already has this role');
-        const newRoles = [...(user.roles || []), addRole.name];
+        const userRoles = normalizeRoles(user.roles);
+        if (userRoles.includes(addRole.name)) throw new Error('User already has this role');
+        const newRoles = [...userRoles, addRole.name];
         const res = await fetch('/api/users', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: [user._id], roles: newRoles }),
+          body: JSON.stringify({ ids: [user._id || user.id], roles: newRoles }),
         });
-        if (!res.ok) throw new Error('Failed to update system role');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to update system role');
+        }
       }
       toast.success('Member added successfully!');
       setAddRole(null);
       setMemberEmail('');
       refresh();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to add member');
     } finally {
       setAdding(false);
     }
@@ -440,23 +535,29 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
           `/api/custom-roles/${confirmRemove.customRoleId}/members?email=${encodeURIComponent(confirmRemove.userEmail)}`,
           { method: 'DELETE' }
         );
-        if (!res.ok) throw new Error('Failed to remove member');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to remove member');
+        }
       } else {
-        const user = users.find(u => u._id === confirmRemove.userId);
+        const user = (users || []).find((u) => u && (u._id === confirmRemove.userId || u.id === confirmRemove.userId));
         if (!user) throw new Error('User not found');
-        const newRoles = (user.roles || []).filter(r => r !== confirmRemove.roleName);
+        const newRoles = normalizeRoles(user.roles).filter((r) => r !== confirmRemove.roleName);
         const res = await fetch('/api/users', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: [user._id], roles: newRoles }),
+          body: JSON.stringify({ ids: [user._id || user.id], roles: newRoles }),
         });
-        if (!res.ok) throw new Error('Failed to update user roles');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to update user roles');
+        }
       }
       toast.success('Member removed');
       setConfirmRemove(null);
       refresh();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to remove member');
     } finally {
       setRemoving(false);
     }
@@ -475,8 +576,8 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newRoleName.trim(), description: newRoleDesc.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to create role');
       toast.success('Role created!');
       setCreateOpen(false);
       setNewRoleName('');
@@ -494,15 +595,20 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
       toast.error('Role name is required');
       return;
     }
+    const roleId = editRole?._id || editRole?.id;
+    if (!roleId) {
+      toast.error('Role ID missing');
+      return;
+    }
     try {
       setEditing(true);
-      const res = await fetch(`/api/custom-roles/${editRole._id}`, {
+      const res = await fetch(`/api/custom-roles/${roleId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: editName.trim(), description: editDesc.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to update role');
       toast.success('Role updated!');
       setEditOpen(false);
       refresh();
@@ -514,13 +620,15 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
   };
 
   const handleDeleteRole = async () => {
+    const roleId = deleteRoleConfirm?._id || deleteRoleConfirm?.id;
+    if (!roleId) return;
     try {
       setDeletingRole(true);
-      const res = await fetch(`/api/custom-roles/${deleteRoleConfirm._id}`, {
+      const res = await fetch(`/api/custom-roles/${roleId}`, {
         method: 'DELETE',
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to delete role');
       toast.success('Role deleted!');
       setDeleteRoleConfirm(null);
       refresh();
@@ -532,10 +640,10 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
   };
 
   const openEdit = (roleId) => {
-    const role = customRoles.find(r => r._id === roleId);
+    const role = (customRoles || []).find((r) => r && (r._id === roleId || r.id === roleId));
     if (!role) return;
     setEditRole(role);
-    setEditName(role.name);
+    setEditName(role.name || '');
     setEditDesc(role.description || '');
     setEditOpen(true);
   };
@@ -580,13 +688,17 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
                           ) : (
                             <UserCheck className="h-4 w-4 text-muted-foreground" />
                           )}
-                          <span className="">{group.name}</span>
+                          <span>{group.name}</span>
                           {group.type === 'Custom' && (
                             <div className="flex items-center gap-1 ml-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                              <button onClick={() => openEdit(group.id)} className="text-muted-foreground hover:text-primary p-1">
+                              <button onClick={() => openEdit(group.id)} className="text-muted-foreground hover:text-primary p-1" title="Edit role">
                                 <Pencil className="h-3 w-3" />
                               </button>
-                              <button onClick={() => setDeleteRoleConfirm({ _id: group.id, name: group.name, members: group.members })} className="text-muted-foreground hover:text-destructive p-1">
+                              <button
+                                onClick={() => setDeleteRoleConfirm({ _id: group.id, name: group.name, members: group.members })}
+                                className="text-muted-foreground hover:text-destructive p-1"
+                                title="Delete role"
+                              >
                                 <Trash2 className="h-3 w-3" />
                               </button>
                             </div>
@@ -601,8 +713,8 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
                       <TableCell>
                         <div className="flex flex-wrap gap-1 max-w-[400px] min-w-[200px]">
                           {group.members.map((m, idx) => (
-                            <Badge key={idx} variant="outline" className="text-[10px] font-normal whitespace-nowrap flex items-center gap-1 group/badge pr-1">
-                              {m.name || m.email}
+                            <Badge key={m.email || idx} variant="outline" className="text-[10px] font-normal whitespace-nowrap flex items-center gap-1 group/badge pr-1">
+                              {m.name || m.email || 'Member'}
                               <button
                                 onClick={() => setConfirmRemove({
                                   roleName: group.name,
@@ -824,29 +936,34 @@ export default function AdminUsersPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('Fetching users and custom roles...');
       const [usersRes, customRolesRes] = await Promise.all([
-        fetch('/api/users'),
+        fetch('/api/users?projection=_id,name,email,roles,contactNumber&limit=2000'),
         fetch('/api/custom-roles')
       ]);
 
       if (!usersRes.ok || !customRolesRes.ok) throw new Error('Failed to fetch data');
 
-      const usersData = await usersRes.json();
-      const customRolesData = await customRolesRes.json();
+      const usersData = await usersRes.json().catch(() => ({}));
+      const customRolesData = await customRolesRes.json().catch(() => ({}));
 
-      const allUsers = usersData.users || [];
+      const allUsers = Array.isArray(usersData.users) ? usersData.users : [];
+      const allRoles = Array.isArray(customRolesData.roles) ? customRolesData.roles : [];
+
       setUsers(allUsers);
-      setCustomRoles(customRolesData.roles || []);
+      setCustomRoles(allRoles);
     } catch (err) {
       console.error('Fetch error:', err);
       toast.error('Failed to load dashboard data');
+      setUsers([]);
+      setCustomRoles([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const props = { users, customRoles, loading, refresh: fetchData };
 
@@ -871,12 +988,15 @@ export default function AdminUsersPage() {
         </TabsList>
 
         <TabsContent value="admin-users" className="mt-4">
-          <AdminUsersTab {...props} />
+          <TabErrorBoundary onRetry={fetchData}>
+            <AdminUsersTab {...props} />
+          </TabErrorBoundary>
         </TabsContent>
 
-
         <TabsContent value="role-summary" className="mt-4">
-          <RoleSummaryTab {...props} />
+          <TabErrorBoundary onRetry={fetchData}>
+            <RoleSummaryTab {...props} />
+          </TabErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

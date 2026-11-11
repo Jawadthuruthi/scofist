@@ -527,7 +527,7 @@ const applyUpdatesToUser = async (user, updateFields) => {
   });
 
   // Update Teacher-specific fields
-  if (user.roles.includes("Teacher")) {
+  if (Array.isArray(user.roles) && user.roles.includes("Teacher")) {
     if (!user.teacherSpecificField) user.teacherSpecificField = {};
     if (updateFields.dateOfJoining !== undefined)
       user.teacherSpecificField.dateOfJoining = updateFields.dateOfJoining;
@@ -536,7 +536,7 @@ const applyUpdatesToUser = async (user, updateFields) => {
   }
 
   // Update Student-specific fields
-  if (user.roles.includes("Student")) {
+  if (Array.isArray(user.roles) && user.roles.includes("Student")) {
     const studentFields = [
       "admissionNumber",
       "admissionClassId",
