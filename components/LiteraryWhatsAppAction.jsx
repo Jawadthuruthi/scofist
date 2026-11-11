@@ -8,7 +8,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
-export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
+export default function LiteraryWhatsAppAction({ rowData, groups = [], classes = [] }) {
   const [open, setOpen] = useState(false);
 
   const { data: teachers = [], isLoading: loading } = useQuery({
@@ -34,6 +34,22 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
     },
     staleTime: 1000 * 60 * 10, // Cache for 10 minutes
   });
+
+  const getClassShortName = (s) => {
+    if (s.classShortName) return s.classShortName;
+    if (classes && classes.length > 0) {
+      const cls = classes.find(
+        (c) =>
+          (s.classId && String(c._id) === String(s.classId)) ||
+          (s.className &&
+            (c.name?.toLowerCase() === s.className.toLowerCase() ||
+              c.shortname?.toLowerCase() === s.className.toLowerCase()))
+      );
+      if (cls?.shortname) return cls.shortname;
+      if (cls?.name) return cls.name;
+    }
+    return s.className || "Unknown Class";
+  };
 
   const handleOpen = (e) => {
     e.stopPropagation();
@@ -73,7 +89,8 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
       for (const [groupName, students] of Object.entries(grouped)) {
         message += `*${groupName}*\n`;
         students.forEach((s, idx) => {
-          message += `${idx + 1}. ${s.studentName} (${s.className || "Unknown Class"})\n`;
+          const shortClass = getClassShortName(s);
+          message += `${idx + 1}. ${s.studentName} (${shortClass})\n`;
         });
         message += `\n`;
       }
@@ -125,10 +142,10 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
               </div>
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-base md:text-lg font-bold m-0 text-foreground">
-                  Select Teacher to Send Absentees List
+                  Select Teacher
                 </DialogTitle>
                 <DialogDescription className="m-0 text-xs text-muted-foreground">
-                  Choose a teacher to share absentees via WhatsApp
+                  Choose a teacher to share absentees list.
                 </DialogDescription>
               </div>
               <DialogClose

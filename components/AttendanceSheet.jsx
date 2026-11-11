@@ -490,7 +490,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                     <TableHeader className="sticky top-0 bg-secondary z-20 print:static">
                         <TableRow>
                             <TableHead className="w-[50px] sticky left-0 bg-secondary z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
-                            <TableHead className="min-w-[150px] sticky left-[50px] bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
+                            <TableHead className="min-w-[150px] sticky left-[50px] bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none border-r border-border">
                                 <span className="hidden print:inline">Student Name</span>
                                 <div className="relative flex items-center w-full max-w-xs print:hidden">
                                     <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
@@ -560,7 +560,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                     <TableCell className="sticky left-0 bg-background group-hover:bg-muted/50 z-30 font-medium text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
                                         {originalIndex}
                                     </TableCell>
-                                    <TableCell className="sticky left-[50px] bg-background group-hover:bg-muted/50 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
+                                    <TableCell className="sticky left-[50px] bg-background group-hover:bg-muted/50 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none border-r border-border">
                                         <div className="flex flex-col">
                                             <span>{student.name}</span>
                                             {filters.batchId && !filters.classId && student.studentSpecificField?.classId && (

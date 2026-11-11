@@ -3,7 +3,13 @@
 import { formatDate, formatDateForDisplay, getISTDate, cn } from "@/lib/utils";
 import Header from "./Header";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import {
   Table,
   TableBody,
@@ -13,7 +19,7 @@ import {
   TableRow,
 } from "./ui/table";
 import { Button } from "./ui/button";
-import { AlertTriangle, CheckCircle2, ChevronsUpDown, Plus, X, TrendingUp, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronsUpDown, Plus, X, TrendingUp, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import LiteraryWhatsAppAction from "./LiteraryWhatsAppAction";
 import LiteraryWhatsAppBulkAction from "./LiteraryWhatsAppBulkAction";
@@ -140,16 +146,16 @@ const CategoryCombobox = ({ value, onChange, categories, onAddCategory, onRemove
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between text-sm font-normal"
+          className="w-full justify-between text-xs md:text-sm font-normal h-9 md:h-10 px-2 sm:px-3"
         >
-          <span className={cn(!value && "text-muted-foreground")}>
+          <span className={cn("truncate", !value && "text-muted-foreground")}>
             {value || "Select category…"}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[220px] p-0"
+        className="w-[var(--radix-popover-trigger-width)] min-w-[220px] p-0"
         align="start"
         style={{ zIndex: 9999 }}
       >
@@ -230,7 +236,7 @@ const LiteraryAttendance = ({
   apiKey,
   groups = [],
 }) => {
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("");
   const [attendance, setAttendance] = useState({});
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -255,6 +261,18 @@ const LiteraryAttendance = ({
   });
 
   const [selectedCategory, setSelectedCategory] = useState("Literary");
+
+  const isLiterary = useMemo(
+    () => selectedCategory?.toLowerCase() === "literary",
+    [selectedCategory]
+  );
+
+  // When switching back to Literary, require picking General or Group
+  useEffect(() => {
+    if (selectedCategory?.toLowerCase() === "literary") {
+      setActiveTab("");
+    }
+  }, [selectedCategory]);
 
   // Persist custom categories to localStorage
   useEffect(() => {
@@ -370,7 +388,7 @@ const LiteraryAttendance = ({
 
   const isAttendanceMarked = useCallback(
     (id) => {
-      if (activeTab === "group") {
+      if (isLiterary && activeTab === "group") {
         return attendanceData.some(
           (att) =>
             att.groupId === id &&
@@ -385,7 +403,7 @@ const LiteraryAttendance = ({
           att.category === apiCategory
       );
     },
-    [attendanceData, activeTab, formattedDate, apiCategory]
+    [attendanceData, isLiterary, activeTab, formattedDate, apiCategory]
   );
 
   const hasMarkedAttendanceGeneral = useMemo(() => {
@@ -400,188 +418,192 @@ const LiteraryAttendance = ({
     );
   }, [attendanceData, formattedDate]);
 
-  // Reset to "all" tab whenever session type is not Literary
-  useEffect(() => {
-    if (selectedCategory !== "Literary") {
-      setActiveTab("all");
-    }
-  }, [selectedCategory]);
-
-  const isLiterary = selectedCategory?.toLowerCase() === "literary";
-
   return (
     <div className="space-y-3">
       <Header
         title="LITERARY ATTENDANCE"
         subTitle="Manage Literary Attendance"
       />
-      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4 w-full">
         {/* Day selector */}
-        <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0 bg-background max-w-fit">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r hover:bg-accent"
-            onClick={() => {
-              const newDate = new Date(selectedDateState);
-              newDate.setDate(newDate.getDate() - 1);
-              setSelectedDateState(newDate);
-            }}
-            title="Previous Day"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="py-1.5 px-3 md:px-5 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
-            {date}
-          </div>
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-            <PopoverTrigger asChild>
+          <div className="flex items-center justify-between gap-0 border border-border rounded-lg overflow-hidden shrink-0 bg-background w-full md:w-auto md:max-w-fit">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 md:h-10 w-9 md:w-10 rounded-none border-r hover:bg-accent shrink-0"
+              onClick={() => {
+                const newDate = new Date(selectedDateState);
+                newDate.setDate(newDate.getDate() - 1);
+                setSelectedDateState(newDate);
+              }}
+              title="Previous Day"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+              <div className="flex-1 py-1.5 px-2 md:px-5 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-0 md:min-w-[120px] truncate">
+                {date}
+              </div>
+                        <div className="flex items-center shrink-0">
+                          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent text-muted-foreground hover:text-foreground shrink-0"
+                                title="Select date from calendar"
+                              >
+                                <CalendarDays className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <Calendar
+                                mode="single"
+                                selected={selectedDateState}
+                                onSelect={(newDate) => {
+                                  if (newDate) {
+                                    const todayIST = getISTDate();
+                                    if (newDate <= todayIST) {
+                                      setSelectedDateState(newDate);
+                                      setDatePickerOpen(false);
+                                    }
+                                  }
+                                }}
+                                disabled={(d) => {
+                                  const todayIST = getISTDate();
+                          todayIST.setHours(23, 59, 59, 999);
+                    return d > todayIST;
+                  }}
+                          initialFocus
+                />
+                        </PopoverContent>
+            </Popover>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent text-muted-foreground hover:text-foreground"
-                title="Select date from calendar"
-              >
-                <CalendarDays className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={selectedDateState}
-                onSelect={(newDate) => {
-                  if (newDate) {
-                    const todayIST = getISTDate();
-                    if (newDate <= todayIST) {
-                      setSelectedDateState(newDate);
-                      setDatePickerOpen(false);
-                    }
+                className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent shrink-0"
+                onClick={() => {
+                  const newDate = new Date(selectedDateState);
+                  newDate.setDate(newDate.getDate() + 1);
+                  if (newDate <= getISTDate()) {
+                    setSelectedDateState(newDate);
                   }
                 }}
-                disabled={(d) => {
-                  const todayIST = getISTDate();
-                  todayIST.setHours(23, 59, 59, 999);
-                  return d > todayIST;
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 md:h-10 w-9 md:w-10 rounded-none border-l hover:bg-accent"
-            onClick={() => {
-              const newDate = new Date(selectedDateState);
-              newDate.setDate(newDate.getDate() + 1);
-              if (newDate <= getISTDate()) {
-                setSelectedDateState(newDate);
-              }
-            }}
-            disabled={formatDate(selectedDateState) === formatDate(getISTDate())}
-            title="Next Day"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+                disabled={formatDate(selectedDateState) === formatDate(getISTDate())}
+                title="Next Day"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-        {/* ── Session Type selector ── */}
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-            Session Type
-          </span>
-          <div className="w-44 md:w-52">
-            <CategoryCombobox
-              value={selectedCategory}
-              onChange={setSelectedCategory}
-              categories={categories}
-              onAddCategory={handleAddCategory}
-              onRemoveCategory={handleRemoveCategory}
-            />
+          {/* ── Session Type & Category Type selectors (Side-by-side on all screens, including mobile) ── */}
+          <div className="flex-1 flex flex-row items-center gap-2 md:gap-4 w-full min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-1 min-w-0">
+              <span className="text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap shrink-0">
+                <span className="md:hidden">Session</span>
+                <span className="hidden md:inline">Session Type</span>
+              </span>
+              <div className="flex-1 min-w-0 w-full">
+                <CategoryCombobox
+                  value={selectedCategory}
+                  onChange={setSelectedCategory}
+                  categories={categories}
+                  onAddCategory={handleAddCategory}
+                  onRemoveCategory={handleRemoveCategory}
+                />
+              </div>
+            </div>
+
+            {isLiterary && (
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-1 min-w-0">
+                <span className="hidden md:inline text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap shrink-0">
+                  Category Type
+                </span>
+                <div className="flex-1 min-w-0 w-full">
+                  <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="w-full h-9 md:h-10 text-xs md:text-sm px-2 sm:px-3">
+                      <SelectValue placeholder="Select Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">General</SelectItem>
+                      <SelectItem value="group">Group</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      <Tabs value={activeTab} defaultValue="all" onValueChange={setActiveTab}>
-        {isLiterary && (
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="all">General</TabsTrigger>
-            <TabsTrigger value="group">Group</TabsTrigger>
-          </TabsList>
-        )}
-
-        <TabsContent value="all">
-
+        {!isLiterary || activeTab === "all" ? (
           <div className="overflow-x-auto border rounded-md">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-4">Class</TableHead>
-                  <TableHead className="text-center w-24 px-4">Absent</TableHead>
-                  <TableHead className="w-16 text-center px-4">
+                  <TableHead className="px-3 sm:px-4">Class</TableHead>
+                  <TableHead className="text-center w-12 sm:w-16 px-1">Absent</TableHead>
+                  <TableHead className="w-9 sm:w-12 text-center px-0.5 sm:px-1">
                     {hasMarkedAttendanceGeneral && (
                       <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === apiCategory)} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} sessionLabel={selectedCategory} />
                     )}
                   </TableHead>
-                  <TableHead className="w-16 px-4"></TableHead>
-                  <TableHead className="w-full"></TableHead>
+                  <TableHead className="w-9 sm:w-12 text-center px-0.5 sm:px-1"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {classes.map((cls) => (
                   <TableRow
                     key={cls._id}
-                    className="hover:bg-accent/50 cursor-pointer"
+                    className="hover:bg-accent/50 cursor-pointer h-16 md:h-20 transition-colors"
                     onClick={() =>
                       router.push(
                         `/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&category=${apiCategory}&sessionLabel=${encodeURIComponent(selectedCategory)}&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId?._id || cls.batchId}`
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap px-4">
-                      <div className="text-xs md:text-base">{cls?.name}</div>
+                    <TableCell className="px-3 sm:px-4 py-3 sm:py-4 min-w-0">
+                      <div className="text-sm md:text-base font-semibold truncate">{cls?.name}</div>
                       {isAttendanceMarked(cls._id) && (
-                        <div className="flex items-center gap-1 text-xxs text-muted-foreground mt-0.5">
-                          <CheckCircle2 className="text-green-500 h-3 w-3" />
-                          <span>Attendance Marked</span>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                          <CheckCircle2 className="text-green-500 h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">Attendance Marked</span>
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="w-24 px-4">
+                    <TableCell className="w-12 sm:w-16 text-center px-1 py-3 sm:py-4 align-middle">
                       {classBasedAbsentees[cls._id] &&
                         classBasedAbsentees[cls._id].length > 0 ? (
                         <div
-                          className={`flex items-center mx-auto max-w-fit gap-2 rounded-full px-2 py-1 border hover:bg-muted transition-colors`}
+                          className="flex items-center justify-center mx-auto cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             setAbsenteesDialogOpen(true);
                             setSelectedClassId(cls._id);
                           }}
                         >
-                          <AlertTriangle className="text-red-500 h-4 w-4" />
                           <Badge
                             variant="destructive"
-                            className="text-xs whitespace-nowrap"
+                            className="text-xs px-2 py-0.5 whitespace-nowrap hover:bg-destructive/90"
                           >
                             {classBasedAbsentees[cls._id].length}
                           </Badge>
                         </div>
                       ) : (
                         <div className="flex justify-center">
-                          <span className="text-muted-foreground text-sm">
+                          <span className="text-muted-foreground text-xs md:text-sm">
                             {isAttendanceMarked(cls._id) ? "0" : "-"}
                           </span>
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="w-16 text-center px-4">
+                    <TableCell className="w-9 sm:w-12 text-center px-0.5 sm:px-1 py-3 sm:py-4 align-middle">
                       {isAttendanceMarked(cls._id) && (
-                        <LiteraryWhatsAppAction rowData={{ absentees: classBasedAbsentees[cls._id] || [], category: apiCategory, date: formattedDate, dateForDisplay: date, sessionLabel: selectedCategory }} groups={groups} />
+                        <LiteraryWhatsAppAction rowData={{ absentees: classBasedAbsentees[cls._id] || [], category: apiCategory, date: formattedDate, dateForDisplay: date, sessionLabel: selectedCategory }} groups={groups} classes={classes} />
                       )}
                     </TableCell>
-                    <TableCell className="w-16 text-center px-4">
+                    <TableCell className="w-9 sm:w-12 text-center px-0.5 sm:px-1 py-3 sm:py-4 align-middle">
                       {isAttendanceMarked(cls._id) && (
-                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => {
+                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8 mx-auto" onClick={(e) => {
                           e.stopPropagation();
                           const attRecord = attendanceData.find(att => att.classId === cls._id && att.category === apiCategory);
                           setPerformanceSlot({ classId: cls._id, className: cls.name, subjectId: { name: `Literary - ${apiCategory}` }, isGroup: false });
@@ -592,95 +614,90 @@ const LiteraryAttendance = ({
                         </Button>
                       )}
                     </TableCell>
-                    <TableCell></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        </TabsContent>
-
-        <TabsContent value="group">
+        ) : isLiterary && activeTab === "group" ? (
           <div className="overflow-x-auto border rounded-md">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Group</TableHead>
-                  <TableHead className="text-center w-24">Absent</TableHead>
-                  <TableHead className="w-12 text-center px-1">
+                  <TableHead className="px-3 sm:px-4">Group</TableHead>
+                  <TableHead className="text-center w-12 sm:w-16 px-1">Absent</TableHead>
+                  <TableHead className="w-9 sm:w-12 text-center px-0.5 sm:px-1">
                     {hasMarkedAttendanceGroup && (
                       <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === "GROUP")} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} sessionLabel={selectedCategory} />
                     )}
                   </TableHead>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead className="w-full"></TableHead>
+                  <TableHead className="w-9 sm:w-12 text-center px-0.5 sm:px-1"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {groups.map((group) => (
                   <TableRow
                     key={group._id}
-                    className="hover:bg-accent/50 cursor-pointer"
+                    className="hover:bg-accent/50 cursor-pointer h-16 md:h-20 transition-colors"
                     onClick={() =>
                       router.push(
                         `/dashboard/literary-attendance/mark-attendance?groupId=${group?._id}&groupName=${group?.name}&category=GROUP&apiKey=${apiKey}&date=${formattedDate}&day=${today}`
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap px-4">
-                      <div className="text-xs md:text-base">{group?.name}</div>
+                    <TableCell className="px-3 sm:px-4 py-3 sm:py-4 min-w-0">
+                      <div className="text-sm md:text-base font-semibold truncate">{group?.name}</div>
                       {group.leaderName && (
-                        <div className="text-xxs text-muted-foreground mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate">
                           Leader: {group.leaderName}
                         </div>
                       )}
                       {group.assistantLeaderName && (
-                        <div className="text-xxs text-muted-foreground mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate">
                           Asst Leader: {group.assistantLeaderName}
                         </div>
                       )}
                       {isAttendanceMarked(group._id) && (
-                        <div className="flex items-center gap-1 text-xxs text-muted-foreground mt-0.5">
-                          <CheckCircle2 className="text-green-500 h-3 w-3" />
-                          <span>Attendance Marked</span>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                          <CheckCircle2 className="text-green-500 h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">Attendance Marked</span>
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="w-24 px-4">
+                    <TableCell className="w-12 sm:w-16 text-center px-1 py-3 sm:py-4 align-middle">
                       {groupBasedAbsentees[group._id] &&
                         groupBasedAbsentees[group._id].length > 0 ? (
                         <div
-                          className={`flex items-center mx-auto max-w-fit gap-2 rounded-full px-2 py-1 border hover:bg-muted transition-colors`}
+                          className="flex items-center justify-center mx-auto cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             setAbsenteesDialogOpen(true);
                             setSelectedGroupId(group._id);
                           }}
                         >
-                          <AlertTriangle className="text-red-500 h-4 w-4" />
                           <Badge
                             variant="destructive"
-                            className="text-xs whitespace-nowrap"
+                            className="text-xs px-2 py-0.5 whitespace-nowrap hover:bg-destructive/90"
                           >
                             {groupBasedAbsentees[group._id].length}
                           </Badge>
                         </div>
                       ) : (
                         <div className="flex justify-center">
-                          <span className="text-muted-foreground text-sm">
+                          <span className="text-muted-foreground text-xs md:text-sm">
                             {isAttendanceMarked(group._id) ? "0" : "-"}
                           </span>
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="w-12 text-center px-1">
+                    <TableCell className="w-9 sm:w-12 text-center px-0.5 sm:px-1 py-3 sm:py-4 align-middle">
                       {isAttendanceMarked(group._id) && (
-                        <LiteraryWhatsAppAction rowData={{ absentees: groupBasedAbsentees[group._id] || [], category: "GROUP", date: formattedDate, dateForDisplay: date, sessionLabel: selectedCategory }} groups={groups} />
+                        <LiteraryWhatsAppAction rowData={{ absentees: groupBasedAbsentees[group._id] || [], category: "GROUP", date: formattedDate, dateForDisplay: date, sessionLabel: selectedCategory }} groups={groups} classes={classes} />
                       )}
                     </TableCell>
-                    <TableCell className="w-12 text-center px-1">
+                    <TableCell className="w-9 sm:w-12 text-center px-0.5 sm:px-1 py-3 sm:py-4 align-middle">
                       {isAttendanceMarked(group._id) && (
-                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => {
+                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8 mx-auto" onClick={(e) => {
                           e.stopPropagation();
                           const attRecord = attendanceData.find(att => att.groupId === group._id && att.category === "GROUP");
                           setPerformanceSlot({ classId: group._id, className: group.name, subjectId: { name: `Literary - Group` }, isGroup: true });
@@ -691,38 +708,40 @@ const LiteraryAttendance = ({
                         </Button>
                       )}
                     </TableCell>
-                    <TableCell></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        </TabsContent>
-      </Tabs>
+        ) : isLiterary && !activeTab ? (
+          <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground text-sm">
+            Please select <span className="font-semibold text-foreground">General</span> or <span className="font-semibold text-foreground">Group</span> from the dropdown above to view attendance.
+          </div>
+        ) : null}
 
-      <AbsenteesDialog
-        open={absenteesDialogOpen}
-        setOpen={setAbsenteesDialogOpen}
-        date={date}
-        absentees={
-          activeTab === "all"
-            ? classBasedAbsentees[selectedClassId] || []
-            : groupBasedAbsentees[selectedGroupId] || []
-        }
-      />
+        <AbsenteesDialog
+          open={absenteesDialogOpen}
+          setOpen={setAbsenteesDialogOpen}
+          date={date}
+          absentees={
+            (!isLiterary || activeTab === "all")
+              ? classBasedAbsentees[selectedClassId] || []
+              : groupBasedAbsentees[selectedGroupId] || []
+          }
+        />
 
-      <ClassPerformanceModal
-        open={performanceModalOpen}
-        onOpenChange={setPerformanceModalOpen}
-        slot={performanceSlot}
-        attendanceRecord={performanceAttendanceRecord}
-        apiKey={apiKey}
-        defaultComment={performanceSlot?.isGroup ? "Literary Performance - GROUP" : `Literary Performance - ${apiCategory}`}
-        title="Literary Performance"
-        subtitle={performanceSlot?.isGroup ? `Group: ${performanceSlot?.className}` : `Class: ${performanceSlot?.className}`}
-      />
-    </div>
-  );
+        <ClassPerformanceModal
+          open={performanceModalOpen}
+          onOpenChange={setPerformanceModalOpen}
+          slot={performanceSlot}
+          attendanceRecord={performanceAttendanceRecord}
+          apiKey={apiKey}
+          defaultComment={performanceSlot?.isGroup ? "Literary Performance - GROUP" : `Literary Performance - ${apiCategory}`}
+          title="Literary Performance"
+          subtitle={performanceSlot?.isGroup ? `Group: ${performanceSlot?.className}` : `Class: ${performanceSlot?.className}`}
+        />
+      </div>
+      );
 };
 
-export default LiteraryAttendance;
+      export default LiteraryAttendance;

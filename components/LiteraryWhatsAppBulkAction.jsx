@@ -35,6 +35,22 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
     staleTime: 1000 * 60 * 10,
   });
 
+  const getClassShortName = (s) => {
+    if (s.classShortName) return s.classShortName;
+    if (classes && classes.length > 0) {
+      const cls = classes.find(
+        (c) =>
+          (s.classId && String(c._id) === String(s.classId)) ||
+          (s.className &&
+            (c.name?.toLowerCase() === s.className.toLowerCase() ||
+              c.shortname?.toLowerCase() === s.className.toLowerCase()))
+      );
+      if (cls?.shortname) return cls.shortname;
+      if (cls?.name) return cls.name;
+    }
+    return s.className || "Unknown Class";
+  };
+
   const handleOpen = (e) => {
     e.stopPropagation();
     setOpen(true);
@@ -156,7 +172,8 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
         message += `*${groupName}*\n`;
         const uniqueStudents = Array.from(new Map(students.map(s => [s.studentId, s])).values());
         uniqueStudents.forEach((s, idx) => {
-          message += `${idx + 1}. ${s.studentName} (${s.className || "Unknown Class"})\n`;
+          const shortClass = getClassShortName(s);
+          message += `${idx + 1}. ${s.studentName} (${shortClass})\n`;
         });
         message += `\n`;
       }
@@ -192,10 +209,10 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
               </div>
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-base md:text-lg font-bold m-0 text-foreground">
-                  Select Teacher to Send Absentees List
+                  Select Teacher
                 </DialogTitle>
                 <DialogDescription className="m-0 text-xs text-muted-foreground">
-                  Choose a teacher to share absentees via WhatsApp
+                  Choose a teacher to share absentees list.
                 </DialogDescription>
               </div>
               <DialogClose

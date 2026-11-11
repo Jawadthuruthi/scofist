@@ -764,20 +764,22 @@ const LiteraryAttendance = () => {
                     return (
                       <TableRow
                         key={student._id}
-                        className={rowClass}
+                        className={cn(rowClass, "h-16 md:h-18 transition-colors select-none")}
                         onClick={() => toggleAttendance(student._id)}
                       >
-                        <TableCell className="align-middle">{originalIndex}</TableCell>
-                        <TableCell>
+                        <TableCell className="align-middle font-medium text-xs md:text-sm pl-4 py-3.5 md:py-4 w-10">
+                          {originalIndex}
+                        </TableCell>
+                        <TableCell className="py-3.5 md:py-4 px-2">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8 shrink-0">
+                            <Avatar className="h-9 w-9 shrink-0">
                               <AvatarImage src={student.profilePic?.url} />
                               <AvatarFallback className="text-xs font-semibold">
                                 {student.name?.substring(0, 1)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col justify-center min-w-0">
-                              <p className="font-medium text-xs">
+                              <p className="font-semibold text-xs md:text-sm">
                                 {student.name}{" "}
                                 {(!!queryParams.groupId &&
                                   groupLeaderId === student._id &&
@@ -787,7 +789,7 @@ const LiteraryAttendance = () => {
                                     "(Assistant Leader)") ||
                                   ""}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-[11px] md:text-xs text-muted-foreground mt-0.5">
                                 {student._id} {student?.className || (queryParams.category === "ALL" ? queryParams.className : "")}
                               </p>
                               {isOnLeave && (
@@ -801,7 +803,7 @@ const LiteraryAttendance = () => {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="w-[80px] md:w-[90px] text-center align-middle px-2">
+                        <TableCell className="w-[80px] md:w-[90px] text-center align-middle px-2 py-3.5 md:py-4">
                           <div className="flex justify-center items-center">
                             {hasAbsenceHistory && (
                               <AbsenteeStatus absenteeInfo={absenteeInfo} />

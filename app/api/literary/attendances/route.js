@@ -94,7 +94,7 @@ export async function GET(req, res) {
         select: ["name", "profilePic", "studentSpecificField.classId"],
         populate: {
           path: "studentSpecificField.classId",
-          select: "name"
+          select: "name shortname"
         }
       });
 
@@ -114,7 +114,8 @@ export async function GET(req, res) {
           studentId: data.studentId._id,
           studentName: data.studentId.name,
           studentDetails: data.studentId,
-          className: data.studentId?.studentSpecificField?.classId?.name || (attendance.classId?.name || "—")
+          className: data.studentId?.studentSpecificField?.classId?.name || (attendance.classId?.name || "—"),
+          classShortName: data.studentId?.studentSpecificField?.classId?.shortname || data.studentId?.studentSpecificField?.classId?.name || (attendance.classId?.shortname || attendance.classId?.name || "—")
         })),
       };
     });
@@ -134,6 +135,7 @@ export async function GET(req, res) {
               studentId: student.studentId,
               studentName: student.studentName,
               className: student.className,
+              classShortName: student.classShortName,
               classId: attendance.classId || undefined,
               groupId: attendance.groupId || undefined,
               category: attendance.category,
@@ -231,6 +233,7 @@ export async function GET(req, res) {
               studentId: student.studentId,
               studentName: student.studentName,
               className: student.className || att.classDetails?.name || att.classId?.name || (att.groupDetails?.name || att.groupId?.name ? `${att.groupDetails?.name || att.groupId?.name}` : "—"),
+              classShortName: student.classShortName || att.classDetails?.shortname || att.classId?.shortname || student.className || att.classDetails?.name || att.classId?.name || (att.groupDetails?.name || att.groupId?.name ? `${att.groupDetails?.name || att.groupId?.name}` : "—"),
               groupName: att.groupDetails?.name || att.groupId?.name,
               category: att.category,
               date: historyItem.date,
