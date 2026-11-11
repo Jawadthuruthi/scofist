@@ -249,109 +249,132 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
           {renderThemeToggle()}
         </Button>
 
-        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="User menu" className="rounded-full overflow-hidden">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
-                <AvatarFallback className="bg-transparent">
-                  <User className="w-5 h-5" />
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-72 p-0 rounded-xl mr-4 mt-4 overflow-hidden"
-            onPointerDownOutside={(e) => {
-              if (
-                e.target?.closest?.("[data-radix-select-viewport]") ||
-                e.target?.closest?.("[role='listbox']") ||
-                e.target?.closest?.("[data-radix-popper-content-wrapper]")
-              ) {
-                e.preventDefault();
-              }
-            }}
-          >
-            <Card className="border-none shadow-none">
-              <CardHeader className="flex flex-row items-center justify-center gap-3 pb-6 border-b bg-muted/30 space-y-0 text-center">
-                {institution?.logo?.url && (
-                  <img
-                    src={institution.logo.url}
-                    alt="Institution Logo"
-                    className="h-11 w-auto object-contain shrink-0"
-                  />
-                )}
-                <div className="text-center">
-                  <p className="text-sm font-black tracking-tight leading-tight text-foreground text-center">
-                    {institution?.name === "Sa-adiya College of Integrated Studies" ? (
-                      <>
-                        Sa-adiya College of <br /> Integrated Studies
-                      </>
-                    ) : (
-                      institution?.name || "Institution"
-                    )}
-                  </p>
-                </div>
-              </CardHeader>
-              <CardHeader className="flex flex-col items-center justify-center text-center pt-6 pb-2 space-y-2">
-                <Avatar className="h-16 w-16 border-2 border-primary/10">
+        {mounted ? (
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="User menu"
+                className="rounded-full overflow-hidden"
+                suppressHydrationWarning
+              >
+                <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
-                  <AvatarFallback className="bg-primary/5 text-primary font-bold text-lg">
-                    {user?.name?.charAt(0) || "U"}
+                  <AvatarFallback className="bg-transparent">
+                    <User className="w-5 h-5" />
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col items-center justify-center text-center overflow-hidden w-full">
-                  <CardTitle className="text-base font-semibold truncate max-w-full text-center">
-                    {user?.name || "User"}
-                  </CardTitle>
-                  <CardDescription className="text-xs truncate max-w-full text-center text-muted-foreground mt-0.5">
-                    {user?.email || ""}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardFooter className="flex-col gap-2">
-                {filteredRoles.length > 0 && (
-                  <div className="w-full">
-                    <Select
-                      value={effectiveRole || filteredRoles[0]}
-                      onValueChange={handleRoleChange}
-                    >
-                      <SelectTrigger className="w-full pl-7 pr-3 [&>span]:flex-1 [&>span]:text-center">
-                        <SelectValue placeholder="Select role..." />
-                      </SelectTrigger>
-                      <SelectContent className="z-[99999]">
-                        {filteredRoles.map((r) => (
-                          <SelectItem key={r} value={r} className="justify-center text-center">
-                            {r}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-72 p-0 rounded-xl mr-4 mt-4 overflow-hidden"
+              onPointerDownOutside={(e) => {
+                if (
+                  e.target?.closest?.("[data-radix-select-viewport]") ||
+                  e.target?.closest?.("[role='listbox']") ||
+                  e.target?.closest?.("[data-radix-popper-content-wrapper]")
+                ) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              <Card className="border-none shadow-none">
+                <CardHeader className="flex flex-row items-center justify-center gap-3 pb-6 border-b bg-muted/30 space-y-0 text-center">
+                  {institution?.logo?.url && (
+                    <img
+                      src={institution.logo.url}
+                      alt="Institution Logo"
+                      className="h-11 w-auto object-contain shrink-0"
+                    />
+                  )}
+                  <div className="text-center">
+                    <p className="text-sm font-black tracking-tight leading-tight text-foreground text-center">
+                      {institution?.name === "Sa-adiya College of Integrated Studies" ? (
+                        <>
+                          Sa-adiya College of <br /> Integrated Studies
+                        </>
+                      ) : (
+                        institution?.name || "Institution"
+                      )}
+                    </p>
                   </div>
-                )}
-                {canEditProfile && (
+                </CardHeader>
+                <CardHeader className="flex flex-col items-center justify-center text-center pt-6 pb-2 space-y-2">
+                  <Avatar className="h-16 w-16 border-2 border-primary/10">
+                    <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
+                    <AvatarFallback className="bg-primary/5 text-primary font-bold text-lg">
+                      {user?.name?.charAt(0) || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-center justify-center text-center overflow-hidden w-full">
+                    <CardTitle className="text-base font-semibold truncate max-w-full text-center">
+                      {user?.name || "User"}
+                    </CardTitle>
+                    <CardDescription className="text-xs truncate max-w-full text-center text-muted-foreground mt-0.5">
+                      {user?.email || ""}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardFooter className="flex-col gap-2">
+                  {filteredRoles.length > 0 && (
+                    <div className="w-full">
+                      <Select
+                        value={effectiveRole || filteredRoles[0]}
+                        onValueChange={handleRoleChange}
+                      >
+                        <SelectTrigger className="w-full pl-7 pr-3 [&>span]:flex-1 [&>span]:text-center">
+                          <SelectValue placeholder="Select role..." />
+                        </SelectTrigger>
+                        <SelectContent className="z-[99999]">
+                          {filteredRoles.map((r) => (
+                            <SelectItem key={r} value={r} className="justify-center text-center">
+                              {r}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {canEditProfile && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setIsPopoverOpen(false);
+                        setIsEditModalOpen(true);
+                      }}
+                    >
+                      Edit Profile
+                    </Button>
+                  )}
                   <Button
-                    variant="outline"
+                    variant={canEditProfile ? "default" : "outline"}
                     className="w-full"
-                    onClick={() => {
-                      setIsPopoverOpen(false);
-                      setIsEditModalOpen(true);
-                    }}
+                    onClick={handleLogout}
                   >
-                    Edit Profile
+                    Logout
                   </Button>
-                )}
-                <Button
-                  variant={canEditProfile ? "default" : "outline"}
-                  className="w-full"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </Button>
-              </CardFooter>
-            </Card>
-          </PopoverContent>
-        </Popover>
+                </CardFooter>
+              </Card>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="User menu"
+            className="rounded-full overflow-hidden"
+            suppressHydrationWarning
+          >
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
+              <AvatarFallback className="bg-transparent">
+                <User className="w-5 h-5" />
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        )}
       </div>
 
       {isTeacher && (

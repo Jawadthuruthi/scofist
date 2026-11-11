@@ -5,53 +5,6 @@ import { Button } from "@/components/ui/button";
 import { X, RefreshCw, AlertCircle, FlipHorizontal, Upload, Camera } from "lucide-react";
 import { toast } from "sonner";
 
-const parseCameraError = (err) => {
-    if (!err) return "Could not access camera.";
-    const errStr = typeof err === "string"
-        ? err
-        : `${err?.name || ""} ${err?.message || ""} ${String(err)}`;
-
-    if (errStr.includes("INSECURE_CONTEXT")) {
-        return "Camera access requires HTTPS or localhost. If you are using a local IP or network address, please use HTTPS.";
-    }
-    if (
-        errStr.includes("NotAllowedError") ||
-        errStr.includes("PermissionDeniedError") ||
-        errStr.includes("permission") ||
-        errStr.includes("denied") ||
-        errStr.includes("Permission dismissed")
-    ) {
-        return "Camera permission was denied. Please allow camera permissions in your browser address bar.";
-    }
-    if (
-        errStr.includes("NotFoundError") ||
-        errStr.includes("DevicesNotFoundError") ||
-        errStr.includes("No camera") ||
-        errStr.includes("no camera") ||
-        errStr.includes("requested device not found")
-    ) {
-        return "No camera found on this device. You can upload an image of the barcode below.";
-    }
-    if (
-        errStr.includes("NotReadableError") ||
-        errStr.includes("TrackStartError") ||
-        errStr.includes("could not start video source") ||
-        errStr.includes("in use")
-    ) {
-        return "Camera is currently in use by another application or browser tab.";
-    }
-    if (
-        errStr.includes("MEDIA_DEVICES_UNSUPPORTED") ||
-        errStr.includes("Camera streaming not supported")
-    ) {
-        return "Your browser does not support camera capture. Please try an updated browser like Chrome or Safari.";
-    }
-    if (errStr.includes("OverconstrainedError")) {
-        return "Camera format not supported by your camera hardware. Try uploading a photo instead.";
-    }
-    return `Could not access camera. You can try uploading a photo of the barcode instead.`;
-};
-
 const BarcodeScanner = ({ onScan, onClose, onError }) => {
     const [isScanning, setIsScanning] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -64,65 +17,33 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
 
     const scannerRef = useRef(null);
     const isMountedRef = useRef(true);
-    const isStartingRef = useRef(false);
     const fileInputRef = useRef(null);
     const readerIdRef = useRef(`barcode-reader-${Math.random().toString(36).substring(2, 9)}`);
     const readerId = readerIdRef.current;
 
-    const onScanRef = useRef(onScan);
-    const onCloseRef = useRef(onClose);
-    const onErrorRef = useRef(onError);
-
-    useEffect(() => {
-        onScanRef.current = onScan;
-        onCloseRef.current = onClose;
-        onErrorRef.current = onError;
-    });
-
     // Safely stop and clear any running scanner instance
     const cleanupScanner = useCallback(async () => {
         const scanner = scannerRef.current;
-        if (scanner) {
-            try {
-                // Check state: 2 = SCANNING, 3 = PAUSED
-                const state = typeof scanner.getState === "function" ? scanner.getState() : (scanner.isScanning ? 2 : 1);
-                if (state === 2 || state === 3) {
-                    await scanner.stop();
-                }
-            } catch (err) {
-                console.warn("BarcodeScanner: non-critical error stopping scanner:", err);
-            }
+        if (!scanner) return;
 
-            try {
-                await scanner.clear();
-            } catch (err) {
-                console.warn("BarcodeScanner: non-critical error clearing scanner:", err);
-            } finally {
-                scannerRef.current = null;
+        try {
+            // Check state: 2 = SCANNING, 3 = PAUSED
+            const state = typeof scanner.getState === "function" ? scanner.getState() : (scanner.isScanning ? 2 : 1);
+            if (state === 2 || state === 3) {
+                await scanner.stop();
             }
+        } catch (err) {
+            console.warn("BarcodeScanner: non-critical error stopping scanner:", err);
         }
 
-        // Clear any residual video tracks in DOM
-        if (typeof document !== "undefined") {
-            const el = document.getElementById(readerId);
-            if (el) {
-                const videos = el.querySelectorAll("video");
-                videos.forEach((video) => {
-                    if (video.srcObject && typeof video.srcObject.getTracks === "function") {
-                        video.srcObject.getTracks().forEach((track) => {
-                            try {
-                                track.stop();
-                            } catch (e) {
-                                // ignore
-                            }
-                        });
-                        video.srcObject = null;
-                    }
-                });
-                el.innerHTML = "";
-            }
+        try {
+            await scanner.clear();
+        } catch (err) {
+            console.warn("BarcodeScanner: non-critical error clearing scanner:", err);
+        } finally {
+            scannerRef.current = null;
         }
-    }, [readerId]);
+    }, []);
 
     const waitForContainer = useCallback(async (maxAttempts = 20, delayMs = 100) => {
         for (let i = 0; i < maxAttempts; i++) {
@@ -136,12 +57,8 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
 
     const startScanner = useCallback(async (cameraIdToUse = null) => {
         if (!isMountedRef.current) return;
-        if (isStartingRef.current) return;
-        isStartingRef.current = true;
-
         setIsLoading(true);
         setErrorMsg("");
-        let lastError = null;
 
         try {
             // Verify secure context (HTTPS or localhost)
@@ -152,19 +69,11 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
                 setIsLocalhost(isLocal);
 
                 if (!isSecure && !isLocal) {
-                    const friendly = parseCameraError("INSECURE_CONTEXT");
-                    setErrorMsg(friendly);
-                    toast.error(friendly);
-                    onErrorRef.current?.(new Error("INSECURE_CONTEXT"));
-                    return;
+                    throw new Error("INSECURE_CONTEXT");
                 }
 
                 if (!navigator?.mediaDevices?.getUserMedia) {
-                    const friendly = parseCameraError("MEDIA_DEVICES_UNSUPPORTED");
-                    setErrorMsg(friendly);
-                    toast.error(friendly);
-                    onErrorRef.current?.(new Error("MEDIA_DEVICES_UNSUPPORTED"));
-                    return;
+                    throw new Error("MEDIA_DEVICES_UNSUPPORTED");
                 }
             }
 
@@ -175,8 +84,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             // Wait for dialog animation & container element to be ready
             const container = await waitForContainer();
             if (!container || !isMountedRef.current) {
-                console.warn("BarcodeScanner: container not found or unmounted");
-                return;
+                throw new Error("CONTAINER_NOT_FOUND");
             }
 
             const { Html5Qrcode } = await import("html5-qrcode");
@@ -190,38 +98,11 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             });
             scannerRef.current = scanner;
 
-            // Query available cameras
-            let availableCameras = [];
-            try {
-                availableCameras = await Html5Qrcode.getCameras();
-                if (isMountedRef.current && availableCameras?.length) {
-                    setCameras(availableCameras);
-                }
-            } catch (cameraErr) {
-                lastError = cameraErr;
-                console.warn("BarcodeScanner: could not enumerate cameras:", cameraErr);
-            }
-
-            // Determine camera source to use
-            let targetSource = cameraIdToUse;
-            if (!targetSource) {
-                if (availableCameras.length > 0) {
-                    // Prefer back/rear camera on mobile
-                    const rearCamera = availableCameras.find((cam) =>
-                        /back|rear|environment|macro/i.test(cam.label || "")
-                    );
-                    targetSource = rearCamera ? rearCamera.id : availableCameras[0].id;
-                }
-            }
-
-            if (targetSource && isMountedRef.current) {
-                setSelectedCameraId(targetSource);
-            }
-
             // Responsive QR and barcode scanning box calculation
             const config = {
                 fps: 15,
                 qrbox: (viewfinderWidth, viewfinderHeight) => {
+                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
                     const boxWidth = Math.max(Math.floor(viewfinderWidth * 0.8), 180);
                     const boxHeight = Math.max(Math.floor(boxWidth * 0.65), 140);
                     return {
@@ -234,9 +115,9 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             const onScanSuccess = (decodedText) => {
                 if (!isMountedRef.current) return;
                 try {
-                    onScanRef.current?.(decodedText);
+                    onScan(decodedText);
                 } catch (e) {
-                    console.error("BarcodeScanner: Error in onScan callback:", e);
+                    console.error("Error executing onScan callback:", e);
                 }
             };
 
@@ -244,71 +125,111 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
                 // Ignore per-frame non-match scan warnings
             };
 
-            // Attempt starting the camera with fallbacks
-            let started = false;
+            // Detect mobile vs desktop to choose the right initial camera
+            const isMobile = typeof navigator !== "undefined" && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || "");
+            const primaryMode = isMobile ? "environment" : "user";
+            const fallbackMode = isMobile ? "user" : "environment";
 
-            // Strategy 1: specific camera ID or environment mode
-            const firstAttemptConstraint = targetSource ? targetSource : { facingMode: "environment" };
+            let started = false;
+            const primaryConstraint = cameraIdToUse ? { deviceId: cameraIdToUse } : { facingMode: primaryMode };
+
+            // Strategy 1: Target primary camera (front webcam on laptop/PC, rear camera on mobile)
             try {
-                await scanner.start(firstAttemptConstraint, config, onScanSuccess, onScanError);
+                await scanner.start(primaryConstraint, config, onScanSuccess, onScanError);
                 started = true;
             } catch (firstErr) {
-                lastError = firstErr;
-                console.warn("BarcodeScanner: First start strategy failed, attempting fallback:", firstErr);
+                console.warn("First scanner start strategy failed, attempting fallback:", firstErr);
             }
 
-            // Strategy 2: user-facing camera fallback (for laptops / desktops / single front cam)
-            if (!started && isMountedRef.current) {
+            // Strategy 2: Alternate facing mode fallback
+            if (!started && isMountedRef.current && !cameraIdToUse) {
                 try {
-                    await scanner.start({ facingMode: "user" }, config, onScanSuccess, onScanError);
+                    await scanner.clear().catch(() => { });
+                    const fallbackScanner = new Html5Qrcode(readerId, {
+                        experimentalFeatures: {
+                            useBarCodeDetectorIfSupported: true,
+                        },
+                        verbose: false,
+                    });
+                    scannerRef.current = fallbackScanner;
+                    await fallbackScanner.start({ facingMode: fallbackMode }, config, onScanSuccess, onScanError);
                     started = true;
                 } catch (secondErr) {
-                    lastError = secondErr;
-                    console.warn("BarcodeScanner: Second start strategy failed, attempting fallback:", secondErr);
+                    console.warn("Second scanner start strategy failed:", secondErr);
                 }
             }
 
-            // Strategy 3: any available camera ID from devices list
-            if (!started && availableCameras.length > 0 && isMountedRef.current) {
+            // Strategy 3: Direct hardware device enumeration fallback
+            if (!started && isMountedRef.current && navigator?.mediaDevices?.enumerateDevices) {
                 try {
-                    await scanner.start(availableCameras[0].id, config, onScanSuccess, onScanError);
-                    started = true;
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter((d) => d.kind === "videoinput");
+                    if (videoDevices.length > 0) {
+                        await scanner.clear().catch(() => { });
+                        const fallbackScanner3 = new Html5Qrcode(readerId, {
+                            experimentalFeatures: {
+                                useBarCodeDetectorIfSupported: true,
+                            },
+                            verbose: false,
+                        });
+                        scannerRef.current = fallbackScanner3;
+                        await fallbackScanner3.start({ deviceId: videoDevices[0].deviceId }, config, onScanSuccess, onScanError);
+                        started = true;
+                    }
                 } catch (thirdErr) {
-                    lastError = thirdErr;
-                    console.warn("BarcodeScanner: Third start strategy failed:", thirdErr);
+                    console.warn("Third scanner start strategy failed:", thirdErr);
                 }
             }
 
             if (!started) {
-                if (!isMountedRef.current) return;
-                setIsScanning(false);
-                setIsLoading(false);
-
-                const friendlyError = parseCameraError(lastError);
-                setErrorMsg(friendlyError);
-                toast.error(friendlyError);
-                onErrorRef.current?.(lastError || new Error(friendlyError));
-                return;
+                throw new Error("CAMERA_START_FAILED");
             }
 
             if (isMountedRef.current) {
                 setIsScanning(true);
                 setIsLoading(false);
             }
+
+            // Query and populate available cameras in background without blocking start
+            if (navigator?.mediaDevices?.enumerateDevices) {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices
+                        .filter((d) => d.kind === "videoinput")
+                        .map((d) => ({ id: d.deviceId, label: d.label || `Camera ${d.deviceId.slice(0, 5)}` }));
+                    if (isMountedRef.current && videoDevices.length) {
+                        setCameras(videoDevices);
+                    }
+                } catch (_) { }
+            }
         } catch (err) {
             if (!isMountedRef.current) return;
-            console.warn("BarcodeScanner: Error during startScanner:", err);
+            console.warn("BarcodeScanner: scanner could not start:", err);
             setIsScanning(false);
             setIsLoading(false);
 
-            const friendlyError = parseCameraError(err || lastError);
+            const errStr = typeof err === "string" ? err : (err?.message || err?.name || String(err));
+            let friendlyError = "Could not access camera.";
+
+            if (errStr.includes("INSECURE_CONTEXT")) {
+                friendlyError = "Camera access requires HTTPS or localhost. If you are using a local IP or network address, please use HTTPS.";
+            } else if (errStr.includes("NotAllowedError") || errStr.includes("PermissionDeniedError") || errStr.includes("permission") || errStr.includes("denied")) {
+                friendlyError = "Camera permission was denied. Please allow camera permissions in your browser address bar.";
+            } else if (errStr.includes("NotFoundError") || errStr.includes("DevicesNotFoundError") || errStr.includes("No camera")) {
+                friendlyError = "No camera found on this device. You can upload an image of the barcode below.";
+            } else if (errStr.includes("NotReadableError") || errStr.includes("TrackStartError")) {
+                friendlyError = "Camera is currently in use by another application or browser tab.";
+            } else if (errStr.includes("MEDIA_DEVICES_UNSUPPORTED")) {
+                friendlyError = "Your browser does not support camera capture. Please try an updated browser like Chrome or Safari.";
+            } else if (errStr.includes("OverconstrainedError")) {
+                friendlyError = "Camera format not supported by your camera hardware. Try uploading a photo instead.";
+            }
+
             setErrorMsg(friendlyError);
             toast.error(friendlyError);
-            onErrorRef.current?.(err || new Error(friendlyError));
-        } finally {
-            isStartingRef.current = false;
+            onError?.(err);
         }
-    }, [readerId, cleanupScanner, waitForContainer]);
+    }, [readerId, cleanupScanner, onScan, onError, waitForContainer]);
 
     // Switch between front/back or other detected cameras
     const handleSwitchCamera = async () => {
@@ -327,15 +248,17 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
 
         setIsProcessingFile(true);
         try {
-            await cleanupScanner();
-            const { Html5Qrcode } = await import("html5-qrcode");
-            const fileScanner = new Html5Qrcode(readerId, { verbose: false });
-            scannerRef.current = fileScanner;
+            let scanner = scannerRef.current;
+            if (!scanner) {
+                const { Html5Qrcode } = await import("html5-qrcode");
+                scanner = new Html5Qrcode(readerId, { verbose: false });
+                scannerRef.current = scanner;
+            }
 
-            const decodedText = await fileScanner.scanFile(file, true);
+            const decodedText = await scanner.scanFile(file, true);
             if (decodedText) {
                 toast.success("Barcode successfully scanned from image!");
-                onScanRef.current?.(decodedText);
+                onScan(decodedText);
             }
         } catch (fileErr) {
             console.error("File scan failed:", fileErr);
@@ -360,7 +283,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
 
     const handleStop = async () => {
         await cleanupScanner();
-        onCloseRef.current?.();
+        onClose?.();
     };
 
     return (
@@ -473,3 +396,4 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
 };
 
 export default BarcodeScanner;
+
