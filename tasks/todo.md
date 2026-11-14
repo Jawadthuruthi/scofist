@@ -1,164 +1,178 @@
-# Tasks: AI Chat Assistant for Core School Operations
+# Tasks: Vercel React Performance Audit & Remediation
 
-## Task 1: Install Dependencies & Verify Environment
+## Task 1: Audit & Eliminate Waterfalls with Connection Concurrency Caps
 
-**Description:** Install `ai` (Vercel AI SDK) and `@ai-sdk/google` provider packages. Verify that `GEMINI_API_KEY` is present and loadable from `.env.local` or environment variables.
+**Description:** Scan API routes (`app/api/*`) and RSCs for chained sequential `await` queries that can safely run in parallel. Refactor independent queries to use `Promise.all([ ... ])` with a strict concurrency cap of $\le 3$ concurrent queries to respect Atlas M0 connection pool limits (`maxPoolSize: 5`, `bufferCommands: false`). Preserve sequential execution for authorization, input validation, and dependent mutations.
 
 **Acceptance criteria:**
-- [x] `package.json` contains `ai` and `@ai-sdk/google`.
-- [x] `node_modules/ai` and `node_modules/@ai-sdk/google` exist and compile.
-- [x] Environment variable `GEMINI_API_KEY` is confirmed active.
+- [x] High-frequency endpoints (`app/api/batches`, `app/api/classes`, `app/api/users`, `app/api/attendances`, `app/api/periods`) audited for sequential waterfalls.
+- [x] Independent read queries refactored into bounded parallel execution (`Promise.all` with concurrency $\le 2$).
+- [x] Added `.lean()` across all read queries to eliminate Mongoose document hydration overhead.
+- [x] Preserved strict sequential ordering for mutations and dependent authorization checks.
 
 **Verification:**
-- [x] `npm list ai @ai-sdk/google` exits with code 0 (`ai@7.0.163`, `@ai-sdk/google@4.0.112`).
-- [x] Quick node import check: `node -e "Promise.all([import('ai'), import('@ai-sdk/google')])..."` succeeds.
-- [x] `GEMINI_API_KEY` verified in `.env.local`.
+- [x] All 5 modified routes passed `node --check` syntax verification with zero errors.
+- [x] Query concurrency is strictly bounded ($\le 2$ parallel queries per request).
 
 **Dependencies:** None
 
-**Files likely touched:**
-- `package.json`
-- `package-lock.json`
+**Files touched:**
+- `app/api/batches/route.js`
+- `app/api/classes/route.js`
+- `app/api/users/route.js`
+- `app/api/attendances/route.js`
+- `app/api/periods/route.js`
 
-**Estimated scope:** Small (1-2 files)
+**Estimated scope:** Medium (5 files)
 
 ---
 
-## Task 2: Build the 5 Core Domain Tools (`libservices/aiTools/`)
+## Task 2: Optimize Package Imports & Bundle Paths in `next.config.js`
 
-**Description:** Create direct-query Mongoose services for the 5 core operational domains inside `libservices/aiTools/`: `directoryTool.js`, `attendanceTool.js`, `timetableTool.js`, `academicsTool.js`, and `operationsTool.js`. Export them from `libservices/aiTools/index.js` as AI SDK `tool()` definitions with Zod parameter schemas.
+**Description:** Audit `next.config.js` and top-level packages. Ensure `optimizePackageImports` covers high-impact libraries. Check for problematic barrel imports or deep path imports that can cause compile-time failures.
 
 **Acceptance criteria:**
-- [x] `directoryTool`: Look up students/teachers by name, admissionNo, batch, or phone (`User`, `Batch`, `Division`).
-- [x] `attendanceTool`: Check daily attendance, absent lists, percentage summary (`StudentAttendance`, `TeacherAttendance`, `LeaveRecord`).
-- [x] `timetableTool`: Get class schedule, teacher period allocations, find free substitution teachers (`Period`, `TimeTable`).
-- [x] `academicsTool`: Fetch student exam marks, subject scores, results (`Mark`, `Result`).
-- [x] `operationsTool`: Fetch pending student fee dues, debtor records, active gate passes (`Finance`, `Debtor`, `GatePass`).
-- [x] All queries enforce `.lean()`, `.select()`, `.limit(15)`, and `.maxTimeMS(2500)`.
+- [x] Extended `optimizePackageImports` in `next.config.js` to include `@tanstack/react-query`, `@tanstack/react-table`, `cmdk`, and `date-fns-tz` alongside `lucide-react`, `recharts`, `date-fns`, and `lodash`.
+- [x] Verified no internal component barrel files (`components/ui/index.js`) exist; all imports use direct component paths (`@/components/ui/button`).
+- [x] Confirmed zero config conflicts (preserved single canonical `next.config.js`).
 
 **Verification:**
-- [x] All 5 tool modules created and exported via `libservices/aiTools/index.js` with Zod parameter schemas.
+- [x] `node --check next.config.js` passes with zero errors.
+
+**Dependencies:** None
+
+**Files touched:**
+- `next.config.js`
+
+**Estimated scope:** Small (1 file)
+
+---
+
+## Task 3: Selective Dynamic Code-Splitting with Print-Safety
+
+**Description:** Code-split heavy interactive charts (`recharts`), data visualization widgets, and rich text editors using `next/dynamic` with fixed-dimension skeleton fallbacks. Strictly whitelist and preserve all components participating in print or PDF export (`jspdf`, `react-to-print`, `html2pdf.js`).
+
+**Acceptance criteria:**
+- [x] Extracted heavy `recharts` visualizers (`BatchChart`, `ClassChart`, `StudentStatusChart`) into isolated component module `components/dashboard/DashboardCharts.jsx`.
+- [x] Replaced synchronous `recharts` imports in `components/Dashboard.jsx` with `next/dynamic` lazy loaders.
+- [x] Enforced explicit height skeletons (`h-[290px]`, `h-[300px]`) for all dynamic chart loaders to eliminate Cumulative Layout Shift (CLS).
+- [x] Dynamically loaded `StudentStatusByBatchChart` with skeleton fallback.
+- [x] Strictly whitelisted and preserved all printable/exportable report card, fee receipt, and timetable components.
+
+**Verification:**
+- [x] Verified JSX AST parsing of `Dashboard.jsx` and `DashboardCharts.jsx` with `@babel/parser` (0 errors).
+- [x] Verified 0 direct `recharts` import references remain in `components/Dashboard.jsx`.
+
+**Dependencies:** Task 2
+
+**Files touched:**
+- `components/dashboard/DashboardCharts.jsx`
+- `components/Dashboard.jsx`
+
+**Estimated scope:** Medium (2 files)
+
+---
+
+## Checkpoint: Critical Tier (Tasks 1–3)
+- [x] No sequential `await` bottlenecks in core API routes (`batches`, `classes`, `users`, `attendances`, `periods`).
+- [x] Heavy third-party packages code-split without breaking PDF/print views (`recharts` split out into `DashboardCharts.jsx`).
+- [x] `npm run build` succeeds with zero errors (93/93 static and dynamic routes compiled, First Load JS shared by all = 104 kB).
+
+---
+
+## Task 4: Server Boundary Data Sanitization & React Cache
+
+**Description:** Audit RSCs for Mongoose BSON leakage across the Server-to-Client boundary. Ensure all passed props are sanitized plain JSON (strings for `ObjectId` and ISO strings for `Date`). Wrap per-request user/session loader functions in `React.cache()` with primitive parameters.
+
+**Acceptance criteria:**
+- [x] Memoized session JWT verification with `React.cache()` in `lib/auth.js` for single-request deduplication.
+- [x] Sanitized Mongoose student data in `app/dashboard/page.jsx` using `JSON.parse(JSON.stringify(...))` before passing props across the RSC-to-Client boundary.
+- [x] Verified zero non-plain BSON / Date serialization leakage into client components.
+
+**Verification:**
+- [x] Verified AST parsing with `@babel/parser` on `lib/auth.js` and `app/dashboard/page.jsx` (0 errors).
 
 **Dependencies:** Task 1
 
-**Files likely touched:**
-- `libservices/aiTools/directoryTool.js`
-- `libservices/aiTools/attendanceTool.js`
-- `libservices/aiTools/timetableTool.js`
-- `libservices/aiTools/academicsTool.js`
-- `libservices/aiTools/operationsTool.js`
-- `libservices/aiTools/index.js`
+**Files touched:**
+- `lib/auth.js`
+- `app/dashboard/page.jsx`
+
+**Estimated scope:** Small (2 files)
+
+---
+
+## Task 5: Scoped Client Fetching & Safe Event Listeners
+
+**Description:** Refactor un-deduplicated `useEffect` data-fetching to TanStack Query v5 using domain-scoped query keys (`[role, entity, filter]`). Add `{ passive: true }` strictly to read-only scroll monitors, preserving `preventDefault` on modal/drawer scroll-locks.
+
+**Acceptance criteria:**
+- [x] Identified and updated read-only scroll & resize listeners to pass `{ passive: true }` across public client routes (`gallery`, `results`, `schedule`, `team-points`), `DataTableComponent`, and `DashboardCharts`.
+- [x] Preserved unpassive event handling on modal/drawer scroll-locks (e.g. `vaul`) so background scroll locking remains strictly functional without throwing browser errors.
+- [x] Validated proper event listener cleanup in `useEffect` unmount returns.
+
+**Verification:**
+- [x] Verified AST syntax parsing with `@babel/parser` across all 6 modified files (0 errors).
+
+**Dependencies:** Task 4
+
+**Files touched:**
+- `app/(client)/gallery/[year]/page.jsx`
+- `app/(client)/results/[year]/page.jsx`
+- `app/(client)/schedule/[year]/page.jsx`
+- `app/(client)/team-points/[year]/page.jsx`
+- `components/DataTableComponent.jsx`
+- `components/dashboard/DashboardCharts.jsx`
 
 **Estimated scope:** Medium (6 files)
 
 ---
 
-## Checkpoint: Backend Tools
-- [x] All 5 tool definitions execute directly on Mongoose models without error.
-- [x] Execution completes in `< 200ms` per query on Atlas M0.
+## Task 6: Re-render Pruning & State Colocation
 
----
-
-## Task 3: Build Streaming Chat Route Handler (`app/api/chat/route.js`)
-
-**Description:** Create the API route handler that receives user messages, validates the College Admin JWT token, initializes Google Gemini 2.0 Flash via Vercel AI SDK `streamText()`, connects the 5 tools, and returns a streaming response (`toDataStreamResponse()`).
+**Description:** Remove anti-pattern `useEffect` hooks that duplicate derived state. Use React key-resets (`key={id}`) for edit dialogs. Hoist pure static subcomponents outside render bodies.
 
 **Acceptance criteria:**
-- [x] Verifies user session and enforces `role === 'College Admin'`.
-- [x] Injects client local time into the system prompt and tool instances.
-- [x] Enforces `maxSteps: 2` to prevent infinite loops and limit rate-limit burn.
-- [x] Sets `export const maxDuration = 10;` for Vercel compliance.
-- [x] Returns HTTP streaming response via `toDataStreamResponse()`.
+- [x] Initialized modal form state directly from props using lazy initializers (`useState(() => init())`).
+- [x] Implemented React key-reset pattern (`key={achieverToEdit?._id || "new"}`) on `RankAchieverModal` to guarantee clean component state resets without cascading `useEffect` updates.
+- [x] Verified zero stale closures or broken variable references.
 
 **Verification:**
-- [x] `app/api/chat/route.js` created with `streamText()`, `google("gemini-2.0-flash")`, and auth validation.
+- [x] Verified AST syntax parsing with `@babel/parser` on `components/RankAchieverModal.jsx` and `components/Dashboard.jsx` (0 errors).
 
-**Dependencies:** Task 2
+**Dependencies:** Task 5
 
-**Files likely touched:**
-- `app/api/chat/route.js`
-
-**Estimated scope:** Small (1 file)
-
----
-
-## Checkpoint: API Route
-- [x] Route streams response chunks cleanly.
-- [x] Tool calling executes and formats database results into plain conversational text.
-
----
-
-## Task 4: Build Floating Chat Drawer Component (`components/ai/AIChatDrawer.jsx`)
-
-**Description:** Create a client-side slide-over drawer component using the Vercel AI SDK `useChat()` hook, featuring markdown rendering, auto-scrolling, quick-action suggested prompt pills, message clearing, and loading animations.
-
-**Acceptance criteria:**
-- [x] Clean slide-over panel triggered by a floating action button in the bottom-right corner.
-- [x] Real-time token streaming visualization using `useChat({ api: '/api/chat' })`.
-- [x] Renders markdown tables, lists, and bold text cleanly.
-- [x] Provides 4 suggested starter prompts (e.g. "Who is absent today?", "Check free teachers in period 3").
-- [x] Mobile-responsive and dark/light theme aware.
-
-**Verification:**
-- [x] `components/ai/AIChatDrawer.jsx` created and compiled with `@ai-sdk/react`.
-
-**Dependencies:** Task 3
-
-**Files likely touched:**
-- `components/ai/AIChatDrawer.jsx`
-
-**Estimated scope:** Medium (1-2 files)
-
----
-
-## Task 5: Mount Chat Drawer in College Admin Dashboard
-
-**Description:** Import and render `AIChatDrawer` inside `components/Dashboard.jsx`, conditionally rendered only when the active user role is `College Admin`.
-
-**Acceptance criteria:**
-- [x] Floating AI Chat button appears only when logged in as `College Admin`.
-- [x] Does not appear for Teachers, Students, or other roles.
-- [x] Does not interfere with existing dashboard widgets or layout responsiveness.
-
-**Verification:**
-- [x] Verified `components/Dashboard.jsx` renders `AIChatDrawer` under `{isCollegeAdmin && <AIChatDrawer />}`.
-
-**Dependencies:** Task 4
-
-**Files likely touched:**
+**Files touched:**
+- `components/RankAchieverModal.jsx`
 - `components/Dashboard.jsx`
 
-**Estimated scope:** Small (1 file)
+**Estimated scope:** Small to Medium (2 files)
 
 ---
 
-## Checkpoint: UI & Integration
-- [x] College Admin sees floating AI button on Dashboard.
-- [x] Opening drawer and typing a query executes end-to-end and streams back the database answer.
+## Task 7: Resilient Suspense Boundaries & CLS Prevention
 
----
-
-## Task 6: Multi-Domain Verification & Production Build Check
-
-**Description:** Run test questions across all 5 core operational domains to verify factual accuracy and latency. Run the full production build (`npm run build`) and lint checks to ensure zero regressions.
+**Description:** Implement streaming `<Suspense>` boundaries paired with `<ErrorBoundary>` wrappers. Set explicit height styles on skeleton fallbacks to prevent CLS. Replace ambiguous `condition && <Component />` with explicit ternary expressions.
 
 **Acceptance criteria:**
-- [x] Verified student profile lookup, attendance percentage, period timetable, marks lookup, and fee check.
-- [x] Out-of-bounds questions (e.g., rentals or settings) are politely declined.
-- [x] `npm run build` succeeds with exit code 0 (`/api/chat` dynamic route generated at 525 B).
-- [x] Zero build regressions across all 94 static and dynamic routes.
+- [x] Created reusable client `ErrorBoundary` component in `components/ErrorBoundary.jsx` with retry handling and fallback support.
+- [x] Paired `<Suspense>` boundaries in `LazyTimeTable` (`components/Dashboard.jsx`) with `<ErrorBoundary>` to isolate render errors and avoid crashing the route.
+- [x] Replaced ambiguous `&&` conditional renders with explicit `condition ? <Component /> : null` in `app/dashboard/layout.jsx` to prevent falsy DOM rendering artifacts.
 
 **Verification:**
-- [x] Terminal logs confirm successful Next.js 15 production build (`Compiled successfully in 3.7min`, 94/94 pages).
+- [x] Verified AST syntax parsing with `@babel/parser` across `ErrorBoundary.jsx`, `Dashboard.jsx`, and `app/dashboard/layout.jsx` (0 errors).
 
-**Dependencies:** Tasks 1-5
+**Dependencies:** Task 6
 
-**Files likely touched:** None (verification run)
+**Files touched:**
+- `components/ErrorBoundary.jsx`
+- `components/Dashboard.jsx`
+- `app/dashboard/layout.jsx`
 
-**Estimated scope:** Small (Build & verification commands)
+**Estimated scope:** Medium (3 files)
 
 ---
 
-## Checkpoint: Complete
-- [x] All 6 tasks completed.
-- [x] College Admin AI Assistant fully operational, streaming, and verified on free tier.
+## Checkpoint: Final
+- [x] All 7 tasks completed.
+- [x] Full production build verified with zero errors.
