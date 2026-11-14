@@ -9,8 +9,9 @@ export async function GET(req, res) {
 
     // Parse URL to get search params
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const hasLimit = url.searchParams.has("limit") && url.searchParams.get("limit") !== "0";
+    const limit = hasLimit ? Math.max(1, parseInt(url.searchParams.get("limit"), 10) || 20) : null;
+    const page = Math.max(0, parseInt(url.searchParams.get("page") || "0", 10));
 
     // Build filter object from query parameters
     const filterParams = {};
@@ -52,24 +53,29 @@ export async function GET(req, res) {
       query.endYear = filterParams.endYear;
     }
 
-    // Execute query with pagination
-    const batches = await Batch.find(query, projections)
-      .skip(page * limit)
-      .limit(limit)
+    // Execute query with clean pagination
+    let batchQuery = Batch.find(query, projections)
       .sort({ _id: 1 })
-      .collation({ locale: "en_US", numericOrdering: true });
-    // Get total count for pagination info
-    const total = await Batch.countDocuments(query);
+      .collation({ locale: "en_US", numericOrdering: true })
+      .lean();
+
+    if (hasLimit) {
+      batchQuery = batchQuery.skip(page * limit).limit(limit);
+    }
+
+    const [batches, total] = await Promise.all([
+      batchQuery,
+      Batch.countDocuments(query),
+    ]);
 
     return NextResponse.json(
       {
         batches,
         pagination: {
           page,
-          limit,
+          limit: limit || total,
           total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+          totalPages: limit ? Math.max(1, Math.ceil(total / limit)) : 1,
         },
         message: "Batches fetched successfully!",
       },

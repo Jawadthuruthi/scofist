@@ -201,10 +201,11 @@ export async function GET(req) {
         });
     }
 
-    const users = await usersQuery;
-
-    // Get total count for pagination info - use efficient counting
-    const total = await User.countDocuments(query);
+    // Execute users query and count in parallel (bounded concurrency <= 2)
+    const [users, total] = await Promise.all([
+      usersQuery,
+      User.countDocuments(query),
+    ]);
 
     // Optimize the data transformation to avoid deep cloning
     const formattedUsers = users.map((u) => {

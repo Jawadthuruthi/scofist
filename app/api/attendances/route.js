@@ -123,7 +123,11 @@ export async function GET(req, res) {
       });
     }
 
-    const attendances = await queryPromise;
+    // Execute query and count in parallel (bounded concurrency <= 2)
+    const [attendances, total] = await Promise.all([
+      queryPromise.lean(),
+      Attendance.countDocuments(query),
+    ]);
     const getStrId = (v) => (v?._id || v || "").toString();
 
     // Fetch leave records for these teachers/classes/periods on this date
@@ -354,8 +358,6 @@ export async function GET(req, res) {
       };
     }
 
-    // Get total count for pagination info
-    const total = await Attendance.countDocuments(query);
 
     return NextResponse.json(
       {

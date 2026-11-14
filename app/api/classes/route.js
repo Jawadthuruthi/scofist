@@ -61,7 +61,7 @@ export async function GET(req, res) {
       }
     }
 
-    // Execute query
+    // Execute query (count is directly derived from classes.length to save DB connections)
     const classes = await Class.find(query, projections)
       .populate("batchId", "name")
       .populate("teacherId", "name")
@@ -69,8 +69,7 @@ export async function GET(req, res) {
       .populate("majorSubjects", "name")
       .lean();
 
-    // Get total count for pagination info
-    const total = await Class.countDocuments(query);
+    const total = classes.length;
 
     const formattedClasses = classes.map((cls) => ({
       ...cls,

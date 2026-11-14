@@ -145,12 +145,14 @@ export async function GET(req) {
       }
     }
 
-    const periods = await Period.find(query)
-      .skip(page * limit)
-      .limit(limit)
-      .sort({ periodNumber: 1 });
-
-    const total = await Period.countDocuments(query);
+    const [periods, total] = await Promise.all([
+      Period.find(query)
+        .skip(page * limit)
+        .limit(limit)
+        .sort({ periodNumber: 1 })
+        .lean(),
+      Period.countDocuments(query),
+    ]);
 
     return NextResponse.json(
       {
