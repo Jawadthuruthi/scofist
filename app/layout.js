@@ -1,6 +1,7 @@
 import "./globals.css";
 import Providers from "@/components/Providers";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next";
 
 
 export const metadata = {
@@ -139,6 +140,7 @@ export default function RootLayout({ children }) {
       <body className="font-montserrat">
         <Providers>{children}</Providers>
         <Toaster duration={1000} />
+        <Analytics />
       </body>
     </html>
   );
