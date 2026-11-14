@@ -1,6 +1,14 @@
 import "./globals.css";
+import { Montserrat } from "next/font/google";
 import Providers from "@/components/Providers";
 import { Toaster } from "@/components/ui/sonner";
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-montserrat",
+  display: "swap",
+});
 
 
 export const metadata = {
@@ -135,8 +143,8 @@ export const structuredData = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="font-montserrat">
+    <html lang="en" className={montserrat.variable} suppressHydrationWarning>
+      <body className={`${montserrat.className} font-montserrat`}>
         <Providers>{children}</Providers>
         <Toaster duration={1000} />
       </body>

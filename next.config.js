@@ -69,12 +69,12 @@ const nextConfig = {
         value: [
           "default-src 'self'",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-          "font-src 'self' https://fonts.gstatic.com data:",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.cdnfonts.com https://*.cdnfonts.com",
+          "font-src 'self' https://fonts.gstatic.com https://fonts.cdnfonts.com https://*.cdnfonts.com data:",
           `img-src 'self' data: blob: https://res.cloudinary.com ${r2Sources}`,
           isDev
             ? `connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com ${r2Sources} ws: wss: http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*`
-            : `connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com ${r2Sources}`,
+            : `connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.cdnfonts.com ${r2Sources}`,
           `frame-src 'self' https://docs.google.com https://drive.google.com https://www.youtube.com https://www.youtube-nocookie.com https://res.cloudinary.com ${r2Sources} blob: data:`,
           "object-src 'self' blob: data:",
           "worker-src 'self' blob:",
