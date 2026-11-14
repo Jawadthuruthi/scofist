@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import StudentAttendance from "@/models/StudentAttendance";
 import Attendance from "@/models/Attendance";
 import LeaveRecord from "@/models/LeaveRecord";
+import { getPeriodTimeString } from "@/lib/utils";
 
 export async function GET(req) {
     try {
@@ -149,7 +150,7 @@ export async function GET(req) {
         const periods = await Period.find({});
         const periodTimeMap = {};
         periods.forEach(p => {
-            periodTimeMap[p.periodNumber] = p.formattedTime;
+            periodTimeMap[p.periodNumber] = p.formattedTime || getPeriodTimeString(p);
         });
 
         // Map to the dialog's expected shape

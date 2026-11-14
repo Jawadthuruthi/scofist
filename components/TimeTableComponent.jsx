@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import useCrud from "@/hooks/use-crud";
 import { useReactToPrint } from "react-to-print";
-import { DAYS, formatDateForDisplay, getISTDate, getISTDateString } from "@/lib/utils";
+import { DAYS, formatDateForDisplay, getISTDate, getISTDateString, getPeriodTimeString } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
@@ -906,7 +906,8 @@ const TimeTableComponent = ({
   const getPeriodTime = useCallback(
     (periodNumber) => {
       const period = periods.find((p) => p.periodNumber === periodNumber);
-      return period ? period.formattedTime : `Period ${periodNumber}`;
+      if (!period) return `Period ${periodNumber}`;
+      return getPeriodTimeString(period) || `Period ${periodNumber}`;
     },
     [periods]
   );

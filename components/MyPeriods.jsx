@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 // Hooks and Utils
-import { formatDate, formatDateForDisplay, cn, getISTDate, getWhatsAppUrl, openWhatsAppChat } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, cn, getISTDate, getWhatsAppUrl, openWhatsAppChat, getPeriodTimeString } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import { fetchItems } from "@/lib/api";
 import Header from "./Header";
@@ -1518,6 +1518,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                           <TableCell className="whitespace-nowrap w-32">
                             <div className="flex items-center gap-2">
                               {slot.periodDetails?.formattedTime ||
+                                getPeriodTimeString(slot.periodDetails) ||
                                 `Period ${slot.periodNumber}`}
                             </div>
                             {isAttendanceMarked(slot) && (

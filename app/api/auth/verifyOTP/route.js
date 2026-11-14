@@ -55,6 +55,9 @@ export async function POST(req) {
         email,
         roles: user.roles,
         name: user.name,
+        profilePic: user.profilePic?.url
+          ? { url: user.profilePic.url, publicId: user.profilePic.publicId }
+          : undefined,
         teacherSpecificField: user.teacherSpecificField?.status
           ? { status: user.teacherSpecificField.status }
           : undefined,

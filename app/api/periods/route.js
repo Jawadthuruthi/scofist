@@ -2,6 +2,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Period from "@/models/Period";
 import Settings from "@/models/Settings";
+import { getPeriodTimeString } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
@@ -145,7 +146,7 @@ export async function GET(req) {
       }
     }
 
-    const [periods, total] = await Promise.all([
+    const [rawPeriods, total] = await Promise.all([
       Period.find(query)
         .skip(page * limit)
         .limit(limit)
@@ -153,6 +154,11 @@ export async function GET(req) {
         .lean(),
       Period.countDocuments(query),
     ]);
+
+    const periods = rawPeriods.map((p) => ({
+      ...p,
+      formattedTime: p.formattedTime || getPeriodTimeString(p),
+    }));
 
     return NextResponse.json(
       {

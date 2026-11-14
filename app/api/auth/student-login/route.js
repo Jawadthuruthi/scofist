@@ -93,6 +93,9 @@ export async function POST(req) {
                 email: user.email,
                 roles: ["Student"],
                 name: user.name,
+                profilePic: user.profilePic?.url
+                    ? { url: user.profilePic.url, publicId: user.profilePic.publicId }
+                    : undefined,
                 studentSpecificField: user.studentSpecificField?.status
                     ? { status: user.studentSpecificField.status }
                     : undefined,

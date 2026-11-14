@@ -38,6 +38,44 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
   const [imageError, setImageError] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(user);
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUser((prev) => ({
+        ...prev,
+        ...user,
+        profilePic: user.profilePic || prev?.profilePic,
+      }));
+    }
+  }, [user]);
+
+  const profilePhotoUrl =
+    typeof currentUser?.profilePic === "string"
+      ? currentUser.profilePic
+      : currentUser?.profilePic?.url;
+
+  // If user profile picture is missing from initial JWT/header, fetch full profile from /api/users/profile
+  useEffect(() => {
+    const uid = currentUser?._id || currentUser?.userId || user?._id || user?.userId;
+    if (!profilePhotoUrl && uid) {
+      fetch("/api/users/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: uid }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.user?.profilePic) {
+            setCurrentUser((prev) => ({
+              ...prev,
+              ...data.user,
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentUser?._id, currentUser?.userId, user?._id, user?.userId, profilePhotoUrl]);
 
   useEffect(() => {
     if (initialFestival) {
@@ -260,7 +298,7 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
                 suppressHydrationWarning
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
+                  <AvatarImage src={profilePhotoUrl} alt={currentUser?.name || user?.name || "User"} className="object-cover" />
                   <AvatarFallback className="bg-transparent">
                     <User className="w-5 h-5" />
                   </AvatarFallback>
@@ -302,17 +340,17 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
                 </CardHeader>
                 <CardHeader className="flex flex-col items-center justify-center text-center pt-6 pb-2 space-y-2">
                   <Avatar className="h-16 w-16 border-2 border-primary/10">
-                    <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
+                    <AvatarImage src={profilePhotoUrl} alt={currentUser?.name || user?.name || "User"} className="object-cover" />
                     <AvatarFallback className="bg-primary/5 text-primary font-bold text-lg">
-                      {user?.name?.charAt(0) || "U"}
+                      {(currentUser?.name || user?.name)?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-center justify-center text-center overflow-hidden w-full">
                     <CardTitle className="text-base font-semibold truncate max-w-full text-center">
-                      {user?.name || "User"}
+                      {currentUser?.name || user?.name || "User"}
                     </CardTitle>
                     <CardDescription className="text-xs truncate max-w-full text-center text-muted-foreground mt-0.5">
-                      {user?.email || ""}
+                      {currentUser?.email || user?.email || ""}
                     </CardDescription>
                   </div>
                 </CardHeader>
@@ -368,7 +406,7 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
             suppressHydrationWarning
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
+              <AvatarImage src={profilePhotoUrl} alt={currentUser?.name || user?.name || "User"} className="object-cover" />
               <AvatarFallback className="bg-transparent">
                 <User className="w-5 h-5" />
               </AvatarFallback>

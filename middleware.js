@@ -775,6 +775,7 @@ async function handleApiRequest(req) {
           userId: payload.userId,
           roles: payloadRoles,
           name: payload.name || "User",
+          profilePic: payload.profilePic,
           teacherSpecificField: payload.teacherSpecificField,
           studentSpecificField: payload.studentSpecificField,
         };
@@ -822,6 +823,7 @@ async function handleApiRequest(req) {
         userId: resolvedUser?._id || payload.userId,
         roles: userRoles,
         name: resolvedUser?.name || payload.name || "User",
+        profilePic: resolvedUser?.profilePic || payload.profilePic,
       };
 
       const requestHeaders = new Headers(strippedHeaders);
@@ -976,6 +978,7 @@ function createFallbackUser(payload) {
     roles: payloadRoles,
     name: payload.name || "User",
     email: payload.email,
+    profilePic: payload.profilePic,
     teacherSpecificField: payload.teacherSpecificField,
     studentSpecificField: payload.studentSpecificField,
   };

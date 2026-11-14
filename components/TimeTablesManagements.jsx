@@ -56,7 +56,7 @@ import { Progress } from "./ui/progress"; // Import Progress component
 import { Label } from "./ui/label";
 
 // Hooks and Utils
-import { DAYS, parseDate, cn } from "@/lib/utils";
+import { DAYS, parseDate, cn, getPeriodTimeString } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import { useReactToPrint } from "react-to-print";
 import { Input } from "./ui/input";
@@ -828,7 +828,8 @@ const TimeTablesManagements = ({
   const getPeriodTime = useCallback(
     (periodNumber) => {
       const period = periods.find((p) => p.periodNumber === periodNumber);
-      return period ? period.formattedTime : `Period ${periodNumber}`;
+      if (!period) return `Period ${periodNumber}`;
+      return getPeriodTimeString(period) || `Period ${periodNumber}`;
     },
     [periods]
   );

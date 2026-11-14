@@ -42,7 +42,7 @@ import {
 
 // Hooks and Utils
 import useCrud from "@/hooks/use-crud";
-import { formatDate, formatDateForDisplay, cn, getWhatsAppUrl, openWhatsAppChat } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, cn, getWhatsAppUrl, openWhatsAppChat, getPeriodTimeString } from "@/lib/utils";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import Header from "./Header";
 import AbsenteeStatus from "./AbsenteeStatus";
@@ -1155,7 +1155,7 @@ const Attendance = ({ apiKey, teacherId }) => {
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span className="text-sm font-medium">
-              Period {periodNumber}: {periodDetails?.formattedTime}
+              Period {periodNumber}: {periodDetails?.formattedTime || getPeriodTimeString(periodDetails) || "-"}
             </span>
           </div>
         </div>

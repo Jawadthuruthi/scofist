@@ -7,6 +7,7 @@ import DailyTimetableSnapshot from "@/models/DailyTimetableSnapshot";
 import Settings from "@/models/Settings";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
+import { getPeriodTimeString } from "@/lib/utils";
 import { models } from "mongoose";
 
 // Helper to get consistent YYYY-MM-DD using IST
@@ -252,7 +253,7 @@ export async function GET(req) {
         const periods = await Period.find({}).lean();
         const periodTimeMap = {};
         periods.forEach(p => {
-            periodTimeMap[p.periodNumber] = p.formattedTime;
+            periodTimeMap[p.periodNumber] = p.formattedTime || getPeriodTimeString(p);
         });
 
         records.forEach(r => {
