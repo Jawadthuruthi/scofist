@@ -145,12 +145,20 @@ export async function GET(req) {
             });
         }
 
-        // ── Fetch Periods for timing information ─────────────────────────────
+        // ── Fetch Periods for timing information (lean query with field projection) ────
         const Period = (await import("@/models/Period")).default;
-        const periods = await Period.find({});
+        const periods = await Period.find({})
+            .select("periodNumber startTime endTime schedule formattedTime")
+            .lean();
+
         const periodTimeMap = {};
         periods.forEach(p => {
-            periodTimeMap[p.periodNumber] = p.formattedTime || getPeriodTimeString(p);
+            const timeStr = p.formattedTime || getPeriodTimeString(p);
+            const sched = (p.schedule || "normal").toLowerCase();
+            periodTimeMap[`${sched}_${p.periodNumber}`] = timeStr;
+            if (sched === "normal" || !periodTimeMap[p.periodNumber]) {
+                periodTimeMap[p.periodNumber] = timeStr;
+            }
         });
 
         // Map to the dialog's expected shape
@@ -164,13 +172,17 @@ export async function GET(req) {
             const trueStatus = trueStatusMap[key];
             const finalPresentStatus = trueStatus !== undefined ? trueStatus : r.present;
 
+            const recDate = new Date(r.date);
+            const isThursday = !isNaN(recDate.getTime()) && recDate.getDay() === 4;
+            const schedKey = isThursday ? `thursday_${r.periodNumber}` : `normal_${r.periodNumber}`;
+
             return {
                 date: r.date,
                 subjectName: r.subjectId?.name || "—",
                 teacherName: teacherMap[key] || "—",
                 className: r.classId?.name || "—",
                 periodNumber: r.periodNumber,
-                periodTime: periodTimeMap[r.periodNumber] || null,
+                periodTime: periodTimeMap[schedKey] || periodTimeMap[r.periodNumber] || null,
                 present: finalPresentStatus,
                 leaveReason: r.leaveReason || leaveReasonMap[dateKey] || null,
             };

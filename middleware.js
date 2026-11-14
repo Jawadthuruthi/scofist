@@ -827,7 +827,15 @@ async function handleApiRequest(req) {
       };
 
       const requestHeaders = new Headers(strippedHeaders);
-      requestHeaders.set("x-user", JSON.stringify(user));
+      try {
+        requestHeaders.set("x-user", JSON.stringify(user));
+      } catch {
+        try {
+          requestHeaders.set("x-user", encodeURIComponent(JSON.stringify(user)));
+        } catch (e) {
+          console.error("Error setting x-user in handleApiRequest:", e.message);
+        }
+      }
 
       // ✅ Validate active-role: only allow a role that actually belongs to the verified user's roles
       const verifiedActiveRole = (clientActiveRole && userRoles.includes(clientActiveRole))

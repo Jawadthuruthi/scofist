@@ -7,7 +7,50 @@ import { NextResponse } from "next/server";
 export async function POST(req, res) {
   try {
     await connectToDB();
-    const { userId } = await req.json();
+
+    const body = await req.json().catch(() => ({}));
+    const rawUserId = body?.userId;
+
+    if (!rawUserId || typeof rawUserId !== "string" || !rawUserId.trim()) {
+      return NextResponse.json({ message: "Invalid or missing userId" }, { status: 400 });
+    }
+
+    const userId = rawUserId.trim();
+
+    // Verify caller identity from trusted middleware headers or API key
+    let caller = null;
+    const userHeader = req.headers.get("x-user");
+    if (userHeader) {
+      try {
+        caller = JSON.parse(decodeURIComponent(userHeader));
+      } catch {
+        try {
+          caller = JSON.parse(userHeader);
+        } catch {}
+      }
+    }
+
+    const apiKey = req.headers.get("api-key") || req.headers.get("x-api-key");
+    const isApiKeyAuth = apiKey && apiKey === process.env.API_KEY;
+
+    if (!caller && !isApiKeyAuth) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    if (caller && !isApiKeyAuth) {
+      const callerId = String(caller._id || caller.userId || "").toLowerCase();
+      const callerEmail = String(caller.email || "").toLowerCase();
+      const requestedId = userId.toLowerCase();
+
+      const isSelf = callerId === requestedId || callerEmail === requestedId;
+      const isAdmin = Array.isArray(caller.roles) && caller.roles.some((r) =>
+        ["College Admin", "Org Admin", "Spark Admin"].includes(r)
+      );
+
+      if (!isSelf && !isAdmin) {
+        return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+      }
+    }
 
     let user = null;
     let customRoleNames = [];

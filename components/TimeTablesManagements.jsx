@@ -827,9 +827,9 @@ const TimeTablesManagements = ({
   // Helper to format period time
   const getPeriodTime = useCallback(
     (periodNumber) => {
-      const period = periods.find((p) => p.periodNumber === periodNumber);
-      if (!period) return `Period ${periodNumber}`;
-      return getPeriodTimeString(period) || `Period ${periodNumber}`;
+      const period = periods.find((p) => Number(p.periodNumber) === Number(periodNumber));
+      if (!period) return "";
+      return getPeriodTimeString(period);
     },
     [periods]
   );
@@ -1480,7 +1480,9 @@ const TimeTablesManagements = ({
                     className="text-center border border-border dark:border-zinc-700 font-bold whitespace-nowrap"
                   >
                     <div className="flex flex-col items-center text-xxs">
-                      <span>{getPeriodTime(period.periodNumber)}</span>
+                      {getPeriodTime(period.periodNumber) ? (
+                        <span>{getPeriodTime(period.periodNumber)}</span>
+                      ) : null}
                       <span className="text-xxs text-muted-foreground">
                         Period {period.periodNumber}
                       </span>

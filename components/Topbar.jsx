@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu, Moon, Sun, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "./ui/sidebar";
@@ -39,6 +39,7 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(user);
+  const hasFetchedProfileRef = useRef(false);
 
   useEffect(() => {
     if (user) {
@@ -55,10 +56,11 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
       ? currentUser.profilePic
       : currentUser?.profilePic?.url;
 
-  // If user profile picture is missing from initial JWT/header, fetch full profile from /api/users/profile
+  // If user profile picture is missing from initial JWT/header, fetch full profile from /api/users/profile once
   useEffect(() => {
     const uid = currentUser?._id || currentUser?.userId || user?._id || user?.userId;
-    if (!profilePhotoUrl && uid) {
+    if (!profilePhotoUrl && uid && !hasFetchedProfileRef.current) {
+      hasFetchedProfileRef.current = true;
       fetch("/api/users/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

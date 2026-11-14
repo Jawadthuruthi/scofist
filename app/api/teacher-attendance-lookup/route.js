@@ -248,12 +248,20 @@ export async function GET(req) {
             if (lr.leaveReason) leaveMap[key] = lr.leaveReason;
         });
 
-        // Fetch Periods for timing information
+        // Fetch Periods for timing information (lean query with field projection)
         const Period = (await import("@/models/Period")).default;
-        const periods = await Period.find({}).lean();
+        const periods = await Period.find({})
+          .select("periodNumber startTime endTime schedule formattedTime")
+          .lean();
+
         const periodTimeMap = {};
         periods.forEach(p => {
-            periodTimeMap[p.periodNumber] = p.formattedTime || getPeriodTimeString(p);
+            const timeStr = p.formattedTime || getPeriodTimeString(p);
+            const sched = (p.schedule || "normal").toLowerCase();
+            periodTimeMap[`${sched}_${p.periodNumber}`] = timeStr;
+            if (sched === "normal" || !periodTimeMap[p.periodNumber]) {
+                periodTimeMap[p.periodNumber] = timeStr;
+            }
         });
 
         records.forEach(r => {
@@ -265,7 +273,10 @@ export async function GET(req) {
                 r.leaveReason = leaveMap[key];
                 r.present = false;
             }
-            r.periodTime = periodTimeMap[r.periodNumber] || null;
+            const recDate = new Date(r.date);
+            const isThursday = !isNaN(recDate.getTime()) && recDate.getDay() === 4;
+            const schedKey = isThursday ? `thursday_${r.periodNumber}` : `normal_${r.periodNumber}`;
+            r.periodTime = periodTimeMap[schedKey] || periodTimeMap[r.periodNumber] || null;
         });
 
         // Final sort: latest date first
