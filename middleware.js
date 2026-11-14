@@ -1,4 +1,4 @@
-import { jwtVerify, SignJWT } from "jose";
+import { jwtVerify } from "jose";
 import { NextResponse } from "next/server";
 
 
@@ -8,7 +8,6 @@ const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 // Cache configuration
 const userCache = new Map();
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes maximum TTL
-const CACHE_SOFT_TTL = 5 * 60 * 1000; // 5 minutes soft TTL for stale-while-revalidate
 const CACHE_MAX_SIZE = 1000; // Prevent unbounded cache growth
 
 // Pages
@@ -604,7 +603,7 @@ const PUBLIC_GET_ROUTES = new Set([
   "/api/download-file",
 ]);
 
-export async function middleware(req, event) {
+export async function middleware(req) {
   if (req.nextUrl.pathname === "/") {
     return NextResponse.next();
   }
@@ -617,7 +616,7 @@ export async function middleware(req, event) {
   }
 
   // Handle regular authentication for dashboard routes
-  return handleAuthRequest(req, event);
+  return handleAuthRequest(req);
 }
 
 async function handleLoginPageRequest(req) {
@@ -634,17 +633,11 @@ async function handleLoginPageRequest(req) {
     const { payload } = await jwtVerify(token, SECRET_KEY);
     const effectiveUserId = payload.userId || payload.email;
 
-    // Check if user has an active cache entry or fetch profile
-    let user = getUserFromCache(effectiveUserId)?.user;
-    if (!user && effectiveUserId) {
-      try {
-        user = await fetchUserProfile(effectiveUserId, process.env.API_KEY, req.nextUrl.origin);
-        if (user) {
-          storeUserInCache(effectiveUserId, user);
-        }
-      } catch (err) {
-        user = createFallbackUser(payload);
-      }
+    // User profile from active cache or cryptographic JWT payload (zero external HTTP roundtrip in edge isolate)
+    const cachedEntry = getUserFromCache(effectiveUserId);
+    const user = cachedEntry?.user || createFallbackUser(payload);
+    if (!cachedEntry) {
+      storeUserInCache(effectiveUserId, user);
     }
 
     const userRoles = user?.roles || payload.roles || [];
@@ -864,7 +857,7 @@ async function handleApiRequest(req) {
   });
 }
 
-async function handleAuthRequest(req, event) {
+async function handleAuthRequest(req) {
   // ✅ FIX #1: E2E bypass ONLY allowed in non-production environments
   const isE2ETest =
     process.env.NODE_ENV !== "production" &&
@@ -959,81 +952,17 @@ async function handleAuthRequest(req, event) {
     const cachedEntry = !forceRefresh ? getUserFromCache(effectiveUserId) : null;
 
     if (cachedEntry) {
-      const { user, timestamp } = cachedEntry;
-      const now = Date.now();
-      
-      // If the cached item is stale but not expired, trigger background revalidation
-      if (now - timestamp > CACHE_SOFT_TTL) {
-        const revalidatePromise = fetchUserProfile(effectiveUserId, process.env.API_KEY, req.nextUrl.origin)
-          .then((updatedUser) => {
-            if (updatedUser) {
-              const safeProfile = sanitizeProfile(updatedUser);
-              storeUserInCache(effectiveUserId, safeProfile);
-            }
-          })
-          .catch((err) => {
-            console.error("Background cache revalidation failed:", err.message);
-          });
-
-        if (event && typeof event.waitUntil === "function") {
-          event.waitUntil(revalidatePromise);
-        }
-      }
-
-      return prepareResponse(req, activeToken, user);
+      return prepareResponse(req, activeToken, cachedEntry.user);
     }
 
-    try {
-      // Try to fetch user (profile API now handles custom roles)
-      const user = await fetchUserProfile(effectiveUserId, process.env.API_KEY, req.nextUrl.origin);
-
-      if (user) {
-        const safeProfile = sanitizeProfile(user);
-        storeUserInCache(effectiveUserId, safeProfile);
-
-        // Create new JWT for the cookie
-        const newProfileToken = await new SignJWT(safeProfile)
-          .setProtectedHeader({ alg: 'HS256' })
-          .setIssuedAt()
-          .setExpirationTime('5m')
-          .sign(SECRET_KEY);
-
-        return prepareResponse(req, activeToken, safeProfile, newProfileToken);
-      }
-    } catch (fetchError) {
-      console.error("Error fetching user profile:", fetchError.message);
-
-      // Fallback user from JWT payload
-      const fallbackUser = createFallbackUser(payload);
-      storeUserInCache(effectiveUserId, fallbackUser, 1 * 60 * 1000);
-
-      return prepareResponse(req, activeToken, fallbackUser);
-    }
-
-    return redirectToLogin(req);
+    // Direct fallback from cryptographically verified JWT payload (zero external network latency in edge isolate)
+    const user = createFallbackUser(payload);
+    storeUserInCache(effectiveUserId, user);
+    return prepareResponse(req, activeToken, user);
   } catch (error) {
     console.error("Authentication error:", error.message);
     return redirectToLogin(req);
   }
-}
-
-function sanitizeProfile(user) {
-  const userRoles = Array.isArray(user?.roles) ? user.roles : ["User"];
-  return {
-    _id: user._id || user.userId,
-    userId: user._id || user.userId,
-    name: user.name || "User",
-    email: user.email,
-    roles: userRoles,
-    teacherSpecificField: user.teacherSpecificField?.status
-      ? { status: user.teacherSpecificField.status }
-      : undefined,
-    studentSpecificField: user.studentSpecificField?.status
-      ? { status: user.studentSpecificField.status }
-      : undefined,
-    profilePic: user.profilePic,
-    contactNumber: user.contactNumber,
-  };
 }
 
 function createFallbackUser(payload) {
@@ -1110,59 +1039,12 @@ function storeUserInCache(userId, user, customTtl = CACHE_TTL) {
   });
 }
 
-async function fetchUserProfile(userId, apiKey, origin) {
-  try {
-    const controller = new AbortController();
-    // Use 5 seconds to reduce slow-load issues on cold starts while staying
-    // safely within the Vercel middleware timeout (usually 10s)
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    // Use origin passed from handleAuthRequest
-    const response = await fetch(`${origin}/api/users/profile`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": apiKey,
-      },
-      body: JSON.stringify({ userId }),
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`API returned status ${response.status}`);
-    }
-
-    // Handle empty responses
-    const text = await response.text();
-    if (!text) {
-      throw new Error("Empty response from API");
-    }
-
-    // Parse JSON safely
-    const data = JSON.parse(text);
-    return data.user;
-  } catch (error) {
-    throw error;
-  }
-}
-
-function createRedirectWithCookies(url, activeRole, newProfileToken, req) {
+function createRedirectWithCookies(url, activeRole, req) {
   const res = NextResponse.redirect(url);
   if (activeRole) {
     res.cookies.set("active-role", activeRole, {
       path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
-  }
-  if (newProfileToken) {
-    res.cookies.set("profile-cache", newProfileToken, {
-      httpOnly: true,
-      path: "/",
-      maxAge: 5 * 60,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
     });
@@ -1173,7 +1055,7 @@ function createRedirectWithCookies(url, activeRole, newProfileToken, req) {
   return res;
 }
 
-function prepareResponse(req, token, user, newProfileToken = null) {
+function prepareResponse(req, token, user) {
   const userRoles = Array.isArray(user?.roles) ? user.roles : [];
 
   if (userRoles.includes("Teacher") && user?.teacherSpecificField?.status === "Retired") {
@@ -1197,22 +1079,22 @@ function prepareResponse(req, token, user, newProfileToken = null) {
   // Handle role-specific portals and landing redirects
   if (req.nextUrl.pathname === "/dashboard") {
     if (activeRole === "Org Admin") {
-      return createRedirectWithCookies(new URL("/dashboard/accounts", req.url), activeRole, newProfileToken, req);
+      return createRedirectWithCookies(new URL("/dashboard/accounts", req.url), activeRole, req);
     }
     if (activeRole === "Program Committee") {
-      return createRedirectWithCookies(new URL("/dashboard/results", req.url), activeRole, newProfileToken, req);
+      return createRedirectWithCookies(new URL("/dashboard/results", req.url), activeRole, req);
     }
     if (activeRole === "Program Leader") {
-      return createRedirectWithCookies(new URL("/dashboard/program-registration", req.url), activeRole, newProfileToken, req);
+      return createRedirectWithCookies(new URL("/dashboard/program-registration", req.url), activeRole, req);
     }
     if (activeRole === "Librarian") {
-      return createRedirectWithCookies(new URL("/library-dashboard", req.url), activeRole, newProfileToken, req);
+      return createRedirectWithCookies(new URL("/library-dashboard", req.url), activeRole, req);
     }
     if (activeRole === "Gate Keeper") {
-      return createRedirectWithCookies(new URL("/dashboard/gate-pass", req.url), activeRole, newProfileToken, req);
+      return createRedirectWithCookies(new URL("/dashboard/gate-pass", req.url), activeRole, req);
     }
     if (activeRole === "Judge") {
-      return createRedirectWithCookies(new URL("/judge-portal", req.url), activeRole, newProfileToken, req);
+      return createRedirectWithCookies(new URL("/judge-portal", req.url), activeRole, req);
     }
   }
 
@@ -1276,15 +1158,6 @@ function prepareResponse(req, token, user, newProfileToken = null) {
     res.cookies.delete("force-profile-refresh");
   }
 
-  if (newProfileToken) {
-    res.cookies.set("profile-cache", newProfileToken, {
-      httpOnly: true,
-      path: "/",
-      maxAge: 5 * 60, // 5 minutes
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
-  }
 
   return res;
 }

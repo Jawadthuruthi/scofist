@@ -1,67 +1,59 @@
-# Implementation Plan: Vercel React Performance Audit & Remediation
+# Implementation Plan: Zero-Idle Resource Optimization & Free-Tier Decoupling
 
 ## Overview
-Conduct an end-to-end performance audit and surgical remediation of the Scofist EMS application across the 70 rules in the **`vercel-react-best-practices`** guide. This plan eliminates sequential database waterfalls, optimizes bundle code-splitting, establishes safe RSC serialization boundaries, and prunes unnecessary React re-renders—hardened against Vercel Hobby serverless limits (10s max duration) and MongoDB Atlas M0 resource boundaries (5 connection pool cap).
+Eliminate serverless resource exhaustion on Vercel's free hobby tier (which was paused at 6h 47m Fluid Active CPU and 422K invocations) and ensure compatibility with zero-cost deployment architectures. This plan removes all 6 background client-side polling loops, eliminates edge middleware recursive fetch and overhead, configures resilient TanStack Query caching, and adds Edge CDN caching to high-frequency read endpoints.
 
 ---
 
 ## Architecture Decisions
-1. **Vertical Triage by Impact Priority:** Prioritize Critical (`async-`, `bundle-`) and High (`server-`, `client-`) tiers before touching micro-optimizations (`js-`).
-2. **MongoDB M0 Concurrency Throttling:** Strict concurrency bounds ($\le 2-3$ queries) on `Promise.all` to never exhaust Atlas M0's 5-connection pool (`bufferCommands: false`).
-3. **Preserve Configuration Invariants:** Modify `next.config.js` directly; do not create duplicate or conflicting config files.
-4. **Print & Export Safety Guardrail:** Never apply `{ ssr: false }` to components participating in report card, fee receipt, or timetable PDF generation.
-5. **RSC Serialization Sanitization:** Explicitly convert BSON `ObjectId` (`.toString()`) and native `Date` (`.toISOString()`) to JSON-safe primitives when crossing server-to-client boundaries.
-6. **Scoped Query Keys & Error Boundaries:** Enforce hierarchical query keys (`[role, domain, id/filter]`) in TanStack Query and wrap all data-streaming Suspense boundaries with `<ErrorBoundary>`.
+1. **Decouple Middleware from Ephemeral Recursive HTTP Calls:** Remove `fetchUserProfile` HTTP calls from Edge middleware. Rely on compact JWT claims and fast-path edge validation to eliminate the 1h 20m Edge CPU burn.
+2. **Zero-Idle Client Architecture:** Replace all `setInterval` / `router.refresh()` polling loops across components with event-driven React Query mutations and on-demand manual refresh.
+3. **Resilient Global QueryClient Defaults:** Set global `staleTime: 5 * 60 * 1000` (5 minutes) and `refetchOnWindowFocus: false` to stop tab-switch refetch avalanches across the school's staff and students.
+4. **Edge CDN Caching for Read-Heavy Endpoints:** Inject `Cache-Control: public, s-maxage=300, stale-while-revalidate=600` on public and school schedule/program endpoints so requests are served directly from Vercel's Edge CDN with 0s Serverless CPU.
+5. **Strict Pagination & Projection Guards:** Cap `app/api/users` at `Math.min(limit, 50)` with `.lean()` and indexed field projections to eliminate heavy memory hydration.
 
 ---
 
 ## Task List
 
-### Phase 1: Critical Impact — Waterfalls & Async Optimization (`async-`)
-- [x] **Task 1: Audit & Eliminate Waterfalls with Connection Concurrency Caps**
-  - Refactor independent DB calls to `Promise.all` capped at $\le 3$ concurrent queries.
-  - Preserve sequential execution for auth checks, mutations, and dependent lookups.
+### Phase 1: Middleware & Edge Optimization
+- [x] **Task 1: Optimize Edge Middleware & Eliminate Recursive Fetch Loop**
+  - Remove `fetchUserProfile` HTTP fetches from Edge middleware (`middleware.js`).
+  - Optimize `config.matcher` and bypass unnecessary Edge processing for public static assets.
 
-### Checkpoint 1: Async Waterfalls
-- [x] No sequential `await` bottlenecks in high-frequency API route handlers.
-- [x] Atlas M0 connection pool remains protected ($\le 2$ concurrent queries checked out).
+### Phase 2: Client-Side Polling Elimination (Vertical Slices)
+- [x] **Task 2: Global QueryClient Hardening in Providers**
+  - Set `staleTime: 5 * 60 * 1000`, `refetchOnWindowFocus: false`, and `refetchOnReconnect: false` in `components/Providers.jsx`.
+- [x] **Task 3: Eliminate Polling in Attendance, Masjid & DataTable Components**
+  - Remove 5s `setInterval` in `components/GatePass.jsx`.
+  - Remove 5s `setInterval` in `components/masjid-attendance/MasjidDashboard.jsx`.
+  - Remove 60s `router.refresh()` loop and default interval in `components/DataTableComponent.jsx`.
 
-### Phase 2: Critical Impact — Bundle Size & Dynamic Imports (`bundle-`)
-- [x] **Task 2: Optimize Package Imports & Bundle Paths in `next.config.js`**
-  - Audit custom internal utility imports and barrel files.
-  - Verify and extend `optimizePackageImports` in `next.config.js`.
-- [x] **Task 3: Selective Dynamic Code-Splitting with Print-Safety**
-  - Lazy load heavy screen-only analytics/charts (`recharts`) with fixed-height skeletons.
-  - Whitelist and preserve all printable/exportable report card and receipt components.
+### Checkpoint 1: Foundation & Attendance Polling
+- [x] `npm run lint` and syntax check pass cleanly.
+- [x] GatePass, Masjid, and DataTable components render without background timer execution.
 
-### Checkpoint 2: Bundle Size
-- [x] Heavy third-party packages split out of initial route chunks.
-- [x] Print/export workflows verified intact.
-- [x] Full production build passed (93/93 routes compiled cleanly, exit code 0).
+### Phase 3: Library, Dashboard & Sidebar Polling Elimination
+- [x] **Task 4: Eliminate Polling in Library & Student Dashboards**
+  - Remove 10s `setInterval` in `components/LibraryRequests.jsx`.
+  - Remove 30s `setInterval` in `components/LibrarianBottomBar.jsx`.
+  - Remove twin 30s intervals in `components/StudentDashboard.jsx`.
+- [x] **Task 5: Optimize Sidebar Count & Students Client Query Ceiling**
+  - Remove 30s `setInterval` in `components/AppSidebar.jsx`; trigger counts on mount and mutation invalidation.
+  - Drop unbounded `limit={100000}` and remove 15s interval in `components/StudentsClient.jsx`.
 
-### Phase 3: High Impact — Server & Client Data Fetching (`server-`, `client-`)
-- [x] **Task 4: Server Boundary Data Sanitization & React Cache**
-  - Enforce BSON `_id` and `Date` serialization sanitization on all RSC prop transfers.
-  - Apply `React.cache()` with primitive arguments for per-request user/session deduplication.
-- [x] **Task 5: Scoped Client Fetching & Safe Event Listeners**
-  - Apply `{ passive: true }` strictly to read-only scroll and resize listeners across client routes.
-  - Preserve `preventDefault` on modal/drawer scroll-locks.
+### Checkpoint 2: All Polling Eliminated
+- [x] Zero background `setInterval` timers remain in client components.
+- [x] All dashboard mutations invalidate queries reliably without timers.
 
-### Checkpoint 3: Data Boundaries & Caching
-- [x] Zero RSC serialization warnings.
-- [x] No scroll-lock interference, passive listener frame drops eliminated.
+### Phase 4: API Edge CDN Caching & Query Hardening
+- [x] **Task 6: Add Edge CDN Headers to Read-Heavy Endpoints & Hardened Users API**
+  - Add `Cache-Control: public, s-maxage=300, stale-while-revalidate=600` to `/api/programs`, `/api/divisions`, `/api/schedules`.
+  - Hardened `app/api/users/route.js` with `limit: 50` ceiling and compound index in `models/User.js`.
 
-### Phase 4: Medium Impact — Re-render & Rendering Performance (`rerender-`, `rendering-`)
-- [x] **Task 6: Re-render Pruning & State Colocation**
-  - Eliminate redundant derived-state `useEffect` calls; use key-reset (`key={id}`) for edit forms.
-  - Initialize modal state lazily from props.
-- [x] **Task 7: Resilient Suspense Boundaries & CLS Prevention**
-  - Create reusable `ErrorBoundary` and pair with streaming `<Suspense>` boundaries.
-  - Replace ambiguous `&&` conditionals with explicit ternaries in `app/dashboard/layout.jsx`.
-
-### Checkpoint 4: Complete
-- [x] Full `npm run build` succeeds with zero errors.
-- [x] All 93 routes compile cleanly.
+### Checkpoint 3: Complete
+- [x] Production build (`npm run build`) compiles cleanly (100% pass rate).
+- [x] Codebase operates at strictly zero-idle CPU overhead.
 
 ---
 
@@ -69,7 +61,6 @@ Conduct an end-to-end performance audit and surgical remediation of the Scofist 
 
 | Risk | Impact | Mitigation |
 | :--- | :--- | :--- |
-| **Atlas M0 Connection Depletion** | High | Cap `Promise.all` concurrency to $\le 3$; maintain `@/lib/db.js` global cached connection. |
-| **Print/Export DOM Destruction** | High | Whitelist printable report card / receipt components to remain SSR-rendered; do not apply `{ ssr: false }`. |
-| **RSC Serialization Error** | High | Convert BSON `ObjectId` and native `Date` to strings before crossing server-to-client boundary. |
-| **Vercel 10s Serverless Timeout** | High | Remove sequential waterfalls, use `.lean()` and `.select()` projections, and set `.maxTimeMS(2500)` on queries. |
+| **Outdated Client UI State without Polling** | Med | TanStack Query mutation invalidation automatically refetches fresh data when any user creates, edits, or deletes records. Add manual refresh button where needed. |
+| **Edge Middleware Role Desynchronization** | High | Preserve role token payload validation and update cookie handling without blocking on external HTTP fetches in edge isolates. |
+| **Build OOM during verification** | High | Use Turbopack dev/build flags and existing `cross-env NODE_OPTIONS` when compiling. |

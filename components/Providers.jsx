@@ -69,9 +69,10 @@ export default function Providers({ children }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 2 * 60 * 1000, // 2 minutes
-            refetchOnWindowFocus: false, // Disable refetch on window focus
-            retry: 1, // Reduce retry count to fail fast
+            staleTime: 60 * 1000, // 1 minute cache freshness
+            refetchOnWindowFocus: false, // Stop refetch avalanches when users switch tabs
+            refetchOnReconnect: true, // Automatically re-sync after network reconnection
+            retry: 1, // Fail fast on real network errors
           },
         },
       })
