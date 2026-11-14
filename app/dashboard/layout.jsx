@@ -79,16 +79,16 @@ export default async function Layout({ children }) {
               {children}
               <div className="h-20 lg:h-16 no-print"></div>
             </main>
-            {currentActiveRole === "Teacher" && <TeacherBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "Librarian" && <LibrarianBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "College Admin" && <CollegeAdminBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "Org Admin" && <OrgAdminBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "Literary Leader" && <LiteraryLeaderBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "Program Committee" && <ProgramCommitteeBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "Program Leader" && <ProgramLeaderBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "Spark Admin" && <SparkAdminBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "Judge" && <JudgeBottomBar user={user} activeRole={currentActiveRole} />}
-            {currentActiveRole === "Student" && <StudentBottomBar user={user} activeRole={currentActiveRole} />}
+            {currentActiveRole === "Teacher" ? <TeacherBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "Librarian" ? <LibrarianBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "College Admin" ? <CollegeAdminBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "Org Admin" ? <OrgAdminBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "Literary Leader" ? <LiteraryLeaderBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "Program Committee" ? <ProgramCommitteeBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "Program Leader" ? <ProgramLeaderBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "Spark Admin" ? <SparkAdminBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "Judge" ? <JudgeBottomBar user={user} activeRole={currentActiveRole} /> : null}
+            {currentActiveRole === "Student" ? <StudentBottomBar user={user} activeRole={currentActiveRole} /> : null}
           </div>
         </div>
       </SidebarProvider>
