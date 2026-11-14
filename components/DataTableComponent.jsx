@@ -489,7 +489,7 @@ const DataTableComponent = ({
   useEffect(() => {
     const tableBody = tableRef.current;
     if (tableBody) {
-      tableBody.addEventListener("scroll", handleScroll);
+      tableBody.addEventListener("scroll", handleScroll, { passive: true });
       return () => tableBody.removeEventListener("scroll", handleScroll);
     }
   }, [handleScroll]);

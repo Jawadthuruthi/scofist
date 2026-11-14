@@ -97,18 +97,18 @@ export default function RankAchieverModal({
   availableCourses = [],
   apiKey = "",
 }) {
-  const [formData, setFormData] = useState({
-    name: "",
-    rank: "",
-    year: new Date().getFullYear().toString(),
-    course: "",
-    college: "",
-    photoUrl: "",
-    photoPublicId: "",
-  });
+  const [formData, setFormData] = useState(() => ({
+    name: achieverToEdit?.name || "",
+    rank: achieverToEdit?.rank || "",
+    year: achieverToEdit?.year || new Date().getFullYear().toString(),
+    course: achieverToEdit?.course || "",
+    college: achieverToEdit?.college || "",
+    photoUrl: achieverToEdit?.photo?.url || "",
+    photoPublicId: achieverToEdit?.photo?.publicId || "",
+  }));
 
   const [selectedFile, setSelectedFile] = useState(null);
-  const [filePreview, setFilePreview] = useState("");
+  const [filePreview, setFilePreview] = useState(() => achieverToEdit?.photo?.url || "");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
