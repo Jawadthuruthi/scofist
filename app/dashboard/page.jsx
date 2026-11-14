@@ -107,7 +107,9 @@ export default async function DashboardPage({ searchParams }) {
         }));
 
       const updates = Array.isArray(updatesData) ? updatesData : updatesData?.updates || [];
-      const hydratedStudent = fullStudent ? { ...user, ...fullStudent, _id: fullStudent._id?.toString() } : user;
+      const hydratedStudent = fullStudent
+        ? JSON.parse(JSON.stringify({ ...user, ...fullStudent, _id: fullStudent._id?.toString() }))
+        : user;
       return <StudentDashboard user={hydratedStudent} apiKey={apiKey} classes={classes} batches={batches} updates={updates} debtBalances={debtBalances} showKinship={true} />;
     }
 
