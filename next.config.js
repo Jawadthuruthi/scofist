@@ -23,7 +23,16 @@ const nextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ["lucide-react", "recharts", "date-fns", "lodash"],
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "date-fns",
+      "lodash",
+      "@tanstack/react-query",
+      "@tanstack/react-table",
+      "cmdk",
+      "date-fns-tz",
+    ],
   },
   turbopack: {},
   eslint: {
