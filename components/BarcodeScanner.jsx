@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useId } from "react";
+import React, { useEffect, useRef, useState, useId, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,15 +13,18 @@ import {
     SwitchCamera,
     Flashlight,
     FlashlightOff,
-    Camera
+    Camera,
+    CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 
+// Status states: "starting" | "scanning" | "file-scanned" | "error"
 const BarcodeScanner = ({ onScan, onClose, onError }) => {
-    const [isScanning, setIsScanning] = useState(false);
+    const [scannerStatus, setScannerStatus] = useState("starting");
     const [errorMsg, setErrorMsg] = useState("");
     const [isPermissionDenied, setIsPermissionDenied] = useState(false);
     const [isProcessingFile, setIsProcessingFile] = useState(false);
+    const [scannedResult, setScannedResult] = useState("");
     const [cameras, setCameras] = useState([]);
     const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
     const [currentFacingMode, setCurrentFacingMode] = useState("environment");
@@ -38,6 +41,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
     const fileInputRef = useRef(null);
     const isStartingRef = useRef(false);
     const isMountedRef = useRef(true);
+    const lastScanRef = useRef({ text: "", timestamp: 0 });
 
     useEffect(() => {
         onScanRef.current = onScan;
@@ -45,7 +49,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
         onErrorRef.current = onError;
     });
 
-    const stopAndClearScanner = async () => {
+    const stopAndClearScanner = useCallback(async () => {
         const scanner = scannerRef.current;
         if (scanner) {
             try {
@@ -60,16 +64,16 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             } catch (_) { }
             scannerRef.current = null;
         }
-        setIsScanning(false);
         setIsTorchOn(false);
         setHasTorch(false);
-        // Brief pause to allow mobile browser camera hardware to release lock
+        // Brief pause to allow mobile browser camera hardware to release hardware lock
         await new Promise((r) => setTimeout(r, 100));
-    };
+    }, []);
 
-    const startScanner = async (targetConstraint) => {
+    const startScanner = useCallback(async (targetConstraint) => {
         if (!isMountedRef.current || isStartingRef.current) return;
         isStartingRef.current = true;
+        setScannerStatus("starting");
         setErrorMsg("");
         setIsPermissionDenied(false);
 
@@ -85,6 +89,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
                 window.location.hostname +
                 "). Please connect via HTTPS or use the Upload Photo option below."
             );
+            setScannerStatus("error");
             isStartingRef.current = false;
             return;
         }
@@ -92,21 +97,32 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
         // 2. Guard against missing mediaDevices
         if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
             setErrorMsg("Camera is not supported on this browser or device. Please use the Upload Photo option.");
+            setScannerStatus("error");
             isStartingRef.current = false;
             return;
         }
 
-        // Responsive qrbox sizing to prevent OverconstrainedError or container overflow on small mobile screens
+        // Responsive qrbox sizing bounded strictly by minEdge to prevent crashes
         const config = {
             fps: 15,
             qrbox: (viewfinderWidth, viewfinderHeight) => {
                 const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                const boxSize = Math.max(160, Math.floor(minEdge * 0.72));
+                const boxSize = Math.min(minEdge, Math.max(60, Math.floor(minEdge * 0.72)));
                 return { width: boxSize, height: boxSize };
             },
         };
 
         const handleSuccess = (decodedText) => {
+            const now = Date.now();
+            // Throttle duplicate scans: ignore same code within 2 seconds
+            if (
+                lastScanRef.current.text === decodedText &&
+                now - lastScanRef.current.timestamp < 2000
+            ) {
+                return;
+            }
+
+            lastScanRef.current = { text: decodedText, timestamp: now };
             try {
                 onScanRef.current?.(decodedText);
             } catch (err) {
@@ -128,8 +144,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             let started = false;
             let lastError = null;
 
-            // Define attempts:
-            // For barcode/QR scanning on devices, environment (back) camera is primary.
+            // Strategy: For barcode/QR scanning, environment (back) camera is primary.
             // If environment fails (e.g. laptop with only webcam), fall back to user camera.
             const attempts = [];
             if (targetConstraint) {
@@ -152,6 +167,15 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
                     scannerRef.current = scanner;
 
                     await scanner.start(constraint, config, handleSuccess, handleError);
+
+                    // Check if component unmounted while awaiting scanner.start
+                    if (!isMountedRef.current) {
+                        try { await scanner.stop(); } catch (_) { }
+                        try { await scanner.clear(); } catch (_) { }
+                        scannerRef.current = null;
+                        return;
+                    }
+
                     started = true;
                     if (constraint.facingMode) {
                         setCurrentFacingMode(constraint.facingMode);
@@ -161,7 +185,6 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
                     lastError = err;
                     console.warn("Camera attempt with constraint failed:", constraint, err);
                     const errStr = String(err?.name || err?.message || err);
-                    // If user explicitly denied permission, stop cascading further
                     if (
                         errStr.includes("NotAllowedError") ||
                         errStr.includes("PermissionDeniedError") ||
@@ -192,12 +215,19 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
                                 });
                                 scannerRef.current = scanner;
 
-                                // Pick back camera if labeled, else first camera
                                 const bestCam =
                                     availableCams.find((c) => /back|rear|environment/i.test(c.label || "")) ||
                                     availableCams[0];
 
                                 await scanner.start(bestCam.id, config, handleSuccess, handleError);
+
+                                if (!isMountedRef.current) {
+                                    try { await scanner.stop(); } catch (_) { }
+                                    try { await scanner.clear(); } catch (_) { }
+                                    scannerRef.current = null;
+                                    return;
+                                }
+
                                 started = true;
                             }
                         }
@@ -209,7 +239,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             }
 
             if (started && isMountedRef.current) {
-                setIsScanning(true);
+                setScannerStatus("scanning");
                 setErrorMsg("");
 
                 // Asynchronously query available cameras and capabilities for switch/torch controls
@@ -235,7 +265,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             }
         } catch (err) {
             if (!isMountedRef.current) return;
-            setIsScanning(false);
+            setScannerStatus("error");
 
             const errStr = String(err?.name || err?.message || err);
             const isDenied =
@@ -267,17 +297,28 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
         } finally {
             isStartingRef.current = false;
         }
-    };
+    }, [viewportId, stopAndClearScanner]);
 
     const handlePromptPermission = async () => {
         setErrorMsg("");
         setIsPermissionDenied(false);
-        // Start scanner directly on user gesture to trigger the browser permission prompt
+        try {
+            // Explicit user gesture: request generic video to trigger the browser's native permission prompt
+            if (navigator?.mediaDevices?.getUserMedia) {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach((track) => {
+                    try { track.stop(); } catch (_) { }
+                });
+                await new Promise((r) => setTimeout(r, 150));
+            }
+        } catch (e) {
+            console.warn("Direct permission prompt attempt:", e);
+        }
         await startScanner();
     };
 
     const handleSwitchCamera = async () => {
-        if (!isScanning || isStartingRef.current) return;
+        if (scannerStatus !== "scanning" || isStartingRef.current) return;
 
         let nextConstraint;
         if (cameras.length > 1) {
@@ -320,7 +361,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             clearTimeout(timer);
             stopAndClearScanner();
         };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [startScanner, stopAndClearScanner]);
 
     const handleStop = async () => {
         await stopAndClearScanner();
@@ -333,7 +374,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
 
         setIsProcessingFile(true);
         try {
-            // Must stop active camera before file scanning, otherwise Html5Qrcode throws StateManager error
+            // Must stop active camera before file scanning
             await stopAndClearScanner();
 
             const scanner = new Html5Qrcode(viewportId, { verbose: false });
@@ -341,6 +382,8 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
 
             const decodedText = await scanner.scanFile(file, true);
             if (decodedText) {
+                setScannedResult(decodedText);
+                setScannerStatus("file-scanned");
                 toast.success("Barcode successfully scanned from image!");
                 onScanRef.current?.(decodedText);
             }
@@ -348,7 +391,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             console.error("File scan failed:", fileErr);
             toast.error("Could not find a valid barcode/QR code in the image.");
             // Restart camera scan after failed file attempt
-            startScanner();
+            await startScanner();
         } finally {
             setIsProcessingFile(false);
             if (fileInputRef.current) {
@@ -369,7 +412,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
                 />
 
                 {/* Live Scanning UI Overlays */}
-                {isScanning && (
+                {scannerStatus === "scanning" && (
                     <>
                         {/* Viewfinder Corners */}
                         <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-8">
@@ -412,82 +455,118 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
                     </>
                 )}
 
-                {/* 2. React Overlay: ONLY rendered when not scanning */}
-                {!isScanning && (
+                {/* File Scan Success Overlay */}
+                {scannerStatus === "file-scanned" && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 bg-background/95 dark:bg-black/90 text-center space-y-3">
+                        <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                        <div>
+                            <p className="text-xs font-semibold text-foreground">Barcode Detected</p>
+                            <p className="text-xs text-muted-foreground font-mono mt-1 px-2 py-1 bg-muted rounded max-w-[240px] truncate">
+                                {scannedResult}
+                            </p>
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                            <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => startScanner()}
+                                className="h-8 text-xs font-medium"
+                            >
+                                <Camera className="w-3.5 h-3.5 mr-1.5" />
+                                Resume Camera
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="h-8 text-xs font-medium"
+                            >
+                                <Upload className="w-3.5 h-3.5 mr-1.5" />
+                                Upload Another
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Error or Permission Needed Overlay */}
+                {scannerStatus === "error" && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 bg-background/95 dark:bg-black/90 text-center overflow-y-auto">
-                        {errorMsg ? (
-                            <div className="space-y-3 flex flex-col items-center w-full">
-                                {isPermissionDenied ? (
-                                    <>
-                                        <div className="w-10 h-10 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-0.5">
-                                            <ShieldAlert className="w-5 h-5" />
-                                        </div>
-                                        <h4 className="text-xs sm:text-sm font-semibold text-foreground dark:text-white">
-                                            Camera Permission Needed
-                                        </h4>
+                        <div className="space-y-3 flex flex-col items-center w-full">
+                            {isPermissionDenied ? (
+                                <>
+                                    <div className="w-10 h-10 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-0.5">
+                                        <ShieldAlert className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="text-xs sm:text-sm font-semibold text-foreground dark:text-white">
+                                        Camera Permission Needed
+                                    </h4>
 
+                                    <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={handlePromptPermission}
+                                        className="w-full h-8 text-xs font-semibold shadow-sm"
+                                    >
+                                        <KeyRound className="w-3.5 h-3.5 mr-1.5" />
+                                        Click to Allow Camera Access
+                                    </Button>
+
+                                    <div className="text-[11px] text-muted-foreground text-left bg-muted/60 dark:bg-muted/20 p-2.5 rounded-lg space-y-1.5 w-full border border-border/50">
+                                        <p className="font-semibold text-foreground text-[11px]">If the prompt does not appear:</p>
+                                        <p>1. On mobile: Tap the <strong>lock / site settings</strong> icon in the address bar &rarr; set <strong>Camera = Allow</strong>.</p>
+                                        <p>2. On iOS: Go to <em>Settings &gt; Safari &gt; Camera &gt; Allow</em>.</p>
+                                        <p>3. On desktop: In the address bar, click the <strong>tune/sliders icon 🎛️</strong> &rarr; set <strong>Camera = Allow</strong>.</p>
+                                    </div>
+
+                                    <div className="flex gap-2 w-full justify-center pt-1">
                                         <Button
-                                            variant="default"
+                                            variant="secondary"
                                             size="sm"
-                                            onClick={handlePromptPermission}
-                                            className="w-full h-8 text-xs font-semibold shadow-sm"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="h-8 text-xs font-medium"
+                                            disabled={isProcessingFile}
                                         >
-                                            <KeyRound className="w-3.5 h-3.5 mr-1.5" />
-                                            Click to Allow Camera Access
+                                            <Upload className="w-3.5 h-3.5 mr-1.5" />
+                                            Upload Photo Instead
                                         </Button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <AlertCircle className="w-9 h-9 text-destructive mb-1" />
+                                    <p className="text-xs sm:text-sm font-medium text-destructive px-2 text-center">
+                                        {errorMsg}
+                                    </p>
+                                    <div className="flex gap-2 pt-2">
+                                        <Button variant="default" size="sm" onClick={() => startScanner()} className="h-8 text-xs">
+                                            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                                            Retry Camera
+                                        </Button>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="h-8 text-xs"
+                                            disabled={isProcessingFile}
+                                        >
+                                            <Upload className="w-3.5 h-3.5 mr-1.5" />
+                                            Upload Photo
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
 
-                                        <div className="text-[11px] text-muted-foreground text-left bg-muted/60 dark:bg-muted/20 p-2.5 rounded-lg space-y-1.5 w-full border border-border/50">
-                                            <p className="font-semibold text-foreground text-[11px]">If the prompt does not appear:</p>
-                                            <p>1. On mobile: Tap the <strong>lock / site settings</strong> icon in the address bar &rarr; set <strong>Camera = Allow</strong>.</p>
-                                            <p>2. On iOS: Go to <em>Settings &gt; Safari &gt; Camera &gt; Allow</em>.</p>
-                                            <p>3. On desktop: In the address bar, click the <strong>camera icon 🎛️</strong> &rarr; set <strong>Always Allow</strong>.</p>
-                                        </div>
-
-                                        <div className="flex gap-2 w-full justify-center pt-1">
-                                            <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="h-8 text-xs font-medium"
-                                                disabled={isProcessingFile}
-                                            >
-                                                <Upload className="w-3.5 h-3.5 mr-1.5" />
-                                                Upload Photo Instead
-                                            </Button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <AlertCircle className="w-9 h-9 text-destructive mb-1" />
-                                        <p className="text-xs sm:text-sm font-medium text-destructive px-2 text-center">
-                                            {errorMsg}
-                                        </p>
-                                        <div className="flex gap-2 pt-2">
-                                            <Button variant="default" size="sm" onClick={() => startScanner()} className="h-8 text-xs">
-                                                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                                                Retry Camera
-                                            </Button>
-                                            <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="h-8 text-xs"
-                                                disabled={isProcessingFile}
-                                            >
-                                                <Upload className="w-3.5 h-3.5 mr-1.5" />
-                                                Upload Photo
-                                            </Button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center space-y-2.5">
-                                <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-                                <p className="text-xs sm:text-sm font-medium">Opening camera...</p>
-                                <p className="text-[11px] text-muted-foreground">Please allow camera permissions if prompted</p>
-                            </div>
-                        )}
+                {/* Starting / Loading Overlay */}
+                {scannerStatus === "starting" && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 bg-background/95 dark:bg-black/90 text-center overflow-y-auto">
+                        <div className="flex flex-col items-center space-y-2.5">
+                            <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+                            <p className="text-xs sm:text-sm font-medium">Opening camera...</p>
+                            <p className="text-[11px] text-muted-foreground">Please allow camera permissions if prompted</p>
+                        </div>
                     </div>
                 )}
             </div>
@@ -504,7 +583,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
 
             {/* Controls Bar */}
             <div className="flex flex-wrap items-center justify-center gap-2">
-                {isScanning && (cameras.length > 1 || typeof navigator !== "undefined") && (
+                {scannerStatus === "scanning" && (cameras.length > 1 || typeof navigator !== "undefined") && (
                     <Button
                         variant="outline"
                         size="sm"

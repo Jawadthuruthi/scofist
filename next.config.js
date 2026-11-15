@@ -57,10 +57,10 @@ const nextConfig = {
         value: 'nosniff',
       },
       {
-        // Restricts which browser features (camera, mic, geolocation)
-        // this site can access — deny all by default.
+        // Restricts which browser features this site can access.
+        // Camera is allowed for self (barcode/QR scanners), others denied by default.
         key: 'Permissions-Policy',
-        value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+        value: 'camera=(self), microphone=(), geolocation=(), browsing-topics=()',
       },
       {
         // Content Security Policy — restricts which external resources can be loaded.
