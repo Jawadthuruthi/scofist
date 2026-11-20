@@ -1,74 +1,88 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import AuthButtons from "@/components/AuthButtons";
 import { cn } from "@/lib/utils";
 
-export default function PublicHeader({ logo, name, leftLogo, centerLogo, rightLogo, rightName, centered = false }) {
-  // If no logos are provided, show a minimalist header with just the name
-  if (!logo && !rightLogo && !leftLogo && !centerLogo) {
-    return (
-      <header className="w-full py-2 px-6 shadow bg-white/80 backdrop-blur-md sticky top-0 z-50 min-h-[4rem] flex items-center">
-        <div className={cn("max-w-7xl mx-auto w-full flex items-center", centered ? "justify-center" : "justify-between")}>
-          <Link href="/" className="text-emerald-800 font-bold hover:text-emerald-600 transition-colors">
-            {name || "Home"}
-          </Link>
-        </div>
-      </header>
-    );
-  }
+/**
+ * PublicHeader - Dignified Collegiate Masthead
+ * Features:
+ * - Single-layer frosted architectural glass enclosure
+ * - Authentic institutional typography and brand crest
+ * - Quiet collegiate navigation anchors
+ * - Streamlined, distraction-free actions
+ */
+export default function PublicHeader({
+  logo,
+  name,
+  leftLogo,
+  centerLogo,
+  rightLogo,
+  rightName,
+  centered = false,
+}) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const displayLogo = centerLogo || logo || leftLogo;
+  const displayName = name || "Sa-adiya College";
 
   return (
-    <header className="w-full py-2 px-6 shadow bg-white/80 backdrop-blur-md sticky top-0 z-50">
-      <div className={cn("max-w-7xl mx-auto flex items-center justify-between")}>
-        {/* Left Logos */}
-        <div className="flex items-center gap-4 md:gap-6 flex-1">
-          {logo && (
-            <Link href="/" className="flex items-center">
-              <img
-                src={logo}
-                alt={`${name} Logo`}
-                className="object-contain h-14 md:h-20 w-auto drop-shadow-sm transition-transform hover:scale-105"
-              />
-            </Link>
-          )}
-          
-          {leftLogo && (
+    <header
+      className={cn(
+        "sticky top-3 sm:top-4 z-50 mx-auto w-[94%] sm:w-[90%] max-w-2xl rounded-full transition-all duration-500",
+        "px-3.5 sm:px-4 py-2 flex items-center justify-between gap-3 sm:gap-4",
+        scrolled
+          ? "bg-[#080d09]/95 border border-white/[0.12] shadow-[0_16px_40px_-8px_rgba(0,0,0,0.85)] backdrop-blur-xl"
+          : "bg-[#080d09]/85 border border-white/[0.08] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.65)] backdrop-blur-xl"
+      )}
+    >
+      {/* Left: Brand Crest & Institutional Title */}
+      <Link
+        href="/"
+        className="group flex items-center gap-2.5 sm:gap-3 rounded-full py-0.5 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+        aria-label={`${displayName} Home`}
+      >
+        {displayLogo ? (
+          <div className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-white/[0.04] border border-white/10 p-0.5 flex items-center justify-center shrink-0 shadow-inner group-hover:border-white/20 transition-colors duration-300">
             <img
-              src={leftLogo}
-              alt="Secondary Logo"
-              className="object-contain h-14 md:h-20 w-auto drop-shadow-sm"
-            />
-          )}
-
-          {!logo && !leftLogo && (
-             <Link href="/" className="text-emerald-800 font-bold hover:text-emerald-600 transition-colors">
-               {name}
-             </Link>
-          )}
-        </div>
-
-        {/* Center Logo */}
-        {centerLogo && (
-          <div className="flex-1 flex justify-center">
-            <img
-              src={centerLogo}
-              alt="Center Logo"
-              className="object-contain h-12 md:h-16 w-auto drop-shadow-md"
+              src={displayLogo}
+              alt={displayName}
+              className="h-full w-full object-contain rounded-full"
             />
           </div>
+        ) : (
+          <div className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-[#0f2115] border border-[#20402b] flex items-center justify-center text-[#d4af37] font-['Playfair_Display',serif] font-bold text-xs tracking-wider shrink-0 shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)] group-hover:border-emerald-500/30 transition-colors duration-300">
+            SDC
+          </div>
         )}
-
-        {/* Right Logo / Org Logo */}
-        <div className="flex-1 flex justify-end">
-          {!centered && rightLogo && (
-            <div className="flex items-center">
-              <img
-                src={rightLogo}
-                alt={rightName || "Organisation Logo"}
-                className="object-contain h-14 md:h-20 w-auto drop-shadow-sm"
-              />
-            </div>
-          )}
+        <div className="flex flex-col text-left truncate">
+          <span className="text-xs sm:text-sm font-semibold tracking-tight text-[#f7f5ee] group-hover:text-white transition-colors duration-300 truncate">
+            {displayName}
+          </span>
+          <span className="text-[10px] sm:text-[11px] text-[#9ca59a] hidden md:block font-normal tracking-wide truncate">
+            Kasaragod, Kerala · Est. 2006
+          </span>
         </div>
+      </Link>
+
+      {/* Right Actions: Header Variant AuthButtons */}
+      <div className="shrink-0 flex items-center">
+        <AuthButtons variant="header" />
       </div>
     </header>
   );
 }
+
+
+
+
+

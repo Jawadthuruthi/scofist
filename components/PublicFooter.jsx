@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { Instagram, MessageCircle, Youtube } from "lucide-react";
+import { Instagram, MessageCircle, Youtube, Mail, Phone, MapPin, GraduationCap } from "lucide-react";
 
+/**
+ * PublicFooter - Dignified Collegiate Footer
+ * Clean architectural columns, accurate typography, verified contact points.
+ */
 export default function Footer({
   settings,
   institutionName,
@@ -24,10 +28,11 @@ export default function Footer({
     return `https://${trimmed}`;
   };
 
+  const name = institutionName || settings?.institution?.name || "Sa-adiya College of Integrated Studies";
   const tagline =
     institutionTagline ||
     settings?.institution?.tagline ||
-    "";
+    "A seat of integrated Islamic scholarship and collegiate studies in Kasaragod, Kerala.";
 
   const rawYear =
     year ||
@@ -38,165 +43,173 @@ export default function Footer({
     "2026";
   const festivalYear = rawYear.toString().trim().split(" ")[0] || "2026";
 
+  const address = settings?.institution?.address || "Sa-adabad, Deli, P.O Kalanad, Kasaragod, Kerala 671317";
+  const email = settings?.institution?.contact?.email || settings?.institution?.email || "sdcvalley13@gmail.com";
+  const phone = settings?.institution?.contact?.primaryPhone || settings?.institution?.primaryPhone || "+91 89432 64498";
+
+  const whatsapp = ensureAbsoluteUrl(settings?.institution?.contact?.whatsappChannel) || "https://whatsapp.com";
+  const youtube = ensureAbsoluteUrl(settings?.institution?.contact?.youtube) || "https://youtube.com/@saadiyacollege";
+  const instagram = ensureAbsoluteUrl(settings?.institution?.contact?.instagram) || "https://instagram.com/jawad_thuruthi";
+
   return (
-    <footer className="bg-gray-900 text-gray-300 py-12 px-6 mt-auto">
-      {/* Desktop: 4-col grid. Mobile: Institution + Contact full-width, then Quick Links + Connect side by side */}
+    <footer className="relative bg-[#070b08] text-[#a6a095] pt-16 pb-12 px-4 sm:px-6 md:px-12 border-t border-[#1a271f] mt-auto">
       <div className="max-w-6xl mx-auto">
-        {/* Top row: Institution & Contact — full width on mobile, 2 of 4 cols on desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 md:mb-0">
-          {/* Institution */}
-          <div>
-            {variant === "festival" && settings?.festival?.festivalThemeImage?.url ? (
-              <img
-                src={settings.festival.festivalThemeImage.url}
-                alt="Festival Theme"
-                className="h-auto w-48 md:w-56 object-contain m-0 pt-4 pb-4 block drop-shadow-md"
-              />
-            ) : (
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold">{institutionName || "Sadiya Dawa College"}</h3>
-                {showTagline && tagline && (
-                  <p className="text-sm text-gray-400 mt-1 leading-snug">
-                    {tagline}
-                  </p>
-                )}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-14 pb-14 border-b border-[#1a271f]">
+          {/* Column 1: Institution Brand & Charter (Span 5) */}
+          <div className="md:col-span-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#122218] border border-[#1f3a29] flex items-center justify-center text-emerald-400">
+                <GraduationCap className="w-4 h-4" strokeWidth={1.5} />
               </div>
-            )}
-            <p className="text-sm opacity-80 leading-relaxed pr-4">
-              {variant === "festival" ? (
-                <>
-                  <span className="font-semibold text-white/90">
-                    {settings?.festival?.festival_name || "Esperanza"} {festivalYear || settings?.festival?.festival_year || "2026"}, 11th Edition.
-                  </span>
-                  <br />
-                  {festivalYear} September 17-20
-                </>
-              ) : (
-                <span className="font-semibold text-white/90">
-                  Since 2006.
+              <div>
+                <h3 className="text-base font-semibold text-[#f7f5ee]">{name}</h3>
+                <span className="text-xs text-[#7e857b] block">
+                  Under Jamia Sa-adiya Arabia · Founded 2006
                 </span>
-              )}
+              </div>
+            </div>
+
+            <p className="text-sm text-[#8c887f] leading-relaxed max-w-sm pt-1">
+              {tagline}
             </p>
           </div>
 
-          {/* Contact */}
-          <address className="not-italic">
-            <h3 className="text-lg font-semibold mb-4">Contact</h3>
+          {/* Column 2: Navigation (Span 3) */}
+          <nav className="md:col-span-3 space-y-3" aria-label="Footer Navigation">
+            <h4 className="text-xs font-semibold text-[#f7f5ee] uppercase tracking-wider">
+              Navigation
+            </h4>
             <ul className="space-y-2 text-sm">
-              <li>{settings?.institution?.address || "Kasaragod, Kerala, India"}</li>
               <li>
-                Email:{" "}
-                <a
-                  href={`mailto:${settings?.institution?.contact?.email || "ksdjabbu@gmail.com"}`}
-                  className="hover:text-white"
+                <Link
+                  href="#about"
+                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
                 >
-                  {settings?.institution?.contact?.email || "ksdjabbu@gmail.com"}
-                </a>
+                  About the College
+                </Link>
               </li>
               <li>
-                Phone:{" "}
-                <a href={`tel:${settings?.institution?.contact?.primaryPhone || "+918943264498"}`} className="hover:text-white">
-                  {settings?.institution?.contact?.primaryPhone || "+91-8943264498"}
-                </a>
+                <Link
+                  href="#vision"
+                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                >
+                  Foundational Charter
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#curriculum"
+                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                >
+                  Dual-Track Curriculum
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/articles"
+                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                >
+                  Scholarly Articles
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/college-gallery"
+                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                >
+                  Campus Gallery
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/login"
+                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                >
+                  Student & Faculty Portal
+                </Link>
               </li>
             </ul>
-          </address>
+          </nav>
 
-          {/* Quick Links + Connect: side-by-side on mobile (span 2 cols), each in their own desktop col */}
-          <div className="grid grid-cols-2 md:contents gap-8">
-            {/* Quick Links */}
-            <nav aria-label="Footer navigation">
-              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2 text-sm">
-                {variant === "festival" ? (
-                  <>
-                    <li>
-                      <Link href={`/results/${festivalYear}`} className="hover:text-white transition">
-                        Results
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href={`/team-points/${festivalYear}`} className="hover:text-white transition">
-                        Team Points
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href={`/schedule/${festivalYear}`} className="hover:text-white transition">
-                        Schedule
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href={`/gallery/${festivalYear}`} className="hover:text-white transition">
-                        Gallery
-                      </Link>
-                    </li>
-                  </>
-                ) : (
-                  <>
-                    <li>
-                      <a href="https://www.sa-adiya.org" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
-                        Sa-adiya
-                      </a>
-                    </li>
-                    <li>
-                      <Link href="/updates" className="hover:text-white transition">
-                        Updates
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/articles" className="hover:text-white transition">
-                        Articles
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/college-gallery" className="hover:text-white transition">
-                        Gallery
-                      </Link>
-                    </li>
-                  </>
-                )}
-              </ul>
-            </nav>
+          {/* Column 3: Contact & Campus Info (Span 4) */}
+          <div className="md:col-span-4 space-y-3">
+            <h4 className="text-xs font-semibold text-[#f7f5ee] uppercase tracking-wider">
+              Campus Office
+            </h4>
+            
+            <address className="not-italic space-y-2.5 text-sm text-[#a6a095]">
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 text-emerald-500/80 shrink-0 mt-0.5" strokeWidth={1.5} />
+                <span>{address}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Mail className="w-4 h-4 text-emerald-500/80 shrink-0" strokeWidth={1.5} />
+                <a
+                  href={`mailto:${email}`}
+                  className="hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 rounded"
+                >
+                  {email}
+                </a>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Phone className="w-4 h-4 text-emerald-500/80 shrink-0" strokeWidth={1.5} />
+                <a
+                  href={`tel:${phone.replace(/[^0-9+]/g, "")}`}
+                  className="hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 rounded"
+                >
+                  {phone}
+                </a>
+              </div>
+            </address>
 
-            {/* Connect */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Connect</h3>
-              <nav className="flex flex-col gap-3">
+            {/* Verified Channels */}
+            <div className="pt-3">
+              <span className="text-xs text-[#7e857b] block mb-2 font-medium">Follow</span>
+              <div className="flex items-center gap-2">
                 <a
-                  href={ensureAbsoluteUrl(settings?.institution?.contact?.whatsappChannel) || "https://whatsapp.com/channel/"}
+                  href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-white transition group cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  aria-label="Connect on WhatsApp"
                 >
-                  <MessageCircle className="w-5 h-5 text-gray-300 group-hover:text-white" />
-                  <span>WhatsApp</span>
+                  <MessageCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </a>
                 <a
-                  href={ensureAbsoluteUrl(settings?.institution?.contact?.youtube) || "https://youtube.com/jawad_thuruthi"}
+                  href={youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-white transition group cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  aria-label="Subscribe on YouTube"
                 >
-                  <Youtube className="w-5 h-5 text-gray-300 group-hover:text-white" />
-                  <span>YouTube</span>
+                  <Youtube className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </a>
                 <a
-                  href={ensureAbsoluteUrl(settings?.institution?.contact?.instagram) || "https://instagram.com/jawad_thuruthi"}
+                  href={instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-white transition group cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  aria-label="Follow on Instagram"
                 >
-                  <Instagram className="w-5 h-5 text-gray-300 group-hover:text-white" />
-                  <span>Instagram</span>
+                  <Instagram className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </a>
-              </nav>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-gray-700 text-sm text-center opacity-70">
-        © {new Date().getFullYear()} {institutionName || "Sa-adiya College of Integrated Studies"}. All rights reserved.
+
+        {/* Bottom Colophon with spacing fix */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#6e6b64]">
+          <p>
+            {`© ${new Date().getFullYear()} ${name}. All rights reserved.`}
+          </p>
+          <p>
+            Dawa & Integrated Academic Education · Kasaragod, Kerala
+          </p>
+        </div>
       </div>
     </footer>
   );
 }
+
+
