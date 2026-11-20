@@ -102,74 +102,91 @@ function GalleryContent({ initialYear }) {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col selection:bg-emerald-500 selection:text-white">
-      {/* ── TOP BAR ── */}
-      <PublicHeader 
-        centerLogo={settings?.institution?.logo?.url} 
-        centered={true}
+    <div className="relative min-h-screen bg-[#080c09] text-[#ded9ce] flex flex-col selection:bg-emerald-900/50 selection:text-emerald-100 font-sans">
+      {/* Subtle atmospheric ground */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 opacity-20"
+        style={{
+          backgroundImage: `radial-gradient(1000px 500px at 50% -80px, rgba(20, 80, 50, 0.3), transparent 70%)`,
+        }}
+        aria-hidden="true"
       />
 
-      {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 relative overflow-hidden pt-4 sm:pt-6 pb-12">
-        <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <header className="mb-4 sm:mb-6">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white drop-shadow-md">
-              College Gallery
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm text-gray-400 max-w-xl">
-              Explore moments and highlights from our campus life.
-            </p>
-          </header>
+      <div className="relative z-10 flex flex-col flex-1">
+        {/* ── TOP BAR ── */}
+        <PublicHeader 
+          centerLogo={settings?.institution?.logo?.url} 
+          name={settings?.institution?.name || "Sa-adiya College"}
+          centered={true}
+        />
 
-          {/* ── MEDIA TYPE TABS (All / Photos / Videos) ── */}
-          <div className="mt-4 sm:mt-6 flex flex-wrap items-center gap-3">
-            <div className="inline-flex p-1 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
-              <button
-                onClick={() => setMediaTab("all")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  mediaTab === "all"
-                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                    : "text-white/70 hover:text-white"
-                }`}
-              >
-                <span>All Media</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 text-current">
-                  {photos.length + videos.length}
+        {/* ── MAIN CONTENT ── */}
+        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
+          <section className="relative">
+            {/* Editorial Header */}
+            <header className="border-b border-[#1b2b20] pb-6 mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
+                <span className="text-xs font-medium text-[#9ca59a]">
+                  Campus Archives & Visual Records
                 </span>
-              </button>
+              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif] tracking-tight">
+                College Gallery
+              </h1>
+              <p className="mt-2 text-sm sm:text-base text-[#a6a095] max-w-xl leading-relaxed">
+                Photographic records of convocations, academic symposiums, and daily life on the Kasaragod campus.
+              </p>
+            </header>
 
-              <button
-                onClick={() => setMediaTab("photos")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  mediaTab === "photos"
-                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                    : "text-white/70 hover:text-white"
-                }`}
-              >
-                <Camera className="w-3.5 h-3.5" />
-                <span>Photos</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 text-current">
-                  {photos.length}
-                </span>
-              </button>
+            {/* ── MEDIA TYPE TABS (All / Photos / Videos) ── */}
+            <div className="mb-8 flex flex-wrap items-center gap-3">
+              <div className="inline-flex p-1 rounded-full bg-white/[0.03] border border-white/[0.08]">
+                <button
+                  onClick={() => setMediaTab("all")}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all duration-200 ${
+                    mediaTab === "all"
+                      ? "bg-[#f7f5ee] text-[#07160d] font-semibold shadow-sm"
+                      : "text-[#9ca59a] hover:text-[#f7f5ee] font-medium"
+                  }`}
+                >
+                  <span>All Media</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 text-current">
+                    {photos.length + videos.length}
+                  </span>
+                </button>
 
-              <button
-                onClick={() => setMediaTab("videos")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  mediaTab === "videos"
-                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                    : "text-white/70 hover:text-white"
-                }`}
-              >
-                <Film className="w-3.5 h-3.5" />
-                <span>Videos</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 text-current">
-                  {videos.length}
-                </span>
-              </button>
+                <button
+                  onClick={() => setMediaTab("photos")}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all duration-200 ${
+                    mediaTab === "photos"
+                      ? "bg-[#f7f5ee] text-[#07160d] font-semibold shadow-sm"
+                      : "text-[#9ca59a] hover:text-[#f7f5ee] font-medium"
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Photos</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 text-current">
+                    {photos.length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setMediaTab("videos")}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all duration-200 ${
+                    mediaTab === "videos"
+                      ? "bg-[#f7f5ee] text-[#07160d] font-semibold shadow-sm"
+                      : "text-[#9ca59a] hover:text-[#f7f5ee] font-medium"
+                  }`}
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  <span>Videos</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 text-current">
+                    {videos.length}
+                  </span>
+                </button>
+              </div>
             </div>
-          </div>
 
           {/* Error Message */}
           {error && (
@@ -500,6 +517,7 @@ function GalleryContent({ initialYear }) {
 
       {/* ── FOOTER ── */}
       <PublicFooter settings={settings} />
+      </div>
     </div>
   );
 }

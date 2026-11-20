@@ -36,69 +36,60 @@ export default async function ArticlesPage() {
   const orgName = settings?.org?.name || "Organisation";
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50">
-      <PublicHeader 
-        logo={null} 
-        name={institutionName} 
-        rightLogo={null}
-        rightName={orgName}
-        centered={true}
+    <div className="relative min-h-screen bg-[#080c09] text-[#ded9ce] selection:bg-emerald-900/50 selection:text-emerald-100 font-sans flex flex-col">
+      {/* Subtle atmospheric ground */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 opacity-20"
+        style={{
+          backgroundImage: `radial-gradient(1000px 500px at 50% -80px, rgba(20, 80, 50, 0.3), transparent 70%)`,
+        }}
+        aria-hidden="true"
       />
 
-      <main className="flex-1">
-        {/* Hero Section - Super Slim with Balanced Logos */}
-        <section className="bg-emerald-800 text-white py-1 px-6 sticky top-[4rem] z-40 shadow-sm">
-          <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4">
-            {/* Institution Logo (Left) */}
-            <div className="flex-1 flex justify-start">
-              {institutionLogo && (
-                <img 
-                  src={institutionLogo} 
-                  alt={institutionName} 
-                  className="h-14 md:h-24 w-auto object-contain drop-shadow-lg"
-                />
-              )}
-            </div>
+      <div className="relative z-10 flex flex-col flex-1">
+        <PublicHeader 
+          centerLogo={institutionLogo} 
+          name={institutionName} 
+          centered={true}
+        />
 
-            {/* Center Area */}
-            <div className="flex-[2] flex flex-col items-center justify-center">
-                <h1 className="font-google-sans text-2xl md:text-4xl font-bold tracking-wider text-white drop-shadow-md">ARTICLES</h1>
+        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+          {/* Editorial Section Header */}
+          <div className="border-b border-[#1b2b20] pb-6 mb-10 sm:mb-14">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
+              <span className="text-xs font-medium text-[#9ca59a]">
+                Academic Discourse & Research
+              </span>
             </div>
-
-            {/* Organisation Logo (Right) */}
-            <div className="flex-1 flex justify-end">
-              {orgLogo && (
-                <img 
-                  src={orgLogo} 
-                  alt={orgName} 
-                  className="h-14 md:h-24 w-auto object-contain drop-shadow-lg"
-                />
-              )}
-            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif] tracking-tight">
+              Scholarly Articles
+            </h1>
+            <p className="mt-3 text-sm sm:text-base text-[#a6a095] max-w-2xl leading-relaxed">
+              Essays, philosophical discourses, and research papers authored by resident faculty, scholars, and integrated degree students.
+            </p>
           </div>
-        </section>
 
-        {/* Articles List */}
-        <section className="max-w-7xl mx-auto py-12 px-6">
+          {/* Articles List */}
           {articles.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
-              <div className="bg-purple-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Newspaper className="w-8 h-8 text-purple-600" />
+            <div className="text-center py-20 bg-[#0c140e] rounded-2xl border border-white/[0.06] max-w-lg mx-auto">
+              <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto mb-4 text-[#8f9b8a]">
+                <Newspaper className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">No articles yet</h2>
-              <p className="text-gray-500 mt-2">Check back later for new publications.</p>
+              <h2 className="text-lg font-medium text-[#f7f5ee]">No articles published yet</h2>
+              <p className="text-sm text-[#8a9187] mt-1.5">New academic papers and publications will appear here.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {articles.map((article) => (
                 <ArticleCard key={article._id} article={article} />
               ))}
             </div>
           )}
-        </section>
-      </main>
+        </main>
 
-      <PublicFooter settings={settings} institutionName={institutionName} />
+        <PublicFooter settings={settings} institutionName={institutionName} />
+      </div>
     </div>
   );
 }

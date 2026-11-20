@@ -36,76 +36,60 @@ export default async function UpdatesPage() {
   const orgName = settings?.org?.name || "Organisation";
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50">
-      <PublicHeader 
-        logo={null} 
-        name={institutionName} 
-        rightLogo={null}
-        rightName={orgName}
-        centered={true}
+    <div className="relative min-h-screen bg-[#080c09] text-[#ded9ce] selection:bg-emerald-900/50 selection:text-emerald-100 font-sans flex flex-col">
+      {/* Subtle atmospheric ground */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 opacity-20"
+        style={{
+          backgroundImage: `radial-gradient(1000px 500px at 50% -80px, rgba(20, 80, 50, 0.3), transparent 70%)`,
+        }}
+        aria-hidden="true"
       />
 
-      <main className="flex-1">
-        {/* Hero Section - Super Slim with Balanced Logos */}
-        <section className="bg-emerald-800 text-white py-1 px-6 sticky top-[4rem] z-40 shadow-sm">
-          <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4">
-            {/* Institution Logo (Left) - Increased size */}
-            <div className="flex-1 flex justify-start">
-              {institutionLogo && (
-                <img 
-                  src={institutionLogo} 
-                  alt={institutionName} 
-                  className="h-14 md:h-24 w-auto object-contain drop-shadow-lg"
-                />
-              )}
-            </div>
+      <div className="relative z-10 flex flex-col flex-1">
+        <PublicHeader 
+          centerLogo={institutionLogo} 
+          name={institutionName} 
+          centered={true}
+        />
 
-            {/* Main Updates Logo (Center) */}
-            <div className="flex-[2] flex flex-col items-center">
-              {updatesLogo && (
-                <img 
-                  src={updatesLogo} 
-                  alt="ORCHID Logo" 
-                  className="h-20 md:h-36 w-auto object-contain drop-shadow-2xl"
-                />
-              )}
-
+        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+          {/* Editorial Section Header */}
+          <div className="border-b border-[#1b2b20] pb-6 mb-10 sm:mb-14">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
+              <span className="text-xs font-medium text-[#9ca59a]">
+                Campus Bulletins & Announcements
+              </span>
             </div>
-
-            {/* Organisation Logo (Right) - Increased size */}
-            <div className="flex-1 flex justify-end">
-              {orgLogo && (
-                <img 
-                  src={orgLogo} 
-                  alt={orgName} 
-                  className="h-14 md:h-24 w-auto object-contain drop-shadow-lg"
-                />
-              )}
-            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif] tracking-tight">
+              Institutional Updates
+            </h1>
+            <p className="mt-3 text-sm sm:text-base text-[#a6a095] max-w-2xl leading-relaxed">
+              Official circulars, academic notices, examination schedules, and collegiate announcements.
+            </p>
           </div>
-        </section>
 
-        {/* Updates List - Small Grid Cards */}
-        <section className="max-w-7xl mx-auto py-12 px-6">
+          {/* Updates List */}
           {updates.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
-              <div className="bg-emerald-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CalendarIcon className="w-8 h-8 text-emerald-600" />
+            <div className="text-center py-20 bg-[#0c140e] rounded-2xl border border-white/[0.06] max-w-lg mx-auto">
+              <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto mb-4 text-[#8f9b8a]">
+                <CalendarIcon className="w-5 h-5" />
               </div>
-              <h2 className="font-google-sans text-xl font-bold text-gray-900">No updates yet</h2>
-              <p className="font-google-sans text-gray-500 mt-2">Check back later for new announcements.</p>
+              <h2 className="text-lg font-medium text-[#f7f5ee]">No updates published yet</h2>
+              <p className="text-sm text-[#8a9187] mt-1.5">Official collegiate announcements will appear here.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {updates.map((update) => (
                 <UpdateCard key={update._id} update={update} />
               ))}
             </div>
           )}
-        </section>
-      </main>
+        </main>
 
-      <PublicFooter settings={settings} institutionName={institutionName} />
+        <PublicFooter settings={settings} institutionName={institutionName} />
+      </div>
     </div>
   );
 }

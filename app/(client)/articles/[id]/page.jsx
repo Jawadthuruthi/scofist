@@ -59,83 +59,90 @@ export default async function ArticleDetailPage({ params }) {
   const orgName = settings?.org?.name || "Organisation";
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <PublicHeader 
-        logo={institutionLogo} 
-        name={institutionName} 
-        centerLogo={null}
-        rightLogo={orgLogo}
-        rightName={orgName}
+    <div className="relative min-h-screen bg-[#080c09] text-[#ded9ce] selection:bg-emerald-900/50 selection:text-emerald-100 font-sans flex flex-col">
+      {/* Subtle atmospheric ground */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 opacity-20"
+        style={{
+          backgroundImage: `radial-gradient(1000px 500px at 50% -80px, rgba(20, 80, 50, 0.3), transparent 70%)`,
+        }}
+        aria-hidden="true"
       />
 
-      <main className="flex-1">
-        <article className="max-w-4xl mx-auto py-12 px-6">
+      <div className="relative z-10 flex flex-col flex-1">
+        <PublicHeader 
+          centerLogo={institutionLogo} 
+          name={institutionName} 
+          centered={true}
+        />
 
-
-          {/* Header Info */}
-          <header className="mb-10">
-            <div className="flex items-center gap-4 text-purple-600 text-sm font-bold uppercase tracking-widest mb-4">
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4" />
-                {article.date ? format(new Date(article.date), "MMMM d, yyyy") : "Recent Article"}
-              </div>
-              {article.author && (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <User className="w-4 h-4" />
-                  {article.author}
-                </div>
-              )}
+        <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
+          <article>
+            {/* Navigation Anchor */}
+            <div className="mb-8">
+              <Link 
+                href="/articles" 
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[#9ca59a] hover:text-[#f7f5ee] px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] hover:border-white/20 transition-all"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Return to Publications</span>
+              </Link>
             </div>
-            <h1 className="font-google-sans text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
-              {article.title}
-            </h1>
-          </header>
 
-          {/* Featured Image */}
-          {article.image?.url && (
-            <div className="w-full rounded-3xl overflow-hidden shadow-2xl mb-12 border border-gray-100">
-              <img
-                src={article.image.url}
-                alt={article.title}
-                className="w-full h-auto object-contain"
+            {/* Header Info */}
+            <header className="mb-10 border-b border-[#1b2b20] pb-8">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-[#9ca59a] mb-4">
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.03] border border-white/10">
+                  <CalendarIcon className="w-3.5 h-3.5 text-emerald-400/80" />
+                  <span>{article.date ? format(new Date(article.date), "MMMM d, yyyy") : "Recent Publication"}</span>
+                </div>
+                {article.author && (
+                  <div className="flex items-center gap-1.5 text-[#869183]">
+                    <User className="w-3.5 h-3.5" />
+                    <span>{article.author}</span>
+                  </div>
+                )}
+              </div>
+              <h1 className="font-['Playfair_Display',serif] text-3xl sm:text-5xl font-normal text-[#f7f5ee] leading-[1.2]">
+                {article.title}
+              </h1>
+            </header>
+
+            {/* Featured Image */}
+            {article.image?.url && (
+              <div className="w-full rounded-2xl overflow-hidden shadow-2xl mb-12 border border-white/[0.08] bg-[#0c140e]">
+                <img
+                  src={article.image.url}
+                  alt={article.title}
+                  className="w-full h-auto max-h-[550px] object-cover"
+                />
+              </div>
+            )}
+
+            {/* Content */}
+            <div className="prose prose-invert max-w-none">
+              <p className="text-base sm:text-lg text-[#ded9ce] leading-relaxed whitespace-pre-wrap font-sans">
+                {article.content}
+              </p>
+            </div>
+
+            {/* Sharing Section */}
+            <div className="mt-14 pt-8 border-t border-[#1b2b20] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-xs text-[#869183]">
+                Published by {institutionName}
+              </div>
+              <ShareButton 
+                title={article.title} 
+                text={article.content} 
+                imageUrl={article.image?.url}
+                buttonText="Share Publication"
               />
             </div>
-          )}
+          </article>
+        </main>
 
-          {/* Content */}
-          <div className="prose prose-lg max-w-none">
-            <p className="font-google-sans text-gray-700 leading-relaxed text-xl md:text-2xl whitespace-pre-wrap font-medium">
-              {article.content}
-            </p>
-          </div>
-
-          {/* Sharing Section */}
-          <div className="mt-16 pt-10 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="text-gray-500 font-medium">
-              Shared by {institutionName} Admin
-            </div>
-            <ShareButton 
-              title={article.title} 
-              text={article.content} 
-              imageUrl={article.image?.url}
-              buttonText="Share this Article"
-            />
-          </div>
-
-          {/* Back Button */}
-          <div className="mt-12 flex justify-center">
-            <Link 
-              href="/articles" 
-              className="inline-flex items-center gap-2 text-purple-600 font-bold hover:gap-3 transition-all group"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              Back to Articles
-            </Link>
-          </div>
-        </article>
-      </main>
-
-      <PublicFooter settings={settings} institutionName={institutionName} />
+        <PublicFooter settings={settings} institutionName={institutionName} />
+      </div>
     </div>
   );
 }

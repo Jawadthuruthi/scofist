@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader, Mail, Calendar as CalendarIcon } from "lucide-react";
+import { Loader, Mail, Calendar as CalendarIcon, ChevronLeft } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import axios from "axios";
@@ -134,82 +135,101 @@ export default function LoginPage() {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
-      style={
-        backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
-      }
+      className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-[#080c09] text-[#ded9ce] selection:bg-emerald-900/50 selection:text-emerald-100 font-sans"
     >
+      {/* Subtle atmospheric ground */}
       <div
-        className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-1000 ${
-          backgroundImage ? "opacity-100" : "opacity-0"
-        }`}
+        className="pointer-events-none fixed inset-0 z-0 opacity-20"
+        style={{
+          backgroundImage: `radial-gradient(1000px 500px at 50% -80px, rgba(20, 80, 50, 0.3), transparent 70%)`,
+        }}
+        aria-hidden="true"
       />
-      <Card className="z-10 w-full max-w-md shadow-2xl bg-white/90 backdrop-blur-xl border-white/20 animate-in fade-in zoom-in duration-500">
-        <CardHeader className="pb-2 space-y-4">
-          <div className="flex items-center justify-center gap-4 animate-in slide-in-from-top duration-700 delay-200">
+
+      {backgroundImage && (
+        <div
+          className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-10 filter blur-[2px]"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+          aria-hidden="true"
+        />
+      )}
+
+      <Card className="z-10 w-full max-w-md shadow-2xl bg-[#0c140e]/95 backdrop-blur-2xl border border-white/[0.08] text-[#ded9ce] rounded-2xl animate-in fade-in zoom-in duration-500">
+        <CardHeader className="pb-2 space-y-4 text-center">
+          <div className="flex flex-col items-center justify-center gap-3">
             {institutionLogo && (
-              <img
-                src={institutionLogo}
-                alt={institutionName || "Institution Logo"}
-                className="h-16 w-auto object-contain shrink-0"
-              />
+              <div className="w-16 h-16 rounded-full bg-white/[0.04] border border-white/10 p-1 flex items-center justify-center shadow-inner">
+                <img
+                  src={institutionLogo}
+                  alt={institutionName || "Institution Logo"}
+                  className="h-full w-full object-contain rounded-full"
+                />
+              </div>
             )}
-            <CardTitle className="text-xl font-black tracking-tight text-gray-900 leading-tight text-left">
-              {institutionName === "Sa-adiya College of Integrated Studies" ? (
-                <>
-                  Sa-adiya College of <br /> Integrated Studies
-                </>
-              ) : (
-                institutionName || "Sign In"
-              )}
+            <CardTitle className="text-2xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif] tracking-tight">
+              {institutionName || "Official Access Portal"}
             </CardTitle>
           </div>
-          <p className="text-sm text-center text-gray-500 font-bold tracking-wide uppercase">
-            Official Access Portal
+          <p className="text-xs text-center text-[#9ca59a] font-normal tracking-wide">
+            Student, Scholar & Faculty Management System
           </p>
         </CardHeader>
         <CardContent className="pt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="otp">Email Login</TabsTrigger>
-              <TabsTrigger value="student">ID Login</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 p-1 rounded-full bg-white/[0.03] border border-white/[0.08]">
+              <TabsTrigger 
+                value="otp"
+                className="rounded-full text-xs font-medium text-[#9ca59a] data-[state=active]:bg-[#f7f5ee] data-[state=active]:text-[#07160d] transition-all"
+              >
+                Email Access
+              </TabsTrigger>
+              <TabsTrigger 
+                value="student"
+                className="rounded-full text-xs font-medium text-[#9ca59a] data-[state=active]:bg-[#f7f5ee] data-[state=active]:text-[#07160d] transition-all"
+              >
+                Student ID
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="otp">
               <form onSubmit={handleSendOTP} className="space-y-4 pt-4">
-                <div className="space-y-1">
-                  <Label>Email</Label>
+                <div className="space-y-1.5 text-left">
+                  <Label className="text-xs font-medium text-[#ded9ce]">Registered Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8f9b8a] w-4 h-4" />
                     <Input
                       ref={emailInputRef}
                       type="email"
-                      placeholder="you@example.com"
+                      placeholder="you@institution.edu"
                       required
                       autoFocus
-                      className={`pl-10 ${formErrors.otp ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                      className={`pl-10 bg-white/[0.03] border-white/10 text-[#f7f5ee] placeholder:text-[#6e786b] focus-visible:ring-emerald-500/50 rounded-xl ${formErrors.otp ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                 </div>
                 {formErrors.otp && (
-                  <p className="text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
+                  <p className="text-xs font-medium text-red-400">
                     {formErrors.otp}
                   </p>
                 )}
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 rounded-full bg-[#f7f5ee] hover:bg-white text-[#07160d] font-semibold text-sm transition-all shadow-sm active:scale-[0.98] cursor-pointer" 
+                  disabled={loading}
+                >
                   {loading ? (
-                    <Loader className="animate-spin mr-2" />
+                    <Loader className="animate-spin mr-2 w-4 h-4" />
                   ) : (
-                    "Send OTP"
+                    "Send Verification Code"
                   )}
                 </Button>
               </form>
             </TabsContent>
             <TabsContent value="student">
               <form onSubmit={handleStudentLogin} className="space-y-4 pt-4">
-                <div className="space-y-1">
-                  <Label>Student ID</Label>
+                <div className="space-y-1.5 text-left">
+                  <Label className="text-xs font-medium text-[#ded9ce]">Student ID</Label>
                   <Input
                     ref={studentIdInputRef}
                     type="text"
@@ -217,11 +237,11 @@ export default function LoginPage() {
                     required
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    className={`uppercase ${formErrors.student ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                    className={`uppercase bg-white/[0.03] border-white/10 text-[#f7f5ee] placeholder:text-[#6e786b] focus-visible:ring-emerald-500/50 rounded-xl ${formErrors.student ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label>Date of Birth</Label>
+                <div className="space-y-1.5 text-left">
+                  <Label className="text-xs font-medium text-[#ded9ce]">Date of Birth</Label>
                   <div className="relative flex items-center">
                     <Input
                       type="text"
@@ -244,15 +264,15 @@ export default function LoginPage() {
                         setDateOfBirth(val);
                       }}
                       maxLength={10}
-                      className={`pr-10 ${formErrors.student ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                      className={`pr-10 bg-white/[0.03] border-white/10 text-[#f7f5ee] placeholder:text-[#6e786b] focus-visible:ring-emerald-500/50 rounded-xl ${formErrors.student ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                     />
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button type="button" className="absolute right-3 text-gray-500 hover:text-gray-700 focus:outline-none">
+                        <button type="button" className="absolute right-3 text-[#8f9b8a] hover:text-[#f7f5ee] focus:outline-none">
                           <CalendarIcon size={18} />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
+                      <PopoverContent className="w-auto p-0 bg-[#0c140e] border border-white/10 text-[#ded9ce]" align="end">
                         <Calendar
                           mode="single"
                           selected={(() => {
@@ -279,18 +299,32 @@ export default function LoginPage() {
                   </div>
                 </div>
                 {formErrors.student && (
-                  <p className="text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
+                  <p className="text-xs font-medium text-red-400">
                     {formErrors.student}
                   </p>
                 )}
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? <Loader className="animate-spin mr-2" /> : "Login"}
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 rounded-full bg-[#f7f5ee] hover:bg-white text-[#07160d] font-semibold text-sm transition-all shadow-sm active:scale-[0.98] cursor-pointer" 
+                  disabled={loading}
+                >
+                  {loading ? <Loader className="animate-spin mr-2 w-4 h-4" /> : "Sign In to Portal"}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+
+      <div className="z-10 mt-6 text-center">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-1.5 text-xs text-[#9ca59a] hover:text-[#f7f5ee] transition-colors px-3 py-1.5 rounded-full bg-white/[0.02] border border-white/[0.06] hover:border-white/15"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          <span>Return to College Home</span>
+        </Link>
+      </div>
 
       <AlertDialog open={otpSentSuccess} onOpenChange={setOtpSentSuccess}>
         <AlertDialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-sm min-h-[220px] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-none shadow-2xl bg-white/95 backdrop-blur-xl">

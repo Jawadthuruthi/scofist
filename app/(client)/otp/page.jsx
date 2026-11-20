@@ -1,8 +1,8 @@
 ﻿"use client";
 import { Suspense } from "react";
-
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -11,7 +11,7 @@ import {
   InputOTPSlot,
   InputOTPSeparator,
 } from "@/components/ui/input-otp";
-import { Loader, CheckCircle2 } from "lucide-react";
+import { Loader, CheckCircle2, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import {
@@ -157,42 +157,47 @@ function OTPVerificationContent() {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
-      style={
-        backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
-      }
+      className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-[#080c09] text-[#ded9ce] selection:bg-emerald-900/50 selection:text-emerald-100 font-sans"
     >
+      {/* Subtle atmospheric ground */}
       <div
-        className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-1000 ${
-          backgroundImage ? "opacity-100" : "opacity-0"
-        }`}
+        className="pointer-events-none fixed inset-0 z-0 opacity-20"
+        style={{
+          backgroundImage: `radial-gradient(1000px 500px at 50% -80px, rgba(20, 80, 50, 0.3), transparent 70%)`,
+        }}
+        aria-hidden="true"
       />
-      <Card className="z-10 w-full max-w-md shadow-2xl bg-white/90 backdrop-blur-xl border-white/20 animate-in fade-in zoom-in duration-500">
-        <CardHeader className="pb-2 space-y-4">
-          <div className="flex items-center justify-center gap-4 animate-in slide-in-from-top duration-700 delay-200">
+
+      {backgroundImage && (
+        <div
+          className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-10 filter blur-[2px]"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+          aria-hidden="true"
+        />
+      )}
+
+      <Card className="z-10 w-full max-w-md shadow-2xl bg-[#0c140e]/95 backdrop-blur-2xl border border-white/[0.08] text-[#ded9ce] rounded-2xl animate-in fade-in zoom-in duration-500">
+        <CardHeader className="pb-2 space-y-4 text-center">
+          <div className="flex flex-col items-center justify-center gap-3">
             {settings?.institution?.logo?.url && (
-              <img
-                src={settings.institution.logo.url}
-                alt={settings?.institution?.name || "Institution Logo"}
-                className="h-16 w-auto object-contain shrink-0"
-              />
+              <div className="w-16 h-16 rounded-full bg-white/[0.04] border border-white/10 p-1 flex items-center justify-center shadow-inner">
+                <img
+                  src={settings.institution.logo.url}
+                  alt={settings?.institution?.name || "Institution Logo"}
+                  className="h-full w-full object-contain rounded-full"
+                />
+              </div>
             )}
-            <CardTitle className="text-xl font-black tracking-tight text-gray-900 leading-tight text-left">
-              {settings?.institution?.name === "Sa-adiya College of Integrated Studies" ? (
-                <>
-                  Sa-adiya College of <br /> Integrated Studies
-                </>
-              ) : (
-                settings?.institution?.name || "Institution"
-              )}
+            <CardTitle className="text-2xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif] tracking-tight">
+              {settings?.institution?.name || "Two-Factor Verification"}
             </CardTitle>
           </div>
-          <p className="text-sm text-center text-gray-500 font-bold tracking-wide uppercase">
-            Verify Access
+          <p className="text-xs text-center text-[#9ca59a] font-normal tracking-wide">
+            Enter 6-Digit Passcode
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleVerifyOTP} className="space-y-4">
+          <form onSubmit={handleVerifyOTP} className="space-y-4 pt-2">
             <div className="flex flex-col items-center">
               <InputOTP
                 maxLength={6}
@@ -201,58 +206,71 @@ function OTPVerificationContent() {
                 autoFocus
                 className="mx-auto"
               >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
+                <InputOTPGroup className="gap-1.5">
+                  <InputOTPSlot index={0} className="bg-white/[0.04] border-white/15 text-[#f7f5ee] rounded-lg" />
+                  <InputOTPSlot index={1} className="bg-white/[0.04] border-white/15 text-[#f7f5ee] rounded-lg" />
+                  <InputOTPSlot index={2} className="bg-white/[0.04] border-white/15 text-[#f7f5ee] rounded-lg" />
                 </InputOTPGroup>
-                <InputOTPSeparator />
-                <InputOTPGroup>
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
+                <InputOTPSeparator className="text-[#8f9b8a]" />
+                <InputOTPGroup className="gap-1.5">
+                  <InputOTPSlot index={3} className="bg-white/[0.04] border-white/15 text-[#f7f5ee] rounded-lg" />
+                  <InputOTPSlot index={4} className="bg-white/[0.04] border-white/15 text-[#f7f5ee] rounded-lg" />
+                  <InputOTPSlot index={5} className="bg-white/[0.04] border-white/15 text-[#f7f5ee] rounded-lg" />
                 </InputOTPGroup>
               </InputOTP>
               {otpError && (
-                <p className="mt-4 text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1 text-center">
+                <p className="mt-4 text-xs font-medium text-red-400 text-center">
                   {otpError}
                 </p>
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full h-11 rounded-full bg-[#f7f5ee] hover:bg-white text-[#07160d] font-semibold text-sm transition-all shadow-sm active:scale-[0.98] cursor-pointer" 
+              disabled={loading}
+            >
               {loading ? (
-                <Loader className="animate-spin mr-2" />
+                <Loader className="animate-spin mr-2 w-4 h-4" />
               ) : (
-                "Verify OTP"
+                "Verify Code"
               )}
             </Button>
-            <p className="text-sm text-center text-gray-600">
-              OTP sent to your email, expires in{" "}
-              <span className="font-semibold text-gray-800">
+            <p className="text-xs text-center text-[#9ca59a]">
+              Code sent to inbox, expires in{" "}
+              <span className="font-semibold text-[#f7f5ee]">
                 {formatTime(countdown)}
               </span>
-              .
             </p>
             <Button
               onClick={handleOTPResend}
               disabled={resendLoading || countdown > 0}
               variant="outline"
-              className={`w-full flex items-center justify-center ${
-                countdown > 0 ? "opacity-50 cursor-not-allowed" : ""
+              className={`w-full h-10 rounded-full bg-white/[0.03] border-white/10 hover:bg-white/[0.07] text-[#ded9ce] text-xs font-medium transition-all ${
+                countdown > 0 ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
               }`}
             >
               {resendLoading ? (
                 <>
-                  <Loader className="animate-spin mr-2 h-4 w-4" /> Resending...
+                  <Loader className="animate-spin mr-2 h-3.5 w-3.5" /> Requesting New Code...
                 </>
               ) : (
-                "Resend OTP"
+                "Resend Passcode"
               )}
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      <div className="z-10 mt-6 text-center">
+        <Link 
+          href="/login" 
+          className="inline-flex items-center gap-1.5 text-xs text-[#9ca59a] hover:text-[#f7f5ee] transition-colors px-3 py-1.5 rounded-full bg-white/[0.02] border border-white/[0.06] hover:border-white/15"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          <span>Back to Login Options</span>
+        </Link>
+      </div>
 
       <AlertDialog open={resendSuccess} onOpenChange={setResendSuccess}>
         <AlertDialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-sm min-h-[220px] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-none shadow-2xl bg-white/95 backdrop-blur-xl">
