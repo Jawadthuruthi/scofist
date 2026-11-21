@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Montserrat } from "next/font/google";
+import { Montserrat, Playfair_Display } from "next/font/google";
 import Providers from "@/components/Providers";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
@@ -8,6 +8,13 @@ const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-montserrat",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-playfair",
   display: "swap",
 });
 
@@ -123,7 +130,7 @@ export const structuredData = {
     "Premier Islamic college offering integrated studies, academic excellence, and spiritual growth",
   url: "https://www.scofist.com",
   logo: "https://www.scofist.com/logo.svg",
-  foundingDate: "2009",
+  foundingDate: "2006",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Kasaragod",
@@ -144,7 +151,7 @@ export const structuredData = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={montserrat.variable} suppressHydrationWarning>
+    <html lang="en" className={`${montserrat.variable} ${playfair.variable}`} suppressHydrationWarning>
       <body className={`${montserrat.className} font-montserrat`}>
         <Providers>{children}</Providers>
         <Toaster duration={1000} />

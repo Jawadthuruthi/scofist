@@ -70,7 +70,8 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        montserrat: ["Montserrat", "sans-serif"],
+        montserrat: ["var(--font-montserrat)", "Montserrat", "sans-serif"],
+        playfair: ["var(--font-playfair)", "'Playfair Display'", "Georgia", "serif"],
         "google-sans": ['"Product Sans"', '"Google Sans"', '"Noto Sans Malayalam"', '"Noto Sans Arabic"', 'sans-serif'],
         "sakkal-majalla": ['"Sakkal Majalla"', '"Traditional Arabic"', '"Noto Naskh Arabic"', 'serif'],
       },
