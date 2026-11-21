@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import ApplicationForm from "@/components/ApplicationForm";
-import { LogIn, LayoutDashboard, ArrowUpRight, ArrowRight } from "lucide-react";
+import { LogIn, LayoutDashboard, ArrowRight } from "lucide-react";
 
 /**
  * AuthButtons - Dignified Collegiate Actions
@@ -29,38 +29,9 @@ export default function AuthButtons({ variant = "hero", className = "" }) {
     }
   }, []);
 
-  // Header Variant: Quiet, Refined Masthead Actions
+  // Header variant removed from topbar
   if (variant === "header") {
-    return (
-      <div className={`flex items-center gap-1.5 sm:gap-2 ${className}`}>
-        {/* Portal / Dashboard Action */}
-        <Link
-          href={isAuthenticated ? "/dashboard" : "/login"}
-          className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#c8c2b5] hover:text-[#f7f5ee] hover:bg-white/[0.06] transition-colors duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
-          aria-label={isAuthenticated ? "Open student & faculty dashboard" : "Log in to portal"}
-        >
-          {isAuthenticated ? (
-            <LayoutDashboard className="w-3.5 h-3.5 text-[#8f9b8a]" strokeWidth={1.5} />
-          ) : (
-            <LogIn className="w-3.5 h-3.5 text-[#8f9b8a]" strokeWidth={1.5} />
-          )}
-          <span>{isAuthenticated ? "Dashboard" : "Portal"}</span>
-        </Link>
-
-        {/* Apply Action: Crisp Solid Ivory Button */}
-        <ApplicationForm
-          trigger={
-            <button
-              type="button"
-              className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold text-[#07160d] bg-[#f7f5ee] hover:bg-white border border-white/20 transition-all duration-200 shadow-sm active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
-              aria-label="Open admission application form"
-            >
-              <span>Apply</span>
-            </button>
-          }
-        />
-      </div>
-    );
+    return null;
   }
 
   // Hero Variant: Authoritative, Clear Hierarchical Pair
