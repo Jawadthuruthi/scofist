@@ -353,10 +353,10 @@ export default function Home({ settings }) {
                 trigger={
                   <button
                     type="button"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-emerald-400 hover:bg-emerald-300 text-neutral-950 font-semibold text-sm tracking-wide transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-[#f7f5ee] hover:bg-white text-[#07160d] font-semibold text-sm tracking-normal transition-all duration-300 shadow-[0_4px_20px_rgba(247,245,238,0.12)] hover:shadow-[0_6px_28px_rgba(247,245,238,0.22)] active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                     aria-label="Open admission application form"
                   >
-                    <FileText className="w-4 h-4 text-emerald-950" strokeWidth={1.75} />
+                    <FileText className="w-4 h-4 text-[#07160d]" strokeWidth={1.75} />
                     <span>Submit Application</span>
                   </button>
                 }
@@ -364,15 +364,15 @@ export default function Home({ settings }) {
 
               <a
                 href={`tel:${primaryPhone.replace(/[^0-9+]/g, "")}`}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-neutral-200 border border-white/10 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-[#ded9ce] hover:text-[#f7f5ee] border border-white/10 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                 aria-label={`Call admissions at ${primaryPhone}`}
               >
-                <PhoneCall className="w-4 h-4 text-neutral-400" strokeWidth={1.5} />
+                <PhoneCall className="w-4 h-4 text-[#8f9b8a]" strokeWidth={1.5} />
                 <span>Registrar: {primaryPhone}</span>
               </a>
             </div>
 
-            <p className="text-xs text-[#7e857b] mt-6">
+            <p className="text-xs text-[#9ca59a] mt-6">
               Jamia Sa-adiya Arabia Campus · Deli, Kasaragod
             </p>
           </div>

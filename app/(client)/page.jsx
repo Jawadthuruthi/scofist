@@ -63,8 +63,9 @@ export const metadata = {
   },
 };
 
-// Use dynamic to ensure settings are fetched at request time
-export const dynamic = "force-dynamic";
+// Enable Incremental Static Regeneration (ISR) to cache and revalidate every hour
+// Eliminates cold-start DB queries on every public visitor hit
+export const revalidate = 3600;
 
 export default async function HomePage() {
   let settings = null;
@@ -98,7 +99,7 @@ export default async function HomePage() {
         },
         description:
           "Premier Islamic college in Kerala offering integrated studies, academic excellence, and spiritual growth programs",
-        foundingDate: "2009",
+        foundingDate: "2006",
         address: {
           "@type": "PostalAddress",
           addressLocality: "Kasaragod",
