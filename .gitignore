@@ -50,3 +50,6 @@ next-env.d.ts
 # Agent scratch & local tooling
 /.agents/
 /scratch/
+/artifact/
+.impeccable/*.local.json
+.impeccable/hook.cache.json

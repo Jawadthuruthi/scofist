@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-21T00:55:00.000Z",
+  "title": "Design System: Scofist EMS",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Dashboard Slate Ink",
+        "canonical": "hsl(240, 5.9%, 10%)",
+        "tonalRamp": ["#09090b", "#18181b", "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#f4f4f5"]
+      },
+      "public-obsidian": {
+        "role": "background",
+        "displayName": "Heritage Obsidian Ground",
+        "canonical": "#080c09",
+        "tonalRamp": ["#040604", "#080c09", "#0e1510", "#141e17", "#1b2b20", "#2d4735", "#5c7d66", "#a6ada4"]
+      },
+      "public-ivory": {
+        "role": "primary",
+        "displayName": "Warm Alabaster Ivory",
+        "canonical": "#f7f5ee",
+        "tonalRamp": ["#36342f", "#5c5950", "#8c887f", "#a6a095", "#c8c2b5", "#ded9ce", "#eeebe2", "#f7f5ee"]
+      },
+      "public-evergreen": {
+        "role": "secondary",
+        "displayName": "Collegiate Evergreen",
+        "canonical": "#1b2b20",
+        "tonalRamp": ["#080d0a", "#0f1712", "#1b2b20", "#283e2f", "#375440", "#4d7358", "#6a9977", "#a3c7ad"]
+      },
+      "public-gold": {
+        "role": "tertiary",
+        "displayName": "Collegiate Crest Gold",
+        "canonical": "#d4af37",
+        "tonalRamp": ["#2e2406", "#4d3d0a", "#785f10", "#a68316", "#d4af37", "#e4c664", "#f0dc97", "#fbf5df"]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Structural Hairline Border",
+        "canonical": "hsl(240, 5.9%, 80%)",
+        "tonalRamp": ["#18181b", "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#cbcbd2", "#e4e4e7"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Collegiate Display Serif",
+        "purpose": "Public homepage hero and foundational charter section titles."
+      },
+      "headline": {
+        "displayName": "Charter Headline Serif",
+        "purpose": "Public section headers and commemorative credentials."
+      },
+      "title": {
+        "displayName": "Dashboard View Title",
+        "purpose": "Primary operational headers inside dashboard domains."
+      },
+      "body": {
+        "displayName": "Standard UI Body",
+        "purpose": "Default text for tables, descriptions, and forms across both surfaces."
+      },
+      "label": {
+        "displayName": "Compact Technical Label",
+        "purpose": "Badges, timetable periods, table column headers, and status chips."
+      }
+    },
+    "shadows": [
+      {
+        "name": "public-masthead",
+        "value": "0 16px 40px -8px rgba(0,0,0,0.85)",
+        "purpose": "Floating frosted masthead on public scroll."
+      },
+      {
+        "name": "public-cta-glow",
+        "value": "0 4px 20px rgba(247,245,238,0.12)",
+        "purpose": "Subtle ambient glow under primary ivory action buttons."
+      },
+      {
+        "name": "dashboard-card",
+        "value": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+        "purpose": "Light structural foundation for dashboard metric cards."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default transition curve for sidebar and dropdown toggles."
+      },
+      {
+        "name": "duration-fast",
+        "value": "150ms",
+        "purpose": "Button and row hover state transitions."
+      }
+    ],
+    "breakpoints": [
+      { "name": "xs", "value": "480px" },
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Dashboard Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary high-contrast button for dashboard form submissions and action triggers.",
+      "html": "<button class=\"ds-btn-primary\">Save Changes</button>",
+      "css": ".ds-btn-primary { background: #18181b; color: #fafafa; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500; height: 36px; padding: 0 16px; border-radius: 6px; border: none; cursor: pointer; transition: background 0.15s ease; display: inline-flex; items-center; justify-content: center; } .ds-btn-primary:hover { background: #27272a; } .ds-btn-primary:focus-visible { outline: 2px solid #09090b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Dashboard Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary outline button for filters, exports, and secondary actions.",
+      "html": "<button class=\"ds-btn-outline\">Export TSV</button>",
+      "css": ".ds-btn-outline { background: #ffffff; color: #09090b; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500; height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #cbcbd2; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; } .ds-btn-outline:hover { background: #f4f4f5; }"
+    },
+    {
+      "name": "Public Apply CTA Button",
+      "kind": "button",
+      "refersTo": "button-public-apply",
+      "description": "Luminous solid ivory hero pill button on public collegiate pages.",
+      "html": "<button class=\"ds-btn-public-apply\">Apply for Admission</button>",
+      "css": ".ds-btn-public-apply { background: #f7f5ee; color: #07160d; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 600; height: 48px; padding: 0 28px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; box-shadow: 0 4px 20px rgba(247,245,238,0.12); transition: all 0.25s ease; } .ds-btn-public-apply:hover { background: #ffffff; box-shadow: 0 6px 28px rgba(247,245,238,0.22); transform: translateY(-1px); }"
+    },
+    {
+      "name": "Public Glass Action Button",
+      "kind": "button",
+      "refersTo": "button-public-glass",
+      "description": "Architectural frosted glass pill button linking to portal authentication.",
+      "html": "<button class=\"ds-btn-public-glass\">Staff & Student Portal</button>",
+      "css": ".ds-btn-public-glass { background: rgba(255,255,255,0.04); color: #ded9ce; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500; height: 48px; padding: 0 24px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(12px); cursor: pointer; transition: all 0.25s ease; } .ds-btn-public-glass:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); color: #f7f5ee; }"
+    },
+    {
+      "name": "Dashboard Metric Card",
+      "kind": "card",
+      "refersTo": "card-dashboard",
+      "description": "Standard container for dashboard statistics, charts, and table sections.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Total Present Students</div><div class=\"ds-card-value\">94.2%</div></div>",
+      "css": ".ds-card { background: #ffffff; color: #09090b; border: 1px solid #cbcbd2; border-radius: 12px; padding: 20px; font-family: Montserrat, sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,0.05); } .ds-card-title { font-size: 13px; font-weight: 500; color: #71717a; margin-bottom: 8px; } .ds-card-value { font-size: 24px; font-weight: 600; color: #09090b; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-status",
+      "description": "High-density badge indicating operational state in data grids.",
+      "html": "<span class=\"ds-badge-success\">Present</span>",
+      "css": ".ds-badge-success { display: inline-flex; align-items: center; background: #dcfce7; color: #15803d; font-family: Montserrat, sans-serif; font-size: 10px; font-weight: 600; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.02em; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Collegiate Sanctuary & The Flight Deck",
+    "overview": "Scofist intentionally operates on a dual-world aesthetic architecture: The Public Surface ('The Collegiate Sanctuary') honors academic heritage, scholarly dignity, and moral purpose with deep obsidian grounds, warm ivory typography, and Playfair Display serif headlines; while The Dashboard Surface ('The Flight Deck') provides administrators, teachers, and event judges with a high-density, mission-critical operational cockpit featuring flat-by-default surfaces, HSL semantic variables, 8px precision corners, and multi-script support.",
+    "keyCharacteristics": [
+      "Strict surface boundary division: Public pages never use dashboard data cards; dashboard screens never bleed marketing gradients or serif display fonts.",
+      "Atmospheric public grounding: Radial dark-emerald glows, muted sand and ivory text, architectural frosted glass headers.",
+      "Flight-deck data density: 14px base font scaling down to 10px (xxs) for status badges, tight 8px padding, sticky headers, and responsive role-based bottom bars.",
+      "Script-aware academic inclusivity: Purpose-built font stacks handling Arabic treatises and Malayalam texts alongside English Latin glyphs."
+    ],
+    "rules": [
+      {
+        "name": "The Surface Separation Rule",
+        "body": "Never use #080c09 obsidian or #f7f5ee ivory inside the dashboard. Conversely, never use dashboard zinc grey tables or raw HSL cards on the public homepage.",
+        "section": "colors"
+      },
+      {
+        "name": "The Functional Color Rule",
+        "body": "In the dashboard, color indicates state only (present/absent, paid/unpaid, active/locked). Never introduce saturated accent colors for decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Serif Containment Rule",
+        "body": "Playfair Display is exclusively permitted on public editorial landing surfaces and graduation/merit certificates. It must never appear inside dashboard tables, forms, or sidebars.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Dashboard surfaces are flat at rest. Depth is communicated through 1px border contrast, not floating drop shadows.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do respect the surface boundary: use Playfair Display, #080c09, and pill geometry on public pages; use Montserrat/Google Sans, HSL tokens, and 8px precision corners in the dashboard.",
+      "Do apply .book-text-font whenever rendering book titles, Arabic citations, or Malayalam student records.",
+      "Do keep dashboard tables compact: use text-xs or text-sm, bounded row heights, and sticky column headers.",
+      "Do ensure all dashboard interactive components support both Light and Dark themes via Tailwind dark: variants.",
+      "Do provide immediate keyboard focus rings (focus-visible:ring-1 focus-visible:ring-ring) on all dashboard action triggers."
+    ],
+    "donts": [
+      "Don't add drop shadows or gradients to dashboard data tables or management forms.",
+      "Don't use decorative uppercase pills or marketing tags inside administrative data grids.",
+      "Don't place public marketing slogans, testimonials, or pricing tables inside the dashboard.",
+      "Don't invent random hex colors; always use HSL semantic tokens (border-border, bg-card, text-muted-foreground) in dashboard views.",
+      "Don't hardcode light-only colors (bg-white, text-black) inside dashboard components without their dark mode counterparts."
+    ]
+  }
+}
