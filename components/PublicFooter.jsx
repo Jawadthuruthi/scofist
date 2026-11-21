@@ -63,7 +63,7 @@ export default function Footer({
               </div>
               <div>
                 <h3 className="text-base font-semibold text-[#f7f5ee]">{name}</h3>
-                <span className="text-xs text-[#7e857b] block">
+                <span className="text-xs text-[#9ca59a] block">
                   Under Jamia Sa-adiya Arabia · Founded 2006
                 </span>
               </div>
@@ -79,19 +79,11 @@ export default function Footer({
             <h4 className="text-xs font-semibold text-[#f7f5ee] uppercase tracking-wider">
               Navigation
             </h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link
-                  href="#about"
-                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
-                >
-                  About the College
-                </Link>
-              </li>
+            <ul className="space-y-1 text-sm">
               <li>
                 <Link
                   href="#vision"
-                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
                 >
                   Foundational Charter
                 </Link>
@@ -99,7 +91,7 @@ export default function Footer({
               <li>
                 <Link
                   href="#curriculum"
-                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
                 >
                   Dual-Track Curriculum
                 </Link>
@@ -107,7 +99,7 @@ export default function Footer({
               <li>
                 <Link
                   href="/articles"
-                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
                 >
                   Scholarly Articles
                 </Link>
@@ -115,7 +107,7 @@ export default function Footer({
               <li>
                 <Link
                   href="/college-gallery"
-                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
                 >
                   Campus Gallery
                 </Link>
@@ -123,7 +115,7 @@ export default function Footer({
               <li>
                 <Link
                   href="/login"
-                  className="text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
                 >
                   Student & Faculty Portal
                 </Link>
@@ -164,34 +156,34 @@ export default function Footer({
 
             {/* Verified Channels */}
             <div className="pt-3">
-              <span className="text-xs text-[#7e857b] block mb-2 font-medium">Follow</span>
-              <div className="flex items-center gap-2">
+              <span className="text-xs text-[#8c887f] block mb-2 font-medium">Follow</span>
+              <div className="flex items-center gap-2.5">
                 <a
                   href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  className="w-9 h-9 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
                   aria-label="Connect on WhatsApp"
                 >
-                  <MessageCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <MessageCircle className="w-4 h-4" strokeWidth={1.5} />
                 </a>
                 <a
                   href={youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  className="w-9 h-9 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
                   aria-label="Subscribe on YouTube"
                 >
-                  <Youtube className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <Youtube className="w-4 h-4" strokeWidth={1.5} />
                 </a>
                 <a
                   href={instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  className="w-9 h-9 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
                   aria-label="Follow on Instagram"
                 >
-                  <Instagram className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <Instagram className="w-4 h-4" strokeWidth={1.5} />
                 </a>
               </div>
             </div>
@@ -199,7 +191,7 @@ export default function Footer({
         </div>
 
         {/* Bottom Colophon with spacing fix */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#6e6b64]">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#8c887f]">
           <p>
             {`© ${new Date().getFullYear()} ${name}. All rights reserved.`}
           </p>

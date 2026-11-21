@@ -56,11 +56,13 @@ export default function PublicHeader({
             <img
               src={displayLogo}
               alt={displayName}
+              width={36}
+              height={36}
               className="h-full w-full object-contain rounded-full"
             />
           </div>
         ) : (
-          <div className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-[#0f2115] border border-[#20402b] flex items-center justify-center text-[#d4af37] font-['Playfair_Display',serif] font-bold text-xs tracking-wider shrink-0 shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)] group-hover:border-emerald-500/30 transition-colors duration-300">
+          <div className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-[#0f2115] border border-[#20402b] flex items-center justify-center text-[#d4af37] font-playfair font-bold text-xs tracking-wider shrink-0 shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)] group-hover:border-emerald-500/30 transition-colors duration-300">
             SDC
           </div>
         )}
@@ -68,7 +70,7 @@ export default function PublicHeader({
           <span className="text-xs sm:text-sm font-semibold tracking-tight text-[#f7f5ee] group-hover:text-white transition-colors duration-300 truncate">
             {displayName}
           </span>
-          <span className="text-[10px] sm:text-[11px] text-[#9ca59a] hidden md:block font-normal tracking-wide truncate">
+          <span className="text-xs text-[#a6b09f] hidden md:block font-normal tracking-wide truncate">
             Kasaragod, Kerala · Est. 2006
           </span>
         </div>
