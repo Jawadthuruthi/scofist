@@ -32,7 +32,7 @@ export default function Home({ settings }) {
   const primaryPhone = settings?.institution?.contact?.primaryPhone || settings?.institution?.primaryPhone || "+91 89432 64498";
 
   return (
-    <div className="relative min-h-screen bg-[#080c09] text-[#ded9ce] selection:bg-emerald-900/50 selection:text-emerald-100 font-sans">
+    <div className="relative min-h-screen bg-[#080c09] text-[#ded9ce] selection:bg-[#1b2b20] selection:text-[#f7f5ee] font-sans">
       {/* Subtle atmospheric ground - quiet, not neon */}
       <div
         className="pointer-events-none fixed inset-0 z-0 opacity-20"
@@ -73,7 +73,7 @@ export default function Home({ settings }) {
 
           <h1
             id="hero-title"
-            className="text-4xl sm:text-6xl md:text-7xl font-normal tracking-tight text-[#f7f5ee] leading-[1.12] max-w-4xl mx-auto font-['Playfair_Display',serif]"
+            className="text-4xl sm:text-6xl md:text-7xl font-normal tracking-tight text-[#f7f5ee] leading-[1.12] max-w-4xl mx-auto font-playfair text-balance"
           >
             Where Sacred Wisdom Meets Contemporary Intellect
           </h1>
@@ -104,7 +104,7 @@ export default function Home({ settings }) {
           <div className="border-b border-[#1b2b20] pb-4 mb-10">
             <h2
               id="charter-heading"
-              className="text-2xl sm:text-3xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif]"
+              className="text-2xl sm:text-3xl font-normal text-[#f7f5ee] font-playfair tracking-tight"
             >
               Foundational Charter
             </h2>
@@ -154,7 +154,7 @@ export default function Home({ settings }) {
           <div className="border-b border-[#1b2b20] pb-4 mb-10">
             <h2
               id="curriculum-heading"
-              className="text-2xl sm:text-3xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif]"
+              className="text-2xl sm:text-3xl font-normal text-[#f7f5ee] font-playfair tracking-tight"
             >
               The Integrated Curriculum
             </h2>
@@ -165,7 +165,7 @@ export default function Home({ settings }) {
 
           <div className="grid md:grid-cols-2 gap-8">
             {/* Track 1: Islamic Sciences */}
-            <div className="p-7 rounded-2xl bg-[#0d1611] border border-[#1b2d22]">
+            <div className="p-7 rounded-2xl bg-[#0d1611] border border-[#1b2d22] transition-colors hover:border-[#243d2e]">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#1e3327]">
                 <h3 className="text-lg font-semibold text-[#f7f5ee]">
                   Classical Islamic Sciences & Dawa
@@ -177,30 +177,30 @@ export default function Home({ settings }) {
               </p>
               <ul className="space-y-2 text-sm text-[#ded9ce]">
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Quranic Exegesis (Tafsir) & Hermeneutics</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Hadith Literature & Methodology</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Islamic Jurisprudence (Fiqh & Usul al-Fiqh)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Classical Arabic Grammar & Rhetoric (Balagha)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Dawa Methodology & Comparative Religion</span>
                 </li>
               </ul>
             </div>
 
             {/* Track 2: University Degree */}
-            <div className="p-7 rounded-2xl bg-[#0d1611] border border-[#1b2d22]">
+            <div className="p-7 rounded-2xl bg-[#0d1611] border border-[#1b2d22] transition-colors hover:border-[#243d2e]">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#1e3327]">
                 <h3 className="text-lg font-semibold text-[#f7f5ee]">
                   Accredited University Programs
@@ -212,23 +212,23 @@ export default function Home({ settings }) {
               </p>
               <ul className="space-y-2 text-sm text-[#ded9ce]">
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Bachelor of Arts (Humanities & Social Sciences)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Bachelor of Commerce (Finance & Management)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Modern English Literature & Academic Writing</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Information Technology & Computer Applications</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500/80 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
                   <span>Research Methodology & Contemporary Seminars</span>
                 </li>
               </ul>
@@ -238,20 +238,24 @@ export default function Home({ settings }) {
           {/* Supporting Campus Features */}
           <div className="grid sm:grid-cols-2 gap-6 mt-6">
             <div className="p-5 rounded-xl bg-[#0b120e] border border-[#17251c] flex items-start gap-4">
-              <Users className="w-5 h-5 text-emerald-400 shrink-0 mt-1" strokeWidth={1.5} />
+              <div className="w-9 h-9 rounded-lg bg-emerald-950/40 border border-emerald-800/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                <Users className="w-4 h-4" strokeWidth={1.5} />
+              </div>
               <div>
                 <h4 className="text-sm font-semibold text-[#f7f5ee]">Residential Mentorship</h4>
-                <p className="text-xs text-[#8c887f] mt-1 leading-relaxed">
+                <p className="text-xs text-[#9ba298] mt-1 leading-relaxed">
                   Scholars and faculty reside on campus, providing ongoing intellectual guidance, character cultivation, and moral oversight.
                 </p>
               </div>
             </div>
 
             <div className="p-5 rounded-xl bg-[#0b120e] border border-[#17251c] flex items-start gap-4">
-              <Building2 className="w-5 h-5 text-emerald-400 shrink-0 mt-1" strokeWidth={1.5} />
+              <div className="w-9 h-9 rounded-lg bg-emerald-950/40 border border-emerald-800/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                <Building2 className="w-4 h-4" strokeWidth={1.5} />
+              </div>
               <div>
                 <h4 className="text-sm font-semibold text-[#f7f5ee]">Kasaragod Sanctuary</h4>
-                <p className="text-xs text-[#8c887f] mt-1 leading-relaxed">
+                <p className="text-xs text-[#9ba298] mt-1 leading-relaxed">
                   A serene academic setting in Deli, Kasaragod, featuring classical library archives and dedicated study cloisters.
                 </p>
               </div>
@@ -268,7 +272,7 @@ export default function Home({ settings }) {
           <div className="border-b border-[#1b2b20] pb-4 mb-10">
             <h2
               id="inquiries-heading"
-              className="text-2xl sm:text-3xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif]"
+              className="text-2xl sm:text-3xl font-normal text-[#f7f5ee] font-playfair tracking-tight"
             >
               Academic Life & Resources
             </h2>
@@ -280,9 +284,11 @@ export default function Home({ settings }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link
               href="/articles"
-              className="group p-6 rounded-2xl bg-[#0d1611] hover:bg-[#122018] border border-[#1b2d22] hover:border-[#284433] transition-colors"
+              className="group p-6 rounded-2xl bg-[#0d1611] hover:bg-[#122018] border border-[#1b2d22] hover:border-[#284433] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
             >
-              <BookOpen className="w-5 h-5 text-emerald-400 mb-4" strokeWidth={1.5} />
+              <div className="w-10 h-10 rounded-xl bg-emerald-950/40 border border-emerald-800/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:border-emerald-700/50 group-hover:bg-emerald-950/60 transition-colors">
+                <BookOpen className="w-5 h-5" strokeWidth={1.5} />
+              </div>
               <h3 className="text-base font-semibold text-[#f7f5ee] mb-1.5 group-hover:text-emerald-300 transition-colors">
                 Scholarly Articles
               </h3>
@@ -291,15 +297,17 @@ export default function Home({ settings }) {
               </p>
               <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 mt-4">
                 <span>Read publications</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </span>
             </Link>
 
             <Link
               href="/college-gallery"
-              className="group p-6 rounded-2xl bg-[#0d1611] hover:bg-[#122018] border border-[#1b2d22] hover:border-[#284433] transition-colors"
+              className="group p-6 rounded-2xl bg-[#0d1611] hover:bg-[#122018] border border-[#1b2d22] hover:border-[#284433] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
             >
-              <Building2 className="w-5 h-5 text-emerald-400 mb-4" strokeWidth={1.5} />
+              <div className="w-10 h-10 rounded-xl bg-emerald-950/40 border border-emerald-800/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:border-emerald-700/50 group-hover:bg-emerald-950/60 transition-colors">
+                <Building2 className="w-5 h-5" strokeWidth={1.5} />
+              </div>
               <h3 className="text-base font-semibold text-[#f7f5ee] mb-1.5 group-hover:text-emerald-300 transition-colors">
                 Campus Gallery
               </h3>
@@ -308,15 +316,17 @@ export default function Home({ settings }) {
               </p>
               <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 mt-4">
                 <span>View gallery</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </span>
             </Link>
 
             <Link
               href="/login"
-              className="group p-6 rounded-2xl bg-[#0d1611] hover:bg-[#122018] border border-[#1b2d22] hover:border-[#284433] transition-colors"
+              className="group p-6 rounded-2xl bg-[#0d1611] hover:bg-[#122018] border border-[#1b2d22] hover:border-[#284433] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
             >
-              <GraduationCap className="w-5 h-5 text-emerald-400 mb-4" strokeWidth={1.5} />
+              <div className="w-10 h-10 rounded-xl bg-emerald-950/40 border border-emerald-800/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:border-emerald-700/50 group-hover:bg-emerald-950/60 transition-colors">
+                <GraduationCap className="w-5 h-5" strokeWidth={1.5} />
+              </div>
               <h3 className="text-base font-semibold text-[#f7f5ee] mb-1.5 group-hover:text-emerald-300 transition-colors">
                 Student & Staff Portal
               </h3>
@@ -325,7 +335,7 @@ export default function Home({ settings }) {
               </p>
               <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 mt-4">
                 <span>Access system</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </span>
             </Link>
           </div>
@@ -339,7 +349,7 @@ export default function Home({ settings }) {
           <div className="p-8 sm:p-12 rounded-3xl bg-[#0d1611] border border-[#1e3428]">
             <h2
               id="admissions-heading"
-              className="text-2xl sm:text-4xl font-normal text-[#f7f5ee] font-['Playfair_Display',serif] mb-4"
+              className="text-2xl sm:text-4xl font-normal text-[#f7f5ee] font-playfair tracking-tight mb-4 text-balance"
             >
               Admissions for the Academic Session
             </h2>
@@ -372,7 +382,7 @@ export default function Home({ settings }) {
               </a>
             </div>
 
-            <p className="text-xs text-[#9ca59a] mt-6">
+            <p className="text-xs text-[#a6b09f] mt-6">
               Jamia Sa-adiya Arabia Campus · Deli, Kasaragod
             </p>
           </div>

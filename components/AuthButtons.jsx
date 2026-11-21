@@ -85,7 +85,7 @@ export default function AuthButtons({ variant = "hero", className = "" }) {
       {/* Secondary Hero CTA: Architectural Frosted Glass */}
       <Link
         href={isAuthenticated ? "/dashboard" : "/login"}
-        className="group relative w-full sm:w-auto inline-flex items-center justify-center min-h-[48px] px-6 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/12 hover:border-white/25 text-[#ded9ce] hover:text-[#f7f5ee] font-medium text-sm tracking-normal transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+        className="group relative w-full sm:w-auto inline-flex items-center justify-center min-h-[48px] px-6 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.12] hover:border-white/[0.22] text-[#ded9ce] hover:text-[#f7f5ee] font-medium text-sm tracking-normal transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
         aria-label={isAuthenticated ? "Open student & faculty dashboard" : "Log in to student and faculty portal"}
       >
         <span className="flex items-center gap-2">
