@@ -4,7 +4,8 @@ import { Topbar } from "@/components/Topbar";
 import LibrarianBottomBar from "@/components/LibrarianBottomBar";
 import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { parseUser, fetchData } from "@/lib/utils";
+import { parseUser } from "@/lib/utils";
+import { getCachedSettings } from "@/lib/settings";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export default async function Layout({ children }) {
   const cookiesStore = await cookies();
   const user = parseUser(headerStore);
   const activeRole = cookiesStore.get("active-role")?.value;
-  const settingsData = await fetchData("settings", "", 60).catch(() => null);
+  const settingsData = await getCachedSettings();
 
   return (
     <ThemeProvider

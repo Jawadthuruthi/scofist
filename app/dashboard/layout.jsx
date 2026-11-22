@@ -13,7 +13,8 @@ import JudgeBottomBar from "@/components/JudgeBottomBar";
 import StudentBottomBar from "@/components/StudentBottomBar";
 import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { parseUser, fetchData } from "@/lib/utils";
+import { parseUser } from "@/lib/utils";
+import { getCachedSettings } from "@/lib/settings";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,9 +29,8 @@ export default async function Layout({ children }) {
     currentActiveRole === "Program Leader" ||
     currentActiveRole === "Judge";
 
-  // Pre-fetch settings on the server so sidebar, topbar, and switcher
-  // render immediately with the correct app logo and session info.
-  let settingsData = await fetchData("settings", "", 60).catch(() => null);
+  // Directly load settings using cached DB loader to eliminate internal HTTP self-fetch loops
+  let settingsData = await getCachedSettings();
   let initialActiveYear = "";
 
   if (isFestivalRole && settingsData) {

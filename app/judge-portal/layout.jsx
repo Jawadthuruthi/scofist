@@ -2,7 +2,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
 import JudgeBottomBar from "@/components/JudgeBottomBar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { parseUser, fetchData } from "@/lib/utils";
+import { parseUser } from "@/lib/utils";
+import { getCachedSettings } from "@/lib/settings";
 import { cookies, headers } from "next/headers";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -15,7 +16,7 @@ export default async function Layout({ children }) {
   let settingsData = null;
   let initialActiveYear = "";
   try {
-    settingsData = await fetchData("settings", "", 60);
+    settingsData = await getCachedSettings();
     if (settingsData && (activeRole === "Program Committee" || activeRole === "Program Leader" || activeRole === "Judge")) {
       const fetchedYears = settingsData.years || ["2025 november"];
       const fetchedBlockedYears = settingsData.blockedYears || [];

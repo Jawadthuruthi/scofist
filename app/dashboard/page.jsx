@@ -9,6 +9,8 @@ import { getSparkStats } from "@/libservices/spark-services";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
 
+import { getCachedSettings } from "@/lib/settings";
+
 const getApiEndpoints = (dateStr) => [
   {
     pathname: "classes",
@@ -32,10 +34,6 @@ const getApiEndpoints = (dateStr) => [
   {
     pathname: "attendances",
     searchParams: `date=${dateStr}`,
-  },
-  {
-    pathname: "settings",
-    revalidate: 0,
   },
   {
     pathname: "leave-records",
@@ -114,25 +112,30 @@ export default async function DashboardPage({ searchParams }) {
     }
 
     const [
-      classes,
-      batches,
-      teachers,
-      periods,
-      attendances,
       settings,
-      leaveRecords,
-      teachersLeaveRecord,
-      updatesData,
-    ] = await Promise.all(
-      getApiEndpoints(dateStr).map((endpoint) =>
-        fetchData(
-          endpoint.pathname,
-          endpoint.searchParams,
-          endpoint.revalidate,
-          endpoint.key
+      [
+        classes,
+        batches,
+        teachers,
+        periods,
+        attendances,
+        leaveRecords,
+        teachersLeaveRecord,
+        updatesData,
+      ]
+    ] = await Promise.all([
+      getCachedSettings(),
+      Promise.all(
+        getApiEndpoints(dateStr).map((endpoint) =>
+          fetchData(
+            endpoint.pathname,
+            endpoint.searchParams,
+            endpoint.revalidate,
+            endpoint.key
+          )
         )
       )
-    );
+    ]);
 
     const filteredLeaveRecords = leaveRecords.filter(
       (record) => record.studentStatus === "Active"
