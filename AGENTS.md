@@ -1,5 +1,7 @@
 # Project: Scofist Education Management System
 
+> **Mandatory Rule:** Read `CONSTRAINTS.md` before writing code. Do not weaken it to make a change pass.
+
 ## Overview
 Scofist is a comprehensive multi-role Education Management System (EMS) managing students, teachers, academic batches, class attendance, timetables, examinations, library, finance, and extracurricular programs.
 

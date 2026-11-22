@@ -7,7 +7,9 @@
     "dev": "cross-env NODE_OPTIONS='--max-old-space-size=3072' next dev --turbopack",
     "build": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:floor": "node scripts/floor-guard.mjs",
+    "check:fast": "node scripts/floor-guard.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.112",
