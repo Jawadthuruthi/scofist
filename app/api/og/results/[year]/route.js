@@ -13,8 +13,7 @@ function getTrimmedImageUrl(url) {
 }
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 86400; // Cache for 24 hours in ISR, with stale-while-revalidate
 
 export async function GET(request, { params }) {
   try {
@@ -143,9 +142,7 @@ export async function GET(request, { params }) {
         width: 1080,
         height: 1080,
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-          "Pragma": "no-cache",
-          "Expires": "0",
+          "Cache-Control": "public, max-age=0, s-maxage=86400, stale-while-revalidate=86400",
         },
       }
     );

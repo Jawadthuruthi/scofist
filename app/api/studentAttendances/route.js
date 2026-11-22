@@ -16,8 +16,12 @@ export async function GET(req, res) {
 
     // Parse URL to get search params
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const page = Math.max(0, parseInt(url.searchParams.get("page") || "0", 10));
+    const rawLimit = url.searchParams.get("limit");
+    // Cap default limit to 100 instead of Infinity to protect serverless memory
+    const limit = rawLimit === "0"
+      ? 100
+      : (rawLimit && !isNaN(parseInt(rawLimit, 10)) ? Math.min(Math.max(1, parseInt(rawLimit, 10)), 100) : 50);
 
     // Build filter object from query parameters
     const filterParams = {};
@@ -147,8 +151,15 @@ export async function GET(req, res) {
         documentQuery.studentId = "NULL_USER_ID";
       }
     } else if (dateFilter || isToppersOnly) {
-      // When dateFilter is present or toppersOnly is requested, filter by active students of the selected period (excluding dropped out students)
-      const allStudents = await User.find({ roles: "Student" }, { _id: 1, studentSpecificField: 1 }).lean();
+      // When dateFilter is present or toppersOnly is requested, filter by active students of the selected period
+      const studentSearchQuery = {
+        roles: "Student",
+        "studentSpecificField.status": { $ne: "Dropped Out" }
+      };
+      if (documentQuery.studentId && documentQuery.studentId !== "NULL_USER_ID") {
+        studentSearchQuery._id = documentQuery.studentId;
+      }
+      const allStudents = await User.find(studentSearchQuery, { _id: 1, studentSpecificField: 1 }).lean();
       const activeMatchingUsers = allStudents.filter(u =>
         isStudentActiveInPeriod(u, periodStart, periodEnd, batchMap)
       );

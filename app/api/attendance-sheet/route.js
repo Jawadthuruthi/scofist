@@ -10,18 +10,32 @@ import Settings from "@/models/Settings";
 import TimeTable from "@/models/TimeTable";
 import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 
-// Helper to validate User via x-user-id header
+// Helper to validate User via x-user header or x-user-id fallback
 async function validateUser(request) {
+    const userHeader = request.headers.get("x-user");
+    if (userHeader) {
+        try {
+            return JSON.parse(userHeader);
+        } catch (parseError) {
+            try {
+                return JSON.parse(decodeURIComponent(userHeader));
+            } catch (decodeError) {
+                console.warn("Invalid x-user JSON header in validateUser:", decodeError.message);
+            }
+        }
+    }
     const userId = request.headers.get("x-user-id");
     if (!userId) return null;
 
     await connectToDB();
-    const user = await User.findOne({ _id: userId });
+    const user = await User.findOne({ _id: userId }, "_id name roles").lean();
     return user;
 }
 
 export async function GET(request) {
     try {
+        await connectToDB();
+
         const user = await validateUser(request);
         if (!user) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -150,9 +164,9 @@ export async function GET(request) {
             attendanceQuery.batchId = batchId;
         }
 
-        // 2.5 Fetch Attendance and Leave Records in parallel using lean queries
+        // 2.5 Fetch Attendance, Leave Records, and Settings in parallel using lean queries
         const studentIds = students.map(s => s._id);
-        const [attendanceRecords, leaveRecords] = await Promise.all([
+        const [attendanceRecords, leaveRecords, settings] = await Promise.all([
             Attendance.find(attendanceQuery).populate("teacherId", "name").lean(),
             LeaveRecord.find({
                 studentId: { $in: studentIds },
@@ -163,7 +177,8 @@ export async function GET(request) {
                     { arrivedDate: { $exists: false } },
                     { arrivedDate: null }
                 ]
-            }).lean()
+            }).lean(),
+            Settings.findOne({}).select("general").lean().catch(() => null)
         ]);
 
         // 3. Transform DataMap
@@ -225,10 +240,9 @@ export async function GET(request) {
             }
         });
 
-        // 4. Fetch non-working days from Settings for this month/year
+        // 4. Populate non-working days from Settings for this month/year
         const nonWorkingDaysMap = {}; // day (1-31) -> occasion name
         try {
-            const settings = await Settings.findOne({}).select("general").lean();
             const log = settings?.general?.nonWorkingDaysLog || [];
             const legacyDates = settings?.general?.nonWorkingDays || [];
             const currentOccasion = settings?.general?.occasion || "";

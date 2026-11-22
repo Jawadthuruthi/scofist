@@ -31,9 +31,12 @@ export async function GET(req, res) {
 
     const url = new URL(req.url);
     const filterParams = Object.fromEntries(url.searchParams.entries());
-    const page = parseInt(filterParams.page || "0");
-    const limitParam = filterParams.limit;
-    const limit = limitParam === "0" ? Infinity : (parseInt(limitParam) || Infinity);
+    const page = Math.max(0, parseInt(filterParams.page || "0", 10));
+    const rawLimit = filterParams.limit;
+    // When limit === "0", preserve Infinity for unpaginated faculty exports; otherwise cap default to 100
+    const limit = rawLimit === "0"
+      ? Infinity
+      : (rawLimit && !isNaN(parseInt(rawLimit, 10)) ? Math.min(Math.max(1, parseInt(rawLimit, 10)), 100) : 100);
 
     // 1. Fetch relevant teachers
     const teacherQuery = { roles: "Teacher" };
@@ -77,8 +80,13 @@ export async function GET(req, res) {
     if (isNaN(endDate.getTime())) endDate = new Date(startDate);
 
     // 2. Fetch TimeTables, Settings, and Classes for synthesis
+    // If querying for a specific teacher, scope TimeTable query to only that teacher's slots
+    const timeTableQuery = filterParams.teacherId
+      ? { "timeSlots.teacherId": filterParams.teacherId }
+      : {};
+
     const [timeTables, settings, allClasses] = await Promise.all([
-      TimeTable.find({}).lean(),
+      TimeTable.find(timeTableQuery).lean(),
       Settings.findOne({}).lean(),
       Class.find({}, "_id name section").lean(),
     ]);
