@@ -52,38 +52,38 @@ export default function Footer({
   const instagram = ensureAbsoluteUrl(settings?.institution?.contact?.instagram) || "https://instagram.com/jawad_thuruthi";
 
   return (
-    <footer className="relative bg-[#070b08] text-[#a6a095] pt-16 pb-12 px-4 sm:px-6 md:px-12 border-t border-[#1a271f] mt-auto">
+    <footer className="relative bg-neutral-100 dark:bg-[#070b08] text-neutral-600 dark:text-[#a6a095] pt-16 pb-12 px-4 sm:px-6 md:px-12 border-t border-neutral-200 dark:border-[#1a271f] mt-auto transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-14 pb-14 border-b border-[#1a271f]">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-14 pb-14 border-b border-neutral-200 dark:border-[#1a271f]">
           {/* Column 1: Institution Brand & Charter (Span 5) */}
           <div className="md:col-span-5 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#122218] border border-[#1f3a29] flex items-center justify-center text-emerald-400">
+              <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-[#122218] border border-emerald-200 dark:border-[#1f3a29] flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0">
                 <GraduationCap className="w-4 h-4" strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-[#f7f5ee]">{name}</h3>
-                <span className="text-xs text-[#9ca59a] block">
+                <h3 className="text-base font-semibold text-neutral-900 dark:text-[#f7f5ee]">{name}</h3>
+                <span className="text-xs text-neutral-500 dark:text-[#9ca59a] block font-medium">
                   Under Jamia Sa-adiya Arabia · Founded 2006
                 </span>
               </div>
             </div>
 
-            <p className="text-sm text-[#8c887f] leading-relaxed max-w-sm pt-1">
+            <p className="text-sm text-neutral-600 dark:text-[#8c887f] leading-relaxed max-w-sm pt-1">
               {tagline}
             </p>
           </div>
 
           {/* Column 2: Navigation (Span 3) */}
           <nav className="md:col-span-3 space-y-3" aria-label="Footer Navigation">
-            <h4 className="text-xs font-semibold text-[#f7f5ee] uppercase tracking-wider">
+            <h4 className="text-xs font-semibold text-neutral-900 dark:text-[#f7f5ee] uppercase tracking-wider">
               Navigation
             </h4>
             <ul className="space-y-1 text-sm">
               <li>
                 <Link
                   href="#vision"
-                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-neutral-600 dark:text-[#a6a095] hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors"
                 >
                   Foundational Charter
                 </Link>
@@ -91,7 +91,7 @@ export default function Footer({
               <li>
                 <Link
                   href="#curriculum"
-                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-neutral-600 dark:text-[#a6a095] hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors"
                 >
                   Dual-Track Curriculum
                 </Link>
@@ -99,7 +99,7 @@ export default function Footer({
               <li>
                 <Link
                   href="/articles"
-                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-neutral-600 dark:text-[#a6a095] hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors"
                 >
                   Scholarly Articles
                 </Link>
@@ -107,7 +107,7 @@ export default function Footer({
               <li>
                 <Link
                   href="/college-gallery"
-                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-neutral-600 dark:text-[#a6a095] hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors"
                 >
                   Campus Gallery
                 </Link>
@@ -115,7 +115,7 @@ export default function Footer({
               <li>
                 <Link
                   href="/login"
-                  className="inline-block py-1 text-[#a6a095] hover:text-[#f7f5ee] transition-colors"
+                  className="inline-block py-1 text-neutral-600 dark:text-[#a6a095] hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors"
                 >
                   Student & Faculty Portal
                 </Link>
@@ -125,29 +125,29 @@ export default function Footer({
 
           {/* Column 3: Contact & Campus Info (Span 4) */}
           <div className="md:col-span-4 space-y-3">
-            <h4 className="text-xs font-semibold text-[#f7f5ee] uppercase tracking-wider">
+            <h4 className="text-xs font-semibold text-neutral-900 dark:text-[#f7f5ee] uppercase tracking-wider">
               Campus Office
             </h4>
-            
-            <address className="not-italic space-y-2.5 text-sm text-[#a6a095]">
+
+            <address className="not-italic space-y-2.5 text-sm text-neutral-600 dark:text-[#a6a095]">
               <div className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-emerald-500/80 shrink-0 mt-0.5" strokeWidth={1.5} />
+                <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-500/80 shrink-0 mt-0.5" strokeWidth={1.5} />
                 <span>{address}</span>
               </div>
               <div className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-emerald-500/80 shrink-0" strokeWidth={1.5} />
+                <Mail className="w-4 h-4 text-emerald-600 dark:text-emerald-500/80 shrink-0" strokeWidth={1.5} />
                 <a
                   href={`mailto:${email}`}
-                  className="hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 rounded"
+                  className="hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 rounded"
                 >
                   {email}
                 </a>
               </div>
               <div className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-emerald-500/80 shrink-0" strokeWidth={1.5} />
+                <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-500/80 shrink-0" strokeWidth={1.5} />
                 <a
                   href={`tel:${phone.replace(/[^0-9+]/g, "")}`}
-                  className="hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 rounded"
+                  className="hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 rounded"
                 >
                   {phone}
                 </a>
@@ -156,13 +156,13 @@ export default function Footer({
 
             {/* Verified Channels */}
             <div className="pt-3">
-              <span className="text-xs text-[#8c887f] block mb-2 font-medium">Follow</span>
+              <span className="text-xs text-neutral-500 dark:text-[#8c887f] block mb-2 font-medium">Follow</span>
               <div className="flex items-center gap-2.5">
                 <a
                   href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  className="w-9 h-9 rounded-full bg-white dark:bg-[#121c16] hover:bg-neutral-200 dark:hover:bg-[#1a2e23] border border-neutral-200 dark:border-[#23382c] flex items-center justify-center text-neutral-700 dark:text-[#a6a095] hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 shadow-xs dark:shadow-none"
                   aria-label="Connect on WhatsApp"
                 >
                   <MessageCircle className="w-4 h-4" strokeWidth={1.5} />
@@ -171,7 +171,7 @@ export default function Footer({
                   href={youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  className="w-9 h-9 rounded-full bg-white dark:bg-[#121c16] hover:bg-neutral-200 dark:hover:bg-[#1a2e23] border border-neutral-200 dark:border-[#23382c] flex items-center justify-center text-neutral-700 dark:text-[#a6a095] hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 shadow-xs dark:shadow-none"
                   aria-label="Subscribe on YouTube"
                 >
                   <Youtube className="w-4 h-4" strokeWidth={1.5} />
@@ -180,7 +180,7 @@ export default function Footer({
                   href={instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#121c16] hover:bg-[#1a2e23] border border-[#23382c] flex items-center justify-center text-[#a6a095] hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                  className="w-9 h-9 rounded-full bg-white dark:bg-[#121c16] hover:bg-neutral-200 dark:hover:bg-[#1a2e23] border border-neutral-200 dark:border-[#23382c] flex items-center justify-center text-neutral-700 dark:text-[#a6a095] hover:text-neutral-900 dark:hover:text-[#f7f5ee] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 shadow-xs dark:shadow-none"
                   aria-label="Follow on Instagram"
                 >
                   <Instagram className="w-4 h-4" strokeWidth={1.5} />
@@ -191,7 +191,7 @@ export default function Footer({
         </div>
 
         {/* Bottom Colophon with spacing fix */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#8c887f]">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500 dark:text-[#8c887f]">
           <p>
             {`© ${new Date().getFullYear()} ${name}. All rights reserved.`}
           </p>

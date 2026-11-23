@@ -76,7 +76,7 @@ const getCleanId = (val) => {
   return String(val);
 };
 
-const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
+const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -149,12 +149,20 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   };
   // Use refs or state instead of deriving too many values
   const [selectedDateState, setSelectedDateState] = useState(() => {
-    if (typeof window !== "undefined") {
+    const todayIST = getISTDate();
+    const canNav =
+      isPrincipal ||
+      (initialSettings
+        ? initialSettings.general?.allowPreviousDayAttendance !== false
+        : false);
+
+    if (canNav && typeof window !== "undefined") {
       const sp = new URLSearchParams(window.location.search);
       const urlDate = sp.get("date");
       if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
         const [y, m, d] = urlDate.split("-").map(Number);
-        return new Date(y, m - 1, d);
+        const parsed = new Date(y, m - 1, d);
+        if (parsed <= todayIST) return parsed;
       }
       const raw = sessionStorage.getItem("autoWhatsAppSlot");
       if (raw) {
@@ -162,14 +170,15 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
           const parsed = JSON.parse(raw);
           if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
             const [y, m, d] = parsed.date.split("-").map(Number);
-            return new Date(y, m - 1, d);
+            const parsedDate = new Date(y, m - 1, d);
+            if (parsedDate <= todayIST) return parsedDate;
           }
-        } catch (e) {
+        } catch {
           // ignore
         }
       }
     }
-    return getISTDate();
+    return todayIST;
   });
 
   const days = useMemo(
@@ -261,9 +270,26 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     {
       staleTime: 1000 * 60 * 60,
       refetchOnWindowFocus: false,
+      initialData: initialSettings ? { settings: initialSettings } : undefined,
     }
   );
-  const settings = settingsQuery.data?.settings;
+  const settings = settingsQuery.data?.settings || initialSettings;
+
+  const canNavigateDate = useMemo(() => {
+    if (isPrincipal) return true;
+    if (!settings) return false;
+    return settings.general?.allowPreviousDayAttendance !== false;
+  }, [isPrincipal, settings]);
+
+  // If previous day attendance is disabled for non-principals, ensure current date is today
+  useEffect(() => {
+    if (!isPrincipal && settings && settings.general?.allowPreviousDayAttendance === false) {
+      const todayFormatted = formatDate(getISTDate());
+      if (formatDate(selectedDateState) !== todayFormatted) {
+        setSelectedDateState(getISTDate());
+      }
+    }
+  }, [isPrincipal, settings, selectedDateState]);
 
   // ── Per-date working status derived from historical logs ────────────────
   // These check if the *selected date* (not today) was a non-working day by
@@ -1310,7 +1336,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         <div className="flex flex-row items-center justify-between w-full mb-3 gap-2 overflow-hidden">
           {/* Day selector */}
           <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0 bg-background">
-            {(isPrincipal || settings?.general?.allowPreviousDayAttendance !== false) && (
+            {canNavigateDate && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -1328,7 +1354,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             <div className="py-1.5 px-3 md:px-5 text-sm md:text-base font-medium whitespace-nowrap text-center min-w-[120px]">
               {date}
             </div>
-            {(isPrincipal || settings?.general?.allowPreviousDayAttendance !== false) && (
+            {canNavigateDate && (
               <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -1363,7 +1389,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                 </PopoverContent>
               </Popover>
             )}
-            {(isPrincipal || settings?.general?.allowPreviousDayAttendance !== false) && (
+            {canNavigateDate && (
               <Button
                 variant="ghost"
                 size="icon"

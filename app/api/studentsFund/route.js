@@ -37,26 +37,45 @@ export async function GET(req, res) {
       });
     }
 
-    const query = {};
+    const filterConditions = [];
+
     if (searchParams.studentId) {
-      query.studentId = searchParams.studentId;
+      if (searchParams.batchId && searchParams.studentId === searchParams.batchId) {
+        filterConditions.push({
+          $or: [
+            { studentId: searchParams.studentId },
+            { studentId: { $exists: false } },
+            { studentId: null },
+          ],
+        });
+        filterConditions.push({ batchId: searchParams.batchId });
+      } else {
+        filterConditions.push({ studentId: searchParams.studentId });
+      }
     } else {
-      query.studentId = { $exists: false };
+      filterConditions.push({
+        $or: [
+          { studentId: { $exists: false } },
+          { studentId: null },
+          ...(searchParams.batchId ? [{ studentId: searchParams.batchId }] : []),
+        ],
+      });
+      if (searchParams.batchId) {
+        filterConditions.push({ batchId: searchParams.batchId });
+      }
     }
 
     // Hybrid Fund Logic
     if (searchParams.department) {
-      query.department = searchParams.department;
-      query.fundType = "Department";
+      filterConditions.push({ department: searchParams.department, fundType: "Department" });
     } else if (searchParams.teacherId) {
-      query.teacherId = searchParams.teacherId;
-      // Allow legacy docs (missing fundType) or new docs (fundType="Individual")
-      query.$or = [{ fundType: "Individual" }, { fundType: { $exists: false } }];
+      filterConditions.push({
+        teacherId: searchParams.teacherId,
+        $or: [{ fundType: "Individual" }, { fundType: { $exists: false } }],
+      });
     }
 
-    if (searchParams.batchId && !searchParams.studentId) {
-      query.batchId = searchParams.batchId;
-    }
+    const query = filterConditions.length > 0 ? { $and: filterConditions } : {};
 
     const studentFundsList = await StudentsFund.find(query, projections).sort({ updatedAt: -1 }).lean();
 
@@ -109,7 +128,7 @@ export async function GET(req, res) {
             const existing = uniqueStudentsMap.get(idStr);
             existing.balance = (existing.balance || 0) + (fund.balance || 0);
             if (fund.transactions && fund.transactions.length > 0) {
-               existing.transactions = (existing.transactions || []).concat(fund.transactions);
+              existing.transactions = (existing.transactions || []).concat(fund.transactions);
             }
           }
         }
@@ -151,80 +170,110 @@ export async function POST(req, res) {
       }
     }
 
-    const query = {
-      fundType, // Include fundType to ensure partialFilterExpression of unique index is met
-    };
+    const filterConditions = [];
 
     if (fundType === "Department" && department) {
-      query.department = department;
+      filterConditions.push({ department, fundType: "Department" });
     } else {
-      query.teacherId = teacherId;
+      filterConditions.push({
+        teacherId,
+        $or: [{ fundType: "Individual" }, { fundType: { $exists: false } }],
+      });
     }
 
     if (studentId) {
-      query.studentId = studentId;
+      if (batchId && studentId === batchId) {
+        filterConditions.push({
+          $or: [
+            { studentId: studentId },
+            { studentId: { $exists: false } },
+            { studentId: null },
+          ],
+        });
+        filterConditions.push({ batchId });
+      } else {
+        filterConditions.push({ studentId });
+      }
     } else {
-      query.studentId = { $exists: false };
-      query.batchId = batchId;
+      filterConditions.push({
+        $or: [
+          { studentId: { $exists: false } },
+          { studentId: null },
+          ...(batchId ? [{ studentId: batchId }] : []),
+        ],
+      });
+      if (batchId) {
+        filterConditions.push({ batchId });
+      }
     }
+
+    const query = { $and: filterConditions };
 
     const amountChange =
       transaction.type === "Deposit"
         ? transaction.amount
         : -transaction.amount;
 
-    // Find all existing records for this exact query
+    // Find all existing records for this query
     const existingFunds = await StudentsFund.find(query).sort({ updatedAt: -1 });
 
     let studentFund;
 
     if (existingFunds.length > 1) {
       // We found duplicates! We need to merge them to fix the data pollution.
-      
-      // Calculate summed balance and collect all transactions from all duplicates
       const totalBalance = existingFunds.reduce((sum, f) => sum + (f.balance || 0), 0);
       const allTransactions = existingFunds.reduce((acc, f) => acc.concat(f.transactions || []), []);
 
-      // The newest record will be kept, the rest deleted
       const primaryFund = existingFunds[0];
       const duplicateIds = existingFunds.slice(1).map(f => f._id);
 
-      // Clean up duplicates from the DB
       await StudentsFund.deleteMany({ _id: { $in: duplicateIds } });
 
-      // Apply the new transaction to the merged data
       const newTotalBalance = totalBalance + amountChange;
       allTransactions.push({ ...transaction, date: new Date() });
-
-      // Sort transactions latest first (optional, frontend handles it, but good for DB)
       allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      // Update the primary fund
       primaryFund.balance = newTotalBalance;
       primaryFund.transactions = allTransactions;
-      primaryFund.batchId = batchId; // Update batchId to the latest one
+      primaryFund.batchId = batchId;
+      primaryFund.studentId = studentId || undefined;
+      primaryFund.fundType = fundType;
+      if (fundType === "Department") {
+        primaryFund.department = department;
+      } else {
+        primaryFund.teacherId = teacherId;
+      }
       await primaryFund.save();
-      
+
       studentFund = primaryFund;
+    } else if (existingFunds.length === 1) {
+      // Exactly 1 existing record
+      const primaryFund = existingFunds[0];
+      primaryFund.balance = (primaryFund.balance || 0) + amountChange;
+      primaryFund.transactions.push({ ...transaction, date: new Date() });
+      primaryFund.batchId = batchId;
+      if (studentId) {
+        primaryFund.studentId = studentId;
+      }
+      primaryFund.fundType = fundType;
+      if (fundType === "Department") {
+        primaryFund.department = department;
+      } else {
+        primaryFund.teacherId = teacherId;
+      }
+      await primaryFund.save();
 
+      studentFund = primaryFund;
     } else {
-      // Normal flow (0 or 1 record)
-      // Define the update operation
-      const update = {
-        $inc: { balance: amountChange },
-        $push: { transactions: { ...transaction, date: new Date() } },
-        $set: { batchId }, // Update batchId to the latest one
-        $setOnInsert: {
-          // fundType, // Already in query
-          // ...query, // Already in query
-        },
-      };
-
-      // Use findOneAndUpdate with upsert: true
-      studentFund = await StudentsFund.findOneAndUpdate(query, update, {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true,
+      // No record found, create a new one
+      studentFund = await StudentsFund.create({
+        studentId: studentId || undefined,
+        teacherId: fundType === "Department" ? undefined : teacherId,
+        department: fundType === "Department" ? department : undefined,
+        fundType,
+        batchId,
+        balance: amountChange,
+        transactions: [{ ...transaction, date: new Date() }],
       });
     }
 
@@ -245,20 +294,44 @@ export async function PUT(req, res) {
       fundType = "Individual",
     } = await req.json();
 
-    const query = {};
-
-    if (studentId) {
-      query.studentId = studentId;
-    } else {
-      query.studentId = { $exists: false };
-      query.batchId = batchId;
-    }
+    const filterConditions = [];
 
     if (fundType === "Department" && department) {
-      query.department = department;
+      filterConditions.push({ department, fundType: "Department" });
     } else {
-      query.teacherId = teacherId;
+      filterConditions.push({
+        teacherId,
+        $or: [{ fundType: "Individual" }, { fundType: { $exists: false } }],
+      });
     }
+
+    if (studentId) {
+      if (batchId && studentId === batchId) {
+        filterConditions.push({
+          $or: [
+            { studentId: studentId },
+            { studentId: { $exists: false } },
+            { studentId: null },
+          ],
+        });
+        filterConditions.push({ batchId });
+      } else {
+        filterConditions.push({ studentId });
+      }
+    } else {
+      filterConditions.push({
+        $or: [
+          { studentId: { $exists: false } },
+          { studentId: null },
+          ...(batchId ? [{ studentId: batchId }] : []),
+        ],
+      });
+      if (batchId) {
+        filterConditions.push({ batchId });
+      }
+    }
+
+    const query = { $and: filterConditions };
 
     // Get all records to consolidate and clear
     const existingFunds = await StudentsFund.find(query).sort({ updatedAt: -1 });
@@ -280,25 +353,23 @@ export async function PUT(req, res) {
         {
           $set: {
             transactions: [],
-            fundType: fundType, // Migrate on update
-            batchId: batchId, // Update batchId to the latest one
+            studentId: studentId || undefined,
+            fundType: fundType,
+            batchId: batchId,
           },
         },
         { new: true }
       );
     } else {
-       // If no fund existed, we shouldn't really be clearing history, but we fallback
-       studentFund = await StudentsFund.findOneAndUpdate(
-        query,
-        {
-          $set: {
-            transactions: [],
-            fundType: fundType,
-            batchId: batchId, // Update batchId to the latest one
-          },
-        },
-        { new: true, upsert: true }
-      );
+      studentFund = await StudentsFund.create({
+        studentId: studentId || undefined,
+        teacherId: fundType === "Department" ? undefined : teacherId,
+        department: fundType === "Department" ? department : undefined,
+        fundType,
+        batchId,
+        balance: 0,
+        transactions: [],
+      });
     }
     return NextResponse.json({ studentFund }, { status: 200 });
   } catch (error) {

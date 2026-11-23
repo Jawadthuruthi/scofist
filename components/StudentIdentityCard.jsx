@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Printer, User, Shield } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Barcode from "react-barcode";
+import { QRCodeSVG } from "qrcode.react";
 import Header from "@/components/Header";
 import { formatDateForDisplay, formatDateMonthYear } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -19,13 +20,21 @@ import {
 
 const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageUrl = "", idCardSealImageUrl = "" }) => {
     const [selectedSide, setSelectedSide] = useState("Both Sides");
+    const [baseUrl, setBaseUrl] = useState(process.env.NEXT_PUBLIC_BASE_URL || "https://scofist.com");
     const pageRef = useRef(null);
     const router = useRouter();
 
     const handlePrint = useReactToPrint({
         contentRef: pageRef,
         documentTitle: `${student.name} ID Card`,
+        suppressErrors: true,
     });
+
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.location.origin) {
+            setBaseUrl(window.location.origin);
+        }
+    }, []);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -39,6 +48,7 @@ const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageU
     const showFront = selectedSide === "Both Sides" || selectedSide === "Front Side";
     const showBack = selectedSide === "Both Sides" || selectedSide === "Back Side";
     const studentAdmissionNo = student.admissionNumber || student.studentSpecificField?.admissionNumber || student._id?.substring(0, 8).toUpperCase();
+    const qrUrl = baseUrl ? `${baseUrl}/student-fund/${student._id}` : `/student-fund/${student._id}`;
     const sealUrl = idCardSealImageUrl || "/sdc_seal.png";
 
     return (
@@ -126,10 +136,10 @@ const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageU
 
                                     <div className="flex justify-center mb-3">
                                         <div className="h-14 w-14 bg-white rounded-full relative overflow-hidden shadow-md p-1 border border-slate-100 flex items-center justify-center">
-                                            {institution.logo ? (
+                                            {institution?.logo?.url ? (
                                                 <div className="relative h-full w-full">
                                                     <Image
-                                                        src={institution.logo.url || ""}
+                                                        src={institution.logo.url}
                                                         alt="Institution Logo"
                                                         fill
                                                         className="object-contain p-0.5"
@@ -177,18 +187,33 @@ const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageU
                                 <div className="text-xs text-center font-bold text-indigo-900 dark:text-indigo-900 mb-1 bg-indigo-50/90 border border-indigo-100/90 rounded-md py-1 px-2 inline-block shadow-sm w-full">
                                     OFFICIAL STUDENT ID
                                 </div>
-                                <div className="flex justify-center mt-1 p-1 bg-white rounded border border-slate-200 shadow-sm overflow-hidden h-12">
-                                    <Barcode
-                                        value={studentAdmissionNo}
-                                        width={1.5}
-                                        height={30}
-                                        format="CODE128"
-                                        displayValue={false}
-                                        background="#ffffff"
-                                        lineColor="#000000"
-                                        renderer="svg"
-                                        margin={0}
-                                    />
+                                <div className="flex items-center justify-between gap-1.5 mt-1 w-full">
+                                    <div className="flex-1 flex justify-center items-center p-1 bg-white rounded border border-slate-200 shadow-sm overflow-hidden h-12 min-w-0">
+                                        <Barcode
+                                            value={studentAdmissionNo}
+                                            width={1.2}
+                                            height={28}
+                                            format="CODE128"
+                                            displayValue={false}
+                                            background="#ffffff"
+                                            lineColor="#000000"
+                                            renderer="svg"
+                                            margin={0}
+                                        />
+                                    </div>
+                                    <a
+                                        href={qrUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="h-12 w-12 shrink-0 p-1 bg-white rounded border border-slate-200 shadow-sm flex items-center justify-center hover:border-indigo-400 hover:shadow transition-all"
+                                        title="Scan or click to view fund balance and history"
+                                    >
+                                        <QRCodeSVG
+                                            value={qrUrl}
+                                            size={40}
+                                            level="M"
+                                        />
+                                    </a>
                                 </div>
                             </div>
                         </CardContent>
@@ -375,12 +400,14 @@ const StudentPrintableCard = ({
 
                             <div className="flex justify-center mb-1">
                                 <div className="h-8 w-8 bg-white rounded-full relative overflow-hidden shadow-sm p-0.5 border border-slate-100 flex items-center justify-center">
-                                    {institution.logo ? (
+                                    {institution?.logo?.url ? (
                                         <div className="relative h-full w-full">
                                             <Image
-                                                src={institution.logo.url || ""}
+                                                src={institution.logo.url}
                                                 alt="Institution Logo"
                                                 fill
+                                                unoptimized
+                                                priority
                                                 className="object-contain p-0.5"
                                             />
                                         </div>
@@ -398,9 +425,11 @@ const StudentPrintableCard = ({
                                         {person.profilePic?.url ? (
                                             <div className="relative h-full w-full">
                                                 <Image
-                                                    src={person?.profilePic?.url || ""}
+                                                    src={person.profilePic.url}
                                                     alt={`${person.name}'s photo`}
                                                     fill
+                                                    unoptimized
+                                                    priority
                                                     className="object-cover"
                                                 />
                                             </div>
@@ -424,18 +453,30 @@ const StudentPrintableCard = ({
                                 <span className="mb-1 mt-1 bg-indigo-50 border border-indigo-100 rounded-md py-0.5 px-2 shadow-sm text-indigo-900 font-bold w-full whitespace-nowrap">
                                     OFFICIAL STUDENT ID
                                 </span>
-                                <div className="p-1 mb-1 bg-white rounded border border-slate-200 overflow-hidden h-12 flex items-center">
-                                    <Barcode
-                                        value={studentAdmissionNo}
-                                        width={1.5}
-                                        height={30}
-                                        format="CODE128"
-                                        displayValue={false}
-                                        background="#ffffff"
-                                        lineColor="#000000"
-                                        renderer="svg"
-                                        margin={0}
-                                    />
+                                <div className="flex items-center justify-between gap-1.5 mb-1 w-full">
+                                    <div className="flex-1 flex items-center justify-center p-1 bg-white rounded border border-slate-200 overflow-hidden h-12 min-w-0">
+                                        <Barcode
+                                            value={studentAdmissionNo}
+                                            width={1.15}
+                                            height={28}
+                                            format="CODE128"
+                                            displayValue={false}
+                                            background="#ffffff"
+                                            lineColor="#000000"
+                                            renderer="svg"
+                                            margin={0}
+                                        />
+                                    </div>
+                                    <div
+                                        className="h-12 w-12 shrink-0 p-1 bg-white rounded border border-slate-200 flex items-center justify-center overflow-hidden"
+                                        title="Scan to view fund balance and history"
+                                    >
+                                        <QRCodeSVG
+                                            value={qrUrl}
+                                            size={40}
+                                            level="M"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -460,6 +501,8 @@ const StudentPrintableCard = ({
                                             src={idCardSealImageUrl}
                                             alt="Seal"
                                             fill
+                                            unoptimized
+                                            priority
                                             className="object-contain"
                                         />
                                     </div>

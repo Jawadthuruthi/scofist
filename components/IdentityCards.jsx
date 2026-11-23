@@ -3,9 +3,12 @@ import { useRef, useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Printer, User, Shield, Settings, X } from "lucide-react";
+import { Printer, User, Shield, Settings, X, Wallet, History, ExternalLink, Loader2 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Barcode from "react-barcode";
+import { QRCodeSVG } from "qrcode.react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { Badge } from "./ui/badge";
 import Header from "./Header";
 import dynamic from "next/dynamic";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
@@ -76,6 +79,9 @@ const IdentityCards = ({
   const [selectedStudent, setSelectedStudent] = useState([]);
   const [selectedTeacher, setSelectedTeacher] = useState([]);
   const [selectedSide, setSelectedSide] = useState("Both Sides");
+  const [selectedFundPerson, setSelectedFundPerson] = useState(null);
+  const [isFundModalOpen, setIsFundModalOpen] = useState(false);
+  const [baseUrl, setBaseUrl] = useState(process.env.NEXT_PUBLIC_BASE_URL || "https://scofist.com");
 
   const pageRef = useRef(null);
   const popupRef = useRef(null);
@@ -83,9 +89,21 @@ const IdentityCards = ({
 
   const router = useRouter();
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.origin) {
+      setBaseUrl(window.location.origin);
+    }
+  }, []);
+
+  const handleOpenFundModal = (person) => {
+    setSelectedFundPerson(person);
+    setIsFundModalOpen(true);
+  };
+
   const handlePrint = useReactToPrint({
     contentRef: pageRef,
     documentTitle: "Identity Cards",
+    suppressErrors: true,
   });
 
   useEffect(() => {
@@ -357,6 +375,8 @@ const IdentityCards = ({
             isStudent={selectionType === "Student ID"}
             selectedSide={selectedSide}
             userRole={userRole}
+            baseUrl={baseUrl}
+            onOpenFundModal={handleOpenFundModal}
           />
         ))}
       </div>
@@ -410,6 +430,7 @@ const IdentityCards = ({
                     idCardSealImageUrl={idCardSealImageUrl}
                     isStudent={selectionType === "Student ID"}
                     selectedSide={selectedSide}
+                    baseUrl={baseUrl}
                   />
                 );
               });
@@ -417,6 +438,15 @@ const IdentityCards = ({
           </div>
         ))}
       </div>
+
+      {/* Student Fund Interactive Modal */}
+      <StudentFundModal
+        student={selectedFundPerson}
+        isOpen={isFundModalOpen}
+        onClose={() => setIsFundModalOpen(false)}
+        apiKey={apiKey}
+        baseUrl={baseUrl}
+      />
 
       {/* Enhanced CSS for print and display */}
       <style jsx>{`
@@ -465,12 +495,15 @@ const IdCard = ({
   isStudent,
   selectedSide,
   userRole,
+  baseUrl,
+  onOpenFundModal,
 }) => {
   const showFront = selectedSide === "Both Sides" || selectedSide === "Front Side";
   const showBack = selectedSide === "Both Sides" || selectedSide === "Back Side";
 
   const isStudentView = userRole === "Student";
   const studentAdmissionNo = person.admissionNumber || person.studentSpecificField?.admissionNumber || person._id?.substring(0, 8).toUpperCase();
+  const qrUrl = baseUrl ? `${baseUrl}/student-fund/${person._id}` : `/student-fund/${person._id}`;
 
   return (
     <div className={`preview-container ${isStudentView ? "col-span-12 flex-row flex-wrap items-stretch justify-center" : "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 flex-col"} gap-6 flex`}>
@@ -500,10 +533,10 @@ const IdCard = ({
                 {/* Institution Logo */}
                 <div className="flex justify-center mb-3">
                   <div className="h-14 w-14 bg-white rounded-full relative overflow-hidden shadow-md p-1 border border-slate-100 flex items-center justify-center">
-                    {institution.logo ? (
+                    {institution?.logo?.url ? (
                       <div className="relative h-full w-full">
                         <Image
-                          src={institution.logo.url || ""}
+                          src={institution.logo.url}
                           alt="Institution Logo"
                           fill
                           className="object-contain p-0.5"
@@ -566,18 +599,32 @@ const IdCard = ({
                   : "OFFICIAL TEACHER ID"}
               </div>
               {isStudent && (
-                <div className="flex justify-center mt-1 p-1 bg-white rounded border border-slate-200 shadow-sm overflow-hidden h-12">
-                  <Barcode
-                    value={studentAdmissionNo}
-                    width={1.5}
-                    height={30}
-                    format="CODE128"
-                    displayValue={false}
-                    background="#ffffff"
-                    lineColor="#000000"
-                    renderer="svg"
-                    margin={0}
-                  />
+                <div className="flex items-center justify-between gap-1.5 mt-1 w-full">
+                  <div className="flex-1 flex justify-center items-center p-1 bg-white rounded border border-slate-200 shadow-sm overflow-hidden h-12 min-w-0">
+                    <Barcode
+                      value={studentAdmissionNo}
+                      width={1.2}
+                      height={28}
+                      format="CODE128"
+                      displayValue={false}
+                      background="#ffffff"
+                      lineColor="#000000"
+                      renderer="svg"
+                      margin={0}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenFundModal?.(person)}
+                    className="h-12 w-12 shrink-0 p-1 bg-white rounded border border-slate-200 shadow-sm flex items-center justify-center cursor-pointer hover:border-indigo-400 hover:shadow transition-all group relative"
+                    title="Click or scan to view fund balance and history"
+                  >
+                    <QRCodeSVG
+                      value={qrUrl}
+                      size={40}
+                      level="M"
+                    />
+                  </button>
                 </div>
               )}
             </div>
@@ -641,6 +688,8 @@ const PersonDetails = ({ person, academicYear, isStudent, idCardSealImageUrl }) 
               src={sealUrl}
               alt="Seal"
               fill
+              unoptimized
+              priority
               className="object-contain"
             />
           </div>
@@ -762,6 +811,7 @@ const PrintableIdCard = ({
   idCardSealImageUrl,
   isStudent,
   selectedSide,
+  baseUrl,
 }) => {
   const showFront = selectedSide === "Both Sides" || selectedSide === "Front Side";
   const showBack = selectedSide === "Both Sides" || selectedSide === "Back Side";
@@ -769,6 +819,7 @@ const PrintableIdCard = ({
   const wrapperClass = selectedSide === "Both Sides" ? "w-1/2 h-1/2 p-2 flex space-x-2" : "w-1/4 h-1/2 p-2 flex";
   const innerClass = selectedSide === "Both Sides" ? "border rounded shadow w-1/2 overflow-hidden bg-white text-slate-900" : "border rounded shadow w-full overflow-hidden bg-white text-slate-900";
   const studentAdmissionNo = person.admissionNumber || person.studentSpecificField?.admissionNumber || person._id?.substring(0, 8).toUpperCase();
+  const qrUrl = baseUrl ? `${baseUrl}/student-fund/${person._id}` : `/student-fund/${person._id}`;
 
   return (
     <div
@@ -798,12 +849,14 @@ const PrintableIdCard = ({
 
               <div className="flex justify-center mb-1">
                 <div className="h-8 w-8 bg-white rounded-full relative overflow-hidden shadow-sm p-0.5 border border-slate-100 flex items-center justify-center">
-                  {institution.logo ? (
+                  {institution?.logo?.url ? (
                     <div className="relative h-full w-full">
                       <Image
-                        src={institution.logo.url || ""}
+                        src={institution.logo.url}
                         alt="Institution Logo"
                         fill
+                        unoptimized
+                        priority
                         className="object-contain p-0.5"
                       />
                     </div>
@@ -821,9 +874,11 @@ const PrintableIdCard = ({
                     {person.profilePic?.url ? (
                       <div className="relative h-full w-full">
                         <Image
-                          src={person?.profilePic?.url || ""}
+                          src={person.profilePic.url}
                           alt={`${person.name}'s photo`}
                           fill
+                          unoptimized
+                          priority
                           className="object-cover"
                         />
                       </div>
@@ -858,18 +913,30 @@ const PrintableIdCard = ({
                   {isStudent ? "OFFICIAL STUDENT ID" : "OFFICIAL TEACHER ID"}
                 </span>
                 {isStudent && (
-                  <div className="p-1 mb-1 bg-white rounded border border-slate-200 overflow-hidden h-12 flex items-center">
-                    <Barcode
-                      value={studentAdmissionNo}
-                      width={1.5}
-                      height={30}
-                      format="CODE128"
-                      displayValue={false}
-                      background="#ffffff"
-                      lineColor="#000000"
-                      renderer="svg"
-                      margin={0}
-                    />
+                  <div className="flex items-center justify-between gap-1.5 mb-1 w-full">
+                    <div className="flex-1 flex items-center justify-center p-1 bg-white rounded border border-slate-200 overflow-hidden h-12 min-w-0">
+                      <Barcode
+                        value={studentAdmissionNo}
+                        width={1.15}
+                        height={28}
+                        format="CODE128"
+                        displayValue={false}
+                        background="#ffffff"
+                        lineColor="#000000"
+                        renderer="svg"
+                        margin={0}
+                      />
+                    </div>
+                    <div
+                      className="h-12 w-12 shrink-0 p-1 bg-white rounded border border-slate-200 flex items-center justify-center overflow-hidden"
+                      title="Scan to view fund balance and history"
+                    >
+                      <QRCodeSVG
+                        value={qrUrl}
+                        size={40}
+                        level="M"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -916,6 +983,204 @@ const PrintableIdCard = ({
         </div>
       )}
     </div>
+  );
+};
+
+// Interactive modal for viewing student fund balance & history directly from identity cards preview
+const StudentFundModal = ({ student, isOpen, onClose, apiKey, baseUrl }) => {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen || !student?._id) return;
+    let isMounted = true;
+    setLoading(true);
+
+    fetch(`/api/studentsFund?studentId=${student._id}&getAll=true`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(apiKey ? { "api-key": apiKey } : {}),
+      },
+    })
+      .then((res) => (res.ok ? res.json() : { studentFunds: [] }))
+      .then((result) => {
+        if (!isMounted) return;
+        const funds = result.studentFunds || [];
+        const totalBalance = funds.reduce((sum, f) => sum + (Number(f.balance) || 0), 0);
+        const allTx = [];
+        funds.forEach((f) => {
+          (f.transactions || []).forEach((t) => {
+            allTx.push({
+              ...t,
+              fundName: f.fundType === "Department" ? `${f.department} Fund` : (f.teacherId?.name || "Students Fund"),
+            });
+          });
+        });
+        allTx.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setData({ funds, totalBalance, transactions: allTx });
+      })
+      .catch((err) => {
+        console.error("Error fetching student fund:", err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, student, apiKey]);
+
+  if (!student) return null;
+
+  const admissionNo =
+    student.admissionNumber ||
+    student.studentSpecificField?.admissionNumber ||
+    student._id?.substring(0, 8).toUpperCase();
+
+  const qrUrl = baseUrl
+    ? `${baseUrl}/student-fund/${student._id}`
+    : `/student-fund/${student._id}`;
+
+  const isDebt = (data?.totalBalance || 0) < 0;
+  const isSurplus = (data?.totalBalance || 0) > 0;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto p-0 gap-0">
+        <DialogHeader className="flex flex-row items-center gap-3 p-4 border-b space-y-0 bg-muted/40 sticky top-0 z-20 backdrop-blur-md">
+          <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div className="flex-1 text-left space-y-0.5">
+            <DialogTitle className="text-lg font-bold m-0 flex items-center gap-2">
+              <span>{student.name}</span>
+              <Badge variant="outline" className="text-xs">
+                {admissionNo}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription className="m-0 text-xs">
+              Current student fund balance and transaction statement
+            </DialogDescription>
+          </div>
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <X className="h-5 w-5" />
+          </DialogClose>
+        </DialogHeader>
+
+        <div className="p-4 sm:p-6 space-y-5">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+              <p className="text-xs">Loading fund records...</p>
+            </div>
+          ) : (
+            <>
+              {/* Balance & QR scan banner */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl border bg-slate-50/70 dark:bg-slate-900/50">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Current Balance
+                  </p>
+                  <p
+                    className={`text-2xl sm:text-3xl font-extrabold mt-0.5 ${
+                      isDebt
+                        ? "text-rose-600"
+                        : isSurplus
+                        ? "text-emerald-600"
+                        : "text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    ₹{Math.abs(data?.totalBalance || 0).toFixed(2)}
+                    <span className="text-xs ml-2 font-bold uppercase">
+                      {isDebt ? "(Due / Debt)" : isSurplus ? "(Surplus / Credit)" : "(Cleared)"}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l sm:pl-4 pt-2 sm:pt-0 w-full sm:w-auto justify-end">
+                  <div className="p-1 bg-white rounded border border-slate-200 shadow-sm shrink-0">
+                    <QRCodeSVG value={qrUrl} size={48} level="M" />
+                  </div>
+                  <div className="text-[11px] text-muted-foreground max-w-[130px]">
+                    Scan QR on ID card to open mobile statement
+                  </div>
+                </div>
+              </div>
+
+              {/* Transactions list */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <History className="h-3.5 w-3.5" />
+                  Recent Transactions
+                </h4>
+                {data?.transactions?.length ? (
+                  <div className="border rounded-lg overflow-hidden max-h-56 overflow-y-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/40">
+                        <TableRow>
+                          <TableHead className="text-xxs font-bold py-2">Date</TableHead>
+                          <TableHead className="text-xxs font-bold py-2">Type</TableHead>
+                          <TableHead className="text-xxs font-bold py-2">Description</TableHead>
+                          <TableHead className="text-xxs font-bold py-2 text-right">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.transactions.slice(0, 15).map((t, i) => (
+                          <TableRow key={i} className="text-xs">
+                            <TableCell className="py-1.5 text-muted-foreground whitespace-nowrap text-xxs">
+                              {formatDateForDisplay(t.date)}
+                            </TableCell>
+                            <TableCell className="py-1.5">
+                              <span
+                                className={`font-semibold text-xxs px-1.5 py-0.5 rounded ${
+                                  t.type === "Deposit"
+                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                    : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                                }`}
+                              >
+                                {t.type}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-1.5 max-w-[180px] truncate">
+                              {t.note || <span className="text-muted-foreground italic">No note</span>}
+                            </TableCell>
+                            <TableCell
+                              className={`py-1.5 text-right font-bold whitespace-nowrap ${
+                                t.type === "Deposit" ? "text-emerald-600" : "text-rose-600"
+                              }`}
+                            >
+                              {t.type === "Deposit" ? `+₹${t.amount}` : `-₹${t.amount}`}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
+                    No transactions recorded for this student yet.
+                  </div>
+                )}
+              </div>
+
+              {/* View Full Page button */}
+              <div className="flex justify-between items-center pt-2">
+                <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
+                  Close
+                </Button>
+                <Button asChild size="sm" className="gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
+                  <a href={qrUrl} target="_blank" rel="noopener noreferrer">
+                    <span>Open Full Statement Page</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

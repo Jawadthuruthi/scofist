@@ -177,6 +177,27 @@ const StudentsFund = ({
     }
   }, [apiKey]);
 
+  const selectedBatchData = useMemo(() => {
+    if (groupType === "class") {
+      return classes?.find((c) => c._id === selectedClass) || {};
+    }
+    return batches?.find((batch) => batch._id === selectedBatch) || {};
+  }, [selectedBatch, selectedClass, groupType, classes, batches]);
+
+  const isGroupSelected = useMemo(() => {
+    return groupType === "batch" ? !!selectedBatch : !!selectedClass;
+  }, [groupType, selectedBatch, selectedClass]);
+
+  const isViewingBatchOrClass = useMemo(() => {
+    return selectedStudents.length === 0 && isGroupSelected;
+  }, [selectedStudents.length, isGroupSelected]);
+
+  const targetFundId = useMemo(() => {
+    if (selectedStudents.length === 1) return selectedStudents[0];
+    if (isViewingBatchOrClass && selectedBatchData?._id) return selectedBatchData._id;
+    return undefined;
+  }, [selectedStudents, isViewingBatchOrClass, selectedBatchData]);
+
   const effectiveBatchId = useMemo(() => {
     if (groupType === "batch") return selectedBatch;
     if (groupType === "class" && selectedClass) {
@@ -189,7 +210,7 @@ const StudentsFund = ({
     0,
     0,
     {
-      studentId: selectedStudents.length === 1 ? selectedStudents[0] : undefined,
+      studentId: targetFundId,
       teacherId: department ? undefined : teacherId,
       department,
       batchId: effectiveBatchId,
@@ -206,7 +227,7 @@ const StudentsFund = ({
 
   const allStudentsFund = useMemo(() => {
     const rawFunds = fetchStudentFundQuery.data?.allStudentsFund || [];
-    
+
     // Use a Map to ensure unique students by ID, keeping the latest/most relevant record 
     // or just the first one found since we just need one entry per student.
     const uniqueStudentsMap = new Map();
@@ -215,7 +236,7 @@ const StudentsFund = ({
     rawFunds.forEach(studentFund => {
       if (groupType === "batch" && !selectedBatch) return;
       if (groupType === "class" && !selectedClass) return;
-      
+
       // 1. Batch Filtering: studentId is populated with studentSpecificField.batchId
       const s = studentFund.studentId?.studentSpecificField;
       const studentBatchId = studentFund.studentId?.batchId || s?.batchId?._id || s?.batchId;
@@ -237,7 +258,7 @@ const StudentsFund = ({
         const status = s?.status || studentFund.studentId?.status;
         if (status !== "Active") belongsToGroup = false;
       }
-      
+
       if (!belongsToGroup) return;
 
       // 2. Zero-Balance Filtering: Hide zero balance students
@@ -276,11 +297,11 @@ const StudentsFund = ({
 
   const studentFund = useMemo(() => {
     return fetchStudentFundQuery.data?.studentFund || {};
-  }, [fetchStudentFundQuery.data, selectedStudents, selectedBatch, selectedClass, groupType]);
+  }, [fetchStudentFundQuery.data]);
 
   useEffect(() => {
-    if (fetchStudentFundQuery.data && studentFund && selectedStudents.length <= 1) {
-      const balance = studentFund.balance;
+    if (fetchStudentFundQuery.data && (selectedStudents.length === 1 || isViewingBatchOrClass)) {
+      const balance = studentFund?.balance;
       setStudentBalance(balance || 0);
       setTransactions(
         [...(studentFund?.transactions || [])].sort(
@@ -291,7 +312,7 @@ const StudentsFund = ({
       setStudentBalance(0);
       setTransactions([]);
     }
-  }, [studentFund, selectedStudents]);
+  }, [studentFund, selectedStudents, isViewingBatchOrClass, fetchStudentFundQuery.data]);
 
   useEffect(() => {
     if (pendingFocusRef.current && depositButtonRef.current) {
@@ -321,7 +342,7 @@ const StudentsFund = ({
           if (groupType === "batch") {
             const batchId = student.batchId || student.studentSpecificField?.batchId?._id || student.studentSpecificField?.batchId;
             if (batchId === selectedBatch) return true;
-            
+
             const classId = student.classId || student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId;
             if (classId && classes) {
               const studentClass = classes.find((c) => c._id === classId);
@@ -333,7 +354,7 @@ const StudentsFund = ({
           } else {
             const classId = student.classId || student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId;
             if (classId !== selectedClass) return false;
-            
+
             const status = student.studentSpecificField?.status || student.status;
             return status === "Active";
           }
@@ -350,11 +371,11 @@ const StudentsFund = ({
     const term = lookupSearchTerm.trim().toLowerCase();
     if (!term || term.length < 1 || !showSearchResults) return [];
 
-    return students.filter(s => 
-      s.name.toLowerCase().includes(term) || 
+    return students.filter(s =>
+      s.name.toLowerCase().includes(term) ||
       String(s._id).toLowerCase().includes(term) ||
-      (s.studentSpecificField?.admissionNumber && 
-       String(s.studentSpecificField.admissionNumber).toLowerCase().includes(term))
+      (s.studentSpecificField?.admissionNumber &&
+        String(s.studentSpecificField.admissionNumber).toLowerCase().includes(term))
     ).map(s => {
       const batch = batches.find(b => b._id === s.batchId);
       // Use the className and batchName already provided by the API if lookup fails
@@ -410,31 +431,15 @@ const StudentsFund = ({
     return allTx.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [allStudentsFund, department]);
 
-  const selectedBatchData = useMemo(() => {
-    if (groupType === "class") {
-      return classes?.find((c) => c._id === selectedClass) || {};
-    }
-    return batches?.find((batch) => batch._id === selectedBatch) || {};
-  }, [selectedBatch, selectedClass, groupType, classes, batches]);
-
   const dropdownOptions = useMemo(() => {
-    const isGroupSelected = groupType === "batch" ? !!selectedBatch : !!selectedClass;
     if (!isGroupSelected) return [];
 
-    const batchOption = {
-      value: selectedBatchData._id,
-      label: selectedBatchData.name,
-      isBatch: true, // Custom property to identify the batch option
-    };
-
-    const studentOptions = availableStudents.map((student) => ({
+    return availableStudents.map((student) => ({
       ...student,
       value: student._id,
       label: `${student.name} (${student.studentSpecificField?.admissionNumber || student.admissionNumber || student._id})`,
     }));
-
-    return [batchOption, ...studentOptions];
-  }, [selectedBatch, selectedClass, groupType, availableStudents, selectedBatchData]);
+  }, [isGroupSelected, availableStudents]);
 
   const handleTransaction = () => {
     if (!amount || !transactionType) return;
@@ -490,11 +495,8 @@ const StudentsFund = ({
         setLoading(false);
       }
     } else {
-      // Single Transaction Logic
-      const isBatchTransaction = selectedStudents.length === 0;
-      const currentStudentId = isBatchTransaction
-        ? undefined
-        : selectedStudents[0];
+      // Single Transaction Logic (student or batch/class fund)
+      const currentStudentId = targetFundId;
 
       const originalBalance = studentBalance;
       const newBalance =
@@ -564,7 +566,7 @@ const StudentsFund = ({
 
     try {
       console.log("Clearing history for:", {
-        studentId: selectedStudents.length === 1 ? selectedStudents[0] : undefined,
+        studentId: targetFundId,
         department,
         fundType: department ? "Department" : "Individual",
         batchId: effectiveBatchId,
@@ -572,8 +574,7 @@ const StudentsFund = ({
 
       await updateStudentFund.mutateAsync({
         data: {
-          studentId:
-            selectedStudents.length === 1 ? selectedStudents[0] : undefined,
+          studentId: targetFundId,
           teacherId: department ? undefined : teacherId,
           department,
           fundType: department ? "Department" : "Individual",
@@ -659,20 +660,21 @@ const StudentsFund = ({
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Transaction History - ${selectedStudentData?.name}`,
+    documentTitle: `Transaction History - ${selectedStudentData?.name || selectedBatchData?.name || "Fund"}`,
   });
   const handleAllStudentsFundPrint = useReactToPrint({
     contentRef: allStudentsFundRef,
-    documentTitle: `All Students Balance - ${selectedBatchData?.name}`,
+    documentTitle: `All Students Balance - ${selectedBatchData?.name || "Batch"}`,
   });
 
   const handleDownloadPDF = async () => {
     const html2pdf = (await import("html2pdf.js")).default;
 
     const element = printRef.current;
+    const title = (selectedStudentData?.name || selectedBatchData?.name || "Fund").replace(/[^a-zA-Z0-9]/g, "_");
     const opt = {
       margin: 0.5,
-      filename: `Transaction_History_${new Date().toLocaleDateString()}.pdf`,
+      filename: `Transaction_History_${title}_${new Date().toLocaleDateString()}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
@@ -804,114 +806,113 @@ const StudentsFund = ({
               </CardTitle>
               <div className="flex gap-2 mt-4 w-full">
                 <div className="relative flex-1">
-                    <Input
-                      autoFocus
-                      placeholder="Search by Student ID or Name..."
-                      value={lookupSearchTerm}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (clearOnNextInput) {
-                          const oldVal = lookupSearchTerm;
-                          let typed = val;
-                          if (val.length > oldVal.length && val.startsWith(oldVal)) {
-                            typed = val.slice(oldVal.length);
-                          }
-                          setLookupSearchTerm(typed);
-                          setClearOnNextInput(false);
-                        } else {
-                          setLookupSearchTerm(val);
+                  <Input
+                    autoFocus
+                    placeholder="Search by Student ID or Name..."
+                    value={lookupSearchTerm}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (clearOnNextInput) {
+                        const oldVal = lookupSearchTerm;
+                        let typed = val;
+                        if (val.length > oldVal.length && val.startsWith(oldVal)) {
+                          typed = val.slice(oldVal.length);
                         }
-                        setShowSearchResults(true);
+                        setLookupSearchTerm(typed);
+                        setClearOnNextInput(false);
+                      } else {
+                        setLookupSearchTerm(val);
+                      }
+                      setShowSearchResults(true);
+                      setFocusedSuggestionIndex(-1);
+                    }}
+                    onFocus={(e) => {
+                      e.target.select();
+                      setShowSearchResults(true);
+                    }}
+                    onBlur={() => {
+                      // Delay closing to allow clicking on results
+                      setTimeout(() => {
+                        setShowSearchResults(false);
+                        setFocusedSuggestionIndex(-1);
+                      }, 200);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setFocusedSuggestionIndex((prev) =>
+                          prev < searchResults.length - 1 ? prev + 1 : prev
+                        );
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setFocusedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                      } else if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (focusedSuggestionIndex >= 0 && focusedSuggestionIndex < searchResults.length) {
+                          handleStudentLookup(searchResults[focusedSuggestionIndex]._id);
+                          setShowSearchResults(false);
+                          setFocusedSuggestionIndex(-1);
+                        } else if (searchResults.length === 1) {
+                          handleStudentLookup(searchResults[0]._id);
+                          setShowSearchResults(false);
+                        } else {
+                          handleStudentLookup();
+                        }
+                      }
+                    }}
+                    className="w-full pr-10"
+                  />
+                  {lookupSearchTerm && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                      onClick={() => {
+                        setLookupSearchTerm("");
+                        setSelectedStudents([]);
+                        setSelectedBatch("");
+                        setSelectedClass("");
+                        setShowSearchResults(false);
                         setFocusedSuggestionIndex(-1);
                       }}
-                      onFocus={(e) => {
-                        e.target.select();
-                        setShowSearchResults(true);
-                      }}
-                      onBlur={() => {
-                        // Delay closing to allow clicking on results
-                        setTimeout(() => {
-                          setShowSearchResults(false);
-                          setFocusedSuggestionIndex(-1);
-                        }, 200);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "ArrowDown") {
-                          e.preventDefault();
-                          setFocusedSuggestionIndex((prev) => 
-                              prev < searchResults.length - 1 ? prev + 1 : prev
-                          );
-                        } else if (e.key === "ArrowUp") {
-                          e.preventDefault();
-                          setFocusedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
-                        } else if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (focusedSuggestionIndex >= 0 && focusedSuggestionIndex < searchResults.length) {
-                            handleStudentLookup(searchResults[focusedSuggestionIndex]._id);
-                            setShowSearchResults(false);
-                            setFocusedSuggestionIndex(-1);
-                          } else if (searchResults.length === 1) {
-                            handleStudentLookup(searchResults[0]._id);
-                            setShowSearchResults(false);
-                          } else {
-                            handleStudentLookup();
-                          }
-                        }
-                      }}
-                      className="w-full pr-10"
-                    />
-                    {lookupSearchTerm && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
-                        onClick={() => {
-                          setLookupSearchTerm("");
-                          setSelectedStudents([]);
-                          setSelectedBatch("");
-                          setSelectedClass("");
-                          setShowSearchResults(false);
-                          setFocusedSuggestionIndex(-1);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
 
-                    {/* Search Results Dropdown */}
-                    {showSearchResults && searchResults.length > 0 && (
-                      <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
-                        {searchResults.map((student, index) => (
-                          <div
-                            id={`fund-suggestion-${index}`}
-                            key={student._id}
-                            className={`flex items-center gap-3 p-3 cursor-pointer border-b last:border-0 transition-colors ${
-                              focusedSuggestionIndex === index ? "bg-accent" : "hover:bg-accent"
+                  {/* Search Results Dropdown */}
+                  {showSearchResults && searchResults.length > 0 && (
+                    <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
+                      {searchResults.map((student, index) => (
+                        <div
+                          id={`fund-suggestion-${index}`}
+                          key={student._id}
+                          className={`flex items-center gap-3 p-3 cursor-pointer border-b last:border-0 transition-colors ${focusedSuggestionIndex === index ? "bg-accent" : "hover:bg-accent"
                             }`}
-                            onMouseDown={(e) => {
-                              e.preventDefault(); // Prevent blur
-                              handleStudentLookup(student._id);
-                              setShowSearchResults(false);
-                            }}
-                            onMouseEnter={() => setFocusedSuggestionIndex(index)}
-                          >
-                            <Avatar className="h-10 w-10 border">
-                              <AvatarImage src={student.profilePic?.url} />
-                              <AvatarFallback>{student.name?.[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0 text-sm">
-                              <div className="font-medium truncate">{student.name}</div>
-                              <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
-                                <span>ID: {student._id}</span>
-                              </div>
-                              <div className="text-[11px] text-primary/70 font-semibold truncate">
-                                {student.className} • {student.batchName}
-                              </div>
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Prevent blur
+                            handleStudentLookup(student._id);
+                            setShowSearchResults(false);
+                          }}
+                          onMouseEnter={() => setFocusedSuggestionIndex(index)}
+                        >
+                          <Avatar className="h-10 w-10 border">
+                            <AvatarImage src={student.profilePic?.url} />
+                            <AvatarFallback>{student.name?.[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0 text-sm">
+                            <div className="font-medium truncate">{student.name}</div>
+                            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                              <span>ID: {student._id}</span>
+                            </div>
+                            <div className="text-[11px] text-primary/70 font-semibold truncate">
+                              {student.className} • {student.batchName}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Button
                   onClick={() => {
@@ -1115,11 +1116,11 @@ const StudentsFund = ({
                                           className="break-inside-avoid"
                                         >
                                           <TableCell>
-                                            {student.studentId?.name 
+                                            {student.studentId?.name
                                               ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
                                               : selectedBatchData?.name}
                                           </TableCell>
-                                          <TableCell 
+                                          <TableCell
                                             className={`text-right pr-8 ${student.balance < 0 ? "text-destructive print:!text-red-600 font-medium" : ""}`}
                                           >
                                             {student.balance?.toFixed(2)}
@@ -1185,8 +1186,7 @@ const StudentsFund = ({
                             {selectedStudents.length} Students Selected
                           </h3>
                         </div>
-                      ) : selectedStudents.length === 1 &&
-                        selectedStudents[0] !== selectedBatchData?._id ? (
+                      ) : selectedStudentData ? (
                         <>
                           <Avatar className="h-7 md:h-12 w-7 md:w-12">
                             <AvatarImage
@@ -1203,7 +1203,7 @@ const StudentsFund = ({
                               {selectedStudentData?.name}
                             </h3>
                             <p className="text-xs md:text-sm text-accent-foreground">
-                              Student ID: {selectedStudents[0]}
+                              Student ID: {selectedStudentData?._id}
                             </p>
                           </div>
                         </>
@@ -1212,6 +1212,9 @@ const StudentsFund = ({
                           <h3 className="font-semibold text-sm md:text-base text-foreground">
                             {selectedBatchData?.name}
                           </h3>
+                          <p className="text-xs md:text-sm text-muted-foreground">
+                            {groupType === "class" ? "Class Fund" : "Batch Fund"}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1409,7 +1412,7 @@ const StudentsFund = ({
                               "-"}
                           </TableCell>
                           <TableCell>
-                            {student.studentId?.name 
+                            {student.studentId?.name
                               ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
                               : "Unknown"}
                           </TableCell>
@@ -1447,13 +1450,19 @@ const StudentsFund = ({
           <Card ref={transactionHistoryRef} className="sticky top-6 overflow-hidden">
             <CardHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
               <button type="button" className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer" onClick={handleTransactionHistoryDownload} title="Download Image" data-html2canvas-ignore="true">
-                          <History className="h-5 w-5 text-primary" />
-                        </button>
+                <History className="h-5 w-5 text-primary" />
+              </button>
               <div className="flex-1 text-left space-y-0.5">
                 <CardTitle className="text-xl font-bold m-0">
                   Transaction History
                 </CardTitle>
-                <CardDescription className="m-0">Recent fund activities</CardDescription>
+                <CardDescription className="m-0">
+                  {selectedStudentData
+                    ? selectedStudentData.name
+                    : isViewingBatchOrClass
+                      ? `${selectedBatchData?.name} (${groupType === "class" ? "Class" : "Batch"})`
+                      : "Recent fund activities"}
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="pt-4">
@@ -1502,7 +1511,11 @@ const StudentsFund = ({
                     ) : (
                       <div className="text-center text-accent-foreground py-8">
                         <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No transactions found</p>
+                        <p>
+                          {!isGroupSelected && selectedStudents.length === 0
+                            ? "Select a batch or class to view transaction history"
+                            : "No transactions found"}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1519,115 +1532,115 @@ const StudentsFund = ({
                         </Button>
                       </DialogTrigger>
                       <DialogContent ref={transactionHistoryPopupRef} data-html2canvas-popup="true" className="sm:max-w-2xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
-                      <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                        <button type="button" className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer" onClick={handleTransactionHistoryPopupDownload} title="Download Image" data-html2canvas-ignore="true">
-                          <History className="h-5 w-5 text-primary" />
-                        </button>
-                        <div className="flex-1 text-left space-y-0.5">
-                          <DialogTitle className="text-xl font-bold m-0">
-                            Transaction History
-                          </DialogTitle>
-                          <DialogDescription className="m-0">
-                            {selectedStudentData
-                              ? `${selectedStudentData.name} (${selectedStudentData.studentSpecificField?.admissionNumber || selectedStudentData.admissionNumber || selectedStudentData._id})`
-                              : selectedBatchData?.name}
-                          </DialogDescription>
-                        </div>
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <Button
-                            size="icon"
-                            onClick={handleDownloadPDF}
-                            className="md:hidden bg-foreground text-background hover:bg-foreground/90"
-                          >
-                            <Download className="h-5 w-5" />
-                          </Button>
-                          <Button
-                            onClick={handlePrint}
-                            className="hidden md:flex gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
-                          >
-                            <Printer className="h-5 w-5" />
-                            Print
-                          </Button>
-                          <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
-                            <X className="h-5 w-5" />
-                          </DialogClose>
-                        </div>
-                      </DialogHeader>
-                      <div
-                        className="space-y-4 flex-1 overflow-y-auto hide-scrollbar p-5"
-                      >
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                          <button type="button" className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer" onClick={handleTransactionHistoryPopupDownload} title="Download Image" data-html2canvas-ignore="true">
+                            <History className="h-5 w-5 text-primary" />
+                          </button>
+                          <div className="flex-1 text-left space-y-0.5">
+                            <DialogTitle className="text-xl font-bold m-0">
+                              Transaction History
+                            </DialogTitle>
+                            <DialogDescription className="m-0">
+                              {selectedStudentData
+                                ? `${selectedStudentData.name} (${selectedStudentData.studentSpecificField?.admissionNumber || selectedStudentData.admissionNumber || selectedStudentData._id})`
+                                : `${selectedBatchData?.name} (${groupType === "class" ? "Class" : "Batch"})`}
+                            </DialogDescription>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Button
+                              size="icon"
+                              onClick={handleDownloadPDF}
+                              className="md:hidden bg-foreground text-background hover:bg-foreground/90"
+                            >
+                              <Download className="h-5 w-5" />
+                            </Button>
+                            <Button
+                              onClick={handlePrint}
+                              className="hidden md:flex gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0 btn-print"
+                            >
+                              <Printer className="h-5 w-5" />
+                              Print
+                            </Button>
+                            <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
+                              <X className="h-5 w-5" />
+                            </DialogClose>
+                          </div>
+                        </DialogHeader>
+                        <div
+                          className="space-y-4 flex-1 overflow-y-auto hide-scrollbar p-5"
+                        >
 
-                        {transactionsWithBalance?.map((transaction) => (
-                          <div
-                            key={transaction._id}
-                            className="border rounded-lg p-4 break-inside-avoid"
-                          >
-                            <div className="flex items-center justify-between mb-3">
-                              <Badge
-                                variant={
-                                  transaction.type === "Deposit"
-                                    ? "default"
-                                    : "destructive"
-                                }
-                              >
-                                {transaction.type === "Deposit" ? transactionLabels.deposit : transactionLabels.withdrawal}
-                              </Badge>
-                              <div className="flex items-center gap-2 text-sm text-accent-foreground">
-                                <Calendar className="h-4 w-4" />
-                                {formatDate(transaction.date)}
+                          {transactionsWithBalance?.map((transaction) => (
+                            <div
+                              key={transaction._id}
+                              className="border rounded-lg p-4 break-inside-avoid"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <Badge
+                                  variant={
+                                    transaction.type === "Deposit"
+                                      ? "default"
+                                      : "destructive"
+                                  }
+                                >
+                                  {transaction.type === "Deposit" ? transactionLabels.deposit : transactionLabels.withdrawal}
+                                </Badge>
+                                <div className="flex items-center gap-2 text-sm text-accent-foreground">
+                                  <Calendar className="h-4 w-4" />
+                                  {formatDate(transaction.date)}
+                                </div>
                               </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="font-bold text-lg">
+                                    {transaction.type === "Deposit" ? "+" : "-"}₹
+                                    {(transaction.amount || 0).toLocaleString()}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-sm text-muted-foreground mr-2">
+                                    Balance:
+                                  </span>
+                                  <span
+                                    className={`font-bold text-lg ${transaction.balanceAfter < 0
+                                      ? "text-destructive"
+                                      : "text-green-600"
+                                      }`}
+                                  >
+                                    ₹{transaction.balanceAfter.toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
                               <div>
-                                <p className="font-bold text-lg">
-                                  {transaction.type === "Deposit" ? "+" : "-"}₹
-                                  {(transaction.amount || 0).toLocaleString()}
+                                <p className="text-gray-800">
+                                  {transaction.note}
                                 </p>
                               </div>
-                              <div className="text-right">
-                                <span className="text-sm text-muted-foreground mr-2">
-                                  Balance:
-                                </span>
-                                <span
-                                  className={`font-bold text-lg ${transaction.balanceAfter < 0
-                                    ? "text-destructive"
-                                    : "text-green-600"
-                                    }`}
-                                >
-                                  ₹{transaction.balanceAfter.toLocaleString()}
-                                </span>
-                              </div>
                             </div>
-                            <div>
-                              <p className="text-gray-800">
-                                {transaction.note}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <Button
-                    variant="outline"
-                    className="w-full flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
-                    onClick={() => {
-                      setDeleteConfirmText("");
-                      setShowClearHistoryDialogue(true);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clear History
-                  </Button>
-                </div>
+                          ))}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      className="w-full flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                      onClick={() => {
+                        setDeleteConfirmText("");
+                        setShowClearHistoryDialogue(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear History
+                    </Button>
+                  </div>
 
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {!department && selectedStudents.length !== 1 && (
+                  {!department && selectedStudents.length > 1 && (
                     <div className="text-center text-accent-foreground py-8 space-y-4">
                       <History className="h-12 w-12 mx-auto opacity-50" />
-                      <p>Select a student to view transaction history</p>
+                      <p>Select a single student or clear selection to view transaction history</p>
                     </div>
                   )}
 
@@ -1734,7 +1747,7 @@ const StudentsFund = ({
                   ? `${selectedStudents.length} selected students`
                   : selectedStudentData
                     ? selectedStudentData.name
-                    : selectedBatchData?.name}
+                    : `${selectedBatchData?.name} (${groupType === "class" ? "Class" : "Batch"})`}
                 's account?
               </AlertDialogDescription>
             </div>
@@ -1759,11 +1772,10 @@ const StudentsFund = ({
                   cancelButtonRef.current?.focus();
                 }
               }}
-              className={`flex-1 ${
-                transactionType === "Withdrawal"
+              className={`flex-1 ${transactionType === "Withdrawal"
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : ""
-              }`}
+                }`}
             >
               Confirm
             </AlertDialogAction>
@@ -1779,7 +1791,7 @@ const StudentsFund = ({
             <p className="text-muted-foreground">
               {selectedStudentData
                 ? `Student: ${selectedStudentData.name} (${selectedStudentData.studentSpecificField?.admissionNumber || selectedStudentData.admissionNumber || selectedStudentData._id})`
-                : `Batch: ${selectedBatchData?.name}`}
+                : `${groupType === "class" ? "Class" : "Batch"}: ${selectedBatchData?.name}`}
             </p>
             <p className="text-sm text-muted-foreground">
               Report Generated on {currentDate}
@@ -1841,8 +1853,8 @@ const StudentsFund = ({
                   {selectedStudentData
                     ? ` for ${selectedStudentData.name}`
                     : selectedBatchData?.name
-                    ? ` for ${selectedBatchData.name}`
-                    : ""}? All transaction records will be permanently removed. This action cannot be undone.
+                      ? ` for ${selectedBatchData.name} (${groupType === "class" ? "Class" : "Batch"})`
+                      : ""}? All transaction records will be permanently removed. This action cannot be undone.
                 </div>
               </DialogDescription>
             </div>

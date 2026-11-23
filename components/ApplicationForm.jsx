@@ -259,8 +259,8 @@ export default function ApplicationForm({ trigger }) {
   };
 
   const inputStyle =
-    "bg-white/[0.04] border-white/10 text-[#f7f5ee] placeholder:text-[#6e756b] focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 rounded-lg h-10 transition-colors";
-  const labelStyle = "text-xs font-medium text-[#ded9ce] flex items-center gap-1";
+    "bg-white dark:bg-white/[0.04] border-neutral-300 dark:border-white/10 text-neutral-900 dark:text-[#f7f5ee] placeholder:text-neutral-400 dark:placeholder:text-[#6e756b] focus-visible:border-emerald-600 dark:focus-visible:border-emerald-500/50 focus-visible:ring-emerald-600/20 dark:focus-visible:ring-emerald-500/20 rounded-lg h-10 transition-colors shadow-xs dark:shadow-none";
+  const labelStyle = "text-xs font-semibold text-neutral-800 dark:text-[#ded9ce] flex items-center gap-1";
 
   return (
     <Dialog
@@ -277,20 +277,20 @@ export default function ApplicationForm({ trigger }) {
       <DialogContent
         className={cn(
           "[&>button.absolute]:hidden p-0 gap-0 flex flex-col max-h-[88vh] sm:max-h-[90vh]",
-          "bg-[#080c09] text-[#ded9ce] border border-[#1b2b20] shadow-[0_24px_60px_-12px_rgba(0,0,0,0.95)] backdrop-blur-2xl rounded-2xl sm:rounded-3xl",
+          "bg-white dark:bg-[#080c09] text-neutral-900 dark:text-[#ded9ce] border border-neutral-200 dark:border-[#1b2b20] shadow-[0_24px_60px_-12px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.95)] backdrop-blur-2xl rounded-2xl sm:rounded-3xl",
           submitted ? "max-w-md" : "max-w-3xl"
         )}
       >
         {submitted ? (
-          <div className="flex flex-col items-center justify-center py-12 px-6 sm:px-8 space-y-5 text-center flex-1 bg-[#080c09]">
-            <div className="rounded-full bg-[#122218] border border-[#1f3a29] p-4 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.15)] animate-in zoom-in duration-300">
+          <div className="flex flex-col items-center justify-center py-12 px-6 sm:px-8 space-y-5 text-center flex-1 bg-white dark:bg-[#080c09]">
+            <div className="rounded-full bg-emerald-50 dark:bg-[#122218] border border-emerald-200 dark:border-[#1f3a29] p-4 text-emerald-600 dark:text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.15)] animate-in zoom-in duration-300">
               <CheckCircle2 className="h-12 w-12" />
             </div>
             <div className="space-y-2 max-w-sm">
-              <h3 className="text-2xl font-normal text-[#f7f5ee] font-playfair">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-[#f7f5ee]">
                 Application Received
               </h3>
-              <p className="text-sm text-[#8c887f] leading-relaxed">
+              <p className="text-sm text-neutral-600 dark:text-[#8c887f] leading-relaxed">
                 Your admission application has been registered with Sadiya Dawa College. Our admissions committee will review your records and reach out via phone.
               </p>
             </div>
@@ -302,7 +302,7 @@ export default function ApplicationForm({ trigger }) {
                   setSubmitted(false);
                   setCurrentStep(1);
                 }}
-                className="bg-[#f7f5ee] text-[#07160d] hover:bg-white px-6 py-2.5 rounded-full text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                className="bg-[#1a2217] dark:bg-[#f7f5ee] text-white dark:text-[#07160d] hover:bg-black dark:hover:bg-white px-6 py-2.5 rounded-full text-xs font-semibold shadow-sm transition-all cursor-pointer"
               >
                 Close
               </button>
@@ -311,22 +311,22 @@ export default function ApplicationForm({ trigger }) {
         ) : (
           <>
             {/* Collegiate Dialog Header */}
-            <DialogHeader className="flex flex-row items-center justify-between gap-3 mx-0 px-5 sm:px-6 py-4 border-b border-[#1b2b20] bg-[#080d09]/95 sticky top-0 z-20 backdrop-blur-xl shrink-0">
+            <DialogHeader className="flex flex-row items-center justify-between gap-3 mx-0 px-5 sm:px-6 py-4 border-b border-neutral-200 dark:border-[#1b2b20] bg-white/95 dark:bg-[#080d09]/95 sticky top-0 z-20 backdrop-blur-xl shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#122218] border border-[#1f3a29] flex items-center justify-center text-emerald-400 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-[#122218] border border-emerald-200 dark:border-[#1f3a29] flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0">
                   <GraduationCap className="w-4 h-4" strokeWidth={1.5} />
                 </div>
                 <div className="text-left">
-                  <DialogTitle className="text-base sm:text-lg font-semibold m-0 text-[#f7f5ee]">
+                  <DialogTitle className="text-base sm:text-lg font-bold m-0 text-neutral-950 dark:text-[#f7f5ee]">
                     Application for Admission
                   </DialogTitle>
-                  <p className="text-xs text-[#8c887f] mt-0.5">
+                  <p className="text-xs text-neutral-600 dark:text-[#8c887f] mt-0.5">
                     Sa-adiya College of Integrated Studies · Kasaragod
                   </p>
                 </div>
               </div>
               <DialogClose
-                className="p-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] transition-colors text-[#a6ada4] hover:text-[#f7f5ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 cursor-pointer"
+                className="p-1.5 rounded-full border border-neutral-200 dark:border-white/10 bg-neutral-100 dark:bg-white/[0.04] hover:bg-neutral-200 dark:hover:bg-white/[0.08] transition-colors text-neutral-600 dark:text-[#a6ada4] hover:text-neutral-950 dark:hover:text-[#f7f5ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 cursor-pointer"
                 aria-label="Close application form"
               >
                 <X className="h-4 w-4" />
@@ -335,27 +335,27 @@ export default function ApplicationForm({ trigger }) {
 
             {/* Stepper Bar */}
             <div
-              className="px-5 sm:px-6 py-3 border-b border-[#1b2b20] bg-white/[0.015]"
+              className="px-5 sm:px-6 py-3 border-b border-neutral-200 dark:border-[#1b2b20] bg-neutral-50/50 dark:bg-white/[0.015]"
               aria-live="polite"
               aria-atomic="true"
             >
               <div className="flex items-center justify-between text-xs mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-400/10 border border-emerald-400/30 text-emerald-400 text-xxs font-semibold">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-400/10 border border-emerald-200 dark:border-emerald-400/30 text-emerald-700 dark:text-emerald-400 text-xxs font-semibold">
                     {currentStep}
                   </span>
-                  <span className="font-medium text-[#ded9ce]">
+                  <span className="font-semibold text-neutral-900 dark:text-[#ded9ce]">
                     {currentStep === 1 && "Personal Information"}
                     {currentStep === 2 && "Guardian & Residential Address"}
                     {currentStep === 3 && "Academic Details & Stream"}
                   </span>
                 </div>
-                <span className="text-[#8c887f]">Step {currentStep} of 3</span>
+                <span className="text-neutral-600 dark:text-[#8c887f] font-medium">Step {currentStep} of 3</span>
               </div>
               {/* Progress Track */}
-              <div className="w-full h-1 bg-white/[0.06] rounded-full overflow-hidden">
+              <div className="w-full h-1 bg-black/[0.06] dark:bg-white/[0.06] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-400 transition-all duration-300 ease-out"
+                  className="h-full bg-emerald-600 dark:bg-emerald-400 transition-all duration-300 ease-out"
                   style={{ width: `${(currentStep / 3) * 100}%` }}
                 />
               </div>
@@ -368,9 +368,9 @@ export default function ApplicationForm({ trigger }) {
                   {/* STEP 1: PERSONAL INFORMATION */}
                   {currentStep === 1 && (
                     <div className="space-y-5 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 pb-2 border-b border-[#1b2b20]">
-                        <User className="w-4 h-4 text-emerald-400" />
-                        <h4 className="text-sm font-semibold text-[#f7f5ee]">
+                      <div className="flex items-center gap-2 pb-2 border-b border-neutral-200 dark:border-[#1b2b20]">
+                        <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <h4 className="text-sm font-bold text-neutral-950 dark:text-[#f7f5ee]">
                           Applicant Personal Details
                         </h4>
                       </div>
@@ -396,7 +396,7 @@ export default function ApplicationForm({ trigger }) {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className={labelStyle}>
-                                Full Name <span className="text-emerald-400" aria-hidden="true">*</span>
+                                Full Name <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                 <span className="sr-only">(required)</span>
                               </FormLabel>
                               <FormControl>
@@ -408,7 +408,7 @@ export default function ApplicationForm({ trigger }) {
                                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -419,7 +419,7 @@ export default function ApplicationForm({ trigger }) {
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
                               <FormLabel className={labelStyle}>
-                                Date of Birth <span className="text-emerald-400" aria-hidden="true">*</span>
+                                Date of Birth <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                 <span className="sr-only">(required)</span>
                               </FormLabel>
                               <div className="flex gap-2">
@@ -430,8 +430,8 @@ export default function ApplicationForm({ trigger }) {
                                       dobInput !== ""
                                         ? dobInput
                                         : field.value
-                                        ? format(field.value, "dd/MM/yyyy")
-                                        : ""
+                                          ? format(field.value, "dd/MM/yyyy")
+                                          : ""
                                     }
                                     onChange={(e) => handleDobInputChange(e, field.onChange)}
                                     maxLength={10}
@@ -443,14 +443,14 @@ export default function ApplicationForm({ trigger }) {
                                   <PopoverTrigger asChild>
                                     <button
                                       type="button"
-                                      className="px-3 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-[#ded9ce] flex items-center justify-center cursor-pointer transition-colors"
+                                      className="px-3 rounded-lg border border-neutral-300 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-neutral-100 dark:hover:bg-white/[0.08] text-neutral-800 dark:text-[#ded9ce] flex items-center justify-center cursor-pointer transition-colors shadow-xs dark:shadow-none"
                                       aria-label="Pick date of birth"
                                     >
                                       <CalendarIcon className="h-4 w-4" />
                                     </button>
                                   </PopoverTrigger>
                                   <PopoverContent
-                                    className="w-auto p-0 bg-[#0c140e] border border-[#1b2b20] text-[#ded9ce] shadow-2xl rounded-xl z-50"
+                                    className="w-auto p-0 bg-white dark:bg-[#0c140e] border border-neutral-200 dark:border-[#1b2b20] text-neutral-900 dark:text-[#ded9ce] shadow-2xl rounded-xl z-50"
                                     align="end"
                                   >
                                     <Calendar
@@ -470,7 +470,7 @@ export default function ApplicationForm({ trigger }) {
                                   </PopoverContent>
                                 </Popover>
                               </div>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -491,7 +491,7 @@ export default function ApplicationForm({ trigger }) {
                                   className={inputStyle}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -511,7 +511,7 @@ export default function ApplicationForm({ trigger }) {
                                   onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -528,15 +528,15 @@ export default function ApplicationForm({ trigger }) {
                                     <SelectValue placeholder="Select" />
                                   </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="bg-[#0c140e] border border-[#1b2b20] text-[#ded9ce] shadow-2xl rounded-xl">
+                                <SelectContent className="bg-white dark:bg-[#0c140e] border border-neutral-200 dark:border-[#1b2b20] text-neutral-900 dark:text-[#ded9ce] shadow-2xl rounded-xl">
                                   {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
-                                    <SelectItem key={bg} value={bg} className="hover:bg-white/[0.06] text-[#ded9ce]">
+                                    <SelectItem key={bg} value={bg} className="hover:bg-neutral-100 dark:hover:bg-white/[0.06] text-neutral-900 dark:text-[#ded9ce]">
                                       {bg}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -547,9 +547,9 @@ export default function ApplicationForm({ trigger }) {
                   {/* STEP 2: GUARDIAN & RESIDENTIAL ADDRESS */}
                   {currentStep === 2 && (
                     <div className="space-y-5 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 pb-2 border-b border-[#1b2b20]">
-                        <HomeIcon className="w-4 h-4 text-emerald-400" />
-                        <h4 className="text-sm font-semibold text-[#f7f5ee]">
+                      <div className="flex items-center gap-2 pb-2 border-b border-neutral-200 dark:border-[#1b2b20]">
+                        <HomeIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <h4 className="text-sm font-bold text-neutral-950 dark:text-[#f7f5ee]">
                           Guardian & Family Contact
                         </h4>
                       </div>
@@ -561,7 +561,7 @@ export default function ApplicationForm({ trigger }) {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className={labelStyle}>
-                                Guardian Name <span className="text-emerald-400" aria-hidden="true">*</span>
+                                Guardian Name <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                 <span className="sr-only">(required)</span>
                               </FormLabel>
                               <FormControl>
@@ -573,7 +573,7 @@ export default function ApplicationForm({ trigger }) {
                                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -584,7 +584,7 @@ export default function ApplicationForm({ trigger }) {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className={labelStyle}>
-                                Relationship <span className="text-emerald-400" aria-hidden="true">*</span>
+                                Relationship <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                 <span className="sr-only">(required)</span>
                               </FormLabel>
                               <FormControl>
@@ -596,7 +596,7 @@ export default function ApplicationForm({ trigger }) {
                                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -607,7 +607,7 @@ export default function ApplicationForm({ trigger }) {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className={labelStyle}>
-                                Primary Contact Number <span className="text-emerald-400" aria-hidden="true">*</span>
+                                Primary Contact Number <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                 <span className="sr-only">(required)</span>
                               </FormLabel>
                               <FormControl>
@@ -619,7 +619,7 @@ export default function ApplicationForm({ trigger }) {
                                   className={inputStyle}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -638,14 +638,14 @@ export default function ApplicationForm({ trigger }) {
                                   className={inputStyle}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
                       </div>
 
                       <div className="pt-2">
-                        <h4 className="text-xs font-semibold text-[#f7f5ee] uppercase tracking-wider mb-3">
+                        <h4 className="text-xs font-bold text-neutral-950 dark:text-[#f7f5ee] uppercase tracking-wider mb-3">
                           Residential Address
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -663,7 +663,7 @@ export default function ApplicationForm({ trigger }) {
                                     onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                   />
                                 </FormControl>
-                                <FormMessage className="text-xs text-rose-400" />
+                                <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                               </FormItem>
                             )}
                           />
@@ -674,7 +674,7 @@ export default function ApplicationForm({ trigger }) {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className={labelStyle}>
-                                  Place / Locality <span className="text-emerald-400" aria-hidden="true">*</span>
+                                  Place / Locality <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                   <span className="sr-only">(required)</span>
                                 </FormLabel>
                                 <FormControl>
@@ -686,7 +686,7 @@ export default function ApplicationForm({ trigger }) {
                                     onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                   />
                                 </FormControl>
-                                <FormMessage className="text-xs text-rose-400" />
+                                <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                               </FormItem>
                             )}
                           />
@@ -697,7 +697,7 @@ export default function ApplicationForm({ trigger }) {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className={labelStyle}>
-                                  District <span className="text-emerald-400" aria-hidden="true">*</span>
+                                  District <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                   <span className="sr-only">(required)</span>
                                 </FormLabel>
                                 <FormControl>
@@ -709,7 +709,7 @@ export default function ApplicationForm({ trigger }) {
                                     onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                   />
                                 </FormControl>
-                                <FormMessage className="text-xs text-rose-400" />
+                                <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                               </FormItem>
                             )}
                           />
@@ -720,7 +720,7 @@ export default function ApplicationForm({ trigger }) {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className={labelStyle}>
-                                  State <span className="text-emerald-400" aria-hidden="true">*</span>
+                                  State <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                   <span className="sr-only">(required)</span>
                                 </FormLabel>
                                 <FormControl>
@@ -732,7 +732,7 @@ export default function ApplicationForm({ trigger }) {
                                     onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                   />
                                 </FormControl>
-                                <FormMessage className="text-xs text-rose-400" />
+                                <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                               </FormItem>
                             )}
                           />
@@ -752,7 +752,7 @@ export default function ApplicationForm({ trigger }) {
                                     onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
                                   />
                                 </FormControl>
-                                <FormMessage className="text-xs text-rose-400" />
+                                <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                               </FormItem>
                             )}
                           />
@@ -764,10 +764,10 @@ export default function ApplicationForm({ trigger }) {
                   {/* STEP 3: ACADEMIC DETAILS & QUALIFICATIONS */}
                   {currentStep === 3 && (
                     <div className="space-y-5 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 pb-2 border-b border-[#1b2b20]">
-                        <BookOpen className="w-4 h-4 text-emerald-400" />
-                        <h4 className="text-sm font-semibold text-[#f7f5ee]">
-                          Program Selection & Academic Records
+                      <div className="flex items-center gap-2 pb-2 border-b border-neutral-200 dark:border-[#1b2b20]">
+                        <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <h4 className="text-sm font-bold text-neutral-950 dark:text-[#f7f5ee]">
+                          Program Selection &amp; Academic Records
                         </h4>
                       </div>
 
@@ -778,7 +778,7 @@ export default function ApplicationForm({ trigger }) {
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
                               <FormLabel className={labelStyle}>
-                                Admission Needed For <span className="text-emerald-400" aria-hidden="true">*</span>
+                                Admission Needed For <span className="text-emerald-600 dark:text-emerald-400" aria-hidden="true">*</span>
                                 <span className="sr-only">(required)</span>
                               </FormLabel>
                               <FormControl>
@@ -792,9 +792,11 @@ export default function ApplicationForm({ trigger }) {
                                   maxCount={1}
                                   multiSelect={false}
                                   freeSolo={true}
+                                  className={inputStyle}
+                                  popoverClassName="bg-white dark:bg-[#0c140e] border border-neutral-200 dark:border-[#1b2b20] text-neutral-900 dark:text-[#ded9ce]"
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -812,13 +814,13 @@ export default function ApplicationForm({ trigger }) {
                                       <SelectValue placeholder="Select Stream" />
                                     </SelectTrigger>
                                   </FormControl>
-                                  <SelectContent className="bg-[#0c140e] border border-[#1b2b20] text-[#ded9ce] shadow-2xl rounded-xl">
-                                    <SelectItem value="Science" className="hover:bg-white/[0.06] text-[#ded9ce]">Science</SelectItem>
-                                    <SelectItem value="Commerce" className="hover:bg-white/[0.06] text-[#ded9ce]">Commerce</SelectItem>
-                                    <SelectItem value="Humanities" className="hover:bg-white/[0.06] text-[#ded9ce]">Humanities</SelectItem>
+                                  <SelectContent className="bg-white dark:bg-[#0c140e] border border-neutral-200 dark:border-[#1b2b20] text-neutral-900 dark:text-[#ded9ce] shadow-2xl rounded-xl">
+                                    <SelectItem value="Science" className="hover:bg-neutral-100 dark:hover:bg-white/[0.06] text-neutral-900 dark:text-[#ded9ce]">Science</SelectItem>
+                                    <SelectItem value="Commerce" className="hover:bg-neutral-100 dark:hover:bg-white/[0.06] text-neutral-900 dark:text-[#ded9ce]">Commerce</SelectItem>
+                                    <SelectItem value="Humanities" className="hover:bg-neutral-100 dark:hover:bg-white/[0.06] text-neutral-900 dark:text-[#ded9ce]">Humanities</SelectItem>
                                   </SelectContent>
                                 </Select>
-                                <FormMessage className="text-xs text-rose-400" />
+                                <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                               </FormItem>
                             )}
                           />
@@ -840,7 +842,7 @@ export default function ApplicationForm({ trigger }) {
                                       onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                     />
                                   </FormControl>
-                                  <FormMessage className="text-xs text-rose-400" />
+                                  <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                                 </FormItem>
                               )}
                             />
@@ -856,18 +858,18 @@ export default function ApplicationForm({ trigger }) {
                                         <SelectValue placeholder="Select Year" />
                                       </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent className="bg-[#0c140e] border border-[#1b2b20] text-[#ded9ce] shadow-2xl rounded-xl">
+                                    <SelectContent className="bg-white dark:bg-[#0c140e] border border-neutral-200 dark:border-[#1b2b20] text-neutral-900 dark:text-[#ded9ce] shadow-2xl rounded-xl">
                                       {Array.from(
                                         { length: 5 },
                                         (_, i) => new Date().getFullYear() - i
                                       ).map((y) => (
-                                        <SelectItem key={y} value={String(y)} className="hover:bg-white/[0.06] text-[#ded9ce]">
+                                        <SelectItem key={y} value={String(y)} className="hover:bg-neutral-100 dark:hover:bg-white/[0.06] text-neutral-900 dark:text-[#ded9ce]">
                                           {y}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                  <FormMessage className="text-xs text-rose-400" />
+                                  <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                                 </FormItem>
                               )}
                             />
@@ -888,7 +890,7 @@ export default function ApplicationForm({ trigger }) {
                                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -907,7 +909,7 @@ export default function ApplicationForm({ trigger }) {
                                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                 />
                               </FormControl>
-                              <FormMessage className="text-xs text-rose-400" />
+                              <FormMessage className="text-xs text-rose-500 dark:text-rose-400" />
                             </FormItem>
                           )}
                         />
@@ -916,12 +918,12 @@ export default function ApplicationForm({ trigger }) {
                   )}
 
                   {/* Navigation Buttons */}
-                  <div className="flex items-center justify-between gap-3 pt-5 border-t border-[#1b2b20]">
+                  <div className="flex items-center justify-between gap-3 pt-5 border-t border-neutral-200 dark:border-[#1b2b20]">
                     {currentStep > 1 ? (
                       <button
                         type="button"
                         onClick={() => setCurrentStep((prev) => prev - 1)}
-                        className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full text-xs font-medium text-[#ded9ce] bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full text-xs font-semibold text-neutral-800 dark:text-[#ded9ce] bg-neutral-100 dark:bg-white/[0.04] hover:bg-neutral-200 dark:hover:bg-white/[0.08] border border-neutral-300 dark:border-white/10 transition-colors cursor-pointer"
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
                         <span>Previous</span>
@@ -930,7 +932,7 @@ export default function ApplicationForm({ trigger }) {
                       <button
                         type="button"
                         onClick={() => setOpen(false)}
-                        className="text-xs font-medium text-[#8c887f] hover:text-[#ded9ce] px-3 py-2 transition-colors cursor-pointer"
+                        className="text-xs font-semibold text-neutral-600 dark:text-[#8c887f] hover:text-neutral-950 dark:hover:text-[#ded9ce] px-3 py-2 transition-colors cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -941,7 +943,7 @@ export default function ApplicationForm({ trigger }) {
                         <button
                           type="button"
                           onClick={currentStep === 1 ? handleNextStep1 : handleNextStep2}
-                          className="inline-flex items-center gap-1.5 px-5 sm:px-6 py-2.5 rounded-full text-xs font-semibold text-[#07160d] bg-[#f7f5ee] hover:bg-white shadow-[0_4px_16px_rgba(247,245,238,0.12)] transition-all active:scale-[0.98] cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-5 sm:px-6 py-2.5 rounded-full text-xs font-semibold text-white dark:text-[#07160d] bg-[#1a2217] dark:bg-[#f7f5ee] hover:bg-black dark:hover:bg-white shadow-[0_4px_16px_rgba(26,34,23,0.18)] dark:shadow-[0_4px_16px_rgba(247,245,238,0.12)] transition-all active:scale-[0.98] cursor-pointer"
                         >
                           <span>Next Step</span>
                           <ChevronRight className="w-3.5 h-3.5" />
@@ -950,9 +952,9 @@ export default function ApplicationForm({ trigger }) {
                         <button
                           type="submit"
                           disabled={uploading}
-                          className="inline-flex items-center gap-2 px-6 sm:px-7 py-2.5 rounded-full text-xs font-semibold text-[#07160d] bg-[#f7f5ee] hover:bg-white shadow-[0_4px_16px_rgba(247,245,238,0.12)] hover:shadow-[0_6px_24px_rgba(247,245,238,0.22)] transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                          className="inline-flex items-center gap-2 px-6 sm:px-7 py-2.5 rounded-full text-xs font-semibold text-white dark:text-[#07160d] bg-[#1a2217] dark:bg-[#f7f5ee] hover:bg-black dark:hover:bg-white shadow-[0_4px_16px_rgba(26,34,23,0.18)] dark:shadow-[0_4px_16px_rgba(247,245,238,0.12)] hover:shadow-[0_6px_24px_rgba(26,34,23,0.25)] dark:hover:shadow-[0_6px_28px_rgba(247,245,238,0.22)] transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
                         >
-                          {uploading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#07160d]" />}
+                          {uploading && <Loader2 className="w-3.5 h-3.5 animate-spin text-white dark:text-[#07160d]" />}
                           <span>Submit Application</span>
                         </button>
                       )}
