@@ -75,17 +75,7 @@ import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import dynamic from "next/dynamic";
-
-const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex flex-col items-center justify-center p-8 gap-4">
-      <Loader className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-sm text-muted-foreground">Loading scanner...</p>
-    </div>
-  ),
-});
+import BarcodeScannerModal from "@/components/BarcodeScannerModal";
 
 const StudentsFund = ({
   batches = [],
@@ -1773,8 +1763,8 @@ const StudentsFund = ({
                 }
               }}
               className={`flex-1 ${transactionType === "Withdrawal"
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : ""
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                : ""
                 }`}
             >
               Confirm
@@ -1978,22 +1968,14 @@ const StudentsFund = ({
       </Dialog>
 
       {/* Barcode Scanner Dialog */}
-      <Dialog open={showScanner} onOpenChange={setShowScanner}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Scan Barcode</DialogTitle>
-            <DialogDescription>
-              Scan a student barcode to look up their fund details.
-            </DialogDescription>
-          </DialogHeader>
-          {showScanner && (
-            <BarcodeScanner
-              onScan={handleBarcodeScan}
-              onClose={() => setShowScanner(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <BarcodeScannerModal
+        open={showScanner}
+        onOpenChange={setShowScanner}
+        title="Scan Barcode"
+        description="Scan a student barcode to look up their fund details."
+        onScan={handleBarcodeScan}
+        onClose={() => setShowScanner(false)}
+      />
     </div>
   );
 };

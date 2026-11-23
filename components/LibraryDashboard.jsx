@@ -17,16 +17,7 @@ import Barcode from "react-barcode";
 import { useReactToPrint } from "react-to-print";
 import BarcodeSheet from "./BarcodeSheet";
 import { Search, Scan, IdCard, Book as BookIcon, ScanBarcode, Edit } from "lucide-react";
-import dynamic from "next/dynamic";
-
-const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), {
-    ssr: false,
-    loading: () => (
-        <div className="flex items-center justify-center p-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-    ),
-});
+import BarcodeScannerModal from "./BarcodeScannerModal";
 import { Input } from "@/components/ui/input";
 import { useEffect, useRef, useMemo } from "react";
 import {
@@ -111,8 +102,8 @@ export default function LibraryDashboard({
     const [localBooks, setLocalBooks] = useState(sortBooks(initialBooks));
     const [activeFilters, setActiveFilters] = useState([]);
 
-    useEffect(() => { 
-        setLocalBooks(sortBooks(initialBooks)); 
+    useEffect(() => {
+        setLocalBooks(sortBooks(initialBooks));
     }, [initialBooks]);
 
     // --- Popup State ---
@@ -137,14 +128,14 @@ export default function LibraryDashboard({
             const res = await fetch("/api/library/requests");
             const result = await res.json();
             if (result.success) setLocalRequests(result.data || []);
-        } catch {/* silent */} finally {
+        } catch {/* silent */ } finally {
             setRequestsLoading(false);
         }
     };
 
     useEffect(() => {
         fetchRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleRejectRequest = async (requestId) => {
@@ -297,7 +288,7 @@ export default function LibraryDashboard({
     const dynamicCategories = useMemo(() => {
         const selectedLanguage = activeFilters.find(f => f.id === 'language')?.value;
         let booksToExtract = localBooks;
-        
+
         // Handle case where selectedLanguage is an empty array
         const hasSelectedLanguage = selectedLanguage && (!Array.isArray(selectedLanguage) || selectedLanguage.length > 0);
 
@@ -309,7 +300,7 @@ export default function LibraryDashboard({
                 booksToExtract = localBooks.filter(b => b.language?.toUpperCase() === String(selectedLanguage).toUpperCase());
             }
         }
-        
+
         const fromBooks = booksToExtract.map(b => normalizeCategoryName(b.category)).filter(Boolean);
         const fromApi = hasSelectedLanguage ? [] : (Array.isArray(categories) ? categories.map(c => normalizeCategoryName(c.category)) : (categories || []).map(c => typeof c === 'string' ? normalizeCategoryName(c) : c));
         const all = new Set([...fromApi, ...fromBooks]);
@@ -665,11 +656,10 @@ export default function LibraryDashboard({
                     <Button
                         size="sm"
                         variant={isAvailable ? "default" : "outline"}
-                        className={`h-7 px-2 text-xs font-semibold ${
-                            isAvailable
+                        className={`h-7 px-2 text-xs font-semibold ${isAvailable
                                 ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                                 : "text-muted-foreground cursor-not-allowed opacity-60"
-                        }`}
+                            }`}
                         disabled={!isAvailable}
                         title={isAvailable ? `Register rental for ${book.name}` : "Book is not available"}
                         onClick={(e) => {
@@ -688,7 +678,7 @@ export default function LibraryDashboard({
                 className: "print:hidden",
             }
         }] : [])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     ], [selectedIds.length]);
 
     const rentalColumns = [
@@ -808,7 +798,7 @@ export default function LibraryDashboard({
                 return rental.receivedDate ? (
                     formatDate(rental.receivedDate)
                 ) : (
-                    <span 
+                    <span
                         className="text-red-500 font-bold hover:underline cursor-pointer"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -881,7 +871,7 @@ export default function LibraryDashboard({
                 }
             });
         }
-        
+
         let filename = "books.csv";
         if (filterLabels.length > 0) {
             filename = `books_${filterLabels.join('_')}.csv`;
@@ -976,7 +966,7 @@ export default function LibraryDashboard({
                 try {
                     const res = await fetch(`/api/library/books?id=${id}`, { method: "DELETE" });
                     if (res.ok) router.refresh();
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -995,7 +985,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1080,7 +1070,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1103,7 +1093,7 @@ export default function LibraryDashboard({
                     }
                     router.refresh();
                     setRowSelection({});
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1233,7 +1223,7 @@ export default function LibraryDashboard({
                 try {
                     const res = await fetch(`/api/rental?id=${id}`, { method: "DELETE" });
                     if (res.ok) router.refresh();
-                } catch (error) { console.error(error); } 
+                } catch (error) { console.error(error); }
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
         });
@@ -1395,38 +1385,18 @@ export default function LibraryDashboard({
                                 </Button>
                             </div>
 
-                            <Dialog open={showStudentScanner} onOpenChange={setShowStudentScanner}>
-                                <DialogContent className="w-[95vw] sm:max-w-md p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
-                                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
-                                        <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
-                                            <ScanBarcode className="w-5 h-5" />
-                                        </div>
-                                        <div className="flex-1 text-left space-y-0.5">
-                                            <DialogTitle className="text-xl font-bold m-0 text-foreground">Scan Student Card</DialogTitle>
-                                            <DialogDescription asChild>
-                                                <div className="text-sm text-muted-foreground m-0">Position card barcode in camera view</div>
-                                            </DialogDescription>
-                                        </div>
-                                        <div className="flex items-center gap-1 sm:gap-2">
-                                            <DialogClose asChild>
-                                                <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
-                                                    <X className="h-5 w-5" />
-                                                </button>
-                                            </DialogClose>
-                                        </div>
-                                    </DialogHeader>
-                                    <div className="p-5">
-                                        <BarcodeScanner
-                                            onScan={(result) => {
-                                                setStudentSearchId(result);
-                                                setShowStudentScanner(false);
-                                                handleStudentLookup(null, result);
-                                            }}
-                                            onClose={() => setShowStudentScanner(false)}
-                                        />
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
+                            <BarcodeScannerModal
+                                open={showStudentScanner}
+                                onOpenChange={setShowStudentScanner}
+                                title="Scan Student Card"
+                                description="Position card barcode in camera view"
+                                onScan={(result) => {
+                                    setStudentSearchId(result);
+                                    setShowStudentScanner(false);
+                                    handleStudentLookup(null, result);
+                                }}
+                                onClose={() => setShowStudentScanner(false)}
+                            />
                         </CardContent>
                     </Card>
 
@@ -1468,38 +1438,19 @@ export default function LibraryDashboard({
                                 </Button>
                             </div>
 
-                            <Dialog open={showBookScanner} onOpenChange={setShowBookScanner}>
-                                <DialogContent className="w-[95vw] sm:max-w-md p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
-                                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
-                                        <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shrink-0">
-                                            <ScanBarcode className="w-5 h-5" />
-                                        </div>
-                                        <div className="flex-1 text-left space-y-0.5">
-                                            <DialogTitle className="text-xl font-bold m-0 text-foreground">Scan Book Barcode</DialogTitle>
-                                            <DialogDescription asChild>
-                                                <div className="text-sm text-muted-foreground m-0">Position book barcode in camera view</div>
-                                            </DialogDescription>
-                                        </div>
-                                        <div className="flex items-center gap-1 sm:gap-2">
-                                            <DialogClose asChild>
-                                                <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer">
-                                                    <X className="h-5 w-5" />
-                                                </button>
-                                            </DialogClose>
-                                        </div>
-                                    </DialogHeader>
-                                    <div className="p-5">
-                                        <BarcodeScanner
-                                            onScan={(result) => {
-                                                setBookSearchId(result);
-                                                setShowBookScanner(false);
-                                                handleBookLookup(null, result);
-                                            }}
-                                            onClose={() => setShowBookScanner(false)}
-                                        />
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
+                            <BarcodeScannerModal
+                                open={showBookScanner}
+                                onOpenChange={setShowBookScanner}
+                                title="Scan Book Barcode"
+                                description="Position book barcode in camera view"
+                                hint="Point camera at book barcode to scan automatically."
+                                onScan={(result) => {
+                                    setBookSearchId(result);
+                                    setShowBookScanner(false);
+                                    handleBookLookup(null, result);
+                                }}
+                                onClose={() => setShowBookScanner(false)}
+                            />
                         </CardContent>
                     </Card>
                 </div >
@@ -1656,7 +1607,7 @@ export default function LibraryDashboard({
                                                                             {formatDate(rental.receivedDate)}
                                                                         </span>
                                                                     ) : (
-                                                                        <span 
+                                                                        <span
                                                                             className="text-red-500 font-bold hover:underline cursor-pointer"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
@@ -1756,7 +1707,7 @@ export default function LibraryDashboard({
                                                                             {formatDate(rental.receivedDate)}
                                                                         </span>
                                                                     ) : (
-                                                                        <span 
+                                                                        <span
                                                                             className="text-red-500 font-bold hover:underline cursor-pointer"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
@@ -2268,7 +2219,7 @@ export default function LibraryDashboard({
                         const selectedBooks = localBooks.filter(b => selectedIds.includes(b._id));
                         const allSelectedAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status === 'Available');
                         const allSelectedNotAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status !== 'Available');
-                        
+
                         const actionButtonsContent = (
                             <>
                                 {selectedIds.length > 0 && (
@@ -2569,11 +2520,10 @@ export default function LibraryDashboard({
                                                 <Button
                                                     size="sm"
                                                     variant={book.status === 'Available' ? "default" : "outline"}
-                                                    className={`w-full mt-1 h-7 text-xs font-semibold ${
-                                                        book.status === 'Available'
+                                                    className={`w-full mt-1 h-7 text-xs font-semibold ${book.status === 'Available'
                                                             ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                                                             : "text-muted-foreground cursor-not-allowed opacity-60"
-                                                    }`}
+                                                        }`}
                                                     disabled={book.status !== 'Available'}
                                                     title={book.status === 'Available' ? `Register rental for ${book.name}` : "Book is not available"}
                                                     onClick={(e) => {
@@ -2898,7 +2848,7 @@ export default function LibraryDashboard({
                         </div>
                     }
                 />
-                
+
                 <Dialog open={deleteErrorPopupOpen} onOpenChange={setDeleteErrorPopupOpen}>
                     <DialogContent className="w-[95vw] sm:max-w-md p-0 gap-0 overflow-y-auto rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col [&>button.absolute]:hidden">
                         <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-background/95 dark:bg-background/95 backdrop-blur-md sticky top-0 z-20 shrink-0">

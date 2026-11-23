@@ -25,10 +25,7 @@ import useCrud from "@/hooks/use-crud";
 import { formatDateForDisplay } from "@/lib/utils";
 import { toast } from "sonner";
 import { ScanBarcode } from "lucide-react";
-import dynamic from "next/dynamic";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), { ssr: false });
+import BarcodeScannerModal from "@/components/BarcodeScannerModal";
 
 export default function LiteraryStudentLookup({ apiKey }) {
     const [searchTerm, setSearchTerm] = useState("");
@@ -356,22 +353,17 @@ export default function LiteraryStudentLookup({ apiKey }) {
             )}
 
             {/* Barcode Scanner Dialog */}
-            <Dialog open={showScanner} onOpenChange={setShowScanner}>
-                <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background">
-                    <DialogHeader className="p-4 pb-0">
-                        <DialogTitle>Scan Student Barcode</DialogTitle>
-                    </DialogHeader>
-                    <div className="w-full relative z-50">
-                        <BarcodeScanner
-                            onScan={(data) => {
-                                setSearchTerm(data);
-                                setShowScanner(false);
-                            }}
-                            onClose={() => setShowScanner(false)}
-                        />
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <BarcodeScannerModal
+                open={showScanner}
+                onOpenChange={setShowScanner}
+                title="Scan Student Barcode"
+                description="Position student card or barcode in camera view."
+                onScan={(data) => {
+                    setSearchTerm(data);
+                    setShowScanner(false);
+                }}
+                onClose={() => setShowScanner(false)}
+            />
         </div>
     );
 }

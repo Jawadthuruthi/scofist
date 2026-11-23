@@ -24,16 +24,7 @@ import {
     ScanBarcode,
     ChevronDown
 } from "lucide-react";
-import dynamic from "next/dynamic";
-
-const BarcodeScanner = dynamic(() => import("../../../components/BarcodeScanner"), {
-    ssr: false,
-    loading: () => (
-        <div className="flex items-center justify-center p-8">
-            <Loader className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    ),
-});
+import BarcodeScannerModal from "@/components/BarcodeScannerModal";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -121,7 +112,7 @@ export default function StudentCouponClient({ apiKey }) {
     const [hasLookedUp, setHasLookedUp] = useState(false);
     const [lookupSelectedCouponIds, setLookupSelectedCouponIds] = useState([]);
     const [showLookupScanner, setShowLookupScanner] = useState(false);
-    
+
     // Search Results State for Dropdown
     const [searchResults, setSearchResults] = useState([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
@@ -203,7 +194,7 @@ export default function StudentCouponClient({ apiKey }) {
         }
         const delayDebounceFn = setTimeout(() => {
             setIsLookingUp(true);
-            fetch(`/api/users?global=${term}&roles=Student`, { headers: { "api-key": apiKey }})
+            fetch(`/api/users?global=${term}&roles=Student`, { headers: { "api-key": apiKey } })
                 .then(res => res.json())
                 .then(data => {
                     if (data.users) setSearchResults(data.users);
@@ -409,7 +400,7 @@ export default function StudentCouponClient({ apiKey }) {
             let students = usersResult.data?.users || [];
 
             if (detailsStudentId.length > 0) {
-                 students = students.filter(s => detailsStudentId.includes(s._id));
+                students = students.filter(s => detailsStudentId.includes(s._id));
             }
 
             if (students.length === 0) {
@@ -499,7 +490,7 @@ export default function StudentCouponClient({ apiKey }) {
         try {
             const promises = bulkStudents.map((student) => {
                 const cNumber = couponNumbers[student._id] || "";
-                
+
                 const finalAmount = data.couponAmount || 0;
 
                 const payload = {
@@ -825,7 +816,7 @@ export default function StudentCouponClient({ apiKey }) {
 
     const balancesReportParams = useMemo(() => {
         if (!allYearsCoupons.length) return { studentRows: [], yearColumns: [] };
-        
+
         const yearsSet = new Set();
         const studentMap = new Map();
 
@@ -978,7 +969,7 @@ export default function StudentCouponClient({ apiKey }) {
 
             {/* Top Cards: Side by Side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
+
                 {/* Student Lookup Card */}
                 <Card className="w-full shadow-sm h-full flex flex-col justify-center">
                     <CardHeader className="bg-muted/10 pb-6 pt-6 flex-1 rounded-t-xl
@@ -1013,7 +1004,7 @@ export default function StudentCouponClient({ apiKey }) {
                                     onKeyDown={(e) => {
                                         if (e.key === "ArrowDown") {
                                             e.preventDefault();
-                                            setFocusedSuggestionIndex((prev) => 
+                                            setFocusedSuggestionIndex((prev) =>
                                                 prev < searchResults.length - 1 ? prev + 1 : prev
                                             );
                                         } else if (e.key === "ArrowUp") {
@@ -1058,7 +1049,7 @@ export default function StudentCouponClient({ apiKey }) {
                                         <X className="h-4 w-4" />
                                     </Button>
                                 )}
-                                
+
                                 {/* Search Results Dropdown */}
                                 {showSearchResults && searchResults.length > 0 && (
                                     <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
@@ -1067,14 +1058,13 @@ export default function StudentCouponClient({ apiKey }) {
                                             const cls = allClasses.find(c => c._id === (student.studentSpecificField?.classId || student.classId));
                                             const batchName = batch?.name || "No Batch";
                                             const className = cls?.name || "No Class";
-                                            
+
                                             return (
                                                 <div
                                                     id={`coupon-suggestion-${index}`}
                                                     key={student._id}
-                                                    className={`flex items-center gap-3 p-3 cursor-pointer border-b last:border-0 transition-colors ${
-                                                        focusedSuggestionIndex === index ? "bg-accent" : "hover:bg-accent"
-                                                    }`}
+                                                    className={`flex items-center gap-3 p-3 cursor-pointer border-b last:border-0 transition-colors ${focusedSuggestionIndex === index ? "bg-accent" : "hover:bg-accent"
+                                                        }`}
                                                     onMouseDown={(e) => {
                                                         e.preventDefault(); // Prevent blur
                                                         setLookupStudent(student);
@@ -1117,22 +1107,19 @@ export default function StudentCouponClient({ apiKey }) {
                                 <span className="hidden sm:inline">{lookupSearchTerm ? "Search" : "Scan"}</span>
                             </Button>
 
-                            <Dialog open={showLookupScanner} onOpenChange={setShowLookupScanner}>
-                                <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Scan Student Card</DialogTitle>
-                                    </DialogHeader>
-                                    <BarcodeScanner
-                                        onScan={(result) => {
-                                            setLookupSearchTerm(result);
-                                            setShowLookupScanner(false);
-                                            // Directly trigger search with the result
-                                            handleLookupSearch(result);
-                                        }}
-                                        onClose={() => setShowLookupScanner(false)}
-                                    />
-                                </DialogContent>
-                            </Dialog>
+                            <BarcodeScannerModal
+                                open={showLookupScanner}
+                                onOpenChange={setShowLookupScanner}
+                                title="Scan Student Card"
+                                description="Position card barcode in camera view to look up coupon details."
+                                onScan={(result) => {
+                                    setLookupSearchTerm(result);
+                                    setShowLookupScanner(false);
+                                    // Directly trigger search with the result
+                                    handleLookupSearch(result);
+                                }}
+                                onClose={() => setShowLookupScanner(false)}
+                            />
                         </div>
                     </CardHeader>
                 </Card>
@@ -1522,7 +1509,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                             setDetailsBatchId(val);
                                                             setDetailsClassId([]);
                                                             setDetailsStudentId([]);
-                                                            setBulkStudents([]); 
+                                                            setBulkStudents([]);
                                                         }}
                                                     >
                                                         <SelectTrigger className="bg-white"><SelectValue placeholder="Select Batch" /></SelectTrigger>
@@ -1615,7 +1602,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                                 <span>Print</span>
                                                             </Button>
                                                         </div>
-                                                        
+
                                                         <div className="flex items-center justify-end gap-3">
                                                             {/* Amount & Desktop Print - Stacking Amount on top on mobile right */}
                                                             <div className="flex flex-col items-end gap-2 md:flex-row md:items-center">
@@ -1628,7 +1615,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                                         placeholder="Amount"
                                                                     />
                                                                 </div>
-                                                                
+
                                                                 {/* Desktop Print Button: Before Global Amount */}
                                                                 <Button
                                                                     type="button"
@@ -1914,226 +1901,226 @@ export default function StudentCouponClient({ apiKey }) {
                         )}
 
                         {activeView === "coupons" && (
-                        <div id="printable-table" className="rounded-md border bg-white overflow-x-auto">
-                            <div className="hidden print:block text-center mb-6 pt-4">
-                                <h2 className="text-2xl font-bold">STUDENT COUPON FUND MANAGEMENT</h2>
-                            </div>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]">
-                                            <Checkbox
-                                                checked={coupons.length > 0 && selectedCouponIds.length === coupons.length}
-                                                onCheckedChange={handleSelectAll}
-                                            />
-                                        </TableHead>
-                                        {visibleColumns.slNo && <TableHead>Sl No</TableHead>}
-                                        {visibleColumns.id && <TableHead>ID</TableHead>}
-                                        {visibleColumns.studentName && <TableHead>Student</TableHead>}
-                                        {visibleColumns.year && <TableHead>Year</TableHead>}
-                                        {visibleColumns.couponNo && <TableHead>Coupon No</TableHead>}
-                                        {visibleColumns.totalAmount && <TableHead>Total Amount</TableHead>}
-                                        {visibleColumns.paid && <TableHead>Paid</TableHead>}
-                                        {visibleColumns.balance && <TableHead>Balance</TableHead>}
-                                        {visibleColumns.status && <TableHead>Status</TableHead>}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {!shouldFetchCoupons ? (
-                                        <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">Loading...</TableCell></TableRow>
-                                    ) : isLoading ? (
-                                        <TableRow><TableCell colSpan={10} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
-                                    ) : coupons.length === 0 ? (
-                                        <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">No records found</TableCell></TableRow>
-                                    ) : (
-                                        coupons.map((coupon, index) => (
-                                            <TableRow key={coupon._id}>
-                                                <TableCell>
-                                                    <Checkbox
-                                                        checked={selectedCouponIds.includes(coupon._id)}
-                                                        onCheckedChange={(checked) => handleSelectRow(coupon._id, checked)}
-                                                    />
-                                                </TableCell>
-                                                {visibleColumns.slNo && <TableCell>{index + 1}</TableCell>}
-                                                {visibleColumns.id && <TableCell>{coupon.studentId?._id}</TableCell>}
-                                                {visibleColumns.studentName && (
-                                                    <TableCell
-                                                        className="font-medium cursor-pointer hover:underline text-primary"
-                                                        onClick={() => handleEdit(coupon)}
-                                                    >
-                                                        {coupon.studentId?.name}
+                            <div id="printable-table" className="rounded-md border bg-white overflow-x-auto">
+                                <div className="hidden print:block text-center mb-6 pt-4">
+                                    <h2 className="text-2xl font-bold">STUDENT COUPON FUND MANAGEMENT</h2>
+                                </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">
+                                                <Checkbox
+                                                    checked={coupons.length > 0 && selectedCouponIds.length === coupons.length}
+                                                    onCheckedChange={handleSelectAll}
+                                                />
+                                            </TableHead>
+                                            {visibleColumns.slNo && <TableHead>Sl No</TableHead>}
+                                            {visibleColumns.id && <TableHead>ID</TableHead>}
+                                            {visibleColumns.studentName && <TableHead>Student</TableHead>}
+                                            {visibleColumns.year && <TableHead>Year</TableHead>}
+                                            {visibleColumns.couponNo && <TableHead>Coupon No</TableHead>}
+                                            {visibleColumns.totalAmount && <TableHead>Total Amount</TableHead>}
+                                            {visibleColumns.paid && <TableHead>Paid</TableHead>}
+                                            {visibleColumns.balance && <TableHead>Balance</TableHead>}
+                                            {visibleColumns.status && <TableHead>Status</TableHead>}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {!shouldFetchCoupons ? (
+                                            <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">Loading...</TableCell></TableRow>
+                                        ) : isLoading ? (
+                                            <TableRow><TableCell colSpan={10} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                        ) : coupons.length === 0 ? (
+                                            <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">No records found</TableCell></TableRow>
+                                        ) : (
+                                            coupons.map((coupon, index) => (
+                                                <TableRow key={coupon._id}>
+                                                    <TableCell>
+                                                        <Checkbox
+                                                            checked={selectedCouponIds.includes(coupon._id)}
+                                                            onCheckedChange={(checked) => handleSelectRow(coupon._id, checked)}
+                                                        />
                                                     </TableCell>
-                                                )}
-                                                {visibleColumns.year && <TableCell>{coupon.academicYear}</TableCell>}
-                                                {visibleColumns.couponNo && <TableCell>{coupon.couponNumber || "-"}</TableCell>}
-                                                {visibleColumns.totalAmount && <TableCell>₹{coupon.couponAmount}</TableCell>}
-                                                {visibleColumns.paid && (
-                                                    <TableCell
-                                                        className="text-green-600 font-semibold cursor-pointer hover:underline"
-                                                        onClick={() => setViewHistoryCoupon(coupon)}
-                                                    >
-                                                        ₹{coupon.totalPaid}
-                                                    </TableCell>
-                                                )}
-                                                {visibleColumns.balance && (
-                                                    <TableCell
-                                                        className="text-red-600 font-semibold cursor-pointer hover:underline"
-                                                        onClick={() => handlePayBalance(coupon)}
-                                                    >
-                                                        ₹{coupon.balance}
-                                                    </TableCell>
-                                                )}
-                                                {visibleColumns.status && <TableCell>
-                                                    <Badge variant={coupon.status === "Paid" ? "success" : coupon.status === "Partial" ? "warning" : "destructive"}>
-                                                        {coupon.status}
-                                                    </Badge>
-                                                </TableCell>}
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                            {/* Payment Details Popup */}
-                            <Dialog open={isPaymentPopupOpen} onOpenChange={(open) => {
-                                setIsPaymentPopupOpen(open);
-                                if (!open) setIsSimplePayment(false);
-                            }}>
-                                <DialogContent className={isSimplePayment ? "sm:max-w-[425px]" : "sm:max-w-[700px]"}>
-                                    <DialogHeader>
-                                        <DialogTitle>Payment Details</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="py-4">
-                                        <form onSubmit={handleSubmitPayment(onSavePayment)}>
-                                            <div className="space-y-4">
-                                                {isSimplePayment ? (
-                                                    <div className="flex flex-col space-y-4">
-                                                        <div className="flex flex-col">
-                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1 font-semibold">Student Name:</div>
-                                                            <div className="text-xl font-bold text-primary">{simplePaymentStudentName}</div>
-                                                        </div>
+                                                    {visibleColumns.slNo && <TableCell>{index + 1}</TableCell>}
+                                                    {visibleColumns.id && <TableCell>{coupon.studentId?._id}</TableCell>}
+                                                    {visibleColumns.studentName && (
+                                                        <TableCell
+                                                            className="font-medium cursor-pointer hover:underline text-primary"
+                                                            onClick={() => handleEdit(coupon)}
+                                                        >
+                                                            {coupon.studentId?.name}
+                                                        </TableCell>
+                                                    )}
+                                                    {visibleColumns.year && <TableCell>{coupon.academicYear}</TableCell>}
+                                                    {visibleColumns.couponNo && <TableCell>{coupon.couponNumber || "-"}</TableCell>}
+                                                    {visibleColumns.totalAmount && <TableCell>₹{coupon.couponAmount}</TableCell>}
+                                                    {visibleColumns.paid && (
+                                                        <TableCell
+                                                            className="text-green-600 font-semibold cursor-pointer hover:underline"
+                                                            onClick={() => setViewHistoryCoupon(coupon)}
+                                                        >
+                                                            ₹{coupon.totalPaid}
+                                                        </TableCell>
+                                                    )}
+                                                    {visibleColumns.balance && (
+                                                        <TableCell
+                                                            className="text-red-600 font-semibold cursor-pointer hover:underline"
+                                                            onClick={() => handlePayBalance(coupon)}
+                                                        >
+                                                            ₹{coupon.balance}
+                                                        </TableCell>
+                                                    )}
+                                                    {visibleColumns.status && <TableCell>
+                                                        <Badge variant={coupon.status === "Paid" ? "success" : coupon.status === "Partial" ? "warning" : "destructive"}>
+                                                            {coupon.status}
+                                                        </Badge>
+                                                    </TableCell>}
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                                {/* Payment Details Popup */}
+                                <Dialog open={isPaymentPopupOpen} onOpenChange={(open) => {
+                                    setIsPaymentPopupOpen(open);
+                                    if (!open) setIsSimplePayment(false);
+                                }}>
+                                    <DialogContent className={isSimplePayment ? "sm:max-w-[425px]" : "sm:max-w-[700px]"}>
+                                        <DialogHeader>
+                                            <DialogTitle>Payment Details</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="py-4">
+                                            <form onSubmit={handleSubmitPayment(onSavePayment)}>
+                                                <div className="space-y-4">
+                                                    {isSimplePayment ? (
+                                                        <div className="flex flex-col space-y-4">
+                                                            <div className="flex flex-col">
+                                                                <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1 font-semibold">Student Name:</div>
+                                                                <div className="text-xl font-bold text-primary">{simplePaymentStudentName}</div>
+                                                            </div>
 
-                                                        <div className="space-y-2">
-                                                            <Label>Payment Date</Label>
-                                                            <Input type="date" {...registerPayment("date", { required: true })} />
-                                                        </div>
+                                                            <div className="space-y-2">
+                                                                <Label>Payment Date</Label>
+                                                                <Input type="date" {...registerPayment("date", { required: true })} />
+                                                            </div>
 
-                                                        <div className="space-y-2">
-                                                            <Label>Paid Amount</Label>
-                                                            <Input
-                                                                type="number"
-                                                                {...registerPayment("amount", { required: true, min: 0 })}
-                                                                placeholder="Enter Amount"
-                                                                className="w-full"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="space-y-2">
-                                                            <Label>Payment Date</Label>
-                                                            <Input type="date" {...registerPayment("date", { required: true })} />
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <Label>Academic Year</Label>
-                                                            <Select
-                                                                onValueChange={(val) => setValuePayment("academicYear", val)}
-                                                                defaultValue={String(new Date().getFullYear())}
-                                                                value={watchPayment("academicYear")}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select Year" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {getAcademicYears().map((year) => (
-                                                                        <SelectItem key={year} value={year}>
-                                                                            {year}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <Label>Select Batch</Label>
-                                                            <Select
-                                                                value={paymentBatchId}
-                                                                onValueChange={(val) => {
-                                                                    setPaymentBatchId(val);
-                                                                    setPaymentClassId([]);
-                                                                    setPaymentStudentId([]);
-                                                                }}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select Batch" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="all">Select Batch</SelectItem>
-                                                                    {batches.map((batch) => (
-                                                                        <SelectItem key={batch._id} value={batch._id}>
-                                                                            {batch.name} ({batch.endYear})
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <Label>Select Class</Label>
-                                                            <MultiSelect
-                                                                options={paymentClasses.map(c => ({ label: c.name, value: c._id }))}
-                                                                onValueChange={setPaymentClassId}
-                                                                value={paymentClassId}
-                                                                placeholder="Select Classes"
-                                                                variant="default"
-                                                            />
-                                                        </div>
-
-                                                        <div className="space-y-2 col-span-2 md:col-span-1">
-                                                            <Label>Student Name</Label>
-                                                            <MultiSelect
-                                                                options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
-                                                                onValueChange={setPaymentStudentId}
-                                                                value={paymentStudentId}
-                                                                placeholder="Select Students"
-                                                                variant="default"
-                                                            />
-                                                            {paymentStudentId.length > 0 && (
-                                                                <p className="text-xs text-muted-foreground">{paymentStudentId.length} student(s) selected</p>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="space-y-2 col-span-2 md:col-span-1">
-                                                            <Label>Paid Amount</Label>
-                                                            <div className="flex gap-2">
+                                                            <div className="space-y-2">
+                                                                <Label>Paid Amount</Label>
                                                                 <Input
                                                                     type="number"
                                                                     {...registerPayment("amount", { required: true, min: 0 })}
                                                                     placeholder="Enter Amount"
-                                                                    className="flex-1"
+                                                                    className="w-full"
                                                                 />
-                                                                <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
-                                                                    {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                                                                    <span className="ml-2">Save</span>
-                                                                </Button>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    ) : (
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-2">
+                                                                <Label>Payment Date</Label>
+                                                                <Input type="date" {...registerPayment("date", { required: true })} />
+                                                            </div>
 
-                                                <DialogFooter className="flex flex-row justify-end space-x-2 pt-4 border-t mt-4">
-                                                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setIsPaymentPopupOpen(false)}>Cancel</Button>
-                                                    <Button type="submit" disabled={isSavingPayment} className={isSimplePayment ? "w-full sm:w-auto" : "hidden md:inline-flex w-full sm:w-auto"}>
-                                                        {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                                                        Save Payment
-                                                    </Button>
-                                                </DialogFooter>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
+                                                            <div className="space-y-2">
+                                                                <Label>Academic Year</Label>
+                                                                <Select
+                                                                    onValueChange={(val) => setValuePayment("academicYear", val)}
+                                                                    defaultValue={String(new Date().getFullYear())}
+                                                                    value={watchPayment("academicYear")}
+                                                                >
+                                                                    <SelectTrigger>
+                                                                        <SelectValue placeholder="Select Year" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {getAcademicYears().map((year) => (
+                                                                            <SelectItem key={year} value={year}>
+                                                                                {year}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label>Select Batch</Label>
+                                                                <Select
+                                                                    value={paymentBatchId}
+                                                                    onValueChange={(val) => {
+                                                                        setPaymentBatchId(val);
+                                                                        setPaymentClassId([]);
+                                                                        setPaymentStudentId([]);
+                                                                    }}
+                                                                >
+                                                                    <SelectTrigger>
+                                                                        <SelectValue placeholder="Select Batch" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="all">Select Batch</SelectItem>
+                                                                        {batches.map((batch) => (
+                                                                            <SelectItem key={batch._id} value={batch._id}>
+                                                                                {batch.name} ({batch.endYear})
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label>Select Class</Label>
+                                                                <MultiSelect
+                                                                    options={paymentClasses.map(c => ({ label: c.name, value: c._id }))}
+                                                                    onValueChange={setPaymentClassId}
+                                                                    value={paymentClassId}
+                                                                    placeholder="Select Classes"
+                                                                    variant="default"
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-2 col-span-2 md:col-span-1">
+                                                                <Label>Student Name</Label>
+                                                                <MultiSelect
+                                                                    options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
+                                                                    onValueChange={setPaymentStudentId}
+                                                                    value={paymentStudentId}
+                                                                    placeholder="Select Students"
+                                                                    variant="default"
+                                                                />
+                                                                {paymentStudentId.length > 0 && (
+                                                                    <p className="text-xs text-muted-foreground">{paymentStudentId.length} student(s) selected</p>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="space-y-2 col-span-2 md:col-span-1">
+                                                                <Label>Paid Amount</Label>
+                                                                <div className="flex gap-2">
+                                                                    <Input
+                                                                        type="number"
+                                                                        {...registerPayment("amount", { required: true, min: 0 })}
+                                                                        placeholder="Enter Amount"
+                                                                        className="flex-1"
+                                                                    />
+                                                                    <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
+                                                                        {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                                                        <span className="ml-2">Save</span>
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <DialogFooter className="flex flex-row justify-end space-x-2 pt-4 border-t mt-4">
+                                                        <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setIsPaymentPopupOpen(false)}>Cancel</Button>
+                                                        <Button type="submit" disabled={isSavingPayment} className={isSimplePayment ? "w-full sm:w-auto" : "hidden md:inline-flex w-full sm:w-auto"}>
+                                                            {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                                                            Save Payment
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                         )}
                     </>
                 )

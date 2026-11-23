@@ -33,16 +33,7 @@ import usePopulateFormField from "@/hooks/use-populate-form-field";
 import { toast } from "sonner";
 import { ScanBarcode } from "lucide-react";
 import ColorInput from "./ColorInput";
-import dynamic from "next/dynamic";
-
-const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center p-8">
-      <Loader className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  ),
-});
+import BarcodeScannerModal from "./BarcodeScannerModal";
 
 /* ---------- AsyncInput Component ---------- */
 const AsyncInput = ({
@@ -166,9 +157,9 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
 
   const isSelect = field.inputType === "select" || field.inputType === "multiSelect";
   const needsWatch = isSelect || !!field.getWarning;
-  const thisValue = useWatch({ 
-    control: form.control, 
-    name: needsWatch ? field.name : "__ignore_watch__" 
+  const thisValue = useWatch({
+    control: form.control,
+    name: needsWatch ? field.name : "__ignore_watch__"
   });
 
   // Auto-selection logic for fields like subjectTypeAssignments
@@ -179,11 +170,11 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
     // Only run if autoSelectFrom is defined and the source value changed
     if (field.autoSelectFrom && autoSelectValue && autoSelectValue !== prevAutoSelectValue.current) {
       const currentValues = Array.isArray(thisValue) ? thisValue : [];
-      
+
       // Determine what to add
       const coreVal = `${autoSelectValue}:CORE`;
       const majorVal = `${autoSelectValue}:MAJOR`;
-      
+
       // Determine what to remove (the previous class's assignments if any)
       let newValues = [...currentValues];
       if (prevAutoSelectValue.current) {
@@ -191,11 +182,11 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
         const prevMajor = `${prevAutoSelectValue.current}:MAJOR`;
         newValues = newValues.filter(v => v !== prevCore && v !== prevMajor);
       }
-      
+
       // Add new ones if not present
       if (!newValues.includes(coreVal)) newValues.push(coreVal);
       if (!newValues.includes(majorVal)) newValues.push(majorVal);
-      
+
       form.setValue(field.name, newValues, { shouldDirty: true });
       prevAutoSelectValue.current = autoSelectValue;
     }
@@ -432,31 +423,26 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
                 )}
               </div>
               {fieldToRender.enableScanner && (
-                <Dialog open={showScanner} onOpenChange={setShowScanner}>
-                  <DialogTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="shrink-0 h-10 w-10 bg-foreground text-background hover:bg-foreground/90 border-none"
-                      title="Scan Barcode"
-                    >
-                      <ScanBarcode className="h-5 w-5" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Scan Barcode ({fieldToRender.label})</DialogTitle>
-                      <DialogDescription>
-                        Scan a barcode to automatically fill the {fieldToRender.label} field.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <BarcodeScanner
-                      onScan={handleScanFinish}
-                      onClose={() => setShowScanner(false)}
-                    />
-                  </DialogContent>
-                </Dialog>
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 h-10 w-10 bg-foreground text-background hover:bg-foreground/90 border-none"
+                    title="Scan Barcode"
+                    onClick={() => setShowScanner(true)}
+                  >
+                    <ScanBarcode className="h-5 w-5" />
+                  </Button>
+                  <BarcodeScannerModal
+                    open={showScanner}
+                    onOpenChange={setShowScanner}
+                    title={`Scan Barcode (${fieldToRender.label})`}
+                    description={`Scan a barcode to automatically fill the ${fieldToRender.label} field.`}
+                    onScan={handleScanFinish}
+                    onClose={() => setShowScanner(false)}
+                  />
+                </>
               )}
             </div>
           </FormControl>
@@ -603,7 +589,7 @@ const FormContent = ({
               {section !== "undefined" && (
                 <h2 className="text-lg font-bold mb-4">{section}</h2>
               )}
-              
+
               {section === "Personal Details" ? (
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex-1 flex flex-col gap-4 min-w-0">
@@ -641,14 +627,14 @@ const FormContent = ({
                           type="submit"
                           disabled={loading}
                         >
-                            {loading ? (
-                              <Loader className="animate-spin mr-2" />
-                            ) : (
-                              <>
-                                <span>Save</span>
-                                <span className="hidden sm:inline"> changes</span>
-                              </>
-                            )}
+                          {loading ? (
+                            <Loader className="animate-spin mr-2" />
+                          ) : (
+                            <>
+                              <span>Save</span>
+                              <span className="hidden sm:inline"> changes</span>
+                            </>
+                          )}
                         </Button>
                       ) : (
                         <Button
@@ -692,14 +678,14 @@ const FormContent = ({
                         type="submit"
                         disabled={loading}
                       >
-                          {loading ? (
-                            <Loader className="animate-spin mr-2" />
-                          ) : (
-                            <>
-                              <span>Save</span>
-                              <span className="hidden sm:inline"> changes</span>
-                            </>
-                          )}
+                        {loading ? (
+                          <Loader className="animate-spin mr-2" />
+                        ) : (
+                          <>
+                            <span>Save</span>
+                            <span className="hidden sm:inline"> changes</span>
+                          </>
+                        )}
                       </Button>
                     ) : (
                       <Button
@@ -897,7 +883,7 @@ export default function PopupForm({
 
       <DialogContent ref={popupRef} data-html2canvas-popup="true" className={`sm:max-w-[800px] p-0 gap-0 overflow-hidden rounded-2xl max-h-[90dvh] flex flex-col [&>button.absolute]:hidden ${className || ""}`}>
         <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 sticky top-0 z-20 shrink-0">
-          <button 
+          <button
             type="button"
             className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0 focus:outline-none hover:bg-blue-500/30 dark:hover:bg-blue-500/40 transition-colors cursor-pointer"
             onClick={handleDownload}
@@ -929,18 +915,18 @@ export default function PopupForm({
 
         <div className="p-5 overflow-y-auto flex-1 min-h-0 !shrink">
 
-        <FormContent
-          key={data ? `edit-${data?._id}` : `create-${title}`}
-          form={form}
-          formFields={customFormFields}
-          handleSubmit={handleSubmit}
-          data={data}
-          loading={loading}
-          apiKey={apiKey}
-          submitButtonClass={submitButtonClass}
-          buttonContainerClass={buttonContainerClass}
-          capitalizeInputs={capitalizeInputs}
-        />
+          <FormContent
+            key={data ? `edit-${data?._id}` : `create-${title}`}
+            form={form}
+            formFields={customFormFields}
+            handleSubmit={handleSubmit}
+            data={data}
+            loading={loading}
+            apiKey={apiKey}
+            submitButtonClass={submitButtonClass}
+            buttonContainerClass={buttonContainerClass}
+            capitalizeInputs={capitalizeInputs}
+          />
         </div>
       </DialogContent>
     </Dialog>

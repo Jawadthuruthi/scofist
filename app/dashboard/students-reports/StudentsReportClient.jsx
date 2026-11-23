@@ -17,17 +17,7 @@ import { Users, Loader2, Search, ScanBarcode, X } from "lucide-react";
 import StudentDashboard from "@/components/StudentDashboard";
 import { formatOptions, sortClasses } from "@/lib/utils";
 import { toast } from "sonner";
-import dynamic from "next/dynamic";
-
-const BarcodeScanner = dynamic(() => import("@/components/BarcodeScanner"), {
-    ssr: false,
-    loading: () => (
-        <div className="flex flex-col items-center justify-center p-8 gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading scanner...</p>
-        </div>
-    ),
-});
+import BarcodeScannerModal from "@/components/BarcodeScannerModal";
 
 export default function StudentsReportClient({ batches = [], classes = [], apiKey, updates = [] }) {
     const [selectedBatch, setSelectedBatch] = useState("");
@@ -499,21 +489,19 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                     </div>
                 </CardHeader>
 
-                {showScanner && (
-                    <CardContent className="p-4 border-t">
-                        <div className="relative max-w-sm mx-auto">
-                            <BarcodeScanner
-                                onScan={handleBarcodeScan}
-                                onClose={() => setShowScanner(false)}
-                                onError={(err) => {
-                                    console.error(err);
-                                    toast.error("Scanner error");
-                                    setShowScanner(false);
-                                }}
-                            />
-                        </div>
-                    </CardContent>
-                )}
+                <BarcodeScannerModal
+                    open={showScanner}
+                    onOpenChange={setShowScanner}
+                    title="Scan Student Barcode"
+                    description="Scan student card or barcode to view student report."
+                    onScan={handleBarcodeScan}
+                    onClose={() => setShowScanner(false)}
+                    onError={(err) => {
+                        console.error(err);
+                        toast.error("Scanner error");
+                        setShowScanner(false);
+                    }}
+                />
             </Card>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-1 no-print">

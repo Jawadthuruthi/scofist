@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 
 // Status states: "starting" | "scanning" | "file-scanned" | "error"
-const BarcodeScanner = ({ onScan, onClose, onError }) => {
+const BarcodeScanner = ({ onScan, onClose, onError, hint }) => {
     const [scannerStatus, setScannerStatus] = useState("starting");
     const [errorMsg, setErrorMsg] = useState("");
     const [isPermissionDenied, setIsPermissionDenied] = useState(false);
@@ -613,7 +613,7 @@ const BarcodeScanner = ({ onScan, onClose, onError }) => {
             </div>
 
             <p className="text-[11px] text-muted-foreground text-center max-w-[280px]">
-                Point camera at student ID card or barcode to scan automatically.
+                {hint || "Point camera at student ID card or barcode to scan automatically."}
             </p>
         </div>
     );

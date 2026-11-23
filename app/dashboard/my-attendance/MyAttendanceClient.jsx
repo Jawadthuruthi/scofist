@@ -194,7 +194,7 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                   <TableHead className="text-center font-semibold px-1 sm:px-2">Total</TableHead>
                   <TableHead className="text-center font-semibold px-1 sm:px-2">Present</TableHead>
                   <TableHead className="text-center font-semibold px-1 sm:px-2">Absent</TableHead>
-                  <TableHead className="text-center font-bold px-1 sm:px-2">%</TableHead>
+                  <TableHead className="text-center font-semibold px-1 sm:px-2">%</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -212,20 +212,20 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                       </TableCell>
                       <TableCell className="text-center px-1 sm:px-2">{stat.total}</TableCell>
                       <TableCell 
-                        className="text-center text-green-600 font-bold cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors px-1 sm:px-2"
+                        className="text-center text-green-600 cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors px-1 sm:px-2"
                         onClick={() => handleShowDetails(stat.monthName, "Present", stat.presentRecords)}
                         title="Click to view details"
                       >
                         {stat.present}
                       </TableCell>
                       <TableCell 
-                        className="text-center text-red-500 font-bold cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors px-1 sm:px-2"
+                        className="text-center text-red-500 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors px-1 sm:px-2"
                         onClick={() => handleShowDetails(stat.monthName, "Absent", stat.absentRecords)}
                         title="Click to view details"
                       >
                         {stat.absent}
                       </TableCell>
-                      <TableCell className="text-center font-black tabular-nums px-1 sm:px-2">
+                      <TableCell className="text-center tabular-nums px-1 sm:px-2">
                         <span className={parseFloat((stat.present / stat.total * 100)) >= 75 ? "text-green-600" : "text-orange-600"}>
                           {stat.total > 0
                             ? ((stat.present / stat.total) * 100).toFixed(2)

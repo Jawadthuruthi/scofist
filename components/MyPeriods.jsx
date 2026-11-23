@@ -449,6 +449,12 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
     { staleTime: 1000 * 60 * 30, refetchOnWindowFocus: false }
   );
 
+  const calendarPopupRef = useRef(null);
+  const { handleDownload: handleCalendarDownload } = useDownloadPopup(
+    calendarPopupRef,
+    `Academic_Calendar_${currentYear}.jpeg`
+  );
+
   const upcomingEvent = useMemo(() => {
     const events = calendarEventsQuery.data?.["academic-calendar"];
     if (!events || events.length === 0) return null;
@@ -2105,29 +2111,52 @@ Teacher: ${teacherName || "Teacher"}`;
 
         {/* ── Academic Calendar Events Popup ── */}
         <Dialog open={calendarOpen} onOpenChange={setCalendarOpen}>
-          <DialogContent className="max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CalendarDays className="h-5 w-5 text-yellow-600" />
-                Academic Calendar — {currentYear}
-              </DialogTitle>
-              <DialogDescription>
-                Special days and events for the current year.
-              </DialogDescription>
+          <DialogContent
+            ref={calendarPopupRef}
+            data-html2canvas-popup="true"
+            className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-lg max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+          >
+            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+              <button
+                type="button"
+                className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-950/40 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors focus:outline-none cursor-pointer text-yellow-600 dark:text-yellow-400 shrink-0"
+                onClick={handleCalendarDownload}
+                title="Download Image"
+                data-html2canvas-ignore="true"
+              >
+                <CalendarDays className="h-5 w-5" />
+              </button>
+              <div className="flex-1 text-left space-y-0.5 min-w-0">
+                <DialogTitle className="text-xl font-bold m-0 text-yellow-600 dark:text-yellow-400">
+                  Academic Calendar — {currentYear}
+                </DialogTitle>
+                <DialogDescription className="m-0 text-xs text-muted-foreground">
+                  Special days and events for the current year.
+                </DialogDescription>
+              </div>
+              <DialogClose
+                className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+                data-html2canvas-ignore="true"
+              >
+                <X className="h-5 w-5" />
+              </DialogClose>
             </DialogHeader>
-            <div className="overflow-y-auto max-h-[60vh] -mx-6 px-6">
+
+            <div className="p-4 sm:p-5 bg-muted/5 flex-1 overflow-y-auto min-h-0 space-y-4">
               {calendarEventsQuery.isLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+                <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+                  <Loader className="h-8 w-8 animate-spin text-yellow-600" />
+                  <p className="text-sm font-medium">Loading calendar events...</p>
                 </div>
               ) : (() => {
                 const allEvents = calendarEventsQuery.data?.["academic-calendar"] || [];
                 const sorted = [...allEvents].sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (sorted.length === 0) {
                   return (
-                    <p className="text-center text-sm text-muted-foreground py-8">
-                      No special days marked for {currentYear}.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                      <CalendarDays className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                      <p className="text-sm font-medium">No special days marked for {currentYear}.</p>
+                    </div>
                   );
                 }
                 const grouped = sorted.reduce((acc, ev) => {
@@ -2138,35 +2167,41 @@ Teacher: ${teacherName || "Teacher"}`;
                 }, {});
                 const MONTHS_LIST = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
                 return (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Date &amp; Time</TableHead>
-                        <TableHead className="text-xs">Event</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {Object.entries(grouped).flatMap(([monthIdx, evs]) => [
-                        <TableRow key={`m-${monthIdx}`} className="bg-muted/50 hover:bg-muted/50">
-                          <TableCell colSpan={2} className="font-semibold py-1.5 h-auto text-xs text-center">
-                            {MONTHS_LIST[parseInt(monthIdx)]}
-                          </TableCell>
-                        </TableRow>,
-                        ...evs.map(ev => (
-                          <TableRow key={ev._id}>
-                            <TableCell className="text-xs whitespace-nowrap">
-                              <div>{new Date(ev.date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}</div>
-                              {ev.time && <div className="text-muted-foreground mt-0.5">{ev.time}</div>}
+                  <div className="rounded-xl border bg-card overflow-hidden shadow-xs">
+                    <Table>
+                      <TableHeader className="bg-muted/50 sticky top-0 z-10 backdrop-blur-xs">
+                        <TableRow>
+                          <TableHead className="text-xs font-semibold w-32 sm:w-36">Date &amp; Time</TableHead>
+                          <TableHead className="text-xs font-semibold">Event Details</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Object.entries(grouped).flatMap(([monthIdx, evs]) => [
+                          <TableRow key={`m-${monthIdx}`} className="bg-muted/60 hover:bg-muted/60 border-y border-border">
+                            <TableCell colSpan={2} className="font-bold text-center py-2 h-auto text-xs uppercase tracking-wider text-muted-foreground">
+                              {MONTHS_LIST[parseInt(monthIdx)]}
                             </TableCell>
-                            <TableCell>
-                              <p className="text-xs font-medium">{ev.title}</p>
-                              {ev.description && <p className="text-xs text-muted-foreground mt-0.5">{ev.description}</p>}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ])}
-                    </TableBody>
-                  </Table>
+                          </TableRow>,
+                          ...evs.map(ev => (
+                            <TableRow key={ev._id} className="hover:bg-muted/40 transition-colors">
+                              <TableCell className="text-xs whitespace-nowrap align-top py-3 w-32 sm:w-36">
+                                <div className="font-semibold text-foreground">
+                                  {new Date(ev.date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}
+                                </div>
+                                <div className="text-muted-foreground mt-0.5">{ev.time || "--"}</div>
+                              </TableCell>
+                              <TableCell className="align-top py-3">
+                                <p className="text-xs sm:text-sm font-semibold text-foreground">{ev.title}</p>
+                                {ev.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed whitespace-pre-wrap">{ev.description}</p>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ])}
+                      </TableBody>
+                    </Table>
+                  </div>
                 );
               })()}
             </div>
