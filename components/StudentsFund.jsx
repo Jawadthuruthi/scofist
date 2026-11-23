@@ -432,11 +432,23 @@ const StudentsFund = ({
   }, [isGroupSelected, availableStudents]);
 
   const handleTransaction = () => {
-    if (!amount || !transactionType) return;
+    const parsedAmount = parseFloat(amount);
+    if (!amount || !transactionType || isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Please enter a valid positive amount and select a transaction type");
+      return;
+    }
     setShowConfirmDialog(true);
   };
 
   const confirmTransaction = async () => {
+    if (loading) return;
+    const parsedAmount = parseFloat(amount);
+    if (!transactionType || !amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Please enter a valid positive amount and select a transaction type");
+      setShowConfirmDialog(false);
+      return;
+    }
+
     setLoading(true);
     console.log("Confirming Transaction. Selected Students Count:", selectedStudents.length);
     console.log("Selected Students IDs:", selectedStudents);
@@ -461,7 +473,7 @@ const StudentsFund = ({
             studentIds: selectedStudents,
             transaction: {
               type: transactionType,
-              amount: parseFloat(amount),
+              amount: parsedAmount,
               note,
             },
             teacherId: department ? undefined : teacherId,
@@ -470,17 +482,20 @@ const StudentsFund = ({
           }),
         });
 
-        if (!response.ok) throw new Error("Bulk transaction failed");
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error || errData?.message || "Bulk transaction failed");
+        }
 
         toast.success("Bulk transaction processed successfully");
         setShowConfirmDialog(false);
         setAmount("");
         setNote("");
-        fetchStudentFundQuery.refetch();
         setTransactionType("");
+        fetchStudentFundQuery.refetch();
       } catch (error) {
         console.error("Bulk transaction error:", error);
-        toast.error("Failed to process bulk transaction");
+        toast.error(error.message || "Failed to process bulk transaction");
       } finally {
         setLoading(false);
       }
@@ -491,12 +506,12 @@ const StudentsFund = ({
       const originalBalance = studentBalance;
       const newBalance =
         (transactionType === "Deposit"
-          ? originalBalance + parseFloat(amount)
-          : originalBalance - parseFloat(amount)) || 0;
+          ? originalBalance + parsedAmount
+          : originalBalance - parsedAmount) || 0;
 
       const transaction = {
         type: transactionType,
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         note,
       };
 
@@ -511,8 +526,6 @@ const StudentsFund = ({
       setStudentBalance(newBalance);
       setTransactions((prev) => [newTransaction, ...prev]);
       setShowConfirmDialog(false);
-      setAmount("");
-      setNote("");
 
       addStudentFund.mutate(
         {
@@ -529,7 +542,11 @@ const StudentsFund = ({
         },
         {
           onSuccess: () => {
+            setAmount("");
+            setNote("");
+            setTransactionType("");
             fetchStudentFundQuery.refetch();
+            toast.success("Transaction recorded successfully");
           },
           onError: (error) => {
             console.error(
@@ -538,10 +555,10 @@ const StudentsFund = ({
             );
             setStudentBalance(originalBalance);
             setTransactions(previousTransactions);
+            toast.error(error.message || "Failed to process transaction");
           },
           onSettled: () => {
             setLoading(false);
-            setTransactionType("");
           },
         }
       );
@@ -594,12 +611,17 @@ const StudentsFund = ({
   };
 
   const handleQuickPayment = async () => {
-    if (!quickPaymentAmount || !quickPaymentData) return;
+    if (!quickPaymentAmount || !quickPaymentData || loading) return;
+
+    const parsedAmount = parseFloat(quickPaymentAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Please enter a valid positive amount");
+      return;
+    }
 
     setLoading(true);
     try {
-      const amount = parseFloat(quickPaymentAmount);
-      const newBalance = (quickPaymentData.currentBalance || 0) + amount; // Deposit increases balance
+      const newBalance = (quickPaymentData.currentBalance || 0) + parsedAmount; // Deposit increases balance
 
       await addStudentFund.mutateAsync({
         studentId: quickPaymentData.id,
@@ -609,7 +631,7 @@ const StudentsFund = ({
         batchId: effectiveBatchId,
         transaction: {
           type: "Deposit", // Mapped to "Received"
-          amount: amount,
+          amount: parsedAmount,
           note: "Quick Payment via Balance List",
           performedBy: teacherId,
         },
@@ -618,10 +640,12 @@ const StudentsFund = ({
 
       toast.success("Payment received successfully");
       setShowQuickPaymentDialog(false);
+      setQuickPaymentAmount("");
+      setQuickPaymentData(null);
       fetchStudentFundQuery.refetch();
     } catch (error) {
       console.error("Quick payment failed:", error);
-      toast.error("Failed to process payment");
+      toast.error(error.message || "Failed to process payment");
     } finally {
       setLoading(false);
     }
@@ -1746,6 +1770,7 @@ const StudentsFund = ({
             <AlertDialogCancel
               className="flex-1 mt-0"
               ref={cancelButtonRef}
+              disabled={loading}
               onKeyDown={(e) => {
                 if (e.key === "ArrowRight") {
                   finalConfirmButtonRef.current?.focus();
@@ -1757,6 +1782,7 @@ const StudentsFund = ({
             <AlertDialogAction
               ref={finalConfirmButtonRef}
               onClick={confirmTransaction}
+              disabled={loading}
               onKeyDown={(e) => {
                 if (e.key === "ArrowLeft") {
                   cancelButtonRef.current?.focus();
@@ -1767,7 +1793,7 @@ const StudentsFund = ({
                 : ""
                 }`}
             >
-              Confirm
+              {loading ? "Processing..." : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -7,6 +7,7 @@ import User from "@/models/User";
 import jwt from "jsonwebtoken";
 import { getFinanceSummary } from "@/libservices/financeService";
 import { NextResponse } from "next/server";
+import { apiResponse } from "@/lib/apiResponse";
 
 async function getAuthContext(req) {
   const userHeader = req.headers.get("x-user");
@@ -194,7 +195,8 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     await connectToDB();
-    const body = await req.json();
+    const rawBody = await req.json();
+    const body = rawBody?.data || rawBody;
     console.log("Finance API POST Body:", {
       ...body,
       item: body.item,
@@ -214,113 +216,154 @@ export async function POST(req) {
     }
 
     if (user?._id) {
-        body.userId = user._id;
+      body.userId = user._id;
     }
 
-    const newTransaction = await Finance.create(body);
-    console.log("Created Transaction:", newTransaction);
+      // Explicit validation before Finance.create
+      const validationErrors = [];
+      if (!body.type || !["Income", "Expense"].includes(body.type)) {
+        validationErrors.push({ field: "type", message: "is required and must be 'Income' or 'Expense'" });
+      }
+      if (
+        body.amount === undefined ||
+        body.amount === null ||
+        body.amount === "" ||
+        isNaN(Number(body.amount)) ||
+        Number(body.amount) <= 0
+      ) {
+        validationErrors.push({ field: "amount", message: "is required and must be a positive number" });
+      }
+      if (!body.date) {
+        validationErrors.push({ field: "date", message: "is required" });
+      }
+      if (!body.invoiceNo) {
+        validationErrors.push({ field: "invoiceNo", message: "is required" });
+      }
+      if (!body.category) {
+        validationErrors.push({ field: "category", message: "is required" });
+      }
+      if (!body.mode || !["Cash", "Bank"].includes(body.mode)) {
+        body.mode = "Cash";
+      }
+      if (!body.accountType) {
+        body.accountType = "College";
+      }
 
-    return NextResponse.json({ success: true, data: newTransaction }, { status: 201 });
-  } catch (error) {
-    console.error("Error creating transaction:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Failed to create transaction" },
-      { status: 500 }
-    );
+      if (validationErrors.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Validation failed. Please check your input.",
+            code: "VALIDATION_ERROR",
+            details: { errors: validationErrors },
+          },
+          { status: 400 }
+        );
+      }
+
+      body.amount = Number(body.amount);
+
+      const newTransaction = await Finance.create(body);
+      console.log("Created Transaction:", newTransaction);
+
+      return NextResponse.json({ success: true, data: newTransaction }, { status: 201 });
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+      return apiResponse.error(error);
+    }
   }
-}
 
 export async function PUT(req) {
-  try {
-    const { user, hasFinanceRole, isCollegeAdmin } = await getAuthContext(req);
-    if (!user || !hasFinanceRole) {
-      return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
-    }
+    try {
+      const { user, hasFinanceRole, isCollegeAdmin } = await getAuthContext(req);
+      if (!user || !hasFinanceRole) {
+        return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
+      }
 
-    await connectToDB();
-    const body = await req.json();
-    const { ids, ...updateData } = body;
+      await connectToDB();
+      const body = await req.json();
+      const { ids, ...updateData } = body;
 
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "No items selected for update" },
-        { status: 400 }
-      );
-    }
-
-    // Remove immutable fields if present, just in case
-    delete updateData._id;
-    delete updateData.createdAt;
-    delete updateData.updatedAt;
-
-    const query = { _id: { $in: ids } };
-    if (isCollegeAdmin && updateData.accountType !== "Org") {
-      // STRICT ISOLATION: College Admin can only update their own records
-      if (!user?._id) {
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return NextResponse.json(
-          { success: false, error: "User identity required" },
-          { status: 401 }
+          { success: false, error: "No items selected for update" },
+          { status: 400 }
         );
       }
-      query.userId = user._id;
-    }
 
-    const result = await Finance.updateMany(
-      query,
-      { $set: updateData }
-    );
+      // Remove immutable fields if present, just in case
+      delete updateData._id;
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
 
-    return NextResponse.json({ success: true, data: result });
-  } catch (error) {
-    console.error("PUT Transaction Error:", error);
-    // Determine the error message robustly
-    const errorMessage = error?.message || (typeof error === 'string' ? error : "Unknown server error");
+      const query = { _id: { $in: ids } };
+      if (isCollegeAdmin && updateData.accountType !== "Org") {
+        // STRICT ISOLATION: College Admin can only update their own records
+        if (!user?._id) {
+          return NextResponse.json(
+            { success: false, error: "User identity required" },
+            { status: 401 }
+          );
+        }
+        query.userId = user._id;
+      }
 
-    return NextResponse.json(
-      { success: false, error: `UPDATE FAILED: ${errorMessage}` },
-      { status: 500 }
-    );
-  }
-}
+      const result = await Finance.updateMany(
+        query,
+        { $set: updateData }
+      );
 
-export async function DELETE(req) {
-  try {
-    const { user, hasFinanceRole, isCollegeAdmin } = await getAuthContext(req);
-    if (!user || !hasFinanceRole) {
-      return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
-    }
+      return NextResponse.json({ success: true, data: result });
+    } catch (error) {
+      console.error("PUT Transaction Error:", error);
+      // Determine the error message robustly
+      const errorMessage = error?.message || (typeof error === 'string' ? error : "Unknown server error");
 
-    await connectToDB();
-    const body = await req.json();
-    const { ids } = body;
-
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json(
-        { success: false, error: "No items selected for deletion" },
-        { status: 400 }
+        { success: false, error: `UPDATE FAILED: ${errorMessage}` },
+        { status: 500 }
       );
     }
+  }
 
-    const query = { _id: { $in: ids } };
-    if (isCollegeAdmin) {
-      // STRICT ISOLATION: College Admin can only delete their own records
-      if (!user?._id) {
+  export async function DELETE(req) {
+    try {
+      const { user, hasFinanceRole, isCollegeAdmin } = await getAuthContext(req);
+      if (!user || !hasFinanceRole) {
+        return NextResponse.json({ success: false, error: "Unauthorized: Insufficient permissions" }, { status: 403 });
+      }
+
+      await connectToDB();
+      const body = await req.json();
+      const { ids } = body;
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return NextResponse.json(
-          { success: false, error: "User identity required" },
-          { status: 401 }
+          { success: false, error: "No items selected for deletion" },
+          { status: 400 }
         );
       }
-      query.userId = user._id;
+
+      const query = { _id: { $in: ids } };
+      if (isCollegeAdmin) {
+        // STRICT ISOLATION: College Admin can only delete their own records
+        if (!user?._id) {
+          return NextResponse.json(
+            { success: false, error: "User identity required" },
+            { status: 401 }
+          );
+        }
+        query.userId = user._id;
+      }
+
+      const result = await Finance.deleteMany(query);
+
+      return NextResponse.json({ success: true, data: result });
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      return NextResponse.json(
+        { success: false, error: "Failed to delete transaction" },
+        { status: 500 }
+      );
     }
-
-    const result = await Finance.deleteMany(query);
-
-    return NextResponse.json({ success: true, data: result });
-  } catch (error) {
-    console.error("Error deleting transaction:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to delete transaction" },
-      { status: 500 }
-    );
   }
-}

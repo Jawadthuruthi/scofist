@@ -154,6 +154,37 @@ export async function POST(req, res) {
       fundType = "Individual",
     } = await req.json();
 
+    if (!batchId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Batch ID is required",
+          code: "VALIDATION_ERROR",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !transaction ||
+      !transaction.type ||
+      transaction.amount === undefined ||
+      transaction.amount === null ||
+      isNaN(Number(transaction.amount)) ||
+      Number(transaction.amount) <= 0
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Valid transaction with type ('Deposit' or 'Withdrawal') and a positive amount is required.",
+          code: "VALIDATION_ERROR",
+        },
+        { status: 400 }
+      );
+    }
+
+    transaction.amount = Number(transaction.amount);
+
     if (fundType === "Department") {
       if (!department) {
         return NextResponse.json(
@@ -214,6 +245,26 @@ export async function POST(req, res) {
         ? transaction.amount
         : -transaction.amount;
 
+    const sanitizeTx = (tx) => {
+      if (!tx) return null;
+      const raw = tx.toObject ? tx.toObject() : tx;
+      const amount = Number(raw.amount);
+      const type = raw.type;
+      if (!type || !["Deposit", "Withdrawal"].includes(type) || isNaN(amount) || amount < 0) {
+        return null;
+      }
+      return {
+        ...raw,
+        type,
+        amount,
+        date: raw.date ? new Date(raw.date) : new Date(),
+      };
+    };
+
+    const sanitizeTxList = (list = []) => {
+      return list.map(sanitizeTx).filter(Boolean);
+    };
+
     // Find all existing records for this query
     const existingFunds = await StudentsFund.find(query).sort({ updatedAt: -1 });
 
@@ -230,11 +281,14 @@ export async function POST(req, res) {
       await StudentsFund.deleteMany({ _id: { $in: duplicateIds } });
 
       const newTotalBalance = totalBalance + amountChange;
-      allTransactions.push({ ...transaction, date: new Date() });
-      allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+      const validTransactions = sanitizeTxList([
+        ...allTransactions,
+        { ...transaction, date: new Date() },
+      ]);
+      validTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       primaryFund.balance = newTotalBalance;
-      primaryFund.transactions = allTransactions;
+      primaryFund.transactions = validTransactions;
       primaryFund.batchId = batchId;
       primaryFund.studentId = studentId || undefined;
       primaryFund.fundType = fundType;
@@ -250,7 +304,13 @@ export async function POST(req, res) {
       // Exactly 1 existing record
       const primaryFund = existingFunds[0];
       primaryFund.balance = (primaryFund.balance || 0) + amountChange;
-      primaryFund.transactions.push({ ...transaction, date: new Date() });
+
+      const cleanedExisting = sanitizeTxList(primaryFund.transactions || []);
+      const newTx = sanitizeTx({ ...transaction, date: new Date() });
+      primaryFund.transactions = newTx
+        ? [...cleanedExisting, newTx]
+        : cleanedExisting;
+
       primaryFund.batchId = batchId;
       if (studentId) {
         primaryFund.studentId = studentId;
@@ -266,6 +326,7 @@ export async function POST(req, res) {
       studentFund = primaryFund;
     } else {
       // No record found, create a new one
+      const newTx = sanitizeTx({ ...transaction, date: new Date() });
       studentFund = await StudentsFund.create({
         studentId: studentId || undefined,
         teacherId: fundType === "Department" ? undefined : teacherId,
@@ -273,7 +334,7 @@ export async function POST(req, res) {
         fundType,
         batchId,
         balance: amountChange,
-        transactions: [{ ...transaction, date: new Date() }],
+        transactions: newTx ? [newTx] : [],
       });
     }
 

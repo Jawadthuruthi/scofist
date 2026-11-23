@@ -113,6 +113,23 @@ studentsFundSchema.index(
   }
 );
 
+// Pre-validate hook to automatically purge corrupt or incomplete transactions
+studentsFundSchema.pre("validate", function (next) {
+  if (this.transactions && Array.isArray(this.transactions)) {
+    this.transactions = this.transactions.filter(
+      (t) =>
+        t &&
+        t.type &&
+        ["Deposit", "Withdrawal"].includes(t.type) &&
+        t.amount !== undefined &&
+        t.amount !== null &&
+        !isNaN(Number(t.amount)) &&
+        Number(t.amount) >= 0
+    );
+  }
+  next();
+});
+
 // Force model recompilation to apply schema changes in dev mode
 if (models.StudentsFund) {
   delete models.StudentsFund;

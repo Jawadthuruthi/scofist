@@ -33,12 +33,20 @@ export function useDynamicFormSchema(formFields = null) {
       // Determine field schema based on field type
       switch (type) {
         case "number":
+          const numberParser = z.coerce.number({
+            required_error: `${displayName} is required`,
+            invalid_type_error: `${displayName} must be a number`,
+          });
+
           fieldSchema = required
-            ? z.coerce.number({
-              required_error: `${displayName} is required`,
-              invalid_type_error: `${displayName} must be a number`,
-            })
-            : z.coerce.number().optional();
+            ? z.preprocess(
+                (val) => (val === "" || val === null || val === undefined ? undefined : val),
+                numberParser
+              )
+            : z.preprocess(
+                (val) => (val === "" || val === null || val === undefined ? undefined : val),
+                numberParser.optional()
+              );
 
           // Apply min validation
           if (validators.min !== undefined) {

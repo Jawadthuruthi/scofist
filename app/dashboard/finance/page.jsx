@@ -82,6 +82,7 @@ export default function FinancePage() {
         { value: "Income", label: "Income" },
         { value: "Expense", label: "Expense" },
       ],
+      defaultValue: "Income",
       required: true,
     },
     {
@@ -105,6 +106,7 @@ export default function FinancePage() {
         { value: "Cash", label: "Cash" },
         { value: "Bank", label: "Bank" },
       ],
+      defaultValue: "Cash",
       required: true,
     },
     {
@@ -151,7 +153,7 @@ export default function FinancePage() {
 
       <DynamicDataTable
         resource="finance"
-        apiEndpoint="/api/finance"
+        apiEndpoint="finance"
         columnsConfig={columnsConfig}
         formFields={formFields}
         filterConfig={filterConfig}

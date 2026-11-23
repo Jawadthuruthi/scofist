@@ -29,6 +29,29 @@ export async function POST(req) {
             );
         }
 
+        if (!batchId) {
+            return NextResponse.json(
+                { message: "Batch ID is required" },
+                { status: 400 }
+            );
+        }
+
+        if (
+            !transaction ||
+            !transaction.type ||
+            transaction.amount === undefined ||
+            transaction.amount === null ||
+            isNaN(Number(transaction.amount)) ||
+            Number(transaction.amount) <= 0
+        ) {
+            return NextResponse.json(
+                { message: "Valid transaction with type ('Deposit' or 'Withdrawal') and a positive amount is required." },
+                { status: 400 }
+            );
+        }
+
+        transaction.amount = Number(transaction.amount);
+
         if (fundType === "Department") {
             if (!department) {
                 return NextResponse.json(

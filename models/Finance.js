@@ -41,7 +41,6 @@ const financeSchema = new mongoose.Schema(
       enum: ["College", "Org", "Spark"],
       default: "College",
       required: true,
-      required: true,
       index: true,
     },
     accountName: {
@@ -60,7 +59,10 @@ const financeSchema = new mongoose.Schema(
 // Index removed to allow duplicate invoice numbers as per user request
 // financeSchema.index({ invoiceNo: 1, type: 1 }, { unique: true });
 
-const Finance =
-  mongoose.models.Finance || mongoose.model("Finance", financeSchema);
+if (mongoose.models.Finance) {
+  delete mongoose.models.Finance;
+}
+
+const Finance = mongoose.model("Finance", financeSchema);
 
 export default Finance;

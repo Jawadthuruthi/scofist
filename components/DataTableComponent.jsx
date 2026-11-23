@@ -87,7 +87,7 @@ const handleError = (error) => {
   if (!error?.details?.errors) {
     toast.error(message);
   } else {
-    toast.error("Validation error. Check your input.");
+    toast.error(message || "Validation error. Check your input.");
   }
 };
 
@@ -1149,7 +1149,9 @@ const DataTableComponent = ({
       mutationLockRef.current = true;
       setLoading(true);
       const filteredValues = Object.fromEntries(
-        Object.entries(values).filter(([_, value]) => Boolean(value))
+        Object.entries(values).filter(
+          ([_, value]) => value !== undefined && value !== null && value !== ""
+        )
       );
 
       await addData.mutateAsync({ ...filteredValues, ...getApiProps(additionalProps) });
@@ -1411,6 +1413,8 @@ const DataTableComponent = ({
               {(selectedData.length === 1 || (selectedData.length > 1 && multiEdit)) && !readOnly && (
                 <PopupForm
                   data={selectedData[0]}
+                  open={isEditOpen}
+                  onOpenChange={setIsEditOpen}
                   formFields={
                     selectedData.length > 1 && multiEditFormFields?.length > 0
                       ? multiEditFormFields
@@ -1444,6 +1448,8 @@ const DataTableComponent = ({
               {!readOnly && enableCreate && (
                 <PopupForm
                   formFields={formFields}
+                  open={isCreateOpen}
+                  onOpenChange={setIsCreateOpen}
                   onSubmit={handleSubmit}
                   loading={loading}
                   title={createFormTitle}

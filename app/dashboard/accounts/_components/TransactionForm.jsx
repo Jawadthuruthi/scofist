@@ -76,6 +76,11 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
             return;
         }
 
+        if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
+            toast.error("Please enter a valid positive amount");
+            return;
+        }
+
         // Ensure accountName is present for Org accounts (if enforced)
         // But for now we just pass it if it exists. 
         // If user hasn't selected an account name, it will be null, and that's technically valid (global org account?).

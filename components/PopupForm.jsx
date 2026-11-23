@@ -401,6 +401,22 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
                   />
                 ) : (
                   <Input
+                    {...formField}
+                    value={formField.value ?? ""}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (fieldToRender.type === "number") {
+                        val = val === "" ? "" : Number(val);
+                      } else if (
+                        typeof val === "string" &&
+                        capitalizeInputs &&
+                        fieldToRender.name !== "email" &&
+                        fieldToRender.type !== "email"
+                      ) {
+                        val = val.toUpperCase();
+                      }
+                      formField.onChange(val);
+                    }}
                     type={fieldToRender.type || "text"}
                     placeholder={fieldToRender.placeholder}
                     disabled={fieldToRender.disabled}
@@ -410,15 +426,6 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
                       capitalizeInputs && fieldToRender.name !== "email" ? "uppercase" : "",
                       ((data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly) && "bg-muted/50 cursor-not-allowed text-muted-foreground focus-visible:ring-0"
                     )}
-                    {...form.register(fieldToRender.name, {
-                      setValueAs: (v) => {
-                        if (typeof v === "string" && capitalizeInputs && fieldToRender.name !== "email" && fieldToRender.type !== "email") {
-                          return v.toUpperCase();
-                        }
-                        return v;
-                      }
-                    })}
-                    defaultValue={form.getValues(fieldToRender.name) ?? ""}
                   />
                 )}
               </div>
@@ -842,8 +849,11 @@ export default function PopupForm({
 
       // Attempt to set form errors if the error response provides field-level details
       if (error.details?.errors) {
+        let hasMatchedField = false;
         if (Array.isArray(error.details.errors)) {
           error.details.errors.forEach(({ field, message }) => {
+            const hasField = customFormFields.some((f) => f.name === field);
+            if (hasField) hasMatchedField = true;
             const fieldLabel = customFormFields.find(f => f.name === field)?.label || field;
             form.setError(field, {
               type: "manual",
@@ -852,6 +862,8 @@ export default function PopupForm({
           });
         } else {
           Object.entries(error.details.errors).forEach(([field, message]) => {
+            const hasField = customFormFields.some((f) => f.name === field);
+            if (hasField) hasMatchedField = true;
             // Find the label for the field to provide a more readable error
             const fieldLabel = customFormFields.find(f => f.name === field)?.label || field;
 
@@ -861,6 +873,12 @@ export default function PopupForm({
             });
           });
         }
+
+        if (!hasMatchedField && error.message) {
+          toast.error(error.message);
+        }
+      } else if (error.message) {
+        toast.error(error.message);
       }
     } finally {
       setLoading(false);
