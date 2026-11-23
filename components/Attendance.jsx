@@ -134,7 +134,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   // Save reason to history (state + localStorage)
   const saveLeaveReasonToHistory = useCallback((reason) => {
     if (!reason || !reason.trim()) return;
-    const clean = reason.trim();
+    const clean = reason.trim().slice(0, 20);
     setSavedLeaveReasons((prev) => {
       const filtered = prev.filter((r) => r.toLowerCase() !== clean.toLowerCase());
       const updated = [clean, ...filtered].slice(0, 50);
@@ -265,7 +265,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (dropdownOpen && hasQuery && highlightedIndex >= 0 && highlightedIndex < filteredReasons.length) {
-        const selected = filteredReasons[highlightedIndex].text;
+        const selected = filteredReasons[highlightedIndex].text.slice(0, 20);
         setQuickLeaveReason(selected);
         setDropdownOpen(false);
         setHighlightedIndex(-1);
@@ -970,6 +970,12 @@ const Attendance = ({ apiKey, teacherId }) => {
     if (!quickLeaveStudent) return;
     setPreviousAttendanceState(null);
 
+    const trimmed = quickLeaveReason.trim();
+    if (trimmed.length > 20) {
+      toast.error("Leave reason should not exceed 20 characters.");
+      return;
+    }
+
     if (quickLeaveStudent === 'bulk') {
       const applicableStudents = filteredStudents.filter(student => {
         const isPresent = attendance[student._id];
@@ -978,9 +984,9 @@ const Attendance = ({ apiKey, teacherId }) => {
         return !isPresent && !isOfficialLeave;
       });
 
-      setBulkLeaveReason(quickLeaveReason);
+      setBulkLeaveReason(trimmed);
 
-      if (!quickLeaveReason.trim()) {
+      if (!trimmed) {
         setAttendanceReasons((prev) => {
           const next = { ...prev };
           applicableStudents.forEach(s => delete next[s._id]);
@@ -988,7 +994,6 @@ const Attendance = ({ apiKey, teacherId }) => {
         });
         toast.success("Leave reasons cleared for all absentees!");
       } else {
-        const trimmed = quickLeaveReason.trim();
         saveLeaveReasonToHistory(trimmed);
         setAttendanceReasons((prev) => {
           const next = { ...prev };
@@ -1004,7 +1009,6 @@ const Attendance = ({ apiKey, teacherId }) => {
       return;
     }
 
-    const trimmed = quickLeaveReason.trim();
     if (!trimmed) {
       const hadExistingReason = !!attendanceReasons[quickLeaveStudent._id];
       // Clear existing leave reason locally
@@ -1302,7 +1306,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                   className="cursor-pointer flex items-center justify-center mx-auto"
                   onClick={() => {
                     setQuickLeaveStudent('bulk');
-                    setQuickLeaveReason(bulkLeaveReason);
+                    setQuickLeaveReason((bulkLeaveReason || "").slice(0, 20));
                     setDropdownOpen(false);
                     setHighlightedIndex(-1);
                     setQuickLeaveOpen(true);
@@ -1375,9 +1379,11 @@ const Attendance = ({ apiKey, teacherId }) => {
                             e.stopPropagation();
                             setQuickLeaveStudent(student);
                             setQuickLeaveReason(
-                              attendanceReasons[student._id] ||
-                              studentLeaveStatus[student._id]?.leaveReason ||
-                              ""
+                              (
+                                attendanceReasons[student._id] ||
+                                studentLeaveStatus[student._id]?.leaveReason ||
+                                ""
+                              ).slice(0, 20)
                             );
                             setDropdownOpen(false);
                             setHighlightedIndex(-1);
@@ -1702,16 +1708,29 @@ const Attendance = ({ apiKey, teacherId }) => {
           </DialogHeader>
           <div className="px-5 py-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="reason" className="text-sm font-medium">Leave Reason</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="reason" className="text-sm font-medium">Leave Reason</Label>
+                <span
+                  className={cn(
+                    "text-xs tabular-nums",
+                    quickLeaveReason.length >= 20
+                      ? "text-amber-600 dark:text-amber-400 font-semibold"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {quickLeaveReason.length}/20
+                </span>
+              </div>
               <div className="relative" ref={leaveReasonContainerRef}>
                 <FileText className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 z-10" />
                 <Input
                   ref={reasonInputRef}
                   autoFocus
                   id="reason"
+                  maxLength={20}
                   value={quickLeaveReason}
                   onChange={(e) => {
-                    const val = e.target.value;
+                    const val = e.target.value.slice(0, 20);
                     setQuickLeaveReason(val);
                     setDropdownOpen(val.trim().length > 0);
                     setHighlightedIndex(-1);
@@ -1765,13 +1784,13 @@ const Attendance = ({ apiKey, teacherId }) => {
                             onMouseEnter={() => setHighlightedIndex(index)}
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              setQuickLeaveReason(item.text);
+                              setQuickLeaveReason(item.text.slice(0, 20));
                               setDropdownOpen(false);
                               setHighlightedIndex(-1);
                               reasonInputRef.current?.focus();
                             }}
                             onClick={() => {
-                              setQuickLeaveReason(item.text);
+                              setQuickLeaveReason(item.text.slice(0, 20));
                               setDropdownOpen(false);
                               setHighlightedIndex(-1);
                               reasonInputRef.current?.focus();

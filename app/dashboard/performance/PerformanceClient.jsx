@@ -132,15 +132,15 @@ const columnsConfig = [
                 const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
                 const msg = `Student Performance Details:\n\nDate: ${dateStr}\nClass: ${data.className}\nStudent: ${data.studentName}\nTeacher: ${data.teacherName}\nComment: ${data.comments}\nStatus: ${data.status}`;
                 const number = data.guardianContactNumber;
-                
+
                 if (!number) {
                     toast.error("No guardian contact number found for this student.");
                     return;
                 }
-                
+
                 const formattedNumber = number.replace(/\D/g, '');
                 const url = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(msg)}`;
-                
+
                 const a = document.createElement('a');
                 a.href = url;
                 a.target = '_blank';
@@ -150,9 +150,9 @@ const columnsConfig = [
             };
 
             return (
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <Button
+                    variant="ghost"
+                    size="icon"
                     className="text-green-500 hover:text-green-600 hover:bg-green-50 h-8 w-8"
                     onClick={handleWhatsAppClick}
                     title="Send to WhatsApp"
@@ -330,7 +330,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
             />
 
             <Dialog open={isMyRecordsOpen} onOpenChange={setIsMyRecordsOpen}>
-                <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col p-0 gap-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl">
+                <DialogContent className="w-[95vw] sm:max-w-4xl lg:max-w-5xl h-[85vh] sm:h-[80vh] max-h-[90dvh] flex flex-col p-0 gap-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl">
                     <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
                         <div className="p-2 rounded-lg bg-primary/10">
                             <FileSpreadsheet className="h-5 w-5 text-primary" />
@@ -344,7 +344,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
                             <X className="h-5 w-5" />
                         </DialogClose>
                     </DialogHeader>
-                    <div className="flex-1 overflow-hidden p-4 sm:p-6 pt-2">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2 min-h-0">
                         <DataTableComponent
                             activeRole={activeRole}
                             resource="performance"
@@ -371,7 +371,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
                             onDataFetched={(data) => setMyRecordsCount(data?.pagination?.total || 0)}
                         />
                     </div>
-                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 text-sm text-gray-500 font-medium">
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 text-sm text-gray-500 font-medium shrink-0">
                         Total Records: {myRecordsCount}
                     </div>
                 </DialogContent>
