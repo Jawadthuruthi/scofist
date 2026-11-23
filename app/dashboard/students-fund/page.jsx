@@ -60,11 +60,13 @@ const StudentsFundPage = async () => {
     );
   } catch (error) {
     console.error("Error loading batches:", error.message);
-    <ErrorPage
-      statusCode={500}
-      title="Something went wrong"
-      description="We encountered an unexpected error. Our team has been notified and is working to resolve the issue."
-    />;
+    return (
+      <ErrorPage
+        statusCode={500}
+        title="Something went wrong"
+        description="We encountered an unexpected error. Our team has been notified and is working to resolve the issue."
+      />
+    );
   }
 };
 

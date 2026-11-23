@@ -338,6 +338,7 @@ const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageU
                         showFront={showFront}
                         showBack={showBack}
                         selectedSide={selectedSide}
+                        baseUrl={baseUrl}
                     />
                 </div>
             </div>
@@ -371,8 +372,10 @@ const StudentPrintableCard = ({
     showFront,
     showBack,
     selectedSide,
+    baseUrl,
 }) => {
     const studentAdmissionNo = person.admissionNumber || person.studentSpecificField?.admissionNumber || person._id?.substring(0, 8).toUpperCase();
+    const qrUrl = baseUrl ? `${baseUrl}/student-fund/${person._id}` : `/student-fund/${person._id}`;
     const wrapperClass = selectedSide === "Both Sides" ? "w-1/2 h-1/2 p-2 flex space-x-2" : "w-1/4 h-1/2 p-2 flex";
     const innerClass = selectedSide === "Both Sides" ? "border rounded shadow w-1/2 overflow-hidden bg-white text-slate-900" : "border rounded shadow w-full overflow-hidden bg-white text-slate-900";
 

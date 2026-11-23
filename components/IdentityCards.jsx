@@ -205,7 +205,7 @@ const IdentityCards = ({
                 </DialogTrigger>
                 <DialogContent ref={popupRef} data-html2canvas-popup="true" className="sm:max-w-2xl overflow-hidden rounded-2xl sm:rounded-2xl max-h-[90vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-gray-100 shadow-xl">
                   <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-                    <button 
+                    <button
                       type="button"
                       className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
                       onClick={handleDownload}
@@ -409,10 +409,10 @@ const IdentityCards = ({
                 // and pad with nulls so the back aligns perfectly with the front when the paper is flipped.
                 const row1 = pageItems.slice(0, 4);
                 const row2 = pageItems.slice(4, 8);
-                
+
                 while (row1.length < 4) row1.push(null);
                 while (row2.length < 4) row2.push(null);
-                
+
                 pageItems = [...row1.reverse(), ...row2.reverse()];
               }
 
@@ -678,7 +678,7 @@ const IdCard = ({
 // Extracted component for person details (reused in both preview and print views)
 const PersonDetails = ({ person, academicYear, isStudent, idCardSealImageUrl }) => {
   const sealUrl = idCardSealImageUrl || "/sdc_seal.png";
-  
+
   return (
     <div className="relative my-auto">
       {sealUrl && (
@@ -1083,13 +1083,12 @@ const StudentFundModal = ({ student, isOpen, onClose, apiKey, baseUrl }) => {
                     Current Balance
                   </p>
                   <p
-                    className={`text-2xl sm:text-3xl font-extrabold mt-0.5 ${
-                      isDebt
-                        ? "text-rose-600"
-                        : isSurplus
+                    className={`text-2xl sm:text-3xl font-extrabold mt-0.5 ${isDebt
+                      ? "text-rose-600"
+                      : isSurplus
                         ? "text-emerald-600"
                         : "text-slate-700 dark:text-slate-300"
-                    }`}
+                      }`}
                   >
                     ₹{Math.abs(data?.totalBalance || 0).toFixed(2)}
                     <span className="text-xs ml-2 font-bold uppercase">
@@ -1133,11 +1132,10 @@ const StudentFundModal = ({ student, isOpen, onClose, apiKey, baseUrl }) => {
                             </TableCell>
                             <TableCell className="py-1.5">
                               <span
-                                className={`font-semibold text-xxs px-1.5 py-0.5 rounded ${
-                                  t.type === "Deposit"
-                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                    : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
-                                }`}
+                                className={`font-semibold text-xxs px-1.5 py-0.5 rounded ${t.type === "Deposit"
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                  : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                                  }`}
                               >
                                 {t.type}
                               </span>
@@ -1146,9 +1144,8 @@ const StudentFundModal = ({ student, isOpen, onClose, apiKey, baseUrl }) => {
                               {t.note || <span className="text-muted-foreground italic">No note</span>}
                             </TableCell>
                             <TableCell
-                              className={`py-1.5 text-right font-bold whitespace-nowrap ${
-                                t.type === "Deposit" ? "text-emerald-600" : "text-rose-600"
-                              }`}
+                              className={`py-1.5 text-right font-bold whitespace-nowrap ${t.type === "Deposit" ? "text-emerald-600" : "text-rose-600"
+                                }`}
                             >
                               {t.type === "Deposit" ? `+₹${t.amount}` : `-₹${t.amount}`}
                             </TableCell>
