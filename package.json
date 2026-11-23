@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS='--max-old-space-size=3072' next dev --turbopack",
-    "build": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "dev": "next dev --turbopack",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "check:floor": "node scripts/floor-guard.mjs",
