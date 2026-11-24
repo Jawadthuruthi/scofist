@@ -367,12 +367,15 @@ const StudentsFund = ({
       (s.studentSpecificField?.admissionNumber &&
         String(s.studentSpecificField.admissionNumber).toLowerCase().includes(term))
     ).map(s => {
-      const batch = batches.find(b => b._id === s.batchId);
+      const sBatchId = s.batchId || s.studentSpecificField?.batchId?._id || s.studentSpecificField?.batchId;
+      const batch = batches.find(b => b._id === sBatchId);
+      const sClassId = s.classId || s.studentSpecificField?.classId?._id || s.studentSpecificField?.classId;
+      const cls = classes?.find(c => c._id === sClassId);
       // Use the className and batchName already provided by the API if lookup fails
       return {
         ...s,
         batchName: batch?.name || s.batchName || "No Batch",
-        className: s.className || "No Class"
+        className: cls?.name || s.className || "No Class"
       };
     }).sort((a, b) => {
       const aVal = String(a.studentSpecificField?.admissionNumber ?? a.admissionNumber ?? a._id ?? "");
@@ -710,12 +713,30 @@ const StudentsFund = ({
   };
 
   const handleStudentLookup = (overrideSearchTerm) => {
-    const term = (typeof overrideSearchTerm === "string" ? overrideSearchTerm : lookupSearchTerm).trim();
+    let term = (typeof overrideSearchTerm === "string" ? overrideSearchTerm : lookupSearchTerm).trim();
 
     if (!term) {
       toast.error("Please enter a student ID or name to search.");
       return;
     }
+
+    // Extract student identifier if scanned or entered as a URL (e.g., from QR code https://.../student-fund/STD-001)
+    if (term.includes("/student-fund/")) {
+      const parts = term.split("/student-fund/");
+      term = parts[parts.length - 1].split("?")[0].split("#")[0].trim();
+    } else if (term.startsWith("http://") || term.startsWith("https://")) {
+      try {
+        const url = new URL(term);
+        const segments = url.pathname.split("/").filter(Boolean);
+        if (segments.length > 0) {
+          term = segments[segments.length - 1];
+        }
+      } catch (err) {
+        // Fallback: keep original term if URL parsing fails
+        console.debug("Lookup term is not a standard URL:", err);
+      }
+    }
+    term = decodeURIComponent(term).trim();
 
     setIsLookingUp(true);
 
@@ -729,7 +750,8 @@ const StudentsFund = ({
     // 2. Exact Admission Number
     if (!foundStudent) {
       foundStudent = studentsList.find(s =>
-        String(s.studentSpecificField?.admissionNumber).toLowerCase() === searchLower
+        String(s.studentSpecificField?.admissionNumber).toLowerCase() === searchLower ||
+        String(s.admissionNumber).toLowerCase() === searchLower
       );
     }
 
@@ -744,14 +766,18 @@ const StudentsFund = ({
         String(s._id).toLowerCase().trim().startsWith(searchLower) ||
         String(s.name).toLowerCase().trim().startsWith(searchLower) ||
         (s.studentSpecificField?.admissionNumber &&
-          String(s.studentSpecificField.admissionNumber).toLowerCase().trim().startsWith(searchLower))
+          String(s.studentSpecificField.admissionNumber).toLowerCase().trim().startsWith(searchLower)) ||
+        (s.admissionNumber &&
+          String(s.admissionNumber).toLowerCase().trim().startsWith(searchLower))
       );
 
       if (foundStudent) {
         // Check for multiple partial matches
         const totalMatches = studentsList.filter(s =>
           String(s._id).toLowerCase().trim().includes(searchLower) ||
-          String(s.name).toLowerCase().trim().includes(searchLower)
+          String(s.name).toLowerCase().trim().includes(searchLower) ||
+          (s.studentSpecificField?.admissionNumber &&
+            String(s.studentSpecificField.admissionNumber).toLowerCase().trim().includes(searchLower))
         ).length;
 
         if (totalMatches > 1) {
@@ -761,9 +787,15 @@ const StudentsFund = ({
     }
 
     if (foundStudent) {
-      if (foundStudent.batchId) {
+      const studentBatchId =
+        foundStudent.batchId ||
+        foundStudent.studentSpecificField?.batchId?._id ||
+        foundStudent.studentSpecificField?.batchId ||
+        classes?.find(c => c._id === (foundStudent.classId || foundStudent.studentSpecificField?.classId))?.batchId;
+
+      if (studentBatchId) {
         setGroupType("batch");
-        setSelectedBatch(foundStudent.batchId);
+        setSelectedBatch(studentBatchId);
         setSelectedStudents([foundStudent._id]);
         setTransactionType("Deposit");
         toast.success(`Found student: ${foundStudent.name}`);
@@ -788,10 +820,27 @@ const StudentsFund = ({
   };
 
   const handleBarcodeScan = (result) => {
-    setLookupSearchTerm(result);
+    let cleanResult = (result || "").trim();
+    if (cleanResult.includes("/student-fund/")) {
+      const parts = cleanResult.split("/student-fund/");
+      cleanResult = parts[parts.length - 1].split("?")[0].split("#")[0].trim();
+    } else if (cleanResult.startsWith("http://") || cleanResult.startsWith("https://")) {
+      try {
+        const url = new URL(cleanResult);
+        const segments = url.pathname.split("/").filter(Boolean);
+        if (segments.length > 0) {
+          cleanResult = segments[segments.length - 1];
+        }
+      } catch (err) {
+        // Fallback: keep original result if URL parsing fails
+        console.debug("Scanned barcode result is not a standard URL:", err);
+      }
+    }
+    cleanResult = decodeURIComponent(cleanResult).trim();
+
+    setLookupSearchTerm(cleanResult);
     setShowScanner(false);
-    // Use a small timeout to ensure state is updated or just pass it directly
-    handleStudentLookup(result);
+    handleStudentLookup(cleanResult);
   };
 
 

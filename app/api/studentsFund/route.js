@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import connectToDB from "@/lib/db";
 import StudentsFund from "@/models/StudentsFund";
 import User from "@/models/User";
@@ -17,7 +18,14 @@ export async function GET(req, res) {
 
     // IF getAll is present, fetch ALL funds for this student
     if (searchParams.getAll && searchParams.studentId) {
-      const query = { studentId: searchParams.studentId };
+      const sId = String(searchParams.studentId).trim();
+      const sIdVariants = [sId, sId.toUpperCase(), sId.toLowerCase()];
+      const studentFundQueries = [{ studentId: { $in: sIdVariants } }];
+      if (mongoose.Types.ObjectId.isValid(sId)) {
+        studentFundQueries.push({ studentId: new mongoose.Types.ObjectId(sId) });
+      }
+
+      const query = { $or: studentFundQueries };
       if (searchParams.batchId) {
         query.batchId = searchParams.batchId;
       }

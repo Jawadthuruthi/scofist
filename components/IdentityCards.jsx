@@ -1006,7 +1006,16 @@ const StudentFundModal = ({ student, isOpen, onClose, apiKey, baseUrl }) => {
       .then((result) => {
         if (!isMounted) return;
         const funds = result.studentFunds || [];
-        const totalBalance = funds.reduce((sum, f) => sum + (Number(f.balance) || 0), 0);
+        const totalBalance = funds.reduce((sum, f) => {
+          if (typeof f.balance === "number" && !isNaN(f.balance)) {
+            return sum + f.balance;
+          }
+          const txSum = (f.transactions || []).reduce((acc, t) => {
+            const amt = Number(t.amount) || 0;
+            return t.type === "Deposit" ? acc + amt : acc - amt;
+          }, 0);
+          return sum + txSum;
+        }, 0);
         const allTx = [];
         funds.forEach((f) => {
           (f.transactions || []).forEach((t) => {

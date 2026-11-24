@@ -18,20 +18,21 @@ export async function generateMetadata({ params }) {
   const { id } = await params;
   await connectToDB();
 
-  let student = null;
-  if (mongoose.Types.ObjectId.isValid(id)) {
-    student = await User.findById(id).select("name studentSpecificField").lean();
+  const decodedId = id ? decodeURIComponent(id).trim() : "";
+  const queries = [
+    { _id: decodedId },
+    { _id: decodedId.toUpperCase() },
+    { "studentSpecificField.admissionNumber": decodedId },
+    { admissionNumber: decodedId },
+    { "studentSpecificField.admissionNumber": decodedId.toUpperCase() },
+  ];
+  if (mongoose.Types.ObjectId.isValid(decodedId)) {
+    queries.push({ _id: new mongoose.Types.ObjectId(decodedId) });
   }
-  if (!student) {
-    student = await User.findOne({
-      $or: [
-        { "studentSpecificField.admissionNumber": id },
-        { admissionNumber: id },
-      ],
-    })
-      .select("name studentSpecificField")
-      .lean();
-  }
+
+  const student = await User.findOne({ $or: queries })
+    .select("name studentSpecificField admissionNumber")
+    .lean();
 
   const studentName = student?.name || "Student";
   const admissionNo =
@@ -49,28 +50,24 @@ export default async function StudentFundPage({ params }) {
   const { id } = await params;
   await connectToDB();
 
-  // Find Student by ObjectId or admission number
-  let student = null;
-  if (mongoose.Types.ObjectId.isValid(id)) {
-    student = await User.findById(id)
-      .select(
-        "name email profilePic studentSpecificField classId batchId contactNumber place district"
-      )
-      .lean();
+  const decodedId = id ? decodeURIComponent(id).trim() : "";
+  const searchQueries = [
+    { _id: decodedId },
+    { _id: decodedId.toUpperCase() },
+    { "studentSpecificField.admissionNumber": decodedId },
+    { admissionNumber: decodedId },
+    { "studentSpecificField.admissionNumber": decodedId.toUpperCase() },
+  ];
+  if (mongoose.Types.ObjectId.isValid(decodedId)) {
+    searchQueries.push({ _id: new mongoose.Types.ObjectId(decodedId) });
   }
 
-  if (!student) {
-    student = await User.findOne({
-      $or: [
-        { "studentSpecificField.admissionNumber": id },
-        { admissionNumber: id },
-      ],
-    })
-      .select(
-        "name email profilePic studentSpecificField classId batchId contactNumber place district"
-      )
-      .lean();
-  }
+  // Find Student by _id, admission number, or ObjectId
+  const student = await User.findOne({ $or: searchQueries })
+    .select(
+      "name email profilePic studentSpecificField classId batchId contactNumber place district admissionNumber"
+    )
+    .lean();
 
   // If student not found
   if (!student) {
@@ -112,17 +109,35 @@ export default async function StudentFundPage({ params }) {
 
   // Student found, fetch Class, Batch, Settings, and Funds in parallel
   const studentIdStr = String(student._id);
+  const classId = student.studentSpecificField?.classId || student.classId;
+  const batchId = student.studentSpecificField?.batchId || student.batchId;
+
+  const possibleStudentIds = [
+    studentIdStr,
+    studentIdStr.toUpperCase(),
+    studentIdStr.toLowerCase(),
+    student._id,
+  ];
+  if (student.studentSpecificField?.admissionNumber) {
+    possibleStudentIds.push(String(student.studentSpecificField.admissionNumber));
+    possibleStudentIds.push(String(student.studentSpecificField.admissionNumber).toUpperCase());
+  }
+  if (student.admissionNumber) {
+    possibleStudentIds.push(String(student.admissionNumber));
+    possibleStudentIds.push(String(student.admissionNumber).toUpperCase());
+  }
+  const uniqueStudentIds = [...new Set(possibleStudentIds.filter(Boolean))];
+
+  const fundQueries = [{ studentId: { $in: uniqueStudentIds } }];
+  if (mongoose.Types.ObjectId.isValid(studentIdStr)) {
+    fundQueries.push({ studentId: new mongoose.Types.ObjectId(studentIdStr) });
+  }
+
   const [settings, cls, batch, rawFunds] = await Promise.all([
     Settings.findOne().lean(),
-    student.classId
-      ? Class.findById(student.classId).select("name").lean()
-      : null,
-    student.batchId
-      ? Batch.findById(student.batchId).select("name startYear endYear").lean()
-      : null,
-    StudentsFund.find({
-      studentId: { $in: [studentIdStr, student._id] },
-    })
+    classId ? Class.findById(classId).select("name").lean() : null,
+    batchId ? Batch.findById(batchId).select("name startYear endYear").lean() : null,
+    StudentsFund.find({ $or: fundQueries })
       .populate("teacherId", "name roles")
       .populate("transactions.performedBy", "name")
       .lean(),
@@ -134,9 +149,9 @@ export default async function StudentFundPage({ params }) {
     let subLabel = "";
 
     if (fund.fundType === "Department") {
-      label = `${fund.department} Fund`;
+      label = `${fund.department || "Department"} Fund`;
       const lastTx = fund.transactions?.[fund.transactions.length - 1];
-      subLabel = lastTx?.performedBy?.name || fund.department;
+      subLabel = lastTx?.performedBy?.name || fund.department || "";
     } else {
       subLabel = fund.teacherId?.name || "Class Teacher";
       const roles = fund.teacherId?.roles || [];
@@ -147,11 +162,19 @@ export default async function StudentFundPage({ params }) {
       }
     }
 
+    let fundBalance = fund.balance;
+    if (typeof fundBalance !== "number" || isNaN(fundBalance)) {
+      fundBalance = (fund.transactions || []).reduce((acc, t) => {
+        const amt = Number(t.amount) || 0;
+        return t.type === "Deposit" ? acc + amt : acc - amt;
+      }, 0);
+    }
+
     return {
       _id: String(fund._id),
       label,
       subLabel,
-      balance: fund.balance || 0,
+      balance: fundBalance || 0,
       fundType: fund.fundType,
       department: fund.department,
       transactions: fund.transactions || [],
@@ -201,8 +224,11 @@ export default async function StudentFundPage({ params }) {
     .filter((t) => t.type === "Withdrawal")
     .reduce((sum, t) => sum + t.amount, 0);
 
+  const netFromTransactions = totalDeposits - totalWithdrawals;
+  const resolvedTotalBalance = totalBalance !== 0 ? totalBalance : netFromTransactions;
+
   const summary = {
-    totalBalance,
+    totalBalance: resolvedTotalBalance,
     totalDeposits,
     totalWithdrawals,
     count: allTransactions.length,
