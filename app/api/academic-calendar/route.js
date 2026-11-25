@@ -22,12 +22,17 @@ export async function GET(req) {
             query.date = { $gte: start, $lte: end };
         }
 
-        const events = await AcademicCalendar.find(query)
-            .sort({ date: 1 })
-            .skip(page * (Number.isFinite(limit) ? limit : 0))
-            .limit(Number.isFinite(limit) ? limit : 0);
-
-        const total = await AcademicCalendar.countDocuments(query);
+        const dbLimit = Number.isFinite(limit) ? limit : 500;
+        const needsCount = page > 0 || Number.isFinite(limit);
+        const [events, countedTotal] = await Promise.all([
+            AcademicCalendar.find(query)
+                .sort({ date: 1 })
+                .skip(page * (Number.isFinite(limit) ? limit : 0))
+                .limit(dbLimit)
+                .lean(),
+            needsCount ? AcademicCalendar.countDocuments(query) : Promise.resolve(null),
+        ]);
+        const total = countedTotal ?? events.length;
 
         return NextResponse.json({
             "academic-calendar": events,

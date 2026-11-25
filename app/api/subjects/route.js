@@ -37,12 +37,17 @@ export async function GET(req, res) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }
 
-    const subjects = await Subject.find(query, projections)
-      .skip(page * limit)
-      .limit(limit)
-      .sort({ _id: 1 })
-      .collation({ locale: "en_US", numericOrdering: true });
-    const total = await Subject.countDocuments(query);
+    const needsCount = page > 0 || limit !== Infinity;
+    const [subjects, countedTotal] = await Promise.all([
+      Subject.find(query, projections)
+        .skip(limit === Infinity ? 0 : page * limit)
+        .limit(limit === Infinity ? 500 : limit)
+        .sort({ _id: 1 })
+        .collation({ locale: "en_US", numericOrdering: true })
+        .lean(),
+      needsCount ? Subject.countDocuments(query) : Promise.resolve(null),
+    ]);
+    const total = countedTotal ?? subjects.length;
 
     return NextResponse.json(
       {

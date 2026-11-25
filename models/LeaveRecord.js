@@ -53,6 +53,8 @@ const leaveRecordSchema = new Schema(
   { timestamps: true }
 );
 
+leaveRecordSchema.index({ studentId: 1, dateOfLeave: 1 });
+
 const LeaveRecord =
   models?.LeaveRecord || model("LeaveRecord", leaveRecordSchema);
 

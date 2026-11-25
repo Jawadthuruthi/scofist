@@ -43,10 +43,10 @@ const timeTableSchema = new Schema(
   }
 );
 
-const TimeTable = models.TimeTable || model("TimeTable", timeTableSchema);
-
 // Add indexes for optimizing queries by classId, teacherId and day
 timeTableSchema.index({ classId: 1 });
 timeTableSchema.index({ "timeSlots.teacherId": 1, "timeSlots.day": 1 });
+
+const TimeTable = models.TimeTable || model("TimeTable", timeTableSchema);
 
 export default TimeTable;

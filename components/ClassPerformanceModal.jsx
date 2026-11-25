@@ -89,6 +89,21 @@ export default function ClassPerformanceModal({
   const classId = slot?.classId?._id || slot?.classId;
   const comments = defaultComment || `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
 
+  const { data: attendanceDetailData, isLoading: isFetchingAttendanceDetail } = useQuery({
+    queryKey: ["attendance-detail", attendanceRecord?._id],
+    queryFn: async () => {
+      const res = await axios.get(`/api/attendances?_id=${attendanceRecord._id}`, {
+        headers: {
+          "x-api-key": apiKey,
+        },
+        withCredentials: true,
+      });
+      return res.data;
+    },
+    enabled: !!open && !!attendanceRecord?._id && !attendanceRecord?.attendanceData,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const { data: performanceData, isLoading: isFetchingPerformance } = useQuery({
     queryKey: ["performance", classId, today, comments],
     queryFn: async () => {
@@ -258,7 +273,11 @@ export default function ClassPerformanceModal({
     }
   };
 
-  const students = attendanceRecord?.attendanceData || [];
+  const students =
+    attendanceRecord?.attendanceData ||
+    attendanceDetailData?.attendances?.[0]?.attendanceData ||
+    [];
+  const isLoadingStudents = isFetchingAttendanceDetail && students.length === 0;
 
   return (
     <>
@@ -281,7 +300,7 @@ export default function ClassPerformanceModal({
           <div className="flex-1 text-left space-y-0.5">
             <DialogTitle className="text-xl font-bold m-0 text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
               {title}
-              {isFetchingPerformance && (
+              {(isFetchingPerformance || isLoadingStudents) && (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-1" />
               )}
             </DialogTitle>
@@ -299,7 +318,12 @@ export default function ClassPerformanceModal({
         </DialogHeader>
 
         <div className="overflow-y-auto max-h-[58vh] flex-1 bg-muted/5 p-4 sm:p-5">
-          {students.length === 0 ? (
+          {isLoadingStudents ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground text-sm">
+              <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+              <p>Loading students...</p>
+            </div>
+          ) : students.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
               No students found for this class.
             </div>

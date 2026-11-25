@@ -2,7 +2,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Period from "@/models/Period";
 import Settings from "@/models/Settings";
-import { getPeriodTimeString } from "@/lib/utils";
+import { resolvePeriodsPayload } from "@/lib/periods";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
@@ -10,8 +10,8 @@ export async function GET(req) {
     await connectToDB();
 
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const page = parseInt(url.searchParams.get("page") || "0", 10);
+    const limit = parseInt(url.searchParams.get("limit"), 10) || Infinity;
 
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
@@ -20,152 +20,34 @@ export async function GET(req) {
       }
     }
 
-    const query = {};
-
+    const baseQuery = {};
     if (filterParams.periodNumber) {
-      query.periodNumber = parseInt(filterParams.periodNumber);
+      baseQuery.periodNumber = parseInt(filterParams.periodNumber, 10);
     }
 
-    // Determine settings & active schedule
-    const settings = await Settings.findOne().lean();
-
-    const savedSchedules = settings?.general?.schedules || [];
-    const defaultSchedules = [
-      { id: "normal", name: "Normal Schedule", isDefault: true },
-      { id: "thursday", name: "Thursday Schedule", isDefault: true },
-    ];
-    const schedulesMap = new Map();
-    defaultSchedules.forEach((s) => schedulesMap.set(s.id, s));
-    savedSchedules.forEach((s) => {
-      schedulesMap.set(s.id, {
-        id: s.id,
-        name: s.name,
-        description: s.description,
-        isDefault: Boolean(s.isDefault),
-      });
-    });
-    const allSchedules = Array.from(schedulesMap.values());
-
-    let activeScheduleId = settings?.general?.activeSchedule;
-    if (!activeScheduleId) {
-      activeScheduleId = settings?.general?.isSpecialDay ? "thursday" : "normal";
-    }
-
-    // Auto-Thursday Schedule Check: if enabled, Thursday Schedule is active for all Thursdays
-    const autoThursday = Boolean(settings?.general?.autoThursdaySchedule);
-    let isTargetThursday = false;
-    if (filterParams.date) {
-      const parts = String(filterParams.date).split("-");
-      if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-        isTargetThursday = d.getDay() === 4;
-      }
-    } else {
-      const now = new Date();
-      const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-      isTargetThursday = istNow.getUTCDay() === 4;
-    }
-
-    if (autoThursday && isTargetThursday) {
-      activeScheduleId = "thursday";
-    }
-
-    const activeScheduleObj =
-      allSchedules.find((s) => s.id === activeScheduleId) || allSchedules[0];
-
-    const scheduleParam = filterParams.schedule;
-    const isSpecialDayParam = filterParams.isSpecialDay;
-
-    if (scheduleParam) {
-      if (scheduleParam === "all") {
-        // Query both without filter
-      } else if (scheduleParam === "normal") {
-        query.$or = [
-          { schedule: "normal" },
-          { schedule: { $exists: false }, isSpecialDay: { $ne: true } },
-        ];
-      } else if (scheduleParam === "thursday") {
-        query.$or = [
-          { schedule: "thursday" },
-          { schedule: { $exists: false }, isSpecialDay: true },
-        ];
-      } else {
-        query.schedule = scheduleParam;
-      }
-    } else if (isSpecialDayParam !== undefined) {
-      if (isSpecialDayParam === "true" || isSpecialDayParam === true) {
-        query.$or = [
-          { isSpecialDay: true },
-          { schedule: { $ne: "normal" } },
-        ];
-      } else if (isSpecialDayParam === "false" || isSpecialDayParam === false) {
-        query.$or = [
-          { schedule: "normal" },
-          { schedule: { $exists: false }, isSpecialDay: { $ne: true } },
-        ];
-      } else if (isSpecialDayParam === "all") {
-        // Query all without filter
-      }
-    } else {
-      // Default behavior (e.g., when called from dashboard or my-periods without explicit param):
-      // Return periods for the currently active schedule.
-      // Fetch all periods sorted and determine fallback in one round-trip.
-      const activeFilter = {
-        $or: [
-          { schedule: activeScheduleId },
-          ...(activeScheduleId === "normal"
-            ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
-            : activeScheduleId === "thursday"
-              ? [{ schedule: { $exists: false }, isSpecialDay: true }]
-              : []),
-        ],
-      };
-
-      // Try the active schedule first; if empty, fallback to normal — single query covers both.
-      const periodsForActive = await Period.find({
-        ...activeFilter,
-        ...(query.periodNumber ? { periodNumber: query.periodNumber } : {}),
-      }).select("_id").limit(1).lean();
-
-      if (periodsForActive.length > 0) {
-        Object.assign(query, activeFilter);
-      } else {
-        // If no periods configured for this active schedule yet, fallback to normal periods
-        query.$or = [
-          { schedule: "normal" },
-          { schedule: { $exists: false }, isSpecialDay: { $ne: true } },
-        ];
-      }
-    }
-
-    const [rawPeriods, total] = await Promise.all([
-      Period.find(query)
-        .skip(page * limit)
-        .limit(limit)
-        .sort({ periodNumber: 1 })
+    // Fetch minimal settings fields and periods in a single parallel round-trip
+    const [settings, allPeriods] = await Promise.all([
+      Settings.findOne()
+        .select(
+          "general.schedules general.activeSchedule general.isSpecialDay general.autoThursdaySchedule"
+        )
         .lean(),
-      Period.countDocuments(query),
+      Period.find(baseQuery).sort({ periodNumber: 1 }).limit(500).lean(),
     ]);
 
-    const periods = rawPeriods.map((p) => ({
-      ...p,
-      formattedTime: p.formattedTime || getPeriodTimeString(p),
-    }));
+    const payload = resolvePeriodsPayload({
+      settings,
+      allPeriods,
+      scheduleParam: filterParams.schedule,
+      isSpecialDayParam: filterParams.isSpecialDay,
+      dateParam: filterParams.date,
+      page,
+      limit,
+    });
 
     return NextResponse.json(
       {
-        periods,
-        schedules: allSchedules,
-        activeSchedule: activeScheduleId,
-        activeScheduleName: activeScheduleObj?.name || "Normal Schedule",
-        isSpecialDayActive: activeScheduleId !== "normal",
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
-        },
+        ...payload,
         message: "Periods fetched successfully!",
       },
       { status: 200 }

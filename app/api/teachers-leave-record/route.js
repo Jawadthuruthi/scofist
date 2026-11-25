@@ -43,14 +43,15 @@ export async function GET(req) {
       query.date = { $gte: startDate, $lte: endDate };
     }
 
-    console.log("Teachers Leave Record Query:", query);
-
     const teachersLeaveRecord = await TeachersLeaveRecord.find(query)
       .populate("teacherId", "name")
       .populate("classId", "name")
       .sort({
-        createdAt: -1,
-      });
+        date: -1,
+        _id: -1,
+      })
+      .limit(500)
+      .lean();
 
     return NextResponse.json({ teachersLeaveRecord }, { status: 200 });
   } catch (error) {

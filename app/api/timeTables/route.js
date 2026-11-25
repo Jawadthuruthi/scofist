@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import TimeTable from "@/models/TimeTable";
 import DailyTimetableSnapshot from "@/models/DailyTimetableSnapshot";
 import Settings from "@/models/Settings";
+import Subject from "@/models/Subject";
 import { NextResponse } from "next/server";
 
 // Helper — get YYYY-MM-DD in IST from any date
@@ -221,25 +222,79 @@ export async function GET(req, res) {
       query.timeSlots = { $elemMatch: timeSlotMatch };
     }
 
+    const filterSlots = filterParams.filterSlots === "true";
+
     // Force a reasonable limit if none provided to prevent massive payload
-    const effectiveLimit = limit === 0 ? 100 : limit;
+    const dbLimit = limit === Infinity ? 0 : limit;
+    const needsCount = page > 0 || limit !== Infinity;
+
+    let findQuery = TimeTable.find(query, projections).populate({
+      path: "classId",
+      select: "name shortname batchId section",
+      populate: { path: "batchId", select: "name" },
+    });
+
+    if (!filterSlots) {
+      findQuery = findQuery
+        .populate("timeSlots.subjectId", "name")
+        .populate("timeSlots.teacherId", "name");
+    }
+
+    findQuery = findQuery
+      .skip(limit === Infinity ? 0 : page * limit)
+      .limit(dbLimit)
+      .sort({ updatedAt: -1 })
+      .lean();
 
     // Use Promise.all for parallel queries
-    const [timeTables, total] = await Promise.all([
-      TimeTable.find(query, projections)
-        .populate({
-          path: "classId",
-          select: "name shortname batchId section",
-          populate: { path: "batchId", select: "name" },
-        })
-        .populate("timeSlots.subjectId", "name")
-        .populate("timeSlots.teacherId", "name")
-        .skip(limit === Infinity ? 0 : (page * limit))
-        .limit(limit === Infinity ? 0 : limit)
-        .sort({ updatedAt: -1 })
-        .lean(),
-      TimeTable.countDocuments(query),
+    const [rawTimeTables, countedTotal] = await Promise.all([
+      findQuery,
+      needsCount ? TimeTable.countDocuments(query) : Promise.resolve(null),
     ]);
+
+    let timeTables = rawTimeTables;
+    if (filterSlots) {
+      timeTables = rawTimeTables
+        .map((tt) => {
+          const slots = (tt.timeSlots || []).filter((slot) => {
+            if (filterParams.teacherId && String(slot.teacherId) !== filterParams.teacherId) {
+              return false;
+            }
+            if (filterParams.day && slot.day !== filterParams.day) {
+              return false;
+            }
+            return true;
+          });
+          return { ...tt, timeSlots: slots };
+        })
+        .filter((tt) => tt.timeSlots.length > 0);
+
+      const subjectIds = Array.from(
+        new Set(
+          timeTables.flatMap((tt) =>
+            tt.timeSlots
+              .map((s) => (s.subjectId ? String(s.subjectId) : ""))
+              .filter(Boolean)
+          )
+        )
+      );
+      if (subjectIds.length > 0) {
+        const subjectsList = await Subject.find({ _id: { $in: subjectIds } })
+          .select("name")
+          .lean();
+        const subjectMap = new Map(subjectsList.map((s) => [String(s._id), s]));
+        timeTables.forEach((tt) => {
+          tt.timeSlots.forEach((s) => {
+            if (s.subjectId) {
+              const matched = subjectMap.get(String(s.subjectId));
+              if (matched) s.subjectId = matched;
+            }
+          });
+        });
+      }
+    }
+
+    const total = countedTotal ?? timeTables.length;
 
     return NextResponse.json(
       {

@@ -160,9 +160,15 @@ export async function GET(req) {
       ];
     }
 
+    const rolesList = filterParams.roles
+      ? filterParams.roles.split(",").map((r) => r.trim())
+      : [];
+    const hasStudentRole = rolesList.includes("Student");
+    const isOnlyNonStudents = rolesList.length > 0 && !hasStudentRole;
+
     // Determine sort direction (default to descending, but ascending for students)
     const sortParam = url.searchParams.get("sort");
-    let sortDirection = (filterParams.roles && filterParams.roles.includes("Student")) ? 1 : -1;
+    let sortDirection = hasStudentRole ? 1 : -1;
     if (sortParam === "asc") {
       sortDirection = 1;
     } else if (sortParam === "desc") {
@@ -170,22 +176,26 @@ export async function GET(req) {
     }
 
     let sortConfig = { _id: sortDirection };
-    if (filterParams.roles && filterParams.roles.includes("Student")) {
+    if (hasStudentRole) {
       sortConfig = { "studentSpecificField.admissionNumber": sortDirection, _id: sortDirection };
     }
 
     // Use lean for better performance and memory efficiency
-    let usersQuery = User.find(query, projections)
-      .populate("studentSpecificField.batchId")
-      .populate("studentSpecificField.classId")
-      .populate("studentSpecificField.admissionClassId", "name")
+    let usersQuery = User.find(query, projections);
+    if (!isOnlyNonStudents) {
+      usersQuery = usersQuery
+        .populate("studentSpecificField.batchId")
+        .populate("studentSpecificField.classId")
+        .populate("studentSpecificField.admissionClassId", "name");
+    }
+    usersQuery = usersQuery
       .skip(page * limit)
       .limit(limit)
       .sort(sortConfig)
       .lean();
 
     // Only apply heavy collation when sorting students by admission number
-    if (filterParams.roles && filterParams.roles.includes("Student")) {
+    if (hasStudentRole) {
       usersQuery = usersQuery.collation({ locale: "en_US", numericOrdering: true });
     }
 

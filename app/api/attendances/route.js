@@ -46,6 +46,9 @@ export async function GET(req, res) {
     // Build MongoDB query from filter params
     const query = {};
 
+    if (filterParams._id) {
+      query._id = filterParams._id;
+    }
     if (filterParams.classId) {
       query.classId = filterParams.classId;
     }
@@ -123,40 +126,49 @@ export async function GET(req, res) {
       });
     }
 
-    // Execute query and count in parallel (bounded concurrency <= 2)
-    const [attendances, total] = await Promise.all([
+    const needsAttendanceData = shouldPopulate("attendanceData");
+    const needsCount = page > 0 || (limit !== Infinity && !filterParams._id);
+
+    const leaveQuery = {};
+    if (query.date) leaveQuery.date = query.date;
+    if (query.teacherId) leaveQuery.teacherId = query.teacherId;
+
+    // Execute primary queries in parallel; skip leave joins when attendanceData is not requested
+    const [attendances, countedTotal, leaveRecords] = await Promise.all([
       queryPromise.lean(),
-      Attendance.countDocuments(query),
+      needsCount ? Attendance.countDocuments(query) : Promise.resolve(null),
+      needsAttendanceData
+        ? TeachersLeaveRecord.find(leaveQuery)
+            .select("teacherId classId periodNumber date leaveReason")
+            .lean()
+            .catch((e) => {
+              console.error("Error fetching leave records for join:", e);
+              return [];
+            })
+        : Promise.resolve([]),
     ]);
+    const total = countedTotal ?? attendances.length;
     const getStrId = (v) => (v?._id || v || "").toString();
 
-    // Fetch leave records for these teachers/classes/periods on this date
-    let leaveMap = {};
-    try {
-      const leaveQuery = {};
-      if (query.date) leaveQuery.date = query.date;
-
-      const leaveRecords = await TeachersLeaveRecord.find(leaveQuery).select("teacherId classId periodNumber date leaveReason").lean();
-
+    const leaveMap = {};
+    if (needsAttendanceData && leaveRecords.length > 0) {
       const getDS = (d) => {
         const date = new Date(d);
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
       };
 
-      leaveRecords.forEach(lr => {
+      leaveRecords.forEach((lr) => {
         const dateKey = getDS(lr.date);
         const key = `${getStrId(lr.teacherId)}_${getStrId(lr.classId)}_${lr.periodNumber}_${dateKey}`;
         leaveMap[key] = lr.leaveReason;
       });
-    } catch (e) {
-      console.error("Error fetching leave records for join:", e);
     }
 
     let studentLeaveMap = {};
-    try {
+    if (needsAttendanceData) try {
       const allStudentIds = new Set();
       attendances.forEach(att => {
         if (att.attendanceData) {
@@ -188,7 +200,9 @@ export async function GET(req, res) {
             { arrivedDate: null },
           ];
         }
-        const studentLeaves = await LeaveRecord.find(studentLeaveQuery).lean();
+        const studentLeaves = await LeaveRecord.find(studentLeaveQuery)
+          .select("studentId dateOfLeave dateOfArrival arrivedDate leaveReason")
+          .lean();
 
         studentLeaves.forEach(lr => {
           const sId = lr.studentId?.toString();
@@ -204,6 +218,9 @@ export async function GET(req, res) {
 
     let formattedAttendances = attendances.map((attendance) => {
       const attendanceObj = attendance.toObject ? attendance.toObject() : attendance;
+      if (!attendanceObj.attendanceData) {
+        return attendanceObj;
+      }
 
       const getDS = (d) => {
         const date = new Date(d);

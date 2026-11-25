@@ -77,8 +77,16 @@ const getCleanId = (val) => {
   return String(val);
 };
 
-const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
-  const [loading, setLoading] = useState(true);
+const MyPeriods = ({
+  apiKey,
+  teacherId,
+  isPrincipal,
+  initialSettings,
+  initialTeacherName = "",
+  initialData = null,
+}) => {
+  const [mountTimestamp] = useState(() => Date.now());
+  const attendanceDetailsCacheRef = useRef(new Map());
   const [open, setOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [comboboxOpen, setComboboxOpen] = useState(false);
@@ -133,7 +141,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
   const [hifzWhatsappClassId, setHifzWhatsappClassId] = useState(""); // classId of open WA dialog
   const [hifzStudentContacts, setHifzStudentContacts] = useState({}); // { [studentId]: guardianContactNumber }
   const [hifzContactsLoading, setHifzContactsLoading] = useState(false);
-  const [teacherName, setTeacherName] = useState("");
+  const [teacherName, setTeacherName] = useState(initialTeacherName || "");
   const [hifzSuccessOpen, setHifzSuccessOpen] = useState(false);
 
   const router = useRouter();
@@ -157,26 +165,32 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
         ? initialSettings.general?.allowPreviousDayAttendance !== false
         : false);
 
-    if (canNav && typeof window !== "undefined") {
-      const sp = new URLSearchParams(window.location.search);
-      const urlDate = sp.get("date");
-      if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
-        const [y, m, d] = urlDate.split("-").map(Number);
+    if (canNav) {
+      if (typeof window !== "undefined") {
+        const sp = new URLSearchParams(window.location.search);
+        const urlDate = sp.get("date");
+        if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
+          const [y, m, d] = urlDate.split("-").map(Number);
+          const parsed = new Date(y, m - 1, d);
+          if (parsed <= todayIST) return parsed;
+        }
+        const raw = sessionStorage.getItem("autoWhatsAppSlot");
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
+              const [y, m, d] = parsed.date.split("-").map(Number);
+              const parsedDate = new Date(y, m - 1, d);
+              if (parsedDate <= todayIST) return parsedDate;
+            }
+          } catch {
+            // ignore
+          }
+        }
+      } else if (initialData?.date && /^\d{4}-\d{2}-\d{2}$/.test(initialData.date)) {
+        const [y, m, d] = initialData.date.split("-").map(Number);
         const parsed = new Date(y, m - 1, d);
         if (parsed <= todayIST) return parsed;
-      }
-      const raw = sessionStorage.getItem("autoWhatsAppSlot");
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
-            const [y, m, d] = parsed.date.split("-").map(Number);
-            const parsedDate = new Date(y, m - 1, d);
-            if (parsedDate <= todayIST) return parsedDate;
-          }
-        } catch {
-          // ignore
-        }
       }
     }
     return todayIST;
@@ -197,6 +211,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
   const today = useMemo(() => days[selectedDateState.getDay()], [days, selectedDateState]);
   const date = useMemo(() => formatDateForDisplay(selectedDateState), [selectedDateState]);
   const formattedDate = useMemo(() => formatDate(selectedDateState), [selectedDateState]);
+  const matchesInitialDate = Boolean(
+    initialData && formattedDate === initialData.date && today === initialData.day
+  );
 
   const { useFetchItems } = useCrud("timeTables", apiKey);
   const { useFetchItems: useFetchPeriods } = useCrud("periods", apiKey);
@@ -204,16 +221,28 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
   const { useFetchItems: useFetchUsers } = useCrud("users", apiKey);
   const { useFetchItems: useFetchSubjects } = useCrud("subjects", apiKey);
 
-  const subjectsQuery = useFetchSubjects(0, 0, {}, {
-    staleTime: 1000 * 60 * 60,
-    refetchOnWindowFocus: false,
-  });
+  const subjectsQuery = useFetchSubjects(
+    0,
+    0,
+    { projection: "name" },
+    {
+      staleTime: 1000 * 60 * 60,
+      refetchOnWindowFocus: false,
+      initialData: initialData?.subjectsData || undefined,
+      initialDataUpdatedAt: initialData?.subjectsData ? mountTimestamp : undefined,
+    }
+  );
   const subjects = useMemo(() => subjectsQuery.data?.subjects || [], [subjectsQuery.data?.subjects]);
 
-  const usersQuery = useFetchUsers(0, 0, { roles: "Teacher" }, {
-    staleTime: 1000 * 60 * 60,
-    enabled: isPrincipal
-  });
+  const usersQuery = useFetchUsers(
+    0,
+    0,
+    { roles: "Teacher", projection: "_id,name" },
+    {
+      staleTime: 1000 * 60 * 60,
+      enabled: isPrincipal,
+    }
+  );
   const teachers = useMemo(() => usersQuery.data?.users || [], [usersQuery.data]);
 
   const { useFetchItems: useFetchSettings } = useCrud("settings", apiKey);
@@ -228,7 +257,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
   const updateLeaveRecord = useUpdateItem();
   const deleteLeaveRecord = useDeleteItem();
 
-  // Reduce network requests by passing proper options
+  // Preload initial date from SSR and refetch quietly when switching dates or returning
   const periodsQuery = useFetchPeriods(
     0,
     0,
@@ -236,17 +265,20 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
     {
       staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: true,
-      refetchOnMount: "always",
+      initialData: matchesInitialDate ? initialData.periodsData : undefined,
+      initialDataUpdatedAt: matchesInitialDate ? mountTimestamp : undefined,
     }
   );
 
   const timeTablesQuery = useFetchItems(
     0,
     100, // Reasonable limit
-    { teacherId, day: today, projection: "classId,timeSlots" },
+    { teacherId, day: today, projection: "classId,timeSlots", filterSlots: "true" },
     {
       staleTime: 1000 * 60 * 60,
       refetchOnWindowFocus: false,
+      initialData: matchesInitialDate ? initialData.timeTablesData : undefined,
+      initialDataUpdatedAt: matchesInitialDate ? mountTimestamp : undefined,
     }
   );
 
@@ -256,11 +288,13 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
     {
       date: formattedDate,
       teacherId,
+      projection: "classId,subjectId,teacherId,periodNumber,day,date",
     },
     {
       staleTime: 1000 * 60 * 2,
       refetchOnWindowFocus: false,
       refetchOnMount: "always",
+      initialData: matchesInitialDate ? initialData.attendanceData : undefined,
     }
   );
 
@@ -272,6 +306,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
       staleTime: 1000 * 60 * 60,
       refetchOnWindowFocus: false,
       initialData: initialSettings ? { settings: initialSettings } : undefined,
+      initialDataUpdatedAt: initialSettings ? mountTimestamp : undefined,
     }
   );
   const settings = settingsQuery.data?.settings || initialSettings;
@@ -500,6 +535,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
     {
       staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: false,
+      initialData: matchesInitialDate ? initialData.leaveRecordData : undefined,
+      initialDataUpdatedAt: matchesInitialDate ? mountTimestamp : undefined,
     }
   );
 
@@ -792,29 +829,12 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
     return statusMap;
   }, [attendanceQuery.data?.attendances, getCleanId]);
 
-  // Set loading state only when needed
-  useEffect(() => {
-    if (
-      periodsQuery.isLoading ||
-      timeTablesQuery.isLoading ||
-      attendanceQuery.isLoading ||
-      settingsQuery.isLoading ||
-      leaveRecordQuery.isLoading ||
-      (!isViewingToday && snapshotLoading)
-    ) {
-      setLoading(true);
-    } else {
-      setLoading(false);
-    }
-  }, [
-    periodsQuery.isLoading,
-    timeTablesQuery.isLoading,
-    attendanceQuery.isLoading,
-    settingsQuery.isLoading,
-    leaveRecordQuery.isLoading,
-    isViewingToday,
-    snapshotLoading,
-  ]);
+  // Derive loading directly so SSR initialData renders immediately without a spinner flash.
+  const loading =
+    periodsQuery.isLoading ||
+    timeTablesQuery.isLoading ||
+    attendanceQuery.isLoading ||
+    (!isViewingToday && snapshotLoading);
 
   // Memoize attendance check function
   const isAttendanceMarked = useCallback(
@@ -955,38 +975,30 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
       (attendanceRecord.subjectId ? subjects.find((s) => s._id === getCleanId(attendanceRecord.subjectId))?.name : null) ||
       "this subject";
 
-    const absentStudents = attendanceRecord.attendanceData?.filter(student => !student.present) || [];
-
-    if (absentStudents.length === 0) {
-      toast.info("No absent students for this period.");
-      return;
-    }
-
-    // Build initial list immediately from cached attendance data (no wait)
-    const buildStudentList = (leaveRecordsData = []) => {
+    const buildStudentList = (absentList, leaveRecordsData = []) => {
       const studentsToMessage = [];
-      absentStudents.forEach(student => {
+      absentList.forEach((student) => {
         const number = student.guardianContactNumber || student.contactNumber;
         if (number) {
-          let formattedNumber = number.replace(/\D/g, '');
+          let formattedNumber = number.replace(/\D/g, "");
           if (formattedNumber.startsWith("0") && formattedNumber.length === 11) {
             formattedNumber = formattedNumber.slice(1);
           }
           if (formattedNumber.length === 10) {
             formattedNumber = `91${formattedNumber}`;
           }
-          if (!studentsToMessage.some(s => s.contactNumber === formattedNumber)) {
-            const studentLeave = leaveRecordsData.find(record => {
-              const rId = typeof record.studentId === 'object' ? record.studentId?._id : record.studentId;
-              const sId = typeof student.studentId === 'object' ? student.studentId?._id : student.studentId;
-              return String(rId) === String(sId);
+          if (!studentsToMessage.some((s) => s.contactNumber === formattedNumber)) {
+            const studentLeave = leaveRecordsData.find((record) => {
+              const rId = typeof record.studentId === "object" ? record.studentId?._id : record.studentId;
+              const stId = typeof student.studentId === "object" ? student.studentId?._id : student.studentId;
+              return String(rId) === String(stId);
             });
             const rawLeaveReason = studentLeave?.leaveReason || student?.leaveReason || "";
             const leaveReason = rawLeaveReason && rawLeaveReason !== "No Reason" ? rawLeaveReason.trim() : "";
             studentsToMessage.push({
               name: student.studentName || "Student",
               contactNumber: formattedNumber,
-              leaveReason
+              leaveReason,
             });
           }
         }
@@ -994,24 +1006,74 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
       return studentsToMessage;
     };
 
-    // Show popup instantly with what we already have
-    const initialList = buildStudentList([]);
-    if (initialList.length === 0) {
-      toast.error("No contact numbers found for absent students.");
+    const cachedRecord = attendanceDetailsCacheRef.current.get(attendanceRecord._id);
+    const resolvedRecord = attendanceRecord.attendanceData ? attendanceRecord : cachedRecord;
+
+    if (resolvedRecord?.attendanceData) {
+      const absentStudents = resolvedRecord.attendanceData.filter((student) => !student.present);
+      if (absentStudents.length === 0) {
+        toast.info("No absent students for this period.");
+        return;
+      }
+
+      const initialList = buildStudentList(absentStudents, []);
+      if (initialList.length === 0) {
+        toast.error("No contact numbers found for absent students.");
+        return;
+      }
+      setWhatsappModalData({ subjectName, loading: false, students: initialList });
+
+      try {
+        const response = await fetchItems("leave-records", apiKey, 0, 0, { classId: cId, isArrived: "false" });
+        const leaveRecordsData = response?.["leave-records"] || [];
+        if (leaveRecordsData.length > 0) {
+          const enrichedList = buildStudentList(absentStudents, leaveRecordsData);
+          setWhatsappModalData((prev) => (prev ? { ...prev, students: enrichedList } : prev));
+        }
+      } catch (err) {
+        console.error("Failed to fetch leave records:", err);
+      }
       return;
     }
-    setWhatsappModalData({ subjectName, loading: false, students: initialList });
 
-    // Fetch leave records in background and silently update reasons
+    setWhatsappModalData({ subjectName, loading: true, students: [] });
     try {
-      const response = await fetchItems("leave-records", apiKey, 0, 0, { classId: slot.classId?._id || slot.classId, isArrived: "false" });
-      const leaveRecordsData = response?.["leave-records"] || [];
-      if (leaveRecordsData.length > 0) {
-        const enrichedList = buildStudentList(leaveRecordsData);
-        setWhatsappModalData(prev => prev ? { ...prev, students: enrichedList } : prev);
+      const [attRes, leaveRes] = await Promise.all([
+        fetchItems("attendances", apiKey, 0, 0, { _id: attendanceRecord._id }),
+        fetchItems("leave-records", apiKey, 0, 0, { classId: cId, isArrived: "false" }).catch((err) => {
+          console.error("Failed to fetch leave records:", err);
+          return null;
+        }),
+      ]);
+
+      const fullRecord = attRes?.attendances?.[0];
+      if (!fullRecord) {
+        setWhatsappModalData(null);
+        toast.error("Attendance details could not be loaded.");
+        return;
       }
+      attendanceDetailsCacheRef.current.set(attendanceRecord._id, fullRecord);
+
+      const absentStudents = (fullRecord.attendanceData || []).filter((student) => !student.present);
+      if (absentStudents.length === 0) {
+        setWhatsappModalData(null);
+        toast.info("No absent students for this period.");
+        return;
+      }
+
+      const leaveRecordsData = leaveRes?.["leave-records"] || [];
+      const studentList = buildStudentList(absentStudents, leaveRecordsData);
+      if (studentList.length === 0) {
+        setWhatsappModalData(null);
+        toast.error("No contact numbers found for absent students.");
+        return;
+      }
+
+      setWhatsappModalData({ subjectName, loading: false, students: studentList });
     } catch (err) {
-      console.error("Failed to fetch leave records:", err);
+      console.error("Failed to fetch absent students:", err);
+      setWhatsappModalData(null);
+      toast.error("Failed to load absent students.");
     }
   }, [getCleanId, attendanceStatus, subjects, apiKey]);
 
@@ -1140,10 +1202,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
     if (teacherId) fetchHifzEnrollments();
   }, [fetchHifzEnrollments, teacherId]);
 
-  // Fetch current teacher's name once
+  // Fetch current teacher's name only when Hifz classes exist and SSR didn't supply it
   useEffect(() => {
-    if (!teacherId) return;
-    fetch(`/api/users?_id=${teacherId}`, {
+    if (!teacherId || teacherName || hifzEnrollments.length === 0) return;
+    fetch(`/api/users?_id=${teacherId}&projection=_id,name`, {
       credentials: "include",
       headers: { "api-key": apiKey },
     })
@@ -1152,8 +1214,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
         const name = data?.users?.[0]?.name || "";
         if (name) setTeacherName(name);
       })
-      .catch(() => { });
-  }, [teacherId, apiKey]);
+      .catch((err) => {
+        console.error("Failed to fetch teacher name:", err);
+      });
+  }, [teacherId, teacherName, hifzEnrollments.length, apiKey]);
 
   // Classes where this teacher is the Hifz teacher
   const hifzClasses = useMemo(() => {
@@ -1600,9 +1664,14 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
                                     const cId = getCleanId(slot.classId);
                                     const sId = getCleanId(slot.subjectId);
                                     const key = `${cId}:${sId}:${slot.periodNumber}`;
+                                    const attRec =
+                                      attendanceStatus[key] ||
+                                      attendanceStatus[`${cId}:${slot.periodNumber}`];
                                     setPerformanceSlot(slot);
                                     setPerformanceAttendanceRecord(
-                                      attendanceStatus[key] || attendanceStatus[`${cId}:${slot.periodNumber}`]
+                                      (attRec?._id &&
+                                        attendanceDetailsCacheRef.current.get(attRec._id)) ||
+                                        attRec
                                     );
                                     setPerformanceModalOpen(true);
                                   }}
