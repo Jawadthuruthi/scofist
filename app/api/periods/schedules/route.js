@@ -38,21 +38,25 @@ export async function GET() {
 
     const activeObj = schedules.find((s) => s.id === activeSchedule) || schedules[0];
 
-    // Compute period counts for each schedule
+    // Compute period counts for each schedule in parallel (one Promise per schedule)
+    const countResults = await Promise.all(
+      schedules.map((s) =>
+        Period.countDocuments({
+          $or: [
+            { schedule: s.id },
+            ...(s.id === "normal"
+              ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
+              : s.id === "thursday"
+                ? [{ schedule: { $exists: false }, isSpecialDay: true }]
+                : []),
+          ],
+        })
+      )
+    );
     const periodCounts = {};
-    for (const s of schedules) {
-      const count = await Period.countDocuments({
-        $or: [
-          { schedule: s.id },
-          ...(s.id === "normal"
-            ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
-            : s.id === "thursday"
-            ? [{ schedule: { $exists: false }, isSpecialDay: true }]
-            : []),
-        ],
-      });
-      periodCounts[s.id] = count;
-    }
+    schedules.forEach((s, i) => {
+      periodCounts[s.id] = countResults[i];
+    });
 
     return NextResponse.json(
       {
@@ -146,8 +150,8 @@ export async function POST(req) {
           ...(copyFromScheduleId === "normal"
             ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
             : copyFromScheduleId === "thursday"
-            ? [{ schedule: { $exists: false }, isSpecialDay: true }]
-            : []),
+              ? [{ schedule: { $exists: false }, isSpecialDay: true }]
+              : []),
         ],
       };
 

@@ -1,6 +1,6 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
-import { 
+import {
   markTeacherAttendanceFromStudentAttendance,
   unmarkTeacherAttendanceFromStudentAttendance,
   syncTeacherAttendanceFromStudentAttendance
@@ -64,7 +64,7 @@ export async function GET(req, res) {
       startOfDay.setUTCHours(0, 0, 0, 0);
       const endOfDay = new Date(targetDate);
       endOfDay.setUTCHours(23, 59, 59, 999);
-      
+
       query.date = {
         $gte: startOfDay,
         $lte: endOfDay,
@@ -135,9 +135,9 @@ export async function GET(req, res) {
     try {
       const leaveQuery = {};
       if (query.date) leaveQuery.date = query.date;
-      
-      const leaveRecords = await TeachersLeaveRecord.find(leaveQuery).lean();
-      
+
+      const leaveRecords = await TeachersLeaveRecord.find(leaveQuery).select("teacherId classId periodNumber date leaveReason").lean();
+
       const getDS = (d) => {
         const date = new Date(d);
         const year = date.getFullYear();
@@ -161,16 +161,35 @@ export async function GET(req, res) {
       attendances.forEach(att => {
         if (att.attendanceData) {
           att.attendanceData.forEach(student => {
-             const sId = student.studentId?._id?.toString() || student.studentId?.toString();
-             if (sId) allStudentIds.add(sId);
+            const sId = student.studentId?._id?.toString() || student.studentId?.toString();
+            if (sId) allStudentIds.add(sId);
           });
         }
       });
-      
+
       const studentIdsArray = Array.from(allStudentIds);
       if (studentIdsArray.length > 0) {
-        const studentLeaves = await LeaveRecord.find({ studentId: { $in: studentIdsArray } }).lean();
-        
+        // Scope student leave records to the queried date range to avoid a full-collection scan
+        const studentLeaveQuery = { studentId: { $in: studentIdsArray } };
+        if (query.date) {
+          // Expand lookup by 30 days on each side so multi-day leave records that span the query date are included
+          const dateFilter = query.date;
+          const buffer30 = 30 * 24 * 60 * 60 * 1000;
+          const rangeStart = new Date(
+            (dateFilter.$gte?.getTime() ?? dateFilter.getTime()) - buffer30
+          );
+          const rangeEnd = new Date(
+            (dateFilter.$lte?.getTime() ?? dateFilter.getTime()) + buffer30
+          );
+          studentLeaveQuery.dateOfLeave = { $lte: rangeEnd };
+          studentLeaveQuery.$or = [
+            { arrivedDate: { $gte: rangeStart } },
+            { arrivedDate: { $exists: false } },
+            { arrivedDate: null },
+          ];
+        }
+        const studentLeaves = await LeaveRecord.find(studentLeaveQuery).lean();
+
         studentLeaves.forEach(lr => {
           const sId = lr.studentId?.toString();
           if (sId) {
@@ -185,7 +204,7 @@ export async function GET(req, res) {
 
     let formattedAttendances = attendances.map((attendance) => {
       const attendanceObj = attendance.toObject ? attendance.toObject() : attendance;
-      
+
       const getDS = (d) => {
         const date = new Date(d);
         const year = date.getFullYear();
@@ -197,22 +216,22 @@ export async function GET(req, res) {
       // Join leaveReason
       const dateKey = getDS(attendanceObj.date);
       const leaveKey = `${getStrId(attendanceObj.teacherId)}_${getStrId(attendanceObj.classId)}_${attendanceObj.periodNumber}_${dateKey}`;
-      
+
       const baseObj = attendanceObj.attendanceData ? {
         ...attendanceObj,
         attendanceData: attendanceObj.attendanceData.map((student) => {
           const sIdStr = student.studentId?._id?.toString() || student.studentId?.toString();
           let matchedLeaveReason = null;
-          
+
           if (sIdStr && studentLeaveMap[sIdStr]) {
             const targetDate = new Date(attendanceObj.date);
             targetDate.setHours(0, 0, 0, 0);
-            
+
             for (const lr of studentLeaveMap[sIdStr]) {
               if (!lr.dateOfLeave) continue;
               const leaveDate = new Date(lr.dateOfLeave);
               leaveDate.setHours(0, 0, 0, 0);
-              
+
               const hasArrived = !!lr.arrivedDate;
               let endDate = hasArrived ? new Date(lr.arrivedDate) : (lr.dateOfArrival ? new Date(lr.dateOfArrival) : null);
               if (endDate) {
@@ -221,12 +240,12 @@ export async function GET(req, res) {
                 endDate = new Date(leaveDate);
                 endDate.setHours(23, 59, 59, 999);
               }
-              
+
               if (targetDate >= leaveDate && targetDate <= endDate) {
                 matchedLeaveReason = lr.leaveReason;
                 break;
               }
-              
+
               if (!hasArrived && targetDate > endDate && targetDate >= leaveDate) {
                 matchedLeaveReason = lr.leaveReason;
                 break;
@@ -269,13 +288,13 @@ export async function GET(req, res) {
       const maxDateStr = filterParams.referenceDate
         ? getDS(filterParams.referenceDate)
         : filterParams.date
-        ? getDS(filterParams.date)
-        : currentISTDateStr;
+          ? getDS(filterParams.date)
+          : currentISTDateStr;
       const maxPeriod = filterParams.referencePeriod
         ? Number(filterParams.referencePeriod)
         : filterParams.periodNumber
-        ? Number(filterParams.periodNumber)
-        : Infinity;
+          ? Number(filterParams.periodNumber)
+          : Infinity;
 
       // Group attendance records by students and track continuous absences
       const studentAbsences = {};
@@ -446,14 +465,15 @@ export async function POST(req, res) {
 
     await syncTeacherAttendanceFromStudentAttendance(newAttendance);
 
-    // 🔒 STEP 2: Safe update - check for duplicates before adding to student records
+    // 🔒 STEP 2: Safe update — batch-check duplicates then bulk-write student records
     const bulkOps = [];
     let skippedCount = 0;
 
-    for (const student of newAttendance.attendanceData) {
-      // Check if this exact attendance record already exists for this student
-      const existingRecord = await StudentAttendance.findOne({
-        studentId: student.studentId,
+    // Single query to find all StudentAttendance docs that already have this period for any student
+    const studentIds = newAttendance.attendanceData.map((s) => s.studentId);
+    const existingStudentDocs = await StudentAttendance.find(
+      {
+        studentId: { $in: studentIds },
         attendanceRecords: {
           $elemMatch: {
             date: new Date(newAttendance.date),
@@ -462,38 +482,38 @@ export async function POST(req, res) {
             subjectId: newAttendance.subjectId,
           },
         },
-      });
+      },
+      { studentId: 1 }
+    ).lean();
 
-      if (!existingRecord) {
-        // Safe to add - no duplicate
-        bulkOps.push({
-          updateOne: {
-            filter: { studentId: student.studentId },
-            update: {
-              $push: {
-                attendanceRecords: {
-                  classId: newAttendance.classId,
-                  batchId: typeof newAttendance.batchId === 'object' && newAttendance.batchId?._id ? newAttendance.batchId._id.toString() : newAttendance.batchId,
-                  subjectId: newAttendance.subjectId,
-                  teacherId: newAttendance.teacherId, // Sync teacherId
-                  periodNumber: newAttendance.periodNumber,
-                  day: newAttendance.day,
-                  date: newAttendance.date,
-                  present: student.present,
-                  leaveReason: student.leaveReason || null,
-                },
+    const alreadyExistSet = new Set(existingStudentDocs.map((d) => String(d.studentId)));
+
+    for (const student of newAttendance.attendanceData) {
+      if (alreadyExistSet.has(String(student.studentId))) {
+        skippedCount++;
+        continue;
+      }
+      bulkOps.push({
+        updateOne: {
+          filter: { studentId: student.studentId },
+          update: {
+            $push: {
+              attendanceRecords: {
+                classId: newAttendance.classId,
+                batchId: typeof newAttendance.batchId === 'object' && newAttendance.batchId?._id ? newAttendance.batchId._id.toString() : newAttendance.batchId,
+                subjectId: newAttendance.subjectId,
+                teacherId: newAttendance.teacherId,
+                periodNumber: newAttendance.periodNumber,
+                day: newAttendance.day,
+                date: newAttendance.date,
+                present: student.present,
+                leaveReason: student.leaveReason || null,
               },
             },
-            upsert: true,
           },
-        });
-      } else {
-        // Skip duplicate
-        skippedCount++;
-        console.warn(
-          `⚠️ Duplicate skipped: Student ${student.studentId} already has attendance for ${newAttendance.date}, period ${newAttendance.periodNumber}`
-        );
-      }
+          upsert: true,
+        },
+      });
     }
 
     // Execute the bulk operation if there are students
@@ -546,10 +566,11 @@ export async function PUT(req, res) {
     });
 
     if (data.attendanceData) {
-      for (const student of updatedAttendance.attendanceData) {
-        // Check if this student already has this attendance record in their history
-        const existingRecord = await StudentAttendance.findOne({
-          studentId: student.studentId,
+      // Batch-check which students already have this record vs which need a push
+      const studentIds = updatedAttendance.attendanceData.map((s) => s.studentId);
+      const existingStudentDocs = await StudentAttendance.find(
+        {
+          studentId: { $in: studentIds },
           attendanceRecords: {
             $elemMatch: {
               date: new Date(updatedAttendance.date),
@@ -558,55 +579,69 @@ export async function PUT(req, res) {
               subjectId: updatedAttendance.subjectId,
             },
           },
-        });
+        },
+        { studentId: 1 }
+      ).lean();
 
-        if (existingRecord) {
+      const hasExistingSet = new Set(existingStudentDocs.map((d) => String(d.studentId)));
+      const updateBulkOps = [];
+
+      for (const student of updatedAttendance.attendanceData) {
+        const sId = String(student.studentId);
+        if (hasExistingSet.has(sId)) {
           // UPDATE existing record
-          const updateRes = await StudentAttendance.updateOne(
-            {
-              studentId: student.studentId,
-              attendanceRecords: {
-                $elemMatch: {
-                  date: {
-                    $gte: new Date(new Date(updatedAttendance.date).setHours(0, 0, 0, 0)),
-                    $lt: new Date(new Date(updatedAttendance.date).setHours(23, 59, 59, 999)),
-                  },
-                  classId: updatedAttendance.classId,
-                  subjectId: updatedAttendance.subjectId,
-                  periodNumber: updatedAttendance.periodNumber,
-                }
-              }
-            },
-            {
-              $set: { 
-                "attendanceRecords.$.present": student.present,
-                "attendanceRecords.$.leaveReason": student.leaveReason || null,
-              },
-            }
-          );
-          console.log(`[ATTENDANCE PUT] studentId=${student.studentId} updateRes:`, updateRes);
-        } else {
-          // PUSH new record if missing (e.g. student added after initial attendance was saved)
-          await StudentAttendance.updateOne(
-            { studentId: student.studentId },
-            {
-              $push: {
+          updateBulkOps.push({
+            updateOne: {
+              filter: {
+                studentId: student.studentId,
                 attendanceRecords: {
-                  classId: updatedAttendance.classId,
-                  batchId: typeof updatedAttendance.batchId === 'object' && updatedAttendance.batchId?._id ? updatedAttendance.batchId._id.toString() : updatedAttendance.batchId,
-                  subjectId: updatedAttendance.subjectId,
-                  teacherId: updatedAttendance.teacherId,
-                  periodNumber: updatedAttendance.periodNumber,
-                  day: updatedAttendance.day,
-                  date: updatedAttendance.date,
-                  present: student.present,
-                  leaveReason: student.leaveReason || null,
+                  $elemMatch: {
+                    date: {
+                      $gte: new Date(new Date(updatedAttendance.date).setHours(0, 0, 0, 0)),
+                      $lt: new Date(new Date(updatedAttendance.date).setHours(23, 59, 59, 999)),
+                    },
+                    classId: updatedAttendance.classId,
+                    subjectId: updatedAttendance.subjectId,
+                    periodNumber: updatedAttendance.periodNumber,
+                  },
+                },
+              },
+              update: {
+                $set: {
+                  "attendanceRecords.$.present": student.present,
+                  "attendanceRecords.$.leaveReason": student.leaveReason || null,
                 },
               },
             },
-            { upsert: true }
-          );
+          });
+        } else {
+          // PUSH new record if missing
+          updateBulkOps.push({
+            updateOne: {
+              filter: { studentId: student.studentId },
+              update: {
+                $push: {
+                  attendanceRecords: {
+                    classId: updatedAttendance.classId,
+                    batchId: typeof updatedAttendance.batchId === 'object' && updatedAttendance.batchId?._id ? updatedAttendance.batchId._id.toString() : updatedAttendance.batchId,
+                    subjectId: updatedAttendance.subjectId,
+                    teacherId: updatedAttendance.teacherId,
+                    periodNumber: updatedAttendance.periodNumber,
+                    day: updatedAttendance.day,
+                    date: updatedAttendance.date,
+                    present: student.present,
+                    leaveReason: student.leaveReason || null,
+                  },
+                },
+              },
+              upsert: true,
+            },
+          });
         }
+      }
+
+      if (updateBulkOps.length > 0) {
+        await StudentAttendance.bulkWrite(updateBulkOps);
       }
     }
     // Sync teacher attendance after update

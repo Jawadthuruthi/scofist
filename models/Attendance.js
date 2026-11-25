@@ -71,56 +71,10 @@ attendanceSchema.index({ classId: 1, date: 1 });
 // Index for queries scoped by teacher + date (used by teacherAttendances API)
 attendanceSchema.index({ teacherId: 1, date: 1 });
 
-// Pre-save validation to ensure teacherId has Teacher role
-attendanceSchema.pre("save", async function (next) {
-  try {
-    const teacher = await models.User.findById(this.teacherId);
-    if (!teacher || !teacher.roles.includes("Teacher")) {
-      return next(new Error("Only teachers can record attendance"));
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Pre-save validation to ensure all studentIds exist in the class
-attendanceSchema.pre("save", async function (next) {
-  try {
-    if (!this.attendanceData || this.attendanceData.length === 0) {
-      return next();
-    }
-
-    // Get all students in this class OR assigned to CORE/MAJOR subjects in this class
-    const classStudents = await User.find({
-      $or: [
-        { "studentSpecificField.classId": this.classId },
-        { "studentSpecificField.subjectTypeAssignments": { 
-            $in: [`${this.classId}:CORE`, `${this.classId}:MAJOR`] 
-          } 
-        }
-      ],
-      roles: { $in: ["Student"] },
-    }).select("_id");
-
-    const classStudentIds = classStudents.map((student) =>
-      student?._id.toString()
-    );
-
-    // Check if all attendanceData students belong to the class
-    for (const record of this.attendanceData) {
-      if (!classStudentIds.includes(record.studentId.toString())) {
-        return next(
-          new Error(`Student ${record.studentId} is not in this class`)
-        );
-      }
-    }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+// Duplicate-prevention is handled at the API layer (POST checks for existing record
+// before creation; the unique compound index on classId+subjectId+date+periodNumber
+// also guards against races). The teacher-role and student-membership checks added
+// significant DB overhead on every save; validation is done in the API route instead.
 
 // Force model reload in development
 if (process.env.NODE_ENV === "development") {

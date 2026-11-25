@@ -20,6 +20,7 @@ import { fetchItems } from "@/lib/api";
 import Header from "./Header";
 import ClassPerformanceModal from "./ClassPerformanceModal";
 import TodayStatusModal from "./TodayStatusModal";
+import TeacherNotesSection from "./TeacherNotesSection";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -1670,6 +1671,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal, initialSettings }) => {
             </div>
           )}
         </div>
+
+        <TeacherNotesSection teacherId={teacherId} />
 
         {/* ── Hifz & Doura Section ────────────────────────────────────────── */}
         {hifzLoadingEnroll ? null : hifzClasses.length > 0 ? (

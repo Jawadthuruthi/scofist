@@ -31,6 +31,10 @@ teachersLeaveRecordSchema.index(
   { teacherId: 1, classId: 1, periodNumber: 1, date: 1 },
   { unique: true }
 );
+// Index for fast date-scoped lookups (attendances GET join)
+teachersLeaveRecordSchema.index({ date: 1 });
+// Index for teacher + date lookups (my-periods leave record query)
+teachersLeaveRecordSchema.index({ teacherId: 1, date: 1 });
 
 const TeachersLeaveRecord =
   models.TeachersLeaveRecord ||

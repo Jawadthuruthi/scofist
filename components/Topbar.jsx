@@ -27,7 +27,7 @@ import PushNotificationToggle from "./PushNotificationToggle";
 import { usePathname } from "next/navigation";
 import Cookies from "js-cookie";
 
-export function Topbar({ user, festival: initialFestival, activeRole: activeRoleProp, hideSidebarToggle = false, settingsData }) {
+export function Topbar({ user, festival: initialFestival, activeRole: activeRoleProp, hideSidebarToggle = false, settingsData, needsProfileCacheSync = false }) {
   const { toggleSidebar } = useSidebar();
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
@@ -43,11 +43,16 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
 
   useEffect(() => {
     if (user) {
-      setCurrentUser((prev) => ({
-        ...prev,
-        ...user,
-        profilePic: user.profilePic || prev?.profilePic,
-      }));
+      setCurrentUser((prev) => {
+        const incomingHasRealRoles =
+          Array.isArray(user.roles) && user.roles.some((r) => r && r !== "User");
+        return {
+          ...prev,
+          ...user,
+          profilePic: user.profilePic || prev?.profilePic,
+          roles: incomingHasRealRoles ? user.roles : (prev?.roles || user.roles),
+        };
+      });
     }
   }, [user]);
 
@@ -56,28 +61,64 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
       ? currentUser.profilePic
       : currentUser?.profilePic?.url;
 
-  // If user profile picture is missing from initial JWT/header, fetch full profile from /api/users/profile once
+  const hasRealRoles =
+    Array.isArray(currentUser?.roles) &&
+    currentUser.roles.some((r) => r && r !== "User");
+
+  // Fetch full profile from /api/users/profile once when avatar, real roles, or profile-cache cookie need syncing
   useEffect(() => {
-    const uid = currentUser?._id || currentUser?.userId || user?._id || user?.userId;
-    if (!profilePhotoUrl && uid && !hasFetchedProfileRef.current) {
+    const uid =
+      currentUser?._id ||
+      currentUser?.userId ||
+      currentUser?.email ||
+      user?._id ||
+      user?.userId ||
+      user?.email;
+    if ((!profilePhotoUrl || !hasRealRoles || needsProfileCacheSync) && uid && !hasFetchedProfileRef.current) {
       hasFetchedProfileRef.current = true;
       fetch("/api/users/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: uid }),
+        credentials: "include",
+        body: JSON.stringify({ userId: String(uid) }),
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.user?.profilePic) {
+          if (data?.user) {
             setCurrentUser((prev) => ({
               ...prev,
               ...data.user,
+              profilePic: data.user.profilePic || prev?.profilePic,
             }));
+            const fetchedRoles = Array.isArray(data.user.roles)
+              ? data.user.roles.filter((r) => r && r !== "User")
+              : [];
+            if (fetchedRoles.length > 0) {
+              setActiveRole((prevRole) =>
+                !prevRole || prevRole === "User"
+                  ? fetchedRoles.includes("Teacher")
+                    ? "Teacher"
+                    : fetchedRoles[0]
+                  : prevRole
+              );
+            }
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error("Failed to fetch profile in Topbar:", err?.message || err);
+        });
     }
-  }, [currentUser?._id, currentUser?.userId, user?._id, user?.userId, profilePhotoUrl]);
+  }, [
+    currentUser?._id,
+    currentUser?.userId,
+    currentUser?.email,
+    user?._id,
+    user?.userId,
+    user?.email,
+    profilePhotoUrl,
+    hasRealRoles,
+    needsProfileCacheSync,
+  ]);
 
   useEffect(() => {
     if (initialFestival) {
@@ -144,7 +185,14 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
     };
 
     window.addEventListener("active-year-changed", handleYearChanged);
-    return () => {
+    const isRadixSelectTarget = (target) =>
+    Boolean(
+      target?.closest?.("[data-radix-select-viewport]") ||
+        target?.closest?.("[role='listbox']") ||
+        target?.closest?.("[data-radix-popper-content-wrapper]")
+    );
+
+  return () => {
       window.removeEventListener("active-year-changed", handleYearChanged);
     };
   }, [activeRoleProp]);
@@ -176,11 +224,18 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
   const effectiveRole =
     activeRole || (typeof window !== "undefined" ? Cookies.get("active-role") : null);
 
-  const rawRoles = user?.roles || [];
+  const rawRoles =
+    Array.isArray(currentUser?.roles) && currentUser.roles.length > 0
+      ? currentUser.roles
+      : (user?.roles || []);
+  const nonFallbackRoles = rawRoles.filter((r) => r && r !== "User");
+  const sourceRoles = nonFallbackRoles.length > 0 ? nonFallbackRoles : rawRoles;
   const baseRoles =
-    effectiveRole && !rawRoles.includes(effectiveRole)
-      ? [...rawRoles, effectiveRole]
-      : rawRoles;
+    effectiveRole &&
+    (effectiveRole !== "User" || nonFallbackRoles.length === 0) &&
+    !sourceRoles.includes(effectiveRole)
+      ? [...sourceRoles, effectiveRole]
+      : sourceRoles;
   const filteredRoles = baseRoles.filter(
     (r) => r !== "Stationary" && r !== "IT Lab"
   );
@@ -215,8 +270,8 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
       window.location.href = "/dashboard";
     }
   };
-  const isStudent = effectiveRole === "Student" || (user?.roles?.includes("Student") && effectiveRole !== "Teacher");
-  const isTeacher = !isStudent && (effectiveRole === "Teacher" || user?.roles?.includes("Teacher"));
+  const isStudent = effectiveRole === "Student" || (sourceRoles.includes("Student") && effectiveRole !== "Teacher");
+  const isTeacher = !isStudent && (effectiveRole === "Teacher" || sourceRoles.includes("Teacher"));
   const canEditProfile = isTeacher || isStudent;
 
   const isAllowedRole =
@@ -237,6 +292,13 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
     festival?.festivalInfo?.name ||
     festival?.name ||
     "";
+
+  const isRadixSelectTarget = (target) =>
+    Boolean(
+      target?.closest?.("[data-radix-select-viewport]") ||
+        target?.closest?.("[role='listbox']") ||
+        target?.closest?.("[data-radix-popper-content-wrapper]")
+    );
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 h-14 min-h-14 shrink-0 bg-background border-b shadow-sm flex items-center px-4 justify-between no-print">
@@ -310,11 +372,12 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
             <PopoverContent
               className="w-72 p-0 rounded-xl mr-4 mt-4 overflow-hidden"
               onPointerDownOutside={(e) => {
-                if (
-                  e.target?.closest?.("[data-radix-select-viewport]") ||
-                  e.target?.closest?.("[role='listbox']") ||
-                  e.target?.closest?.("[data-radix-popper-content-wrapper]")
-                ) {
+                if (isRadixSelectTarget(e.target)) {
+                  e.preventDefault();
+                }
+              }}
+              onFocusOutside={(e) => {
+                if (isRadixSelectTarget(e.target)) {
                   e.preventDefault();
                 }
               }}
@@ -360,7 +423,7 @@ export function Topbar({ user, festival: initialFestival, activeRole: activeRole
                   {filteredRoles.length > 0 && (
                     <div className="w-full">
                       <Select
-                        value={effectiveRole || filteredRoles[0]}
+                        value={filteredRoles.includes(effectiveRole) ? effectiveRole : filteredRoles[0]}
                         onValueChange={handleRoleChange}
                       >
                         <SelectTrigger className="w-full pl-7 pr-3 [&>span]:flex-1 [&>span]:text-center">

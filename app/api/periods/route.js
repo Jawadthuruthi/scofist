@@ -9,16 +9,6 @@ export async function GET(req) {
   try {
     await connectToDB();
 
-    // Auto-migrate legacy periods missing the schedule field
-    await Period.updateMany(
-      { isSpecialDay: true, $or: [{ schedule: { $exists: false } }, { schedule: null }] },
-      { $set: { schedule: "thursday" } }
-    );
-    await Period.updateMany(
-      { isSpecialDay: { $ne: true }, $or: [{ schedule: { $exists: false } }, { schedule: null }] },
-      { $set: { schedule: "normal" } }
-    );
-
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
     const limit = parseInt(url.searchParams.get("limit")) || Infinity;
@@ -118,24 +108,26 @@ export async function GET(req) {
       }
     } else {
       // Default behavior (e.g., when called from dashboard or my-periods without explicit param):
-      // Return periods for the currently active schedule
+      // Return periods for the currently active schedule.
+      // Fetch all periods sorted and determine fallback in one round-trip.
       const activeFilter = {
         $or: [
           { schedule: activeScheduleId },
           ...(activeScheduleId === "normal"
             ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
             : activeScheduleId === "thursday"
-            ? [{ schedule: { $exists: false }, isSpecialDay: true }]
-            : []),
+              ? [{ schedule: { $exists: false }, isSpecialDay: true }]
+              : []),
         ],
       };
 
-      const activeCount = await Period.countDocuments({
+      // Try the active schedule first; if empty, fallback to normal — single query covers both.
+      const periodsForActive = await Period.find({
         ...activeFilter,
         ...(query.periodNumber ? { periodNumber: query.periodNumber } : {}),
-      });
+      }).select("_id").limit(1).lean();
 
-      if (activeCount > 0) {
+      if (periodsForActive.length > 0) {
         Object.assign(query, activeFilter);
       } else {
         // If no periods configured for this active schedule yet, fallback to normal periods
@@ -272,8 +264,8 @@ export async function PUT(req) {
           ...(scheduleId === "normal"
             ? [{ schedule: { $exists: false }, isSpecialDay: { $ne: true } }]
             : scheduleId === "thursday"
-            ? [{ schedule: { $exists: false }, isSpecialDay: true }]
-            : []),
+              ? [{ schedule: { $exists: false }, isSpecialDay: true }]
+              : []),
         ],
       };
 
@@ -292,7 +284,7 @@ export async function PUT(req) {
 
       const updatedPeriods = await Period.find(scheduleFilter).sort({
         periodNumber: 1,
-      });
+      }).lean();
 
       return NextResponse.json(
         {

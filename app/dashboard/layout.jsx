@@ -15,14 +15,48 @@ import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseUser } from "@/lib/utils";
 import { getCachedSettings } from "@/lib/settings";
+import { getCachedUserProfile, hasRealRoles } from "@/lib/userProfile";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Layout({ children }) {
   const headerStore = await headers();
   const cookiesStore = await cookies();
-  const user = parseUser(headerStore);
-  const currentActiveRole = cookiesStore.get("active-role")?.value || headerStore.get("active-role") || user?.roles?.[0];
+  const headerUser = parseUser(headerStore);
+  const uid = headerUser?._id || headerUser?.userId || headerUser?.email;
+  const needsProfileCacheSync = Boolean(uid && !hasRealRoles(headerUser?.roles));
+
+  let user = headerUser;
+  if (needsProfileCacheSync) {
+    try {
+      const dbUser = await getCachedUserProfile(String(uid));
+      if (dbUser) {
+        user = {
+          ...headerUser,
+          ...dbUser,
+          profilePic: dbUser.profilePic || headerUser?.profilePic,
+        };
+      }
+    } catch (err) {
+      console.error("Failed to hydrate user roles in dashboard layout:", err?.message || err);
+    }
+  }
+
+  const resolvedRoles = Array.isArray(user?.roles) ? user.roles : [];
+  const cookieRole = cookiesStore.get("active-role")?.value;
+  const headerRole = headerStore.get("active-role");
+  let currentActiveRole =
+    cookieRole && (resolvedRoles.length === 0 || resolvedRoles.includes(cookieRole))
+      ? cookieRole
+      : headerRole && (resolvedRoles.length === 0 || resolvedRoles.includes(headerRole))
+        ? headerRole
+        : resolvedRoles[0];
+
+  if ((!currentActiveRole || currentActiveRole === "User") && hasRealRoles(resolvedRoles)) {
+    currentActiveRole = resolvedRoles.includes("Teacher")
+      ? "Teacher"
+      : resolvedRoles.find((r) => r && r !== "User") || resolvedRoles[0];
+  }
 
   const isFestivalRole =
     currentActiveRole === "Program Committee" ||
@@ -74,7 +108,7 @@ export default async function Layout({ children }) {
         <div className="flex h-screen print:h-auto overflow-hidden print:overflow-visible min-w-full max-w-full">
           <AppSidebar roles={user?.roles} activeRole={currentActiveRole} user={user} settingsData={settingsData} initialActiveYear={initialActiveYear} />
           <div className="flex flex-col flex-1 min-w-0 print:block">
-            <Topbar user={user} festival={activeFestival} activeRole={currentActiveRole} settingsData={settingsData} />
+            <Topbar user={user} festival={activeFestival} activeRole={currentActiveRole} settingsData={settingsData} needsProfileCacheSync={needsProfileCacheSync} />
             <main className="flex-1 px-4 lg:p-6 mt-14 print:mt-0 overflow-auto print:overflow-visible container print:block print:p-0">
               {children}
               <div className="h-20 lg:h-16 no-print"></div>
