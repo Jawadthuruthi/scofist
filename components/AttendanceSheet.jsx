@@ -107,7 +107,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
             try {
                 const [classesRes, subjectsRes, batchesRes] = await Promise.all([
                     axios.get("/api/classes?status=Active", { headers: getHeaders() }),
-                    axios.get("/api/subjects", { 
+                    axios.get("/api/subjects", {
                         headers: getHeaders(),
                         params: { projection: "_id,name" }
                     }),
@@ -116,10 +116,10 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 const fetchedClasses = (classesRes.data.classes || [])
                     .filter((c) => c?.status !== "Closed")
                     .sort((a, b) => {
-                    const classCompare = sortClasses(a, b);
-                    if (classCompare !== 0) return classCompare;
-                    return String(a.name || "").localeCompare(String(b.name || ""));
-                });
+                        const classCompare = sortClasses(a, b);
+                        if (classCompare !== 0) return classCompare;
+                        return String(a.name || "").localeCompare(String(b.name || ""));
+                    });
                 setClasses(fetchedClasses);
                 setAllSubjects(subjectsRes.data.subjects || []);
                 const fetchedBatches = batchesRes.data.batches || [];
@@ -141,10 +141,10 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
         const fetchSubjects = async () => {
             if (filters.classId) {
                 const cls = classes.find(c => c._id === filters.classId);
-                
+
                 // Collect current subjects from class data
                 const currentSubjects = [
-                    ...(cls?.coreSubjects || []), 
+                    ...(cls?.coreSubjects || []),
                     ...(cls?.majorSubjects || [])
                 ].map(s => {
                     if (typeof s === 'string') {
@@ -165,17 +165,17 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                     const combined = [...currentSubjects, ...historicalSubjects];
 
                     // Remove duplicates based on _id
-                    const uniqueSubjects = combined.filter((s, index, self) => 
+                    const uniqueSubjects = combined.filter((s, index, self) =>
                         s && s._id && index === self.findIndex((t) => t._id === s._id)
                     );
-                    
+
                     setSubjects(uniqueSubjects);
                 } catch (error) {
                     console.error("Error fetching historical subjects:", error);
                     // Fallback to current subjects only if API fails
                     setSubjects(currentSubjects);
                 }
-                
+
                 setFilters(prev => ({ ...prev, subjectId: "" })); // Reset subject
             } else if (filters.batchId) {
                 // Collect subjects from all classes in the batch
@@ -183,7 +183,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                     const bId = c.batchId && typeof c.batchId === 'object' ? c.batchId._id : c.batchId;
                     return bId === filters.batchId;
                 });
-                
+
                 const collectedSubjects = [];
                 batchClasses.forEach(cls => {
                     [...(cls.coreSubjects || []), ...(cls.majorSubjects || [])].forEach(s => {
@@ -198,7 +198,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 });
 
                 // Remove duplicates
-                const uniqueSubjects = collectedSubjects.filter((s, index, self) => 
+                const uniqueSubjects = collectedSubjects.filter((s, index, self) =>
                     s && s._id && index === self.findIndex((t) => t._id === s._id)
                 );
 
@@ -286,16 +286,16 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 const isFriday = day.getDay() === 5;
                 const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
                 const teacherLeaveReason = data.teacherLeavesMap?.[dateKey];
-                
+
                 const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
                 const isNoPeriod = filters.classId && data.subjectDays?.length > 0 && !data.subjectDays.includes(dayName) && !isFriday;
-                
+
                 if (isFriday || isNonWorkingDay || teacherLeaveReason || isNoPeriod) {
                     row.push("-");
                 } else {
                     const status = data.attendanceMap[student._id]?.[dateKey];
                     const hasLeave = data.leavesMap[student._id]?.[dateKey];
-                    
+
                     if (hasLeave) {
                         row.push("L");
                         leaveCount++;
@@ -389,7 +389,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                             ))}
                         </SelectContent>
                     </Select>
-                    
+
                     <Select value={filters.classId || "none"} onValueChange={handleClassChange}>
                         <SelectTrigger className="flex-1 sm:flex-none sm:w-[160px]"><SelectValue placeholder="Select Class" /></SelectTrigger>
                         <SelectContent>
@@ -397,7 +397,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                             {filteredClasses.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                    
+
                     <Select value={filters.subjectId} onValueChange={(v) => setFilters(prev => ({ ...prev, subjectId: v }))} disabled={!filters.classId && !filters.batchId}>
                         <SelectTrigger className="flex-1 sm:flex-none sm:w-[160px]"><SelectValue placeholder="Select Subject" /></SelectTrigger>
                         <SelectContent>
@@ -409,7 +409,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                         </SelectContent>
                     </Select>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:ml-auto">
                     {loading && (
                         <div className="flex items-center text-sm text-muted-foreground mr-2">
@@ -484,258 +484,221 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                         </div>
                     </div>
                 )}
-                
+
                 <div className="overflow-x-auto w-full">
                     <Table>
-                    <TableHeader className="sticky top-0 bg-secondary z-20 print:static">
-                        <TableRow>
-                            <TableHead className="w-[50px] sticky left-0 bg-secondary z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
-                            <TableHead className="min-w-[150px] sticky left-[50px] bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none border-r border-border">
-                                <span className="hidden print:inline">Student Name</span>
-                                <div className="relative flex items-center w-full max-w-xs print:hidden">
-                                    <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                                    <Input
-                                        type="text"
-                                        placeholder="Search students..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Escape") setSearchQuery("");
-                                        }}
-                                        className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                    {searchQuery && (
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSearchQuery("");
-                                            }}
-                                            className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
-                                            title="Clear search"
-                                            aria-label="Clear search"
-                                        >
-                                            <X className="h-3.5 w-3.5" />
-                                        </button>
-                                    )}
-                                </div>
-                            </TableHead>
-                            {daysInMonth.map(day => {
-                                const dateKey = day.getDate();
-                                const isFriday = day.getDay() === 5;
-                                // Use 'in' check so empty-string occasions (legacy dates) are still treated as non-working
-                                const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
-                                const teacherLeaveReason = data.teacherLeavesMap?.[dateKey];
-                                
-                                const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
-                                const isNoPeriod = filters.classId && data.subjectDays?.length > 0 && !data.subjectDays.includes(dayName) && !isFriday;
-
-                                return (
-                                    <TableHead key={day.toISOString()} className={`text-center min-w-[30px] px-1 ${
-                                        isFriday ? 'bg-red-50 text-red-600 print:!bg-red-100 print:!text-red-600' :
-                                        teacherLeaveReason ? 'bg-blue-50 text-blue-600 print:!bg-blue-100 print:!text-blue-600' :
-                                        isNoPeriod ? 'bg-gray-100 text-gray-400 print:!bg-gray-200 print:!text-gray-400' :
-                                        isNonWorkingDay ? 'bg-orange-50 text-orange-600 print:!bg-orange-100 print:!text-orange-600' : ''
-                                    }`}>
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-xs font-bold">{day.getDate()}</span>
-                                            <span className="text-[9px] uppercase">{day.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
-                                        </div>
-                                    </TableHead>
-                                );
-                            })}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {displayedStudents.length === 0 ? (
+                        <TableHeader className="sticky top-0 bg-secondary z-20 print:static">
                             <TableRow>
-                                <TableCell colSpan={daysInMonth.length + 2} className="text-center h-24">
-                                    {searchQuery ? `No students found matching "${searchQuery}"` : (loading ? "Loading..." : "No data to display. Please select specific filters to load.")}
-                                </TableCell>
+                                <TableHead className="w-[50px] sticky left-0 bg-secondary z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
+                                <TableHead className="min-w-[150px] sticky left-[50px] bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none border-r border-border">
+                                    <span className="hidden print:inline">Student Name</span>
+                                    <div className="relative flex items-center w-full max-w-xs print:hidden">
+                                        <Search className="absolute left-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                                        <Input
+                                            type="text"
+                                            placeholder="Search students..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Escape") setSearchQuery("");
+                                            }}
+                                            className="h-8 pl-7 pr-6 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none w-full placeholder:text-muted-foreground font-medium"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSearchQuery("");
+                                                }}
+                                                className="absolute right-1 text-muted-foreground hover:text-foreground p-0.5 rounded-sm transition-colors"
+                                                title="Clear search"
+                                                aria-label="Clear search"
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </TableHead>
+                                {daysInMonth.map(day => {
+                                    const dateKey = day.getDate();
+                                    const isFriday = day.getDay() === 5;
+                                    // Use 'in' check so empty-string occasions (legacy dates) are still treated as non-working
+                                    const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
+                                    const teacherLeaveReason = data.teacherLeavesMap?.[dateKey];
+
+                                    const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
+                                    const isNoPeriod = filters.classId && data.subjectDays?.length > 0 && !data.subjectDays.includes(dayName) && !isFriday;
+
+                                    return (
+                                        <TableHead key={day.toISOString()} className={`text-center min-w-[30px] px-1 ${isFriday ? 'bg-red-50 text-red-600 print:!bg-red-100 print:!text-red-600' :
+                                                teacherLeaveReason ? 'bg-blue-50 text-blue-600 print:!bg-blue-100 print:!text-blue-600' :
+                                                    isNoPeriod ? 'bg-gray-100 text-gray-400 print:!bg-gray-200 print:!text-gray-400' :
+                                                        isNonWorkingDay ? 'bg-orange-50 text-orange-600 print:!bg-orange-100 print:!text-orange-600' : ''
+                                            }`}>
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-xs font-bold">{day.getDate()}</span>
+                                                <span className="text-[9px] uppercase">{day.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
+                                            </div>
+                                        </TableHead>
+                                    );
+                                })}
                             </TableRow>
-                        ) : (
-                            displayedStudents.map(({ student, originalIndex }) => (
-                                <TableRow key={student._id} className="group print:break-inside-avoid">
-                                    <TableCell className="sticky left-0 bg-background group-hover:bg-muted/50 z-30 font-medium text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
-                                        {originalIndex}
+                        </TableHeader>
+                        <TableBody>
+                            {displayedStudents.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={daysInMonth.length + 2} className="text-center h-24">
+                                        {searchQuery ? `No students found matching "${searchQuery}"` : (loading ? "Loading..." : "No data to display. Please select specific filters to load.")}
                                     </TableCell>
-                                    <TableCell className="sticky left-[50px] bg-background group-hover:bg-muted/50 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none border-r border-border">
-                                        <div className="flex flex-col">
-                                            <span>{student.name}</span>
-                                            {filters.batchId && !filters.classId && student.studentSpecificField?.classId && (
-                                                <span className="text-[10px] text-muted-foreground font-normal">
-                                                    {classes.find(c => c._id === student.studentSpecificField.classId)?.name || ""}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    {daysInMonth.map(day => {
-                                        const dateKey = day.getDate();
-                                        const entry = data.attendanceMap[student._id]?.[dateKey];
-                                        // Determine status: Database
-                                        const isPresent = entry?.present;
-                                        const isFriday = day.getDay() === 5;
-                                        const occasionName = data.nonWorkingDaysMap?.[dateKey];
-                                        // Use 'in' check so empty-string occasions (legacy dates) are still non-working
-                                        const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
-                                        const teacherLeaveReason = data.teacherLeavesMap?.[dateKey];
-                                        
-                                        const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
-                                        const isNoPeriod = filters.classId && data.subjectDays?.length > 0 && !data.subjectDays.includes(dayName) && !isFriday;
-
-                                        if (isFriday) {
-                                            const isMiddle = index === Math.floor(data.students.length / 2);
-
-                                            // VISUAL MERGE: We simulate a merged column by hiding borders between cells.
-                                            // This allows the browser to break the table across pages (starting on Page 1),
-                                            // which is impossible with a real 'rowSpan' of 50+ rows.
-                                            const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
-                                            const borderBottom = index === data.students.length - 1 ? '' : 'border-b-0 print:border-b-0';
-
-                                            return (
-                                                <TableCell
-                                                    key={day.toISOString()}
-                                                    className={`text-center p-0 border-l bg-red-50/50 print:!bg-red-50 align-middle ${borderTop} ${borderBottom}`}
-                                                >
-                                                    <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
-                                                        {isMiddle && (
-                                                            <span className="absolute z-0 text-xl text-red-300 print:!text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
-                                                                Friday
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            );
-                                        }
-
-                                        if (teacherLeaveReason) {
-                                            const isMiddle = index === Math.floor(data.students.length / 2);
-                                            const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
-                                            const borderBottom = index === data.students.length - 1 ? '' : 'border-b-0 print:border-b-0';
-
-                                            return (
-                                                <TableCell
-                                                    key={day.toISOString()}
-                                                    className={`text-center p-0 border-l bg-blue-50/50 print:!bg-blue-50 align-middle ${borderTop} ${borderBottom}`}
-                                                >
-                                                    <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
-                                                        {isMiddle && (
-                                                            <span className="absolute z-0 text-xl text-blue-300 print:!text-blue-300 font-bold tracking-[0.2em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
-                                                                {teacherLeaveReason}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            );
-                                        }
-
-                                        if (isNoPeriod) {
-                                            const isMiddle = index === Math.floor(data.students.length / 2);
-                                            const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
-                                            const borderBottom = index === data.students.length - 1 ? '' : 'border-b-0 print:border-b-0';
-
-                                            return (
-                                                <TableCell
-                                                    key={day.toISOString()}
-                                                    className={`text-center p-0 border-l bg-gray-50/50 print:!bg-gray-100 align-middle ${borderTop} ${borderBottom}`}
-                                                >
-                                                    <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
-                                                        {isMiddle && (
-                                                            <span className="absolute z-0 text-xl text-gray-400 print:!text-gray-400 font-bold tracking-[0.2em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
-                                                                No Period
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            );
-                                        }
-
-                                        if (isNonWorkingDay) {
-                                            const isMiddle = index === Math.floor(data.students.length / 2);
-                                            const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
-                                            const borderBottom = index === data.students.length - 1 ? '' : 'border-b-0 print:border-b-0';
-
-                                            return (
-                                                <TableCell
-                                                    key={day.toISOString()}
-                                                    className={`text-center p-0 border-l bg-orange-50/50 print:!bg-orange-50 align-middle ${borderTop} ${borderBottom}`}
-                                                >
-                                                    <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
-                                                        {isMiddle && occasionName && (
-                                                            <span className="absolute z-0 text-xl text-orange-300 print:!text-orange-300 font-bold tracking-[0.5em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
-                                                                {occasionName}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            );
-                                        }
-
-                                        // Visuals
-                                        let Icon = null;
-                                        const leaveReason = data.leavesMap?.[student._id]?.[dateKey];
-
-                                        if (isPresent === true) {
-                                            Icon = <Check className="w-4 h-4 text-green-600 print:!text-green-600 font-bold" />;
-                                        } else if (isPresent === false) {
-                                            Icon = (
-                                                <div className="flex flex-col items-center">
-                                                    <X className="w-3 h-3 text-red-600 print:!text-red-600" />
-                                                    {leaveReason && (
-                                                        <span className="text-[7px] text-red-500 print:!text-red-500 leading-none mt-0.5 line-clamp-1 max-w-[40px]">
-                                                            {leaveReason}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            );
-                                        } else if (leaveReason) {
-                                            Icon = (
-                                                <div className="flex flex-col items-center">
-                                                    <span className="text-xs font-bold text-yellow-600 print:!text-yellow-600 leading-none mt-1">L</span>
-                                                    <span className="text-[7px] text-yellow-600 print:!text-yellow-600 leading-none mt-0.5 line-clamp-1 max-w-[40px]">
-                                                        {leaveReason}
-                                                    </span>
-                                                </div>
-                                            );
-                                        }
-
+                                </TableRow>
+                            ) : (
+                                    displayedStudents.map(({ student, originalIndex }, index) => {
+                                        // VISUAL MERGE: We simulate a merged column by hiding borders between cells.
+                                        // This allows the browser to break the table across pages (starting on Page 1),
+                                        // which is impossible with a real 'rowSpan' of 50+ rows.
+                                        const isMiddle = index === Math.floor(displayedStudents.length / 2);
+                                        const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
+                                        const borderBottom = index === displayedStudents.length - 1 ? '' : 'border-b-0 print:border-b-0';
 
                                         return (
-                                            <TableCell
-                                                key={day.toISOString()}
-                                                className={`text-center p-0.5 border-l`}
-                                            >
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <div className="flex items-center justify-center h-6 w-full cursor-default">
-                                                                {Icon ? Icon : <span className="text-gray-200">-</span>}
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                        {entry && (
-                                                            <TooltipContent>
-                                                                <p className="text-xs">Marked By: {entry.markedBy}</p>
-                                                                <p className="text-[10px] text-muted-foreground">{new Date(entry.markedAt).toLocaleString()}</p>
-                                                                {data.leavesMap?.[student._id]?.[dateKey] && (
-                                                                    <p className="text-[10px] text-yellow-600 font-semibold mt-1">
-                                                                        Leave: {data.leavesMap[student._id][dateKey]}
-                                                                    </p>
-                                                                )}
-                                                            </TooltipContent>
+                                            <TableRow key={student._id} className="group print:break-inside-avoid">
+                                                <TableCell className="sticky left-0 bg-background group-hover:bg-muted/50 z-30 font-medium text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
+                                                    {originalIndex}
+                                                </TableCell>
+                                                <TableCell className="sticky left-[50px] bg-background group-hover:bg-muted/50 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none border-r border-border">
+                                                    <div className="flex flex-col">
+                                                        <span>{student.name}</span>
+                                                        {filters.batchId && !filters.classId && student.studentSpecificField?.classId && (
+                                                            <span className="text-[10px] text-muted-foreground font-normal">
+                                                                {classes.find(c => c._id === student.studentSpecificField.classId)?.name || ""}
+                                                            </span>
                                                         )}
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            </TableCell>
-                                        );
-                                    })}
-                                </TableRow>
-                            ))
+                                                    </div>
+                                                </TableCell>
+                                                {daysInMonth.map(day => {
+                                                    const dateKey = day.getDate();
+                                                    const entry = data.attendanceMap[student._id]?.[dateKey];
+                                                    // Determine status: Database
+                                                    const isPresent = entry?.present;
+                                                    const isFriday = day.getDay() === 5;
+                                                    const occasionName = data.nonWorkingDaysMap?.[dateKey];
+                                                    // Use 'in' check so empty-string occasions (legacy dates) are still non-working
+                                                    const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
+                                                    const teacherLeaveReason = data.teacherLeavesMap?.[dateKey];
+
+                                                    const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
+                                                    const isNoPeriod = filters.classId && data.subjectDays?.length > 0 && !data.subjectDays.includes(dayName) && !isFriday;
+
+                                                        const mergedColumn = isFriday
+                                                            ? {
+                                                                cellClass: "bg-red-50/50 print:!bg-red-50",
+                                                                textClass: "text-red-300 print:!text-red-300 tracking-[1em]",
+                                                                label: "Friday",
+                                                            }
+                                                            : teacherLeaveReason
+                                                                ? {
+                                                                    cellClass: "bg-blue-50/50 print:!bg-blue-50",
+                                                                    textClass: "text-blue-300 print:!text-blue-300 tracking-[0.2em]",
+                                                                    label: teacherLeaveReason,
+                                                                }
+                                                                : isNoPeriod
+                                                                    ? {
+                                                                        cellClass: "bg-gray-50/50 print:!bg-gray-100",
+                                                                        textClass: "text-gray-400 print:!text-gray-400 tracking-[0.2em]",
+                                                                        label: "No Period",
+                                                                    }
+                                                                    : isNonWorkingDay
+                                                                        ? {
+                                                                            cellClass: "bg-orange-50/50 print:!bg-orange-50",
+                                                                            textClass: "text-orange-300 print:!text-orange-300 tracking-[0.5em]",
+                                                                            label: occasionName,
+                                                                        }
+                                                                        : null;
+
+                                                        if (mergedColumn) {
+                                                            return (
+                                                                <TableCell
+                                                                    key={day.toISOString()}
+                                                                    className={`text-center p-0 border-l ${mergedColumn.cellClass} align-middle ${borderTop} ${borderBottom}`}
+                                                                >
+                                                                    <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
+                                                                                {isMiddle && mergedColumn.label && (
+                                                                                    <span className={`absolute z-0 text-xl ${mergedColumn.textClass} font-bold uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap`}>
+                                                                                        {mergedColumn.label}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                </TableCell>
+                                                            );
+                                                        }
+
+                                                        // Visuals
+                                                        let Icon = null;
+                                                        const leaveReason = data.leavesMap?.[student._id]?.[dateKey];
+
+                                                        if (isPresent === true) {
+                                                            Icon = <Check className="w-4 h-4 text-green-600 print:!text-green-600 font-bold" />;
+                                                        } else if (isPresent === false) {
+                                                            Icon = (
+                                                                <div className="flex flex-col items-center">
+                                                                    <X className="w-3 h-3 text-red-600 print:!text-red-600" />
+                                                                    {leaveReason && (
+                                                                        <span className="text-[7px] text-red-500 print:!text-red-500 leading-none mt-0.5 line-clamp-1 max-w-[40px]">
+                                                                            {leaveReason}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        } else if (leaveReason) {
+                                                            Icon = (
+                                                                <div className="flex flex-col items-center">
+                                                                    <span className="text-xs font-bold text-yellow-600 print:!text-yellow-600 leading-none mt-1">L</span>
+                                                                    <span className="text-[7px] text-yellow-600 print:!text-yellow-600 leading-none mt-0.5 line-clamp-1 max-w-[40px]">
+                                                                        {leaveReason}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        }
+
+
+                                                        return (
+                                                            <TableCell
+                                                                key={day.toISOString()}
+                                                                className={`text-center p-0.5 border-l`}
+                                                            >
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="flex items-center justify-center h-6 w-full cursor-default">
+                                                                                {Icon ? Icon : <span className="text-gray-200">-</span>}
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        {entry && (
+                                                                            <TooltipContent>
+                                                                                <p className="text-xs">Marked By: {entry.markedBy}</p>
+                                                                                <p className="text-[10px] text-muted-foreground">{new Date(entry.markedAt).toLocaleString()}</p>
+                                                                                {data.leavesMap?.[student._id]?.[dateKey] && (
+                                                                                    <p className="text-[10px] text-yellow-600 font-semibold mt-1">
+                                                                                        Leave: {data.leavesMap[student._id][dateKey]}
+                                                                                    </p>
+                                                                                )}
+                                                                            </TooltipContent>
+                                                                        )}
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            </TableCell>
+                                                        );
+                                                    })}
+                                            </TableRow>
+                                );
+                            })
                         )}
-                    </TableBody>
-                </Table>
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
-        </div>
         </div>
     );
 };
