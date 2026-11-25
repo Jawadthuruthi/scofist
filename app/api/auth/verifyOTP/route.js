@@ -3,9 +3,18 @@ import connectToDB from "@/lib/db";
 import OTP from "@/models/OTP";
 import { NextResponse } from "next/server";
 import User from "@/models/User";
+import { getMergedUserRoles } from "@/lib/userProfile";
 
 export async function POST(req) {
-  const { email, otp } = await req.json(); // Extract email and OTP from request
+  const { email: rawEmail, otp } = await req.json(); // Extract email and OTP from request
+  const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+
+  if (!email || !otp) {
+    return NextResponse.json(
+      { message: "Email and OTP are required" },
+      { status: 400 }
+    );
+  }
 
   try {
     await connectToDB();
@@ -27,7 +36,7 @@ export async function POST(req) {
     }
 
     if (otpRecord.otp !== otp) {
-      await OTP.updateOne({ email }, { $inc: { attempts: 1 } }); // Increment attempts
+      await OTP.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } }); // Increment attempts
       return NextResponse.json(
         { message: "Invalid OTP. Try again." },
         { status: 400 }
@@ -35,9 +44,11 @@ export async function POST(req) {
     }
 
     // OTP is correct, delete it from the database
-    await OTP.deleteOne({ email });
+    await OTP.deleteOne({ _id: otpRecord._id });
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email })
+      .select("_id email roles name profilePic teacherSpecificField studentSpecificField")
+      .lean();
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
@@ -49,11 +60,14 @@ export async function POST(req) {
       );
     }
 
+    const mergedRoles = await getMergedUserRoles(user.roles, user.email || email);
+    const rolesForToken = mergedRoles.length > 0 ? mergedRoles : user.roles;
+
     const token = jwt.sign(
       {
         userId: user?._id,
-        email,
-        roles: user.roles,
+        email: user.email || email,
+        roles: rolesForToken,
         name: user.name,
         profilePic: user.profilePic?.url
           ? { url: user.profilePic.url, publicId: user.profilePic.publicId }
@@ -73,7 +87,7 @@ export async function POST(req) {
     const response = NextResponse.json({
       message: "OTP verification successful",
       success: true,
-      roles: user.roles,
+      roles: rolesForToken,
     });
 
     response.cookies.set("auth-token", token, {
@@ -89,6 +103,7 @@ export async function POST(req) {
     // first authenticated request, preventing false 404s for role changes.
     response.cookies.delete("active-role");
     response.cookies.delete("profile-cache");
+    response.cookies.delete("force-profile-refresh");
 
     return response;
   } catch (error) {

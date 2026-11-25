@@ -226,6 +226,14 @@ export default function StudentProfilePrintView({ student, classes, batches, api
             <div className="grid grid-cols-1 sm:grid-cols-2 grow gap-x-12 print:gap-x-8 sm:pr-32 print:pr-24 w-full">
                 <InfoField label="Full Name" value={student.name} fullWidth={true} />
                 <InfoField label="Email" value={student?.email} fullWidth={true} />
+                {Array.isArray(student?.roles) &&
+                  student.roles.filter((r) => r && r !== "User").length > 1 && (
+                    <InfoField
+                      label="Roles"
+                      value={student.roles.filter((r) => r && r !== "User").join(", ")}
+                      fullWidth={true}
+                    />
+                  )}
                 
                 <InfoField label="Student ID" value={student._id} />
                 <InfoField label="Admission No" value={student?.studentSpecificField?.admissionNumber || student?.admissionNumber} />

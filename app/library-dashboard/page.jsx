@@ -5,7 +5,7 @@ export default async function Page() {
     const counts = await fetchData("library/books/bookCounts", "", 0, "data");
     const categories = await fetchData("library/books/categories", "", 0, "data");
     const languages = await fetchData("library/books/languages", "", 0, "data");
-    const pendingRentals = await fetchData("rental?status=pending", "", 0, "data");
+    const pendingRentals = await fetchData("rental", "status=pending", 0, "data");
     const initialBooks = await fetchData("library/books", "", 0, "data");
     const pendingRequests = await fetchData("library/requests", "", 0, "data");
 

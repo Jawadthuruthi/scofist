@@ -633,12 +633,8 @@ async function handleLoginPageRequest(req) {
     const { payload } = await jwtVerify(token, SECRET_KEY);
     const effectiveUserId = payload.userId || payload.email;
 
-    // User profile from active cache or cryptographic JWT payload (zero external HTTP roundtrip in edge isolate)
-    const cachedEntry = getUserFromCache(effectiveUserId);
-    const user = cachedEntry?.user || createFallbackUser(payload);
-    if (!cachedEntry) {
-      storeUserInCache(effectiveUserId, user);
-    }
+    // Resolve user from profile-cache cookie (DB-synced roles), then signed JWT payload, then LRU fallback
+    const user = await resolveUserFromRequest(req, payload, effectiveUserId);
 
     const userRoles = user?.roles || payload.roles || [];
     const isTeacher = userRoles.includes("Teacher") || activeRole === "Teacher";
@@ -761,61 +757,13 @@ async function handleApiRequest(req) {
       const { payload } = await jwtVerify(authToken, SECRET_KEY);
       const effectiveUserId = payload.userId || payload.email;
 
-      let resolvedUser = null;
-
-      // 1. If payload directly has roles (new tokens / custom member), use it
-      const payloadRoles = Array.isArray(payload.roles) && payload.roles.length > 0
-        ? payload.roles
-        : (Array.isArray(payload.customRoles) && payload.customRoles.length > 0 ? payload.customRoles : null);
-
-      if (payloadRoles) {
-        resolvedUser = {
-          ...payload,
-          _id: payload.userId,
-          userId: payload.userId,
-          roles: payloadRoles,
-          name: payload.name || "User",
-          profilePic: payload.profilePic,
-          teacherSpecificField: payload.teacherSpecificField,
-          studentSpecificField: payload.studentSpecificField,
-        };
-      }
-
-      // 2. Check cookie-based profile cache (fastest for browser sessions)
-      if (!resolvedUser) {
-        const profileCacheToken = req.cookies.get("profile-cache")?.value;
-        if (profileCacheToken) {
-          try {
-            const { payload: cachedProfile } = await jwtVerify(profileCacheToken, SECRET_KEY);
-            if (
-              (cachedProfile.userId === effectiveUserId || cachedProfile._id === effectiveUserId) &&
-              Array.isArray(cachedProfile.roles) &&
-              cachedProfile.roles.length > 0
-            ) {
-              resolvedUser = cachedProfile;
-            }
-          } catch (err) {
-            // Profile cache token invalid or expired
-          }
-        }
-      }
-
-      // 3. Check memory cache (getUserFromCache)
-      if (!resolvedUser && effectiveUserId) {
-        const cachedEntry = getUserFromCache(effectiveUserId);
-        if (cachedEntry?.user && Array.isArray(cachedEntry.user.roles) && cachedEntry.user.roles.length > 0) {
-          resolvedUser = cachedEntry.user;
-        }
-      }
-
+      const resolvedUser = await resolveUserFromRequest(req, payload, effectiveUserId);
       const clientActiveRole = req.headers.get("active-role") || req.cookies.get("active-role")?.value;
 
-      // Determine user roles: use resolvedUser.roles if available; otherwise trust clientActiveRole as fallback
+      // Determine user roles from resolved profile/token; fallback to clientActiveRole only if empty
       const userRoles = Array.isArray(resolvedUser?.roles) && resolvedUser.roles.length > 0
         ? resolvedUser.roles
-        : (Array.isArray(payload.roles) && payload.roles.length > 0
-          ? payload.roles
-          : (clientActiveRole ? [clientActiveRole] : ["User"]));
+        : (clientActiveRole ? [clientActiveRole] : ["User"]);
 
       const user = {
         ...(resolvedUser || {}),
@@ -943,36 +891,68 @@ async function handleAuthRequest(req) {
   }
 
   try {
-    // 1. Check for cookie-based profile cache
-    const forceRefresh = req.cookies.has("force-profile-refresh");
-    const profileCacheToken = req.cookies.get("profile-cache")?.value;
-    if (profileCacheToken && !forceRefresh) {
-      try {
-        const { payload: cachedProfile } = await jwtVerify(profileCacheToken, SECRET_KEY);
-        // Ensure this cached profile belongs to the current user
-        if (cachedProfile.userId === effectiveUserId || cachedProfile._id === effectiveUserId) {
-          return prepareResponse(req, activeToken, cachedProfile);
-        }
-      } catch (err) {
-        // Cache token invalid or expired, continue to fetch
-      }
-    }
-
-    // 2. Check memory cache (secondary fallback)
-    const cachedEntry = !forceRefresh ? getUserFromCache(effectiveUserId) : null;
-
-    if (cachedEntry) {
-      return prepareResponse(req, activeToken, cachedEntry.user);
-    }
-
-    // Direct fallback from cryptographically verified JWT payload (zero external network latency in edge isolate)
-    const user = createFallbackUser(payload);
-    storeUserInCache(effectiveUserId, user);
+    const user = await resolveUserFromRequest(req, payload, effectiveUserId);
     return prepareResponse(req, activeToken, user);
   } catch (error) {
     console.error("Authentication error:", error.message);
     return redirectToLogin(req);
   }
+}
+
+async function getVerifiedProfileFromCookie(req, effectiveUserId) {
+  const forceRefresh = req.cookies.has("force-profile-refresh");
+  const profileCacheToken = req.cookies.get("profile-cache")?.value;
+  if (!profileCacheToken || forceRefresh) return null;
+
+  try {
+    const { payload: cachedProfile } = await jwtVerify(profileCacheToken, SECRET_KEY);
+    const effectiveStr = String(effectiveUserId || "");
+    const cachedUserId = String(cachedProfile.userId || "");
+    const cachedDocId = String(cachedProfile._id || "");
+    const cachedEmail = String(cachedProfile.email || "");
+    const matchesUser =
+      (cachedUserId && cachedUserId === effectiveStr) ||
+      (cachedDocId && cachedDocId === effectiveStr) ||
+      (cachedEmail && effectiveStr.includes("@") && cachedEmail.toLowerCase() === effectiveStr.toLowerCase());
+
+    if (matchesUser && Array.isArray(cachedProfile.roles) && cachedProfile.roles.length > 0) {
+      return cachedProfile;
+    }
+  } catch (err) {
+    console.error("Profile cache cookie verification failed:", err?.message || err);
+  }
+  return null;
+}
+
+async function resolveUserFromRequest(req, payload, effectiveUserId) {
+  const forceRefresh = req.cookies.has("force-profile-refresh");
+
+  // 1. Signed cookie-based profile cache carries DB-synced roles (overrides stale long-lived JWTs)
+  const cachedProfile = await getVerifiedProfileFromCookie(req, effectiveUserId);
+  if (cachedProfile) {
+    storeUserInCache(effectiveUserId, cachedProfile);
+    return cachedProfile;
+  }
+
+  // 2. Cryptographically verified JWT payload roles (prevents stale isolate RAM cache shadowing fresh logins)
+  const hasTokenRoles =
+    (Array.isArray(payload.roles) && payload.roles.length > 0) ||
+    (Array.isArray(payload.customRoles) && payload.customRoles.length > 0);
+  if (hasTokenRoles) {
+    const tokenUser = createFallbackUser(payload);
+    storeUserInCache(effectiveUserId, tokenUser);
+    return tokenUser;
+  }
+
+  // 3. In-memory LRU fallback for legacy tokens without embedded roles
+  const cachedEntry = !forceRefresh ? getUserFromCache(effectiveUserId) : null;
+  if (cachedEntry?.user) {
+    return cachedEntry.user;
+  }
+
+  const fallbackUser = createFallbackUser(payload);
+  storeUserInCache(effectiveUserId, fallbackUser);
+  return fallbackUser;
 }
 
 function createFallbackUser(payload) {

@@ -13,50 +13,16 @@ import JudgeBottomBar from "@/components/JudgeBottomBar";
 import StudentBottomBar from "@/components/StudentBottomBar";
 import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { parseUser } from "@/lib/utils";
 import { getCachedSettings } from "@/lib/settings";
-import { getCachedUserProfile, hasRealRoles } from "@/lib/userProfile";
+import { resolveLayoutUserAndRole } from "@/lib/userProfile";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Layout({ children }) {
   const headerStore = await headers();
   const cookiesStore = await cookies();
-  const headerUser = parseUser(headerStore);
-  const uid = headerUser?._id || headerUser?.userId || headerUser?.email;
-  const needsProfileCacheSync = Boolean(uid && !hasRealRoles(headerUser?.roles));
-
-  let user = headerUser;
-  if (needsProfileCacheSync) {
-    try {
-      const dbUser = await getCachedUserProfile(String(uid));
-      if (dbUser) {
-        user = {
-          ...headerUser,
-          ...dbUser,
-          profilePic: dbUser.profilePic || headerUser?.profilePic,
-        };
-      }
-    } catch (err) {
-      console.error("Failed to hydrate user roles in dashboard layout:", err?.message || err);
-    }
-  }
-
-  const resolvedRoles = Array.isArray(user?.roles) ? user.roles : [];
-  const cookieRole = cookiesStore.get("active-role")?.value;
-  const headerRole = headerStore.get("active-role");
-  let currentActiveRole =
-    cookieRole && (resolvedRoles.length === 0 || resolvedRoles.includes(cookieRole))
-      ? cookieRole
-      : headerRole && (resolvedRoles.length === 0 || resolvedRoles.includes(headerRole))
-        ? headerRole
-        : resolvedRoles[0];
-
-  if ((!currentActiveRole || currentActiveRole === "User") && hasRealRoles(resolvedRoles)) {
-    currentActiveRole = resolvedRoles.includes("Teacher")
-      ? "Teacher"
-      : resolvedRoles.find((r) => r && r !== "User") || resolvedRoles[0];
-  }
+  const { user, activeRole: currentActiveRole, needsProfileCacheSync } =
+    await resolveLayoutUserAndRole(headerStore, cookiesStore);
 
   const isFestivalRole =
     currentActiveRole === "Program Committee" ||

@@ -2148,6 +2148,13 @@ export default function StudentDashboard({
                         label="Date of Birth"
                         value={formatDateShort(currentUser?.dateOfBirth)}
                       />
+                      {Array.isArray(currentUser?.roles) &&
+                        currentUser.roles.filter((r) => r && r !== "User").length > 1 && (
+                          <ProfileField
+                            label="Roles"
+                            value={currentUser.roles.filter((r) => r && r !== "User").join(", ")}
+                          />
+                        )}
                       <ProfileField
                         label="Blood Group"
                         value={currentUser?.studentSpecificField?.bloodGroup || currentUser?.bloodGroup}

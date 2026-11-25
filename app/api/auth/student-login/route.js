@@ -2,11 +2,13 @@ import jwt from "jsonwebtoken";
 import connectToDB from "@/lib/db";
 import { NextResponse } from "next/server";
 import User from "@/models/User";
+import { getMergedUserRoles } from "@/lib/userProfile";
 
 export async function POST(req) {
     const { studentId, dateOfBirth } = await req.json();
+    const normalizedStudentId = typeof studentId === "string" ? studentId.trim().toUpperCase() : "";
 
-    if (!studentId || !dateOfBirth) {
+    if (!normalizedStudentId || !dateOfBirth) {
         return NextResponse.json(
             { message: "Student ID and Date of Birth are required" },
             { status: 400 }
@@ -36,7 +38,9 @@ export async function POST(req) {
         await connectToDB();
 
         // Find user by _id (Student ID)
-        const user = await User.findById(studentId.toUpperCase());
+        const user = await User.findById(normalizedStudentId)
+            .select("_id email roles name dateOfBirth profilePic studentSpecificField")
+            .lean();
 
         if (!user) {
             return NextResponse.json(
@@ -46,7 +50,7 @@ export async function POST(req) {
         }
 
         // Check if user is a student
-        if (!user.roles.includes("Student")) {
+        if (!Array.isArray(user.roles) || !user.roles.includes("Student")) {
             return NextResponse.json(
                 { message: "Access denied. Not a student account." },
                 { status: 403 }
@@ -86,12 +90,15 @@ export async function POST(req) {
             );
         }
 
+        const mergedRoles = await getMergedUserRoles(user.roles, user.email);
+        const rolesForToken = mergedRoles.length > 0 ? mergedRoles : ["Student"];
+
         // Generate Token
         const token = jwt.sign(
             {
                 userId: user._id,
                 email: user.email,
-                roles: ["Student"],
+                roles: rolesForToken,
                 name: user.name,
                 profilePic: user.profilePic?.url
                     ? { url: user.profilePic.url, publicId: user.profilePic.publicId }
@@ -110,6 +117,7 @@ export async function POST(req) {
             message: "Login successful",
             success: true,
             role: "Student",
+            roles: rolesForToken,
         });
 
         response.cookies.set("auth-token", token, {
@@ -129,6 +137,7 @@ export async function POST(req) {
         // Clear stale session cookies from any previous login
         response.cookies.delete("profile-cache");
         response.cookies.delete("custom-member-token");
+        response.cookies.delete("force-profile-refresh");
 
         return response;
     } catch (error) {

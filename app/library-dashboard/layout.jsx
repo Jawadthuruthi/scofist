@@ -1,19 +1,19 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
 import LibrarianBottomBar from "@/components/LibrarianBottomBar";
 import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { parseUser } from "@/lib/utils";
 import { getCachedSettings } from "@/lib/settings";
+import { resolveLayoutUserAndRole } from "@/lib/userProfile";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Layout({ children }) {
   const headerStore = await headers();
   const cookiesStore = await cookies();
-  const user = parseUser(headerStore);
-  const activeRole = cookiesStore.get("active-role")?.value;
+  const { user, activeRole, needsProfileCacheSync } =
+    await resolveLayoutUserAndRole(headerStore, cookiesStore);
   const settingsData = await getCachedSettings();
 
   return (
@@ -27,7 +27,7 @@ export default async function Layout({ children }) {
         <div className="flex h-screen overflow-hidden min-w-full max-w-full">
           <AppSidebar roles={user?.roles} activeRole={activeRole} user={user} settingsData={settingsData} />
           <div className="flex flex-col flex-1 min-w-0">
-            <Topbar user={user} activeRole={activeRole} settingsData={settingsData} />
+            <Topbar user={user} activeRole={activeRole} settingsData={settingsData} needsProfileCacheSync={needsProfileCacheSync} />
             <main className="flex-1 px-4 lg:p-6 mt-14 overflow-auto container">
               {children}
               <div className="h-20 lg:h-16 no-print"></div>

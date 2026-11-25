@@ -135,6 +135,7 @@ export async function POST(req, res) {
           sameSite: "lax",
           secure: process.env.NODE_ENV === "production",
         });
+        response.cookies.delete("force-profile-refresh");
       } catch (signErr) {
         console.error("Failed to sign profile-cache cookie:", signErr?.message || signErr);
       }

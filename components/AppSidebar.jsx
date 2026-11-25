@@ -769,7 +769,7 @@ function ComboBox({ roles, role }) {
                     setOpen(false);
                     try {
                       Cookies.set("active-role", currentValue, {
-                        url: "/",
+                        path: "/",
                       });
                       console.log("Cookie set successfully");
                     } catch (error) {

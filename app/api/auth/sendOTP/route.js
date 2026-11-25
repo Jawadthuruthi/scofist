@@ -7,10 +7,14 @@ import User from "@/models/User";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
-  const { email } = await req.json();
+  const { email: rawEmail } = await req.json();
+  const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+  if (!email) {
+    return NextResponse.json({ message: "Email is required" }, { status: 400 });
+  }
   try {
     await connectToDB();
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("_id email").lean();
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
